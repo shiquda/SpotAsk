@@ -1,0 +1,300 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		00100000000000000000001A /* Textual in Frameworks */ = {isa = PBXBuildFile; productRef = 009000000000000000000002 /* Textual */; };
+		001000000000000000000001 /* SpotAskApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000001 /* SpotAskApp.swift */; };
+		001000000000000000000002 /* SpotAskCommandCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000002 /* SpotAskCommandCenter.swift */; };
+		001000000000000000000003 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000003 /* StatusBarController.swift */; };
+		001000000000000000000004 /* ChatModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000004 /* ChatModels.swift */; };
+		001000000000000000000005 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000005 /* ChatViewModel.swift */; };
+		001000000000000000000006 /* GlobalHotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000006 /* GlobalHotKey.swift */; };
+		001000000000000000000007 /* SpotAskIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000007 /* SpotAskIntents.swift */; };
+		001000000000000000000008 /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000008 /* SessionStore.swift */; };
+		001000000000000000000009 /* ChatProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000009 /* ChatProvider.swift */; };
+		00100000000000000000000A /* OpenAICompatibleProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000000A /* OpenAICompatibleProvider.swift */; };
+		00100000000000000000000B /* SSEParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000000B /* SSEParser.swift */; };
+		00100000000000000000000C /* ChatInputTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000000C /* ChatInputTextView.swift */; };
+		00100000000000000000000D /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000000D /* ChatView.swift */; };
+		00100000000000000000000E /* CodeBlockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000000E /* CodeBlockView.swift */; };
+		001000000000000000000010 /* MarkdownTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000010 /* MarkdownTextView.swift */; };
+		001000000000000000000011 /* MessageContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000011 /* MessageContentView.swift */; };
+		001000000000000000000012 /* ScrollPositionObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000012 /* ScrollPositionObserver.swift */; };
+		001000000000000000000013 /* LocalAPIKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000013 /* LocalAPIKeyStore.swift */; };
+		001000000000000000000014 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000014 /* AppSettings.swift */; };
+		001000000000000000000015 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000015 /* SettingsView.swift */; };
+		001000000000000000000016 /* Clipboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000016 /* Clipboard.swift */; };
+		001000000000000000000017 /* SafeLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000017 /* SafeLogger.swift */; };
+		001000000000000000000018 /* URLNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000018 /* URLNormalizer.swift */; };
+		001000000000000000000019 /* SpotAskPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000019 /* SpotAskPanelController.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		002000000000000000000001 /* SpotAskApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/App/SpotAskApp.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000002 /* SpotAskCommandCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/App/SpotAskCommandCenter.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000003 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/App/StatusBarController.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000004 /* ChatModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Chat/ChatModels.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000005 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Chat/ChatViewModel.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000006 /* GlobalHotKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/HotKey/GlobalHotKey.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000007 /* SpotAskIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Intents/SpotAskIntents.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000008 /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Persistence/SessionStore.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000009 /* ChatProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/ChatProvider.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000000A /* OpenAICompatibleProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/OpenAICompatibleProvider.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000000B /* SSEParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/SSEParser.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000000C /* ChatInputTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatInputTextView.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000000D /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatView.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000000E /* CodeBlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/CodeBlockView.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000010 /* MarkdownTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/MarkdownTextView.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000011 /* MessageContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/MessageContentView.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000012 /* ScrollPositionObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ScrollPositionObserver.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000013 /* LocalAPIKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Persistence/LocalAPIKeyStore.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000014 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/AppSettings.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000015 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/SettingsView.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000016 /* Clipboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Utilities/Clipboard.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000017 /* SafeLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Utilities/SafeLogger.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000018 /* URLNormalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Utilities/URLNormalizer.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000019 /* SpotAskPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Window/SpotAskPanelController.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000020 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Resources/Info.plist; sourceTree = SOURCE_ROOT; };
+		002000000000000000000021 /* SpotAsk.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Config/SpotAsk.entitlements; sourceTree = SOURCE_ROOT; };
+		002000000000000000000022 /* SpotAsk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SpotAsk.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		003000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				003000000000000000000002 /* Sources */,
+				003000000000000000000003 /* Resources */,
+				003000000000000000000004 /* Config */,
+				003000000000000000000005 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		003000000000000000000002 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				002000000000000000000001 /* SpotAskApp.swift */,
+				002000000000000000000002 /* SpotAskCommandCenter.swift */,
+				002000000000000000000003 /* StatusBarController.swift */,
+				002000000000000000000004 /* ChatModels.swift */,
+				002000000000000000000005 /* ChatViewModel.swift */,
+				002000000000000000000006 /* GlobalHotKey.swift */,
+				002000000000000000000007 /* SpotAskIntents.swift */,
+				002000000000000000000008 /* SessionStore.swift */,
+				002000000000000000000009 /* ChatProvider.swift */,
+				00200000000000000000000A /* OpenAICompatibleProvider.swift */,
+				00200000000000000000000B /* SSEParser.swift */,
+				00200000000000000000000C /* ChatInputTextView.swift */,
+				00200000000000000000000D /* ChatView.swift */,
+				00200000000000000000000E /* CodeBlockView.swift */,
+				002000000000000000000010 /* MarkdownTextView.swift */,
+				002000000000000000000011 /* MessageContentView.swift */,
+				002000000000000000000012 /* ScrollPositionObserver.swift */,
+				002000000000000000000013 /* LocalAPIKeyStore.swift */,
+				002000000000000000000014 /* AppSettings.swift */,
+				002000000000000000000015 /* SettingsView.swift */,
+				002000000000000000000016 /* Clipboard.swift */,
+				002000000000000000000017 /* SafeLogger.swift */,
+				002000000000000000000018 /* URLNormalizer.swift */,
+				002000000000000000000019 /* SpotAskPanelController.swift */,
+			);
+			name = Sources;
+			sourceTree = "<group>";
+		};
+		003000000000000000000003 /* Resources */ = {
+			isa = PBXGroup;
+			children = (002000000000000000000020 /* Info.plist */,);
+			name = Resources;
+			sourceTree = "<group>";
+		};
+		003000000000000000000004 /* Config */ = {
+			isa = PBXGroup;
+			children = (002000000000000000000021 /* SpotAsk.entitlements */,);
+			name = Config;
+			sourceTree = "<group>";
+		};
+		003000000000000000000005 /* Products */ = {
+			isa = PBXGroup;
+			children = (002000000000000000000022 /* SpotAsk.app */,);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		004000000000000000000001 /* SpotAsk */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 005000000000000000000002 /* Build configuration list for PBXNativeTarget "SpotAsk" */;
+			buildPhases = (
+				006000000000000000000001 /* Sources */,
+				006000000000000000000002 /* Frameworks */,
+				006000000000000000000003 /* Resources */,
+			);
+			buildRules = ();
+			dependencies = ();
+			name = SpotAsk;
+			packageProductDependencies = (
+				009000000000000000000002 /* Textual */,
+			);
+			productName = SpotAsk;
+			productReference = 002000000000000000000022 /* SpotAsk.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		007000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2660;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					004000000000000000000001 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+				};
+			};
+			buildConfigurationList = 005000000000000000000001 /* Build configuration list for PBXProject "SpotAsk" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base);
+			mainGroup = 003000000000000000000001;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 003000000000000000000005 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			packageReferences = (
+				009000000000000000000001 /* XCLocalSwiftPackageReference "textual-0.5.0" */,
+			);
+			targets = (004000000000000000000001 /* SpotAsk */,);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		006000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		006000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				001000000000000000000001, 001000000000000000000002, 001000000000000000000003,
+				001000000000000000000004, 001000000000000000000005, 001000000000000000000006,
+				001000000000000000000007, 001000000000000000000008, 001000000000000000000009,
+				00100000000000000000000A, 00100000000000000000000B, 00100000000000000000000C,
+				00100000000000000000000D, 00100000000000000000000E, 001000000000000000000010,
+				001000000000000000000011, 001000000000000000000012,
+				001000000000000000000013, 001000000000000000000014, 001000000000000000000015,
+				001000000000000000000016, 001000000000000000000017, 001000000000000000000018,
+				001000000000000000000019,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		006000000000000000000002 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (00100000000000000000001A /* Textual in Frameworks */,); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		009000000000000000000001 /* XCLocalSwiftPackageReference "textual-0.5.0" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "Vendor/textual-0.5.0";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		009000000000000000000002 /* Textual */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 009000000000000000000001 /* XCLocalSwiftPackageReference "textual-0.5.0" */;
+			productName = Textual;
+		};
+/* End XCSwiftPackageProductDependency section */
+
+/* Begin XCBuildConfiguration section */
+		008000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		008000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		008000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/SpotAsk.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 9JQA7UT66M;
+				CURRENT_PROJECT_VERSION = 5;
+				ENABLE_APP_SANDBOX = YES;
+				EXTRACT_APP_INTENTS_METADATA = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.spotask.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		008000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/SpotAsk.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 9JQA7UT66M;
+				CURRENT_PROJECT_VERSION = 5;
+				ENABLE_APP_SANDBOX = YES;
+				EXTRACT_APP_INTENTS_METADATA = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.spotask.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		005000000000000000000001 = {isa = XCConfigurationList; buildConfigurations = (008000000000000000000001, 008000000000000000000002); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		005000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (008000000000000000000003, 008000000000000000000004); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+/* End XCConfigurationList section */
+	};
+	rootObject = 007000000000000000000001 /* Project object */;
+}

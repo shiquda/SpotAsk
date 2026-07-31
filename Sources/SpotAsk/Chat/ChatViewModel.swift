@@ -1,0 +1,186 @@
+import Foundation
+import Observation
+
+@MainActor
+@Observable
+final class ChatViewModel {
+    var messages: [ChatMessage] = []
+    var input = ""
+    var generationState: GenerationState = .idle
+    var error: ChatError?
+    var isSettingsPresented = false
+    var selectedPromptPreset: PromptPreset?
+
+    private let settings: AppSettings
+    private let providerFactory: any ChatProviderFactory
+    private let sessionStore: SessionStore
+    private var streamTask: Task<Void, Never>?
+    private var pendingText = ""
+    private var flushTask: Task<Void, Never>?
+    private var retryPromptPreset: PromptPreset?
+
+    init(settings: AppSettings, providerFactory: any ChatProviderFactory, sessionStore: SessionStore) {
+        self.settings = settings
+        self.providerFactory = providerFactory
+        self.sessionStore = sessionStore
+        if settings.retainSession { messages = (try? sessionStore.load()) ?? [] }
+    }
+
+    var lastAssistantMessage: ChatMessage? { messages.last(where: { $0.role == .assistant }) }
+    var canSend: Bool { !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && generationState != .connecting && generationState != .streaming }
+
+    func send() {
+        guard canSend else { return }
+        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        let promptPreset = selectedPromptPreset
+        selectedPromptPreset = nil
+        input = ""
+        messages.append(ChatMessage(role: .user, content: text))
+        beginRequest(using: promptPreset)
+    }
+
+    func cancel() {
+        guard generationState == .connecting || generationState == .streaming else { return }
+        streamTask?.cancel()
+        flushTask?.cancel()
+        flushPendingText()
+        if let index = messages.lastIndex(where: { $0.role == .assistant && $0.state == .streaming }) {
+            messages[index].state = .cancelled
+        }
+        generationState = .cancelled
+        persistIfNeeded()
+    }
+
+    func retry() {
+        guard generationState == .failed, let assistantIndex = messages.lastIndex(where: { $0.role == .assistant && $0.state == .failed }) else { return }
+        messages.remove(at: assistantIndex)
+        error = nil
+        beginRequest(using: retryPromptPreset)
+    }
+
+    func newConversation() {
+        streamTask?.cancel()
+        flushTask?.cancel()
+        pendingText = ""
+        messages.removeAll()
+        input = ""
+        error = nil
+        generationState = .idle
+        selectedPromptPreset = nil
+        retryPromptPreset = nil
+        try? sessionStore.clear()
+    }
+
+    func clearAllLocalData() {
+        newConversation()
+    }
+
+    private func beginRequest(using promptPreset: PromptPreset? = nil) {
+        guard messages.last?.role == .user else { return }
+        error = nil
+        generationState = .connecting
+        let assistantID = UUID()
+        messages.append(ChatMessage(id: assistantID, role: .assistant, content: "", state: .streaming))
+        retryPromptPreset = promptPreset
+        let request = ChatRequest(
+            model: settings.model,
+            messages: messagesForRequest(using: promptPreset),
+            stream: settings.streaming
+        )
+
+        streamTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let provider = try self.providerFactory.makeProvider()
+                self.generationState = .streaming
+                for try await event in provider.stream(request: request) {
+                    guard !Task.isCancelled else { throw ChatError.cancelled }
+                    switch event {
+                    case let .textDelta(text): self.append(text, to: assistantID)
+                    case .completed: break
+                    case .usage: break
+                    }
+                }
+                self.flushPendingText()
+                self.completeAssistant(with: assistantID, state: .complete)
+                self.generationState = .idle
+                self.persistIfNeeded()
+            } catch let receivedError as ChatError {
+                self.finishAfterError(receivedError, assistantID: assistantID)
+            } catch is CancellationError {
+                self.finishAfterError(.cancelled, assistantID: assistantID)
+            } catch {
+                self.finishAfterError(.invalidResponse, assistantID: assistantID)
+            }
+        }
+    }
+
+    private func messagesForRequest(using promptPreset: PromptPreset?) -> [ChatMessage] {
+        var result: [ChatMessage] = []
+        let prompt = [
+            settings.systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines),
+            promptPreset?.instruction.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        ]
+        .filter { !$0.isEmpty }
+        .joined(separator: "\n\n")
+        if !prompt.isEmpty { result.append(ChatMessage(role: .system, content: prompt)) }
+        let conversation = messages.filter { $0.role == .user || ($0.role == .assistant && $0.state == .complete) }
+        let maximum = settings.contextLimit == 0 ? Int.max : settings.contextLimit
+        let recent = Array(conversation.suffix(maximum))
+        var totalCharacters = 0
+        for message in recent.reversed() {
+            totalCharacters += message.content.count
+            if totalCharacters > 100_000 { break }
+            result.insert(message, at: prompt.isEmpty ? 0 : 1)
+        }
+        return result
+    }
+
+    private func append(_ text: String, to assistantID: UUID) {
+        guard let index = messages.firstIndex(where: { $0.id == assistantID }) else { return }
+        if messages[index].content.isEmpty {
+            messages[index].content = text
+            return
+        }
+        pendingText += text
+        guard flushTask == nil else { return }
+        flushTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(40))
+            guard !Task.isCancelled else { return }
+            self?.flushPendingText()
+        }
+    }
+
+    private func flushPendingText() {
+        defer { flushTask = nil }
+        guard !pendingText.isEmpty, let index = messages.lastIndex(where: { $0.role == .assistant && $0.state == .streaming }) else {
+            pendingText = ""
+            return
+        }
+        messages[index].content += pendingText
+        pendingText = ""
+    }
+
+    private func completeAssistant(with id: UUID, state: MessageState) {
+        guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
+        messages[index].state = state
+    }
+
+    private func finishAfterError(_ receivedError: ChatError, assistantID: UUID) {
+        flushPendingText()
+        if receivedError == .cancelled {
+            completeAssistant(with: assistantID, state: .cancelled)
+            generationState = .cancelled
+        } else {
+            completeAssistant(with: assistantID, state: .failed)
+            generationState = .failed
+            error = receivedError
+        }
+        persistIfNeeded()
+    }
+
+    private func persistIfNeeded() {
+        guard settings.retainSession else { return }
+        try? sessionStore.save(messages)
+    }
+}

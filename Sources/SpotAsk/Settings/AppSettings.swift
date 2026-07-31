@@ -1,0 +1,182 @@
+import Foundation
+import Observation
+
+struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
+    let id: UUID
+    var title: String
+    var instruction: String
+    let isBuiltIn: Bool
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        instruction: String,
+        isBuiltIn: Bool = false
+    ) {
+        self.id = id
+        self.title = title
+        self.instruction = instruction
+        self.isBuiltIn = isBuiltIn
+    }
+
+    static let builtIn: [PromptPreset] = [
+        PromptPreset(
+            id: UUID(uuidString: "EF8CF35C-386A-4389-A137-C207E4DB11FD")!,
+            title: "翻译",
+            instruction: "请准确翻译用户提供的内容。保留原有格式、语气和专有名词；仅输出译文。",
+            isBuiltIn: true
+        ),
+        PromptPreset(
+            id: UUID(uuidString: "1C85A324-65B3-4EBD-B2C4-0C6B072E284A")!,
+            title: "润色",
+            instruction: "请在不改变原意的前提下润色用户提供的内容，使表达自然、清晰、得体；仅输出润色后的版本。",
+            isBuiltIn: true
+        ),
+        PromptPreset(
+            id: UUID(uuidString: "5D03D444-EC3D-4F5D-9FB1-91EA5BD4E5B2")!,
+            title: "总结",
+            instruction: "请提炼用户提供内容的重点，以简洁、结构清晰的方式总结。",
+            isBuiltIn: true
+        ),
+        PromptPreset(
+            id: UUID(uuidString: "BF43F694-E4AE-4B5B-9AE9-B4D6D4A4F248")!,
+            title: "解释代码",
+            instruction: "请解释用户提供的代码：先说明用途，再说明关键逻辑、输入输出与注意事项；使用清晰的分段和示例。",
+            isBuiltIn: true
+        )
+    ]
+}
+
+enum HotKeyPreset: String, CaseIterable, Identifiable {
+    case optionSpace
+    case controlSpace
+    case commandShiftSpace
+
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .optionSpace: "Option + Space"
+        case .controlSpace: "Control + Space"
+        case .commandShiftSpace: "Command + Shift + Space"
+        }
+    }
+}
+
+enum AppearanceMode: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+    var id: String { rawValue }
+}
+
+enum FontSize: String, CaseIterable, Identifiable {
+    case small
+    case standard
+    case large
+    var id: String { rawValue }
+}
+
+@MainActor
+@Observable
+final class AppSettings {
+    static let shared = AppSettings()
+
+    private enum Key {
+        static let baseURL = "baseURL"
+        static let useFullEndpoint = "useFullEndpoint"
+        static let model = "model"
+        static let systemPrompt = "systemPrompt"
+        static let streaming = "streaming"
+        static let timeout = "timeout"
+        static let contextLimit = "contextLimit"
+        static let retainSession = "retainSession"
+        static let clearInputOnClose = "clearInputOnClose"
+        static let launchAtLogin = "launchAtLogin"
+        static let appearance = "appearance"
+        static let fontSize = "fontSize"
+        static let hotKeyPreset = "hotKeyPreset"
+        static let panelWidth = "panelWidth"
+        static let panelHeight = "panelHeight"
+        static let keepWindowOnTop = "keepWindowOnTop"
+        static let customPromptPresets = "customPromptPresets"
+    }
+
+    private let defaults: UserDefaults
+    var baseURL: String { didSet { defaults.set(baseURL, forKey: Key.baseURL) } }
+    var useFullEndpoint: Bool { didSet { defaults.set(useFullEndpoint, forKey: Key.useFullEndpoint) } }
+    var model: String { didSet { defaults.set(model, forKey: Key.model) } }
+    var systemPrompt: String { didSet { defaults.set(systemPrompt, forKey: Key.systemPrompt) } }
+    var streaming: Bool { didSet { defaults.set(streaming, forKey: Key.streaming) } }
+    var timeout: Double { didSet { defaults.set(timeout, forKey: Key.timeout) } }
+    var contextLimit: Int { didSet { defaults.set(contextLimit, forKey: Key.contextLimit) } }
+    var retainSession: Bool { didSet { defaults.set(retainSession, forKey: Key.retainSession) } }
+    var clearInputOnClose: Bool { didSet { defaults.set(clearInputOnClose, forKey: Key.clearInputOnClose) } }
+    var launchAtLogin: Bool { didSet { defaults.set(launchAtLogin, forKey: Key.launchAtLogin) } }
+    var appearance: AppearanceMode { didSet { defaults.set(appearance.rawValue, forKey: Key.appearance) } }
+    var fontSize: FontSize { didSet { defaults.set(fontSize.rawValue, forKey: Key.fontSize) } }
+    var hotKeyPreset: HotKeyPreset { didSet { defaults.set(hotKeyPreset.rawValue, forKey: Key.hotKeyPreset) } }
+    var panelWidth: Double { didSet { defaults.set(panelWidth, forKey: Key.panelWidth) } }
+    var panelHeight: Double { didSet { defaults.set(panelHeight, forKey: Key.panelHeight) } }
+    var keepWindowOnTop: Bool { didSet { defaults.set(keepWindowOnTop, forKey: Key.keepWindowOnTop) } }
+    var customPromptPresets: [PromptPreset] {
+        didSet { saveCustomPromptPresets() }
+    }
+
+    var promptPresets: [PromptPreset] {
+        PromptPreset.builtIn + customPromptPresets
+    }
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        baseURL = defaults.string(forKey: Key.baseURL) ?? "https://api.openai.com/v1"
+        useFullEndpoint = defaults.object(forKey: Key.useFullEndpoint) as? Bool ?? false
+        model = defaults.string(forKey: Key.model) ?? "gpt-5-mini"
+        systemPrompt = defaults.string(forKey: Key.systemPrompt) ?? "You are a helpful assistant."
+        streaming = defaults.object(forKey: Key.streaming) as? Bool ?? true
+        timeout = defaults.object(forKey: Key.timeout) as? Double ?? 60
+        contextLimit = defaults.object(forKey: Key.contextLimit) as? Int ?? 20
+        retainSession = defaults.bool(forKey: Key.retainSession)
+        clearInputOnClose = defaults.object(forKey: Key.clearInputOnClose) as? Bool ?? true
+        launchAtLogin = defaults.bool(forKey: Key.launchAtLogin)
+        appearance = AppearanceMode(rawValue: defaults.string(forKey: Key.appearance) ?? "system") ?? .system
+        fontSize = FontSize(rawValue: defaults.string(forKey: Key.fontSize) ?? "standard") ?? .standard
+        hotKeyPreset = HotKeyPreset(rawValue: defaults.string(forKey: Key.hotKeyPreset) ?? "optionSpace") ?? .optionSpace
+        panelWidth = defaults.object(forKey: Key.panelWidth) as? Double ?? 720
+        panelHeight = defaults.object(forKey: Key.panelHeight) as? Double ?? 520
+        keepWindowOnTop = defaults.object(forKey: Key.keepWindowOnTop) as? Bool ?? false
+        customPromptPresets = Self.loadCustomPromptPresets(from: defaults)
+    }
+
+    @discardableResult
+    func saveCustomPromptPreset(_ preset: PromptPreset) -> Bool {
+        guard !preset.isBuiltIn else { return false }
+        let title = preset.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let instruction = preset.instruction.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty, !instruction.isEmpty else { return false }
+
+        let savedPreset = PromptPreset(id: preset.id, title: title, instruction: instruction)
+        if let index = customPromptPresets.firstIndex(where: { $0.id == preset.id }) {
+            customPromptPresets[index] = savedPreset
+        } else {
+            customPromptPresets.append(savedPreset)
+        }
+        return true
+    }
+
+    func deleteCustomPromptPreset(id: UUID) {
+        customPromptPresets.removeAll { $0.id == id }
+    }
+
+    private func saveCustomPromptPresets() {
+        guard let data = try? JSONEncoder().encode(customPromptPresets) else { return }
+        defaults.set(data, forKey: Key.customPromptPresets)
+    }
+
+    private static func loadCustomPromptPresets(from defaults: UserDefaults) -> [PromptPreset] {
+        guard let data = defaults.data(forKey: Key.customPromptPresets),
+              let presets = try? JSONDecoder().decode([PromptPreset].self, from: data) else {
+            return []
+        }
+        return presets.filter { !$0.isBuiltIn }
+    }
+}
