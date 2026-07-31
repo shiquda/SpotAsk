@@ -11,6 +11,8 @@ struct ChatView: View {
     @FocusState private var inputFocused: Bool
     @State private var followsLatest = true
     @State private var didCopyLastAnswer = false
+    @State private var inputHeight = ChatInputTextView.minHeight
+    @State private var showsNewConversationConfirmation = false
 
     init(
         viewModel: ChatViewModel,
@@ -39,10 +41,20 @@ struct ChatView: View {
         .sheet(isPresented: $viewModel.isSettingsPresented) {
             SettingsView(settings: settings, keyStore: keyStore, providerFactory: providerFactory)
         }
-        .onAppear { inputFocused = true }
+        .alert(L10n.string("chat.newConversationConfirmTitle"), isPresented: $showsNewConversationConfirmation) {
+            Button(L10n.string("settings.cancel"), role: .cancel) {}
+            Button(L10n.string("chat.newConversation"), role: .destructive) { confirmNewConversation() }
+        } message: {
+            Text(L10n.string("chat.newConversationConfirmMessage"))
+        }
+        .onAppear {
+            inputFocused = true
+            viewModel.offerSessionChoiceIfNeeded()
+        }
         .onExitCommand(perform: handleEscape)
         .onReceive(NotificationCenter.default.publisher(for: .spotAskFocusInput)) { _ in
             inputFocused = true
+            viewModel.offerSessionChoiceIfNeeded()
         }
         .onReceive(NotificationCenter.default.publisher(for: .spotAskNewConversation)) { _ in
             newConversation()
@@ -72,6 +84,17 @@ struct ChatView: View {
                     .accessibilityLabel(L10n.string("chat.generating"))
             }
             Spacer()
+            if viewModel.canRegenerate {
+                Button { viewModel.regenerate() } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.plain)
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
+                .help(L10n.string("chat.regenerate"))
+                .accessibilityLabel(L10n.string("chat.regenerate"))
+                .keyboardShortcut("r", modifiers: .command)
+            }
             if let answer = viewModel.lastAssistantMessage, !answer.content.isEmpty {
                 Button { copyLastAnswer(answer.content) } label: {
                     Image(systemName: didCopyLastAnswer ? "checkmark" : "doc.on.doc")
@@ -134,7 +157,12 @@ struct ChatView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            ScrollViewReader { proxy in
+            VStack(spacing: 0) {
+                if viewModel.isSessionChoicePending {
+                    sessionChoiceBanner
+                    Divider()
+                }
+                ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 20) {
                         ForEach(viewModel.messages) { message in
@@ -182,8 +210,32 @@ struct ChatView: View {
                 .onChange(of: viewModel.messages.last?.content) { _, _ in
                     scrollToBottom(using: proxy)
                 }
+                }
             }
         }
+    }
+
+    private var sessionChoiceBanner: some View {
+        HStack(spacing: 10) {
+            Text(L10n.string("chat.sessionIdleNotice"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Spacer()
+            Button(L10n.string("chat.continueConversation")) {
+                viewModel.continueSession()
+                inputFocused = true
+            }
+            .controlSize(.small)
+            Button(L10n.string("chat.startNewQuestion")) {
+                startFreshSession()
+            }
+            .controlSize(.small)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.quinary)
+        .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
@@ -233,10 +285,13 @@ struct ChatView: View {
             ChatInputTextView(
                 text: $viewModel.input,
                 isFocused: $inputFocused,
+                height: $inputHeight,
                 onSubmit: viewModel.send,
-                onEscape: handleEscape
+                onEscape: handleEscape,
+                onRecall: { viewModel.recallLastQuestion() }
             )
-            .frame(height: 52)
+            .frame(height: inputHeight)
+            .animation(.easeOut(duration: 0.12), value: inputHeight)
             .background(.quinary, in: RoundedRectangle(cornerRadius: 5))
             .overlay {
                 RoundedRectangle(cornerRadius: 5).strokeBorder(.quaternary, lineWidth: 1)
@@ -290,7 +345,21 @@ struct ChatView: View {
     }
 
     private func newConversation() {
+        guard viewModel.messages.isEmpty else {
+            showsNewConversationConfirmation = true
+            return
+        }
+        confirmNewConversation()
+    }
+
+    private func confirmNewConversation() {
         viewModel.newConversation()
+        inputFocused = true
+        followsLatest = true
+    }
+
+    private func startFreshSession() {
+        viewModel.startFreshSession()
         inputFocused = true
         followsLatest = true
     }

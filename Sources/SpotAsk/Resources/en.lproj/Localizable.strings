@@ -8,6 +8,7 @@
 "chat.copyCompleteAnswer" = "Copy full answer";
 "chat.copyLastAnswer" = "Copy latest full answer";
 "chat.copyQuestion" = "Copy question";
+"chat.continueConversation" = "Continue Previous Conversation";
 "chat.directQuestion" = "Ask directly";
 "chat.copied" = "Copied";
 "chat.focusInput" = "Focus input";
@@ -17,12 +18,17 @@
 "chat.inputAccessibility" = "Question input";
 "chat.inputPlaceholder" = "Ask a question...";
 "chat.newConversation" = "New conversation";
+"chat.newConversationConfirmMessage" = "The current conversation will be cleared.";
+"chat.newConversationConfirmTitle" = "Start a new conversation?";
 "chat.questionCopied" = "Question copied";
+"chat.regenerate" = "Regenerate answer";
 "chat.requestFailed" = "Request failed";
 "chat.retry" = "Retry";
 "chat.retryFailedRequest" = "Retry the most recent failed request";
 "chat.selectPrompt" = "Choose how to ask";
 "chat.send" = "Send question";
+"chat.sessionIdleNotice" = "It's been a while since your last question.";
+"chat.startNewQuestion" = "Start New Question";
 "chat.stop" = "Stop generating";
 "chat.stopped" = "Generation stopped";
 "chat.usePrompt" = "Use for this question: %@";

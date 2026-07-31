@@ -4,12 +4,17 @@ import Observation
 @MainActor
 @Observable
 final class ChatViewModel {
+    /// How long the conversation must sit idle before the user is asked whether
+    /// a new question should continue it or start fresh. Deliberately fixed.
+    static let staleSessionInterval: TimeInterval = 15 * 60
+
     var messages: [ChatMessage] = []
     var input = ""
     var generationState: GenerationState = .idle
     var error: ChatError?
     var isSettingsPresented = false
     var selectedPromptPreset: PromptPreset?
+    private(set) var isSessionChoicePending = false
 
     private let settings: AppSettings
     private let providerFactory: any ChatProviderFactory
@@ -27,7 +32,21 @@ final class ChatViewModel {
     }
 
     var lastAssistantMessage: ChatMessage? { messages.last(where: { $0.role == .assistant }) }
-    var canSend: Bool { !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && generationState != .connecting && generationState != .streaming }
+    var canSend: Bool {
+        !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && generationState != .connecting
+            && generationState != .streaming
+            && !isSessionChoicePending
+    }
+
+    var canRegenerate: Bool {
+        guard generationState == .idle,
+              !isSessionChoicePending,
+              let last = messages.last,
+              last.role == .assistant,
+              last.state == .complete else { return false }
+        return messages.contains { $0.role == .user }
+    }
 
     func send() {
         guard canSend else { return }
@@ -74,11 +93,63 @@ final class ChatViewModel {
         generationState = .idle
         selectedPromptPreset = nil
         retryPromptPreset = nil
+        isSessionChoicePending = false
         try? sessionStore.clear()
+    }
+
+    /// Offers the continue-or-start-fresh choice once a conversation has been
+    /// idle long enough that silently appending a new question would surprise
+    /// the user. Quick reopens never trigger it.
+    func offerSessionChoiceIfNeeded(now: Date = .now) {
+        guard !isSessionChoicePending,
+              !messages.isEmpty,
+              generationState != .connecting,
+              generationState != .streaming,
+              let lastMessage = messages.last,
+              now.timeIntervalSince(lastMessage.createdAt) > Self.staleSessionInterval else { return }
+        isSessionChoicePending = true
+    }
+
+    func continueSession() {
+        isSessionChoicePending = false
+    }
+
+    /// Starts over but keeps the current draft so a typed question survives.
+    func startFreshSession() {
+        let draft = input
+        newConversation()
+        input = draft
+    }
+
+    /// Recalls the most recent question into an empty input without touching
+    /// the original message. Returns false when there is nothing to recall.
+    @discardableResult
+    func recallLastQuestion() -> Bool {
+        guard input.isEmpty, let lastQuestion = messages.last(where: { $0.role == .user }) else { return false }
+        input = lastQuestion.content
+        return true
+    }
+
+    /// Replaces the latest completed answer without repeating the question,
+    /// reusing the one-shot prompt the question was asked with.
+    func regenerate() {
+        guard canRegenerate else { return }
+        let promptPreset = promptPresetForLastUserMessage()
+        messages.removeLast()
+        error = nil
+        beginRequest(using: promptPreset)
     }
 
     func clearAllLocalData() {
         newConversation()
+    }
+
+    /// Restored sessions only keep the prompt title, so look the instruction up
+    /// by title; the in-memory preset wins while it is still around.
+    private func promptPresetForLastUserMessage() -> PromptPreset? {
+        guard let title = messages.last(where: { $0.role == .user })?.appliedPresetTitle else { return nil }
+        if retryPromptPreset?.title == title { return retryPromptPreset }
+        return settings.promptPresets.first { $0.title == title }
     }
 
     private func beginRequest(using promptPreset: PromptPreset? = nil) {

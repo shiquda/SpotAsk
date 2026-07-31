@@ -47,7 +47,7 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate {
     func show() {
         let panel = makePanelIfNeeded()
         constrain(panel)
-        center(panel)
+        restorePositionOrCenter(panel)
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
         DispatchQueue.main.async {
@@ -83,6 +83,12 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate {
         guard let panel else { return }
         settings.panelWidth = panel.frame.width
         settings.panelHeight = panel.frame.height
+        settings.panelOrigin = panel.frame.origin
+    }
+
+    func windowDidMove(_ notification: Notification) {
+        guard let panel else { return }
+        settings.panelOrigin = panel.frame.origin
     }
 
     private func makePanelIfNeeded() -> SpotAskPanel {
@@ -115,6 +121,24 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate {
         guard let panel else { return }
         panel.level = settings.keepWindowOnTop ? .floating : .normal
         panel.isFloatingPanel = settings.keepWindowOnTop
+    }
+
+    /// Restores the saved frame when it is still reachable on a connected
+    /// display; otherwise (first launch, or the display was unplugged) centers
+    /// on the screen that has the mouse.
+    private func restorePositionOrCenter(_ panel: NSPanel) {
+        if let origin = settings.panelOrigin {
+            let restored = NSRect(origin: origin, size: panel.frame.size)
+            let isReachable = NSScreen.screens.contains { screen in
+                let overlap = screen.visibleFrame.intersection(restored)
+                return !overlap.isNull && overlap.width >= 120 && overlap.height >= 120
+            }
+            if isReachable {
+                panel.setFrameOrigin(restored.origin)
+                return
+            }
+        }
+        center(panel)
     }
 
     private func center(_ panel: NSPanel) {

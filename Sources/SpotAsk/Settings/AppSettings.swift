@@ -119,6 +119,8 @@ final class AppSettings {
         static let hotKeyPreset = "hotKeyPreset"
         static let panelWidth = "panelWidth"
         static let panelHeight = "panelHeight"
+        static let panelOriginX = "panelOriginX"
+        static let panelOriginY = "panelOriginY"
         static let keepWindowOnTop = "keepWindowOnTop"
         static let customPromptPresets = "customPromptPresets"
     }
@@ -145,6 +147,25 @@ final class AppSettings {
     var hotKeyPreset: HotKeyPreset { didSet { defaults.set(hotKeyPreset.rawValue, forKey: Key.hotKeyPreset) } }
     var panelWidth: Double { didSet { defaults.set(panelWidth, forKey: Key.panelWidth) } }
     var panelHeight: Double { didSet { defaults.set(panelHeight, forKey: Key.panelHeight) } }
+
+    /// Last window position, remembered across launches. Nil until the window
+    /// has been shown once, or after the saved spot falls off every screen.
+    var panelOrigin: CGPoint? {
+        get {
+            guard let x = defaults.object(forKey: Key.panelOriginX) as? Double,
+                  let y = defaults.object(forKey: Key.panelOriginY) as? Double else { return nil }
+            return CGPoint(x: x, y: y)
+        }
+        set {
+            guard let newValue else {
+                defaults.removeObject(forKey: Key.panelOriginX)
+                defaults.removeObject(forKey: Key.panelOriginY)
+                return
+            }
+            defaults.set(newValue.x, forKey: Key.panelOriginX)
+            defaults.set(newValue.y, forKey: Key.panelOriginY)
+        }
+    }
     var keepWindowOnTop: Bool { didSet { defaults.set(keepWindowOnTop, forKey: Key.keepWindowOnTop) } }
     var customPromptPresets: [PromptPreset] {
         didSet { saveCustomPromptPresets() }
@@ -164,7 +185,7 @@ final class AppSettings {
         timeout = defaults.object(forKey: Key.timeout) as? Double ?? 60
         contextLimit = defaults.object(forKey: Key.contextLimit) as? Int ?? 20
         retainSession = defaults.bool(forKey: Key.retainSession)
-        clearInputOnClose = defaults.object(forKey: Key.clearInputOnClose) as? Bool ?? true
+        clearInputOnClose = defaults.object(forKey: Key.clearInputOnClose) as? Bool ?? false
         launchAtLogin = defaults.bool(forKey: Key.launchAtLogin)
         appearance = AppearanceMode(rawValue: defaults.string(forKey: Key.appearance) ?? "system") ?? .system
         fontSize = FontSize(rawValue: defaults.string(forKey: Key.fontSize) ?? "standard") ?? .standard
