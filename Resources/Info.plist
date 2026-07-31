@@ -8,6 +8,8 @@
     <string>SpotAsk</string>
     <key>CFBundleExecutable</key>
     <string>SpotAsk</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>com.spotask.app</string>
     <key>CFBundleName</key>

@@ -10,6 +10,7 @@ mkdir -p "$APP_DIR/Contents/MacOS"
 cp "$ROOT_DIR/Resources/Info.plist" "$APP_DIR/Contents/Info.plist"
 cp "$ROOT_DIR/.build/debug/SpotAsk" "$APP_DIR/Contents/MacOS/SpotAsk"
 mkdir -p "$APP_DIR/Contents/Resources"
+cp "$ROOT_DIR/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
 cp -R "$ROOT_DIR/.build/debug/SpotAsk_SpotAsk.bundle" "$APP_DIR/Contents/Resources/"
 
 printf 'Built %s\n' "$APP_DIR"
