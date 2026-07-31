@@ -19,13 +19,51 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
     var content: String
     let createdAt: Date
     var state: MessageState
+    let appliedPresetTitle: String?
 
-    init(id: UUID = UUID(), role: ChatRole, content: String, createdAt: Date = .now, state: MessageState = .complete) {
+    init(
+        id: UUID = UUID(),
+        role: ChatRole,
+        content: String,
+        createdAt: Date = .now,
+        state: MessageState = .complete,
+        appliedPresetTitle: String? = nil
+    ) {
         self.id = id
         self.role = role
         self.content = content
         self.createdAt = createdAt
         self.state = state
+        self.appliedPresetTitle = appliedPresetTitle
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case role
+        case content
+        case createdAt
+        case state
+        case appliedPresetTitle
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        role = try container.decode(ChatRole.self, forKey: .role)
+        content = try container.decode(String.self, forKey: .content)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        state = try container.decode(MessageState.self, forKey: .state)
+        appliedPresetTitle = try container.decodeIfPresent(String.self, forKey: .appliedPresetTitle)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(role, forKey: .role)
+        try container.encode(content, forKey: .content)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(state, forKey: .state)
+        try container.encodeIfPresent(appliedPresetTitle, forKey: .appliedPresetTitle)
     }
 }
 
@@ -75,17 +113,17 @@ enum ChatError: LocalizedError, Equatable, Sendable {
 
     var errorDescription: String? {
         switch self {
-        case .invalidConfiguration: "请检查服务设置。"
-        case .invalidURL: "服务地址无效。"
-        case .missingAPIKey: "请先保存访问密钥。"
-        case .unauthorized: "访问密钥无效或服务未授权。"
-        case .rateLimited: "请求过于频繁，请稍后重试。"
-        case let .serverError(status, _): "服务器返回 \(status)。"
-        case .invalidResponse: "服务器返回了无效响应。"
-        case .decodingFailed: "服务返回内容异常，请稍后重试。"
-        case .networkUnavailable: "网络连接不可用。"
-        case .timeout: "请求超时。"
-        case .cancelled: "请求已取消。"
+        case .invalidConfiguration: L10n.string("error.invalidConfiguration")
+        case .invalidURL: L10n.string("error.invalidURL")
+        case .missingAPIKey: L10n.string("error.missingAPIKey")
+        case .unauthorized: L10n.string("error.unauthorized")
+        case .rateLimited: L10n.string("error.rateLimited")
+        case let .serverError(status, _): L10n.string("error.serverError", status)
+        case .invalidResponse: L10n.string("error.invalidResponse")
+        case .decodingFailed: L10n.string("error.decodingFailed")
+        case .networkUnavailable: L10n.string("error.networkUnavailable")
+        case .timeout: L10n.string("error.timeout")
+        case .cancelled: L10n.string("error.cancelled")
         }
     }
 

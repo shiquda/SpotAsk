@@ -18,7 +18,7 @@ struct CodeBlockView: StructuredText.CodeBlockStyle {
                 .padding(.top, toolbarHeight + 10)
                 .padding(.bottom, 12)
         }
-        .accessibilityLabel("代码块")
+        .accessibilityLabel(L10n.string("code.accessibility"))
         .background(Color(nsColor: .textBackgroundColor).opacity(0.58))
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .overlay {
@@ -35,7 +35,7 @@ struct CodeBlockView: StructuredText.CodeBlockStyle {
     @MainActor
     private func toolbar(configuration: Configuration) -> some View {
         HStack(spacing: 8) {
-            Text(configuration.languageHint ?? "代码")
+            Text(configuration.languageHint ?? L10n.string("code.defaultLanguage"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -55,8 +55,8 @@ struct CodeBlockView: StructuredText.CodeBlockStyle {
             .buttonStyle(.plain)
             .frame(width: 28, height: 28)
             .contentShape(Rectangle())
-            .help(didCopy ? "已复制" : "复制代码")
-            .accessibilityLabel(didCopy ? "代码已复制" : "复制代码")
+            .help(didCopy ? L10n.string("chat.copied") : L10n.string("code.copy"))
+            .accessibilityLabel(didCopy ? L10n.string("code.copied") : L10n.string("code.copy"))
         }
         .padding(.horizontal, 10)
         .frame(height: toolbarHeight)

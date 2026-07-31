@@ -1,0 +1,10 @@
+"打开 ${applicationName}" = "Open ${applicationName}";
+"启动 ${applicationName}" = "Launch ${applicationName}";
+"使用 ${applicationName} 提问" = "Ask ${applicationName} a question";
+"让 ${applicationName} 回答" = "Ask AI with ${applicationName}";
+"问 ${applicationName}" = "Ask ${applicationName}";
+"使用 ${applicationName} 翻译" = "Translate with ${applicationName}";
+"使用 ${applicationName} 润色" = "Polish with ${applicationName}";
+"使用 ${applicationName} 总结" = "Summarize with ${applicationName}";
+"使用 ${applicationName} 解释代码" = "Explain code with ${applicationName}";
+"在 ${applicationName} 开始新对话" = "Start a new conversation in ${applicationName}";

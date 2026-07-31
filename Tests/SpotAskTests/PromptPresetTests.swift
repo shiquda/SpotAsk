@@ -45,9 +45,11 @@ struct PromptPresetTests {
         await waitForIdle(viewModel)
 
         #expect(viewModel.selectedPromptPreset == nil)
+        #expect(viewModel.messages.first?.appliedPresetTitle == PromptPreset.builtIn[0].title)
         #expect(recorder.requests.count == 1)
         #expect(recorder.requests[0].messages.first?.role == .system)
         #expect(recorder.requests[0].messages.first?.content.contains(PromptPreset.builtIn[0].instruction) == true)
+        #expect(recorder.requests[0].messages.last?.content == "Hello")
 
         viewModel.input = "How are you?"
         viewModel.send()
@@ -57,6 +59,20 @@ struct PromptPresetTests {
         #expect(recorder.requests[1].messages.first?.content == settings.systemPrompt)
     }
 
+    @Test("Messages without a preset label remain readable")
+    func legacyMessageDecoding() throws {
+        let id = UUID()
+        let date = Date(timeIntervalSince1970: 1_700_000_000)
+        let data = try JSONEncoder().encode(
+            LegacyChatMessage(id: id, role: .user, content: "Hello", createdAt: date, state: .complete)
+        )
+
+        let message = try JSONDecoder().decode(ChatMessage.self, from: data)
+
+        #expect(message.id == id)
+        #expect(message.appliedPresetTitle == nil)
+    }
+
     private func waitForIdle(_ viewModel: ChatViewModel) async {
         for _ in 0 ..< 100 {
             if viewModel.generationState == .idle { return }
@@ -64,6 +80,14 @@ struct PromptPresetTests {
         }
         Issue.record("Timed out waiting for the request to finish")
     }
+}
+
+private struct LegacyChatMessage: Codable {
+    let id: UUID
+    let role: ChatRole
+    let content: String
+    let createdAt: Date
+    let state: MessageState
 }
 
 private final class PromptPresetRequestRecorder: @unchecked Sendable {

@@ -1,0 +1,10 @@
+"打开 ${applicationName}" = "打开 ${applicationName}";
+"启动 ${applicationName}" = "启动 ${applicationName}";
+"使用 ${applicationName} 提问" = "使用 ${applicationName} 提问";
+"让 ${applicationName} 回答" = "让 ${applicationName} 回答";
+"问 ${applicationName}" = "问 ${applicationName}";
+"使用 ${applicationName} 翻译" = "使用 ${applicationName} 翻译";
+"使用 ${applicationName} 润色" = "使用 ${applicationName} 润色";
+"使用 ${applicationName} 总结" = "使用 ${applicationName} 总结";
+"使用 ${applicationName} 解释代码" = "使用 ${applicationName} 解释代码";
+"在 ${applicationName} 开始新对话" = "在 ${applicationName} 开始新对话";

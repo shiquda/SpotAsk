@@ -9,7 +9,7 @@ struct MessageContentView: View {
         VStack(alignment: .leading, spacing: 12) {
             if message.role == .assistant {
                 HStack {
-                    Text("回答")
+                    Text(L10n.string("chat.answer"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -26,8 +26,8 @@ struct MessageContentView: View {
                             .frame(width: 16, height: 16)
                     }
                     .buttonStyle(.borderless)
-                    .help(didCopy ? "已复制" : "复制完整回答")
-                    .accessibilityLabel(didCopy ? "完整回答已复制" : "复制完整回答")
+                    .help(didCopy ? L10n.string("chat.copied") : L10n.string("chat.copyCompleteAnswer"))
+                    .accessibilityLabel(didCopy ? L10n.string("chat.copyAnswer") : L10n.string("chat.copyCompleteAnswer"))
                 }
             }
 

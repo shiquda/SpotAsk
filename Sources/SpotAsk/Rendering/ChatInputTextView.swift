@@ -36,7 +36,7 @@ struct ChatInputTextView: NSViewRepresentable {
         textView.isVerticallyResizable = true
         textView.minSize = NSSize(width: 0, height: 38)
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: 96)
-        textView.setAccessibilityLabel("输入问题")
+        textView.setAccessibilityLabel(L10n.string("chat.inputAccessibility"))
 
         let scrollView = NSScrollView()
         scrollView.documentView = textView

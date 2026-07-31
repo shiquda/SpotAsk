@@ -31,6 +31,9 @@
 		001000000000000000000017 /* SafeLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000017 /* SafeLogger.swift */; };
 		001000000000000000000018 /* URLNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000018 /* URLNormalizer.swift */; };
 		001000000000000000000019 /* SpotAskPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000019 /* SpotAskPanelController.swift */; };
+		001000000000000000000020 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000023 /* Localization.swift */; };
+		001000000000000000000021 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000026 /* Localizable.strings */; };
+		001000000000000000000022 /* AppShortcuts.strings in Resources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000029 /* AppShortcuts.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -61,6 +64,11 @@
 		002000000000000000000020 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Resources/Info.plist; sourceTree = SOURCE_ROOT; };
 		002000000000000000000021 /* SpotAsk.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Config/SpotAsk.entitlements; sourceTree = SOURCE_ROOT; };
 		002000000000000000000022 /* SpotAsk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SpotAsk.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		002000000000000000000023 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Utilities/Localization.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000024 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = Sources/SpotAsk/Resources/en.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
+		002000000000000000000025 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = zh-Hans; path = Sources/SpotAsk/Resources/zh-Hans.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
+		002000000000000000000027 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = Sources/SpotAsk/Resources/en.lproj/AppShortcuts.strings; sourceTree = SOURCE_ROOT; };
+		002000000000000000000028 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = zh-Hans; path = Sources/SpotAsk/Resources/zh-Hans.lproj/AppShortcuts.strings; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -101,13 +109,14 @@
 				002000000000000000000017 /* SafeLogger.swift */,
 				002000000000000000000018 /* URLNormalizer.swift */,
 				002000000000000000000019 /* SpotAskPanelController.swift */,
+				002000000000000000000023 /* Localization.swift */,
 			);
 			name = Sources;
 			sourceTree = "<group>";
 		};
 		003000000000000000000003 /* Resources */ = {
 			isa = PBXGroup;
-			children = (002000000000000000000020 /* Info.plist */,);
+			children = (002000000000000000000020 /* Info.plist */, 002000000000000000000026 /* Localizable.strings */, 002000000000000000000029 /* AppShortcuts.strings */);
 			name = Resources;
 			sourceTree = "<group>";
 		};
@@ -124,6 +133,27 @@
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
+
+/* Begin PBXVariantGroup section */
+		002000000000000000000026 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				002000000000000000000024 /* en */,
+				002000000000000000000025 /* zh-Hans */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		002000000000000000000029 /* AppShortcuts.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				002000000000000000000027 /* en */,
+				002000000000000000000028 /* zh-Hans */,
+			);
+			name = AppShortcuts.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin PBXNativeTarget section */
 		004000000000000000000001 /* SpotAsk */ = {
@@ -163,7 +193,7 @@
 			compatibilityVersion = "Xcode 16.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
-			knownRegions = (en, Base);
+			knownRegions = (en, "zh-Hans", Base);
 			mainGroup = 003000000000000000000001;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
@@ -178,7 +208,7 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		006000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		006000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (001000000000000000000021 /* Localizable.strings in Resources */, 001000000000000000000022 /* AppShortcuts.strings in Resources */,); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -195,6 +225,7 @@
 				001000000000000000000013, 001000000000000000000014, 001000000000000000000015,
 				001000000000000000000016, 001000000000000000000017, 001000000000000000000018,
 				001000000000000000000019,
+				001000000000000000000020,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -249,7 +280,7 @@
 				CODE_SIGN_ENTITLEMENTS = Config/SpotAsk.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 9JQA7UT66M;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				ENABLE_APP_SANDBOX = YES;
 				EXTRACT_APP_INTENTS_METADATA = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -271,7 +302,7 @@
 				CODE_SIGN_ENTITLEMENTS = Config/SpotAsk.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 9JQA7UT66M;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				ENABLE_APP_SANDBOX = YES;
 				EXTRACT_APP_INTENTS_METADATA = YES;
 				GENERATE_INFOPLIST_FILE = NO;

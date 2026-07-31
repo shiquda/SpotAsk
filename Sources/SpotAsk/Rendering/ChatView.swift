@@ -68,7 +68,7 @@ struct ChatView: View {
             if isGenerating {
                 ProgressView()
                     .controlSize(.small)
-                    .accessibilityLabel("正在生成")
+                    .accessibilityLabel(L10n.string("chat.generating"))
             }
             Spacer()
             if let answer = viewModel.lastAssistantMessage, !answer.content.isEmpty {
@@ -78,8 +78,8 @@ struct ChatView: View {
                 .buttonStyle(.plain)
                 .frame(width: 28, height: 28)
                 .contentShape(Rectangle())
-                .help(didCopyLastAnswer ? "已复制" : "复制最后一条完整回答")
-                .accessibilityLabel(didCopyLastAnswer ? "最后一条完整回答已复制" : "复制最后一条完整回答")
+                .help(didCopyLastAnswer ? L10n.string("chat.copied") : L10n.string("chat.copyLastAnswer"))
+                .accessibilityLabel(didCopyLastAnswer ? L10n.string("chat.copied") : L10n.string("chat.copyLastAnswer"))
                 .keyboardShortcut("c", modifiers: [.command, .shift])
             }
             Button { inputFocused = true } label: {
@@ -87,8 +87,8 @@ struct ChatView: View {
             }
             .buttonStyle(.plain)
             .frame(width: 28, height: 28)
-            .help("聚焦输入框")
-            .accessibilityLabel("聚焦输入框")
+            .help(L10n.string("chat.focusInput"))
+            .accessibilityLabel(L10n.string("chat.focusInput"))
             .keyboardShortcut("l", modifiers: .command)
             Button { SpotAskCommandCenter.shared.toggleWindowOnTop() } label: {
                 Image(systemName: settings.keepWindowOnTop ? "pin.fill" : "pin")
@@ -96,23 +96,23 @@ struct ChatView: View {
             .buttonStyle(.plain)
             .frame(width: 28, height: 28)
             .contentShape(Rectangle())
-            .help(settings.keepWindowOnTop ? "取消窗口置顶" : "窗口置顶")
-            .accessibilityLabel(settings.keepWindowOnTop ? "取消窗口置顶" : "窗口置顶")
+            .help(L10n.string("settings.windowOnTop"))
+            .accessibilityLabel(L10n.string("settings.windowOnTop"))
             Button { viewModel.isSettingsPresented = true } label: {
                 Image(systemName: "gearshape")
             }
             .buttonStyle(.plain)
             .frame(width: 28, height: 28)
-            .help("设置")
-            .accessibilityLabel("设置")
+            .help(L10n.string("settings.title"))
+            .accessibilityLabel(L10n.string("settings.title"))
             .keyboardShortcut(",", modifiers: .command)
             Button { newConversation() } label: {
                 Image(systemName: "square.and.pencil")
             }
             .buttonStyle(.plain)
             .frame(width: 28, height: 28)
-            .help("开始新对话")
-            .accessibilityLabel("开始新对话")
+            .help(L10n.string("chat.newConversation"))
+            .accessibilityLabel(L10n.string("chat.newConversation"))
             .keyboardShortcut("n", modifiers: .command)
         }
         .foregroundStyle(.secondary)
@@ -127,7 +127,7 @@ struct ChatView: View {
                 Image(systemName: "sparkles")
                     .font(.system(size: 22, weight: .medium))
                     .foregroundStyle(.secondary)
-                Text("想问点什么？")
+                Text(L10n.string("chat.askAnything"))
                     .font(.system(size: 15))
                     .foregroundStyle(.secondary)
             }
@@ -167,7 +167,7 @@ struct ChatView: View {
                         .buttonStyle(.borderedProminent)
                         .clipShape(Circle())
                         .padding(14)
-                        .accessibilityLabel("回到底部")
+                        .accessibilityLabel(L10n.string("chat.goToBottom"))
                     }
                 }
                 .onAppear {
@@ -197,25 +197,25 @@ struct ChatView: View {
                 if message.content.isEmpty, (message.state == .streaming || message.state == .complete) {
                     HStack(spacing: 8) {
                         ProgressView().controlSize(.small)
-                        Text("正在生成")
+                        Text(L10n.string("chat.generating"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    .accessibilityLabel("正在生成回答")
+                    .accessibilityLabel(L10n.string("chat.generatingAnswer"))
                 } else {
                     MessageContentView(message: message)
                 }
                 if message.state == .failed {
                     HStack(spacing: 8) {
-                        Text(viewModel.error?.localizedDescription ?? "请求失败")
+                        Text(viewModel.error?.localizedDescription ?? L10n.string("chat.requestFailed"))
                             .font(.caption)
                             .foregroundStyle(.red)
-                        Button("重试") { viewModel.retry() }
+                        Button(L10n.string("chat.retry")) { viewModel.retry() }
                             .keyboardShortcut("r", modifiers: .command)
-                            .accessibilityLabel("重试最近一次失败请求")
+                            .accessibilityLabel(L10n.string("chat.retryFailedRequest"))
                     }
                 } else if message.state == .cancelled {
-                    Text("已停止生成")
+                    Text(L10n.string("chat.stopped"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -242,7 +242,7 @@ struct ChatView: View {
             }
             .overlay(alignment: .topLeading) {
                 if viewModel.input.isEmpty {
-                    Text("输入问题…")
+                    Text(L10n.string("chat.inputPlaceholder"))
                         .foregroundStyle(.tertiary)
                         .padding(.leading, 10)
                         .padding(.top, 10)
@@ -256,8 +256,8 @@ struct ChatView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.regular)
             .disabled(!isGenerating && !viewModel.canSend)
-            .help(isGenerating ? "停止生成" : "发送问题")
-            .accessibilityLabel(isGenerating ? "停止生成" : "发送问题")
+            .help(isGenerating ? L10n.string("chat.stop") : L10n.string("chat.send"))
+            .accessibilityLabel(isGenerating ? L10n.string("chat.stop") : L10n.string("chat.send"))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -361,9 +361,9 @@ private struct PromptPresetPicker: View {
                 selection = nil
             } label: {
                 if selection == nil {
-                    Label("直接提问", systemImage: "checkmark")
+                    Label(L10n.string("chat.directQuestion"), systemImage: "checkmark")
                 } else {
-                    Text("直接提问")
+                    Text(L10n.string("chat.directQuestion"))
                 }
             }
 
@@ -397,8 +397,8 @@ private struct PromptPresetPicker: View {
     }
 
     private var menuHelp: String {
-        guard let selection else { return "选择提问方式" }
-        return "本次使用：\(selection.title)"
+        guard let selection else { return L10n.string("chat.selectPrompt") }
+        return L10n.string("chat.usePrompt", selection.title)
     }
 }
 
@@ -410,9 +410,15 @@ private struct UserMessageContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack {
-                Text("你")
+                Text(L10n.string("chat.user"))
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.tertiary)
+                if let presetTitle = message.appliedPresetTitle {
+                    Label(L10n.string("chat.usedPrompt", presetTitle), systemImage: "sparkles")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel(L10n.string("chat.usedPrompt", presetTitle))
+                }
                 Spacer()
                 Button {
                     Clipboard.copy(message.content)
@@ -429,8 +435,8 @@ private struct UserMessageContentView: View {
                 .buttonStyle(.borderless)
                 .frame(width: 28, height: 28)
                 .contentShape(Rectangle())
-                .help(didCopy ? "已复制" : "复制问题")
-                .accessibilityLabel(didCopy ? "问题已复制" : "复制问题")
+                .help(didCopy ? L10n.string("chat.copied") : L10n.string("chat.copyQuestion"))
+                .accessibilityLabel(didCopy ? L10n.string("chat.questionCopied") : L10n.string("chat.copyQuestion"))
             }
 
             Text(message.content)
@@ -442,6 +448,6 @@ private struct UserMessageContentView: View {
                 .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("你的问题")
+        .accessibilityLabel(L10n.string("chat.user"))
     }
 }

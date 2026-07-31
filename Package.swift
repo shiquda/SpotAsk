@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "SpotAsk",
+    defaultLocalization: "en",
     platforms: [.macOS(.v15)],
     products: [
         .executable(name: "SpotAsk", targets: ["SpotAsk"])
@@ -15,7 +16,8 @@ let package = Package(
             name: "SpotAsk",
             dependencies: [
                 .product(name: "Textual", package: "textual-0.5.0")
-            ]
+            ],
+            resources: [.process("Resources")]
         ),
         .testTarget(
             name: "SpotAskTests",

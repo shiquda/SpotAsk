@@ -35,7 +35,13 @@ final class ChatViewModel {
         let promptPreset = selectedPromptPreset
         selectedPromptPreset = nil
         input = ""
-        messages.append(ChatMessage(role: .user, content: text))
+        messages.append(
+            ChatMessage(
+                role: .user,
+                content: text,
+                appliedPresetTitle: promptPreset?.title
+            )
+        )
         beginRequest(using: promptPreset)
     }
 

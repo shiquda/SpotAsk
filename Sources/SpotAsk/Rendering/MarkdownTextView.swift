@@ -10,7 +10,7 @@ struct MarkdownTextView: View {
             .textual.structuredTextStyle(.gitHub)
         .frame(maxWidth: .infinity, alignment: .leading)
         .multilineTextAlignment(.leading)
-        .accessibilityLabel("回答内容")
+        .accessibilityLabel(L10n.string("chat.answerContent"))
     }
 
     // Textual deliberately treats inline code as text. When it occupies an
