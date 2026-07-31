@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: macos-26
+    environment: release
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Confirm release tag matches the app version
+        run: |
+          app_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
+          tag_version=${GITHUB_REF_NAME#v}
+          test "$tag_version" = "$app_version"
+      - run: ./Scripts/make-release-dmg.sh --arch arm64 --output dist
+      - run: ./Scripts/make-release-dmg.sh --arch x86_64 --output dist
+      - name: Create checksums
+        run: shasum -a 256 dist/*.dmg > "dist/SpotAsk-${GITHUB_REF_NAME}-SHA256SUMS.txt"
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes
+          fi

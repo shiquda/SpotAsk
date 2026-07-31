@@ -2,15 +2,70 @@
 set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-APP_DIR="$ROOT_DIR/build/SpotAsk.app"
+ARCH=$(uname -m)
+OUTPUT_DIR="$ROOT_DIR/build/SpotAsk.app"
+
+usage() {
+    printf '%s\n' "Usage: $0 [--arch arm64|x86_64] [--output APP_PATH]"
+}
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --arch)
+            ARCH=${2:?"--arch requires a value"}
+            shift 2
+            ;;
+        --output)
+            OUTPUT_DIR=${2:?"--output requires a value"}
+            shift 2
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        *)
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+case "$ARCH" in
+    arm64|x86_64) ;;
+    *)
+        printf 'Unsupported architecture: %s\n' "$ARCH" >&2
+        exit 2
+        ;;
+esac
+
+case "$OUTPUT_DIR" in
+    /*) APP_DIR="$OUTPUT_DIR" ;;
+    *) APP_DIR="$ROOT_DIR/$OUTPUT_DIR" ;;
+esac
+
+BUILD_DIR="$ROOT_DIR/.build/release-$ARCH"
+TRIPLE="$ARCH-apple-macosx15.0"
+RELEASE_DIR="$BUILD_DIR/$ARCH-apple-macosx/release"
 
 cd "$ROOT_DIR"
-swift build
-mkdir -p "$APP_DIR/Contents/MacOS"
-cp "$ROOT_DIR/Resources/Info.plist" "$APP_DIR/Contents/Info.plist"
-cp "$ROOT_DIR/.build/debug/SpotAsk" "$APP_DIR/Contents/MacOS/SpotAsk"
-mkdir -p "$APP_DIR/Contents/Resources"
-cp "$ROOT_DIR/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
-cp -R "$ROOT_DIR/.build/debug/SpotAsk_SpotAsk.bundle" "$APP_DIR/"
+swift build -c release --triple "$TRIPLE" --scratch-path "$BUILD_DIR"
 
-printf 'Built %s\n' "$APP_DIR"
+if [ ! -x "$RELEASE_DIR/SpotAsk" ] || [ ! -d "$RELEASE_DIR/SpotAsk_SpotAsk.bundle" ]; then
+    printf 'Release artifacts are missing from %s\n' "$RELEASE_DIR" >&2
+    exit 1
+fi
+
+rm -rf "$APP_DIR"
+mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
+cp "$ROOT_DIR/Resources/Info.plist" "$APP_DIR/Contents/Info.plist"
+cp "$RELEASE_DIR/SpotAsk" "$APP_DIR/Contents/MacOS/SpotAsk"
+cp "$ROOT_DIR/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
+cp -R "$RELEASE_DIR/SpotAsk_SpotAsk.bundle" "$APP_DIR/"
+
+plutil -lint "$APP_DIR/Contents/Info.plist" >/dev/null
+if ! file "$APP_DIR/Contents/MacOS/SpotAsk" | grep -q "$ARCH"; then
+    printf 'Bundle executable does not contain the requested %s architecture\n' "$ARCH" >&2
+    exit 1
+fi
+
+printf 'Built Release bundle: %s\n' "$APP_DIR"

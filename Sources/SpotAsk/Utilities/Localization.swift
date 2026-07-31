@@ -22,10 +22,16 @@ enum L10n {
 
     private static func localizedBundle(for language: AppLanguage) -> Bundle {
         guard language != .system,
-              let resourcePath = bundle.path(forResource: language.rawValue, ofType: "lproj"),
-              let localizedBundle = Bundle(path: resourcePath) else {
+              let resourceURL = bundle.resourceURL else {
             return bundle
         }
+
+        let localizedResourceURL = resourceURL
+            .appendingPathComponent("\(language.rawValue).lproj", isDirectory: true)
+        guard let localizedBundle = Bundle(url: localizedResourceURL) else {
+            return bundle
+        }
+
         return localizedBundle
     }
 }
