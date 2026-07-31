@@ -14,6 +14,11 @@
     <string>com.spotask.app</string>
     <key>CFBundleName</key>
     <string>SpotAsk</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>zh-Hans</string>
+    </array>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>

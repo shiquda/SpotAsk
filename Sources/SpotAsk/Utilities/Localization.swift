@@ -20,14 +20,15 @@ enum L10n {
         return String(format: format, locale: language.locale, arguments: arguments)
     }
 
-    private static func localizedBundle(for language: AppLanguage) -> Bundle {
+    static func localizedBundle(for language: AppLanguage) -> Bundle {
         guard language != .system,
               let resourceURL = bundle.resourceURL else {
             return bundle
         }
 
         let localizedResourceURL = resourceURL
-            .appendingPathComponent("\(language.rawValue).lproj", isDirectory: true)
+            // SwiftPM normalizes localization directory names to lowercase.
+            .appendingPathComponent("\(language.rawValue.lowercased()).lproj", isDirectory: true)
         guard let localizedBundle = Bundle(url: localizedResourceURL) else {
             return bundle
         }
