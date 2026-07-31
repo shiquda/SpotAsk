@@ -1,48 +1,108 @@
 # SpotAsk
 
-SpotAsk 是一款轻量级 macOS 快速对话工具。它常驻菜单栏，让你随时打开一个专注的提问窗口。
+A focused AI chat companion that lives in your macOS menu bar. Connect a compatible service and ask from anywhere.
 
-## 使用 SpotAsk
+[简体中文](README.zh-CN.md)
 
-### 开始使用
+## What SpotAsk does
 
-1. 从菜单栏打开 SpotAsk，或按 `Option + Space`。
-2. 打开“设置”，填写服务地址、模型名称和访问密钥。
-3. 返回提问窗口，输入问题后按 `Return` 发送；按 `Shift + Return` 换行。
+- **Ask from anywhere** — press Option + Space to open a focused chat window, ready for a question.
+- **Use your own service** — connect a service compatible with the OpenAI Chat Completions API. You control the service address, model, and access key.
+- **See answers as they arrive** — stop a response, retry a failed request, or regenerate the latest answer.
+- **Copy what you need** — grab the full answer, or copy individual code blocks in one click.
+- **Automate common tasks** — built-in prompts for translate, polish, summarize, and explain-code. Create your own for repeated workflows.
+- **Work with Spotlight, Siri, and Shortcuts** — ask a question, start a new conversation, or run a prompt directly from macOS.
 
-你可以在设置中调整快捷键、是否开机启动、窗口置顶、对话保留方式和阅读外观。关闭窗口不会发送内容。
+## Download
 
-### 日常功能
+Download the matching package from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases):
 
-- 回答会在当前对话中逐步显示，可随时停止或重试。
-- 支持复制完整回答和单独复制代码。
-- 可从 Spotlight、Siri 或快捷指令中打开 SpotAsk、开始新对话或直接提问。
+- **Apple silicon** — choose the `arm64` DMG for M-series Macs.
+- **Intel** — choose the `x86_64` DMG for Intel Macs.
 
-### 隐私
+The packages do not yet have a Developer ID, so macOS asks you to confirm the first launch.
 
-你发送的问题、自定义指令和生成的回答会交由所选服务处理。处理敏感信息前，请确认服务商的隐私和数据保留政策。访问密钥和应用设置仅保存在这台 Mac 上。
+## Quick start
 
-## 开发者说明
+You can also build SpotAsk from source.
 
-本节面向需要构建、测试或修改项目的开发者。
+**Requirements**
 
-### 要求
+- macOS 15 or later
+- Xcode 16 or later
+- An account with a service that provides an OpenAI-compatible chat completions endpoint
 
-- macOS 15 或更高版本
-- Xcode 16 或更高版本
-- 一个兼容 OpenAI Chat Completions 的服务账户
-
-项目通过 [Textual](https://github.com/gonzalezreal/textual) 呈现富文本回答；其他依赖和版本以 `Package.swift` 为准。
-
-### 构建与测试
-
-在 Xcode 中打开 `Package.swift`，选择 `SpotAsk` scheme 后运行。
+**Build and run**
 
 ```sh
-swift test
 swift build -c release
 ./Scripts/make-app-bundle.sh
 open build/SpotAsk.app
 ```
 
-发布应用时，请根据目标分发方式配置所需的签名、权限和网络访问能力。
+After launch, SpotAsk appears in your menu bar. The app has no Dock icon.
+
+## First-run configuration
+
+Open Settings from the menu bar (or press Cmd + ,) and fill in:
+
+1. **Service address** — the full chat endpoint URL for your provider.
+2. **Model** — the model name your provider expects (for example, `gpt-5-mini`).
+3. **Access key** — your service credential, stored only on this Mac.
+
+Use **Test Connection** to confirm the values work, then close Settings and start asking.
+
+## Everyday use
+
+| Action | How |
+|---|---|
+| Open the chat window | Click the menu bar icon, or press **Option + Space** |
+| Send a question | Type your question and press Return |
+| Add a line break | Shift + Return |
+| Stop generating | Press Escape, or click Stop |
+| Copy an answer | Right-click the answer, or use the copy button |
+| Copy a code block | Click the copy icon on any code block |
+| Start a new conversation | Choose New Conversation from the menu bar |
+| Pick a prompt | Select a built-in or custom prompt above the input before sending |
+
+The window remembers its size and position across launches.
+
+## Privacy
+
+Questions, custom instructions, and responses are sent to the service you configure. Review that provider's privacy and data-retention policies before handling sensitive information.
+
+Your access key and settings stay on this Mac. When conversation retention is enabled, recent conversations are stored locally as well.
+
+## For developers
+
+### Build and test
+
+```sh
+# Run the test suite
+swift test
+
+# Build a release binary
+swift build -c release
+
+# Create an app bundle
+./Scripts/make-app-bundle.sh
+open build/SpotAsk.app
+
+# Create an Apple silicon or Intel DMG
+./Scripts/make-release-dmg.sh --arch arm64
+./Scripts/make-release-dmg.sh --arch x86_64
+```
+
+### Project overview
+
+SpotAsk is a SwiftUI app that targets macOS 15 as a menu-bar accessory (`LSUIElement`). It uses [Textual](https://github.com/gonzalezreal/textual) to render rich-text responses.
+
+The entry point is `Sources/SpotAsk/App/SpotAskApp.swift`. Tests live under `Tests/SpotAskTests/`.
+
+### Distribution
+
+When preparing the app for distribution, configure the signing, permissions, and network access required by your delivery method.
+
+## License
+
+SpotAsk is licensed under the [GNU AGPL v3](LICENSE).
