@@ -26,10 +26,15 @@ enum L10n {
             return bundle
         }
 
-        let localizedResourceURL = resourceURL
-            // SwiftPM normalizes localization directory names to lowercase.
-            .appendingPathComponent("\(language.rawValue.lowercased()).lproj", isDirectory: true)
-        guard let localizedBundle = Bundle(url: localizedResourceURL) else {
+        let localizedResourceURL = try? FileManager.default
+            .contentsOfDirectory(at: resourceURL, includingPropertiesForKeys: nil)
+            .first {
+                $0.pathExtension == "lproj"
+                    && $0.deletingPathExtension().lastPathComponent
+                        .caseInsensitiveCompare(language.rawValue) == .orderedSame
+            }
+        guard let localizedResourceURL,
+              let localizedBundle = Bundle(url: localizedResourceURL) else {
             return bundle
         }
 

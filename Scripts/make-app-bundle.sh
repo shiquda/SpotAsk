@@ -43,38 +43,42 @@ case "$OUTPUT_DIR" in
     *) APP_DIR="$ROOT_DIR/$OUTPUT_DIR" ;;
 esac
 
-BUILD_DIR="$ROOT_DIR/.build/release-$ARCH"
-TRIPLE="$ARCH-apple-macosx15.0"
-RELEASE_DIR="$BUILD_DIR/$ARCH-apple-macosx/release"
+BUILD_DIR="$ROOT_DIR/.build/xcode-release-$ARCH"
+RELEASE_APP_DIR="$BUILD_DIR/Build/Products/Release/SpotAsk.app"
 
 cd "$ROOT_DIR"
-swift build -c release --triple "$TRIPLE" --scratch-path "$BUILD_DIR"
+xcodebuild \
+    -project SpotAsk.xcodeproj \
+    -scheme SpotAsk \
+    -configuration Release \
+    -derivedDataPath "$BUILD_DIR" \
+    ARCHS="$ARCH" \
+    ONLY_ACTIVE_ARCH=YES \
+    CODE_SIGNING_ALLOWED=NO \
+    build
 
-if [ ! -x "$RELEASE_DIR/SpotAsk" ] || [ ! -d "$RELEASE_DIR/SpotAsk_SpotAsk.bundle" ]; then
-    printf 'Release artifacts are missing from %s\n' "$RELEASE_DIR" >&2
+if [ ! -x "$RELEASE_APP_DIR/Contents/MacOS/SpotAsk" ]; then
+    printf 'Release app is missing from %s\n' "$RELEASE_APP_DIR" >&2
     exit 1
 fi
 
 rm -rf "$APP_DIR"
-mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources/en.lproj" "$APP_DIR/Contents/Resources/zh-Hans.lproj"
-cp "$ROOT_DIR/Resources/Info.plist" "$APP_DIR/Contents/Info.plist"
-cp "$RELEASE_DIR/SpotAsk" "$APP_DIR/Contents/MacOS/SpotAsk"
-cp "$ROOT_DIR/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
-cp -R "$RELEASE_DIR/SpotAsk_SpotAsk.bundle" "$APP_DIR/"
-cp "$ROOT_DIR/Sources/SpotAsk/Resources/en.lproj/AppShortcuts.strings" "$APP_DIR/Contents/Resources/en.lproj/"
-cp "$ROOT_DIR/Sources/SpotAsk/Resources/zh-Hans.lproj/AppShortcuts.strings" "$APP_DIR/Contents/Resources/zh-Hans.lproj/"
+ditto "$RELEASE_APP_DIR" "$APP_DIR"
+codesign --force --sign - --entitlements "$ROOT_DIR/Config/SpotAsk.entitlements" "$APP_DIR"
 
 plutil -lint "$APP_DIR/Contents/Info.plist" >/dev/null
 if ! file "$APP_DIR/Contents/MacOS/SpotAsk" | grep -q "$ARCH"; then
     printf 'Bundle executable does not contain the requested %s architecture\n' "$ARCH" >&2
     exit 1
 fi
-if [ ! -f "$APP_DIR/SpotAsk_SpotAsk.bundle/en.lproj/Localizable.strings" ] \
-    || [ ! -f "$APP_DIR/SpotAsk_SpotAsk.bundle/zh-hans.lproj/Localizable.strings" ] \
+if [ ! -f "$APP_DIR/Contents/Resources/Metadata.appintents/extract.actionsdata" ] \
+    || [ ! -f "$APP_DIR/Contents/Resources/en.lproj/Localizable.strings" ] \
+    || [ ! -f "$APP_DIR/Contents/Resources/zh-Hans.lproj/Localizable.strings" ] \
     || [ ! -f "$APP_DIR/Contents/Resources/en.lproj/AppShortcuts.strings" ] \
     || [ ! -f "$APP_DIR/Contents/Resources/zh-Hans.lproj/AppShortcuts.strings" ]; then
-    printf '%s\n' "Release bundle is missing localized app or shortcut resources" >&2
+    printf '%s\n' "Release bundle is missing App Intents or localized resources" >&2
     exit 1
 fi
+codesign --verify --strict "$APP_DIR"
 
 printf 'Built Release bundle: %s\n' "$APP_DIR"
