@@ -28,7 +28,16 @@ extension Notification {
 }
 
 @MainActor
-final class SpotAskPanelController: NSObject, NSWindowDelegate {
+protocol SpotAskPanelControlling: AnyObject {
+    func setContent(_ content: @escaping () -> AnyView)
+    func show()
+    func hide()
+    func toggle()
+    func toggleWindowOnTop()
+}
+
+@MainActor
+final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelControlling {
     private let settings: AppSettings
     private var panel: SpotAskPanel?
     private var contentBuilder: (() -> AnyView)?
@@ -37,8 +46,8 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate {
         self.settings = settings
     }
 
-    func setContent(@ViewBuilder _ content: @escaping () -> some View) {
-        contentBuilder = { AnyView(content()) }
+    func setContent(_ content: @escaping () -> AnyView) {
+        contentBuilder = content
         if let panel {
             panel.contentView = NSHostingView(rootView: content())
         }

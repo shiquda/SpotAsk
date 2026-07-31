@@ -1,7 +1,34 @@
+import SwiftUI
 import Testing
 @testable import SpotAsk
 
 struct SpotAskIntentTests {
+    @Test @MainActor func deferredAskWaitsForPanelContentBeforeDispatching() {
+        let commandCenter = SpotAskCommandCenter()
+        let panel = PanelControllerSpy()
+        let recorder = AskQuestionRecorder()
+        let observer = NotificationCenter.default.addObserver(
+            forName: .spotAskAskQuestion,
+            object: nil,
+            queue: nil
+        ) { notification in
+            recorder.question = notification.userInfo?["question"] as? String
+        }
+        defer { NotificationCenter.default.removeObserver(observer) }
+
+        commandCenter.ask("冷启动问题")
+        commandCenter.configure(panelController: panel)
+
+        #expect(panel.didShow == false)
+        #expect(recorder.question == nil)
+
+        commandCenter.setPanelContent { EmptyView() }
+
+        #expect(panel.didSetContent)
+        #expect(panel.didShow)
+        #expect(recorder.question == "冷启动问题")
+    }
+
     @Test func askIntentUsesConciseQuestionTitle() {
         #expect(String(describing: AskSpotAskIntent.title).contains("问 AI？"))
     }
@@ -48,4 +75,24 @@ struct SpotAskIntentTests {
         #expect(SummarizeWithSpotAskIntent(text: "Hello").text == "Hello")
         #expect(ExplainCodeWithSpotAskIntent(text: "let x = 1").text == "let x = 1")
     }
+}
+
+private final class AskQuestionRecorder: @unchecked Sendable {
+    var question: String?
+}
+
+@MainActor
+private final class PanelControllerSpy: SpotAskPanelControlling {
+    var didSetContent = false
+    var didShow = false
+
+    func setContent(_ content: @escaping () -> AnyView) {
+        didSetContent = true
+        _ = content()
+    }
+
+    func show() { didShow = true }
+    func hide() {}
+    func toggle() {}
+    func toggleWindowOnTop() {}
 }

@@ -12,21 +12,21 @@ final class SpotAskCommandCenter {
         case showSettings
     }
 
-    private var panelController: SpotAskPanelController?
+    private var panelController: (any SpotAskPanelControlling)?
     private var deferredAction: DeferredAction?
 
-    private init() {}
+    init() {}
 
-    func configure(panelController: SpotAskPanelController) {
+    func configure(panelController: any SpotAskPanelControlling) {
         self.panelController = panelController
+    }
+
+    func setPanelContent(@ViewBuilder _ content: @escaping () -> some View) {
+        panelController?.setContent { AnyView(content()) }
         if let deferredAction {
             self.deferredAction = nil
             perform(deferredAction)
         }
-    }
-
-    func setPanelContent(@ViewBuilder _ content: @escaping () -> some View) {
-        panelController?.setContent(content)
     }
 
     func open() {
