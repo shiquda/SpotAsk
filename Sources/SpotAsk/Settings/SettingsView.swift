@@ -377,6 +377,18 @@ private struct GeneralSettingsPage: View {
             SettingsPageHeader(section: .general)
             SettingsCallout(L10n.string("settings.generalDescription"))
 
+            SettingsGroup(title: L10n.string("settings.language")) {
+                SettingsFieldRow(label: L10n.string("settings.language")) {
+                    Picker(L10n.string("settings.language"), selection: Bindable(settings).language) {
+                        Text(L10n.string("language.system")).tag(AppLanguage.system)
+                        Text(L10n.string("language.simplifiedChinese")).tag(AppLanguage.simplifiedChinese)
+                        Text(L10n.string("language.english")).tag(AppLanguage.english)
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+
             SettingsGroup(title: L10n.string("settings.behavior")) {
                 SettingsFieldRow(label: L10n.string("settings.globalShortcut")) {
                     Picker(L10n.string("settings.globalShortcut"), selection: Bindable(settings).hotKeyPreset) {

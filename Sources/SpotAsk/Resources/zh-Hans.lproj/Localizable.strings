@@ -46,6 +46,9 @@
 "font.large" = "大";
 "font.small" = "小";
 "font.standard" = "标准";
+"language.english" = "英语";
+"language.simplifiedChinese" = "简体中文";
+"language.system" = "自动（跟随系统）";
 "intent.ask.description" = "在 SpotAsk 中提出一个问题并查看回答。";
 "intent.ask.shortTitle" = "问 AI？";
 "intent.ask.summary" = "使用 SpotAsk 提问";
@@ -172,5 +175,6 @@
 "settings.cancel" = "取消";
 "settings.fontSize" = "字体大小";
 "settings.launchAtLogin" = "登录时启动";
+"settings.language" = "语言";
 "settings.contextLimit" = "保留的对话条数";
 "settings.unlimited" = "无限制";

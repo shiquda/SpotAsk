@@ -8,6 +8,7 @@ extension Notification.Name {
     static let spotAskSelectPromptPreset = Notification.Name("com.spotask.select-prompt-preset")
     static let spotAskShowSettings = Notification.Name("com.spotask.show-settings")
     static let spotAskHotKeyChanged = Notification.Name("com.spotask.hot-key-changed")
+    static let spotAskLanguageChanged = Notification.Name("com.spotask.language-changed")
 }
 
 extension Notification {

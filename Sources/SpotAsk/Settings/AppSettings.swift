@@ -19,7 +19,8 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
         self.isBuiltIn = isBuiltIn
     }
 
-    static let builtIn: [PromptPreset] = [
+    static var builtIn: [PromptPreset] {
+        [
         PromptPreset(
             id: UUID(uuidString: "EF8CF35C-386A-4389-A137-C207E4DB11FD")!,
             title: L10n.string("preset.translate.title"),
@@ -44,7 +45,8 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
             instruction: L10n.string("preset.explainCode.instruction"),
             isBuiltIn: true
         )
-    ]
+        ]
+    }
 }
 
 enum HotKeyPreset: String, CaseIterable, Identifiable {
@@ -76,6 +78,25 @@ enum FontSize: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum AppLanguage: String, CaseIterable, Identifiable {
+    case system
+    case simplifiedChinese = "zh-Hans"
+    case english = "en"
+
+    static let defaultsKey = "appLanguage"
+
+    var id: String { rawValue }
+
+    var locale: Locale {
+        guard self != .system else { return .current }
+        return Locale(identifier: rawValue)
+    }
+
+    static var current: AppLanguage {
+        AppLanguage(rawValue: UserDefaults.standard.string(forKey: defaultsKey) ?? "") ?? .system
+    }
+}
+
 @MainActor
 @Observable
 final class AppSettings {
@@ -94,6 +115,7 @@ final class AppSettings {
         static let launchAtLogin = "launchAtLogin"
         static let appearance = "appearance"
         static let fontSize = "fontSize"
+        static let language = AppLanguage.defaultsKey
         static let hotKeyPreset = "hotKeyPreset"
         static let panelWidth = "panelWidth"
         static let panelHeight = "panelHeight"
@@ -114,6 +136,12 @@ final class AppSettings {
     var launchAtLogin: Bool { didSet { defaults.set(launchAtLogin, forKey: Key.launchAtLogin) } }
     var appearance: AppearanceMode { didSet { defaults.set(appearance.rawValue, forKey: Key.appearance) } }
     var fontSize: FontSize { didSet { defaults.set(fontSize.rawValue, forKey: Key.fontSize) } }
+    var language: AppLanguage {
+        didSet {
+            defaults.set(language.rawValue, forKey: Key.language)
+            NotificationCenter.default.post(name: .spotAskLanguageChanged, object: nil)
+        }
+    }
     var hotKeyPreset: HotKeyPreset { didSet { defaults.set(hotKeyPreset.rawValue, forKey: Key.hotKeyPreset) } }
     var panelWidth: Double { didSet { defaults.set(panelWidth, forKey: Key.panelWidth) } }
     var panelHeight: Double { didSet { defaults.set(panelHeight, forKey: Key.panelHeight) } }
@@ -140,6 +168,7 @@ final class AppSettings {
         launchAtLogin = defaults.bool(forKey: Key.launchAtLogin)
         appearance = AppearanceMode(rawValue: defaults.string(forKey: Key.appearance) ?? "system") ?? .system
         fontSize = FontSize(rawValue: defaults.string(forKey: Key.fontSize) ?? "standard") ?? .standard
+        language = AppLanguage(rawValue: defaults.string(forKey: Key.language) ?? "system") ?? .system
         hotKeyPreset = HotKeyPreset(rawValue: defaults.string(forKey: Key.hotKeyPreset) ?? "optionSpace") ?? .optionSpace
         panelWidth = defaults.object(forKey: Key.panelWidth) as? Double ?? 720
         panelHeight = defaults.object(forKey: Key.panelHeight) as? Double ?? 520

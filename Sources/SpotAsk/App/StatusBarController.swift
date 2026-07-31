@@ -21,6 +21,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             button.toolTip = "SpotAsk"
         }
         launchAtLoginItem.target = self
+        NotificationCenter.default.addObserver(self, selector: #selector(rebuildMenuForLanguageChange), name: .spotAskLanguageChanged, object: nil)
         rebuildMenu()
     }
 
@@ -50,6 +51,12 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     @objc private func newConversation() { SpotAskCommandCenter.shared.startNewConversation() }
     @objc private func showSettings() { SpotAskCommandCenter.shared.showSettings() }
     @objc private func quit() { NSApp.terminate(nil) }
+
+    @objc private func rebuildMenuForLanguageChange() {
+        launchAtLoginItem.title = L10n.string("menu.launchAtLogin")
+        keepWindowOnTopItem.title = L10n.string("menu.windowOnTop")
+        rebuildMenu()
+    }
 
     @objc private func toggleLaunchAtLogin() {
         do {

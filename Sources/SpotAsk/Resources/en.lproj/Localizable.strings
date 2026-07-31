@@ -46,6 +46,9 @@
 "font.large" = "Large";
 "font.small" = "Small";
 "font.standard" = "Standard";
+"language.english" = "English";
+"language.simplifiedChinese" = "Simplified Chinese";
+"language.system" = "Automatic (System Language)";
 "intent.ask.description" = "Ask a question in SpotAsk and view the answer.";
 "intent.ask.shortTitle" = "Ask AI";
 "intent.ask.summary" = "Ask with SpotAsk";
@@ -172,5 +175,6 @@
 "settings.cancel" = "Cancel";
 "settings.fontSize" = "Font Size";
 "settings.launchAtLogin" = "Launch at login";
+"settings.language" = "Language";
 "settings.contextLimit" = "Conversation history limit";
 "settings.unlimited" = "Unlimited";

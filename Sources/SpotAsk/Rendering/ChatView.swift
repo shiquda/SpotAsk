@@ -58,6 +58,7 @@ struct ChatView: View {
         }
         .font(contentFont)
         .preferredColorScheme(colorScheme)
+        .environment(\.locale, settings.language.locale)
     }
 
     private var header: some View {
