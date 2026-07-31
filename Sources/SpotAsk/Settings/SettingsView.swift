@@ -12,10 +12,10 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
 
     var title: String {
         switch self {
-        case .provider: "服务设置"
-        case .prompts: "提示词"
-        case .general: "通用"
-        case .appearance: "外观"
+        case .provider: L10n.string("settings.provider")
+        case .prompts: L10n.string("settings.prompts")
+        case .general: L10n.string("settings.general")
+        case .appearance: L10n.string("settings.appearance")
         }
     }
 
@@ -89,7 +89,7 @@ private struct SettingsSidebar: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("设置")
+            Text(L10n.string("settings.title"))
                 .font(.system(size: 20, weight: .bold))
                 .padding(.horizontal, 18)
                 .padding(.bottom, 14)
@@ -138,15 +138,15 @@ private struct ProviderSettingsPage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             SettingsPageHeader(section: .provider)
-            SettingsCallout("连接你的 AI 服务，设置会自动保存。")
+            SettingsCallout(L10n.string("settings.providerDescription"))
 
-            SettingsGroup(title: "连接") {
-                SettingsFieldRow(label: settings.useFullEndpoint ? "完整服务地址" : "服务地址") {
+            SettingsGroup(title: L10n.string("settings.connection")) {
+                SettingsFieldRow(label: settings.useFullEndpoint ? L10n.string("settings.fullEndpoint") : L10n.string("settings.endpoint")) {
                     TextField("https://api.openai.com/v1", text: $settings.baseURL)
                         .textFieldStyle(.roundedBorder)
                         .onChange(of: settings.baseURL) { _, value in state.validateURL(value) }
                 }
-                SettingsToggleRow(label: "服务地址已包含完整路径", isOn: $settings.useFullEndpoint)
+                SettingsToggleRow(label: L10n.string("settings.endpointIncludesPath"), isOn: $settings.useFullEndpoint)
                     .onChange(of: settings.useFullEndpoint) { _, _ in state.validateURL(settings.baseURL) }
                 if let endpointError = state.endpointError {
                     Text(endpointError)
@@ -155,38 +155,38 @@ private struct ProviderSettingsPage: View {
                         .padding(.leading, 148)
                 }
                 Divider()
-                SettingsFieldRow(label: "模型") {
+                SettingsFieldRow(label: L10n.string("settings.model")) {
                     TextField("gpt-5-mini", text: $settings.model)
                         .textFieldStyle(.roundedBorder)
                 }
-                SettingsToggleRow(label: "实时显示回答", isOn: $settings.streaming)
-                SettingsFieldRow(label: "响应等待时间") {
-                    Stepper("\(Int(settings.timeout)) 秒", value: $settings.timeout, in: 10...300, step: 10)
+                SettingsToggleRow(label: L10n.string("settings.streaming"), isOn: $settings.streaming)
+                SettingsFieldRow(label: L10n.string("settings.responseTimeout")) {
+                    Stepper(L10n.string("settings.seconds", Int(settings.timeout)), value: $settings.timeout, in: 10...300, step: 10)
                         .labelsHidden()
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Text("\(Int(settings.timeout)) 秒")
+                    Text(L10n.string("settings.seconds", Int(settings.timeout)))
                         .foregroundStyle(.secondary)
                 }
             }
 
-            SettingsGroup(title: "访问密钥") {
-                SettingsFieldRow(label: "密钥") {
-                    SecureField("输入密钥以保存或更新", text: $state.apiKeyDraft)
+            SettingsGroup(title: L10n.string("settings.accessKey")) {
+                SettingsFieldRow(label: L10n.string("settings.accessKey")) {
+                    SecureField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
                         .textFieldStyle(.roundedBorder)
                         .textContentType(.password)
                 }
-                Text("访问密钥仅保存在这台 Mac 上。")
+                Text(L10n.string("settings.accessKeyOnlyOnMac"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.leading, 148)
                 Divider()
                 HStack(spacing: 10) {
-                    Button("保存密钥") { state.saveKey() }
+                    Button(L10n.string("settings.saveAccessKey")) { state.saveKey() }
                         .buttonStyle(.borderedProminent)
                         .keyboardShortcut("s")
-                    Button("测试连接") { state.testConnection() }
+                    Button(L10n.string("settings.testConnection")) { state.testConnection() }
                         .disabled(state.isTesting)
-                    Button("清除密钥", role: .destructive) { state.clearKey() }
+                    Button(L10n.string("settings.clearAccessKey"), role: .destructive) { state.clearKey() }
                     Spacer()
                     if state.isTesting { ProgressView().controlSize(.small) }
                     if !state.status.isEmpty {
@@ -197,14 +197,14 @@ private struct ProviderSettingsPage: View {
                 }
             }
 
-            SettingsGroup(title: "自定义指令") {
+            SettingsGroup(title: L10n.string("settings.customInstruction")) {
                 TextEditor(text: $settings.systemPrompt)
                     .font(.body)
                     .frame(minHeight: 76)
                     .scrollContentBackground(.hidden)
                     .padding(8)
                     .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                    .accessibilityLabel("自定义指令")
+                    .accessibilityLabel(L10n.string("settings.customInstruction"))
             }
         }
     }
@@ -217,9 +217,9 @@ private struct PromptPresetsSettingsPage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             SettingsPageHeader(section: .prompts)
-            SettingsCallout("在提问窗口选择提示词，可仅用于下一次提问；也可以设为默认指令。")
+            SettingsCallout(L10n.string("settings.promptsDescription"))
 
-            SettingsGroup(title: "常用提示词") {
+            SettingsGroup(title: L10n.string("settings.savedPrompts")) {
                 ForEach(PromptPreset.builtIn) { preset in
                     PromptPresetRow(preset: preset) {
                         settings.systemPrompt = preset.instruction
@@ -228,22 +228,22 @@ private struct PromptPresetsSettingsPage: View {
                 }
             }
 
-            SettingsGroup(title: "我的提示词") {
+            SettingsGroup(title: L10n.string("settings.customPrompts")) {
                 HStack {
-                    Text("新建适合自己常用任务的提示词。")
+                    Text(L10n.string("settings.customPromptsDescription"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
                     Button {
                         editorPreset = PromptPreset(title: "", instruction: "")
                     } label: {
-                        Label("新建", systemImage: "plus")
+                        Label(L10n.string("settings.new"), systemImage: "plus")
                     }
                     .buttonStyle(.bordered)
                 }
 
                 if settings.customPromptPresets.isEmpty {
-                    Text("还没有自定义提示词。")
+                    Text(L10n.string("settings.customPromptEmpty"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .padding(.vertical, 6)
@@ -289,24 +289,24 @@ private struct PromptPresetRow: View {
             }
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 7) {
-                Button("设为默认", action: onSetDefault)
+                Button(L10n.string("settings.defaultInstruction"), action: onSetDefault)
                     .buttonStyle(.borderless)
-                    .help("设为默认指令")
+                    .help(L10n.string("settings.defaultInstruction"))
                 if let onEdit {
                     Button(action: onEdit) {
                         Image(systemName: "pencil")
                     }
                     .buttonStyle(.borderless)
-                    .help("编辑")
-                    .accessibilityLabel("编辑\(preset.title)")
+                    .help(L10n.string("settings.edit"))
+                    .accessibilityLabel(L10n.string("settings.edit") + " " + preset.title)
                 }
                 if let onDelete {
                     Button(role: .destructive, action: onDelete) {
                         Image(systemName: "trash")
                     }
                     .buttonStyle(.borderless)
-                    .help("删除")
-                    .accessibilityLabel("删除\(preset.title)")
+                    .help(L10n.string("settings.delete"))
+                    .accessibilityLabel(L10n.string("settings.delete") + " " + preset.title)
                 }
             }
         }
@@ -330,18 +330,18 @@ private struct PromptPresetEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text(preset.title.isEmpty ? "新建提示词" : "编辑提示词")
+            Text(preset.title.isEmpty ? L10n.string("settings.newPrompt") : L10n.string("settings.editPrompt"))
                 .font(.title2.weight(.semibold))
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("名称")
+                Text(L10n.string("settings.name"))
                     .font(.headline)
-                TextField("例如：改写邮件", text: $title)
+                TextField(L10n.string("settings.namePlaceholder"), text: $title)
                     .textFieldStyle(.roundedBorder)
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("内容")
+                Text(L10n.string("settings.promptContent"))
                     .font(.headline)
                 TextEditor(text: $instruction)
                     .font(.body)
@@ -353,9 +353,9 @@ private struct PromptPresetEditor: View {
 
             HStack {
                 Spacer()
-                Button("取消") { dismiss() }
+                Button(L10n.string("settings.cancel")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button("保存") {
+                Button(L10n.string("settings.save")) {
                     onSave(PromptPreset(id: preset.id, title: title, instruction: instruction))
                 }
                 .buttonStyle(.borderedProminent)
@@ -375,11 +375,11 @@ private struct GeneralSettingsPage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             SettingsPageHeader(section: .general)
-            SettingsCallout("调整 SpotAsk 的启动、快捷键和对话保留方式。所有更改会立即生效。")
+            SettingsCallout(L10n.string("settings.generalDescription"))
 
-            SettingsGroup(title: "行为") {
-                SettingsFieldRow(label: "全局快捷键") {
-                    Picker("全局快捷键", selection: Bindable(settings).hotKeyPreset) {
+            SettingsGroup(title: L10n.string("settings.behavior")) {
+                SettingsFieldRow(label: L10n.string("settings.globalShortcut")) {
+                    Picker(L10n.string("settings.globalShortcut"), selection: Bindable(settings).hotKeyPreset) {
                         ForEach(HotKeyPreset.allCases) { preset in
                             Text(preset.title).tag(preset)
                         }
@@ -390,34 +390,34 @@ private struct GeneralSettingsPage: View {
                         NotificationCenter.default.post(name: .spotAskHotKeyChanged, object: nil)
                     }
                 }
-                SettingsToggleRow(label: "登录时启动", isOn: Bindable(settings).launchAtLogin)
+                SettingsToggleRow(label: L10n.string("settings.launchAtLogin"), isOn: Bindable(settings).launchAtLogin)
                     .onChange(of: settings.launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
-                SettingsToggleRow(label: "恢复最近会话", isOn: Bindable(settings).retainSession)
-                SettingsToggleRow(label: "关闭窗口时清空输入框", isOn: Bindable(settings).clearInputOnClose)
+                SettingsToggleRow(label: L10n.string("settings.restoreSession"), isOn: Bindable(settings).retainSession)
+                SettingsToggleRow(label: L10n.string("settings.clearInputOnClose"), isOn: Bindable(settings).clearInputOnClose)
                 SettingsToggleRow(
-                    label: "窗口置顶",
+                    label: L10n.string("settings.windowOnTop"),
                     isOn: Binding(
                         get: { settings.keepWindowOnTop },
                         set: { _ in SpotAskCommandCenter.shared.toggleWindowOnTop() }
                     )
                 )
-                SettingsFieldRow(label: "保留的对话条数") {
-                    Picker("保留的对话条数", selection: Bindable(settings).contextLimit) {
+                SettingsFieldRow(label: L10n.string("settings.contextLimit")) {
+                    Picker(L10n.string("settings.contextLimit"), selection: Bindable(settings).contextLimit) {
                         Text("10").tag(10)
                         Text("20").tag(20)
                         Text("40").tag(40)
-                        Text("无限制").tag(0)
+                        Text(L10n.string("settings.unlimited")).tag(0)
                     }
                     .labelsHidden()
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
 
-            SettingsGroup(title: "本地数据") {
-                Text("这会清除访问密钥、设置和已保存的最近会话。")
+            SettingsGroup(title: L10n.string("settings.localData")) {
+                Text(L10n.string("settings.localDataDescription"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Button("清除所有本地数据", role: .destructive) {
+                Button(L10n.string("settings.clearAllLocalData"), role: .destructive) {
                     providerState.clearAllLocalData()
                 }
             }
@@ -440,21 +440,21 @@ private struct AppearanceSettingsPage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             SettingsPageHeader(section: .appearance)
-            SettingsCallout("选择 SpotAsk 的配色与阅读字号。下次打开提问窗口时生效。")
-            SettingsGroup(title: "阅读") {
-                SettingsFieldRow(label: "外观") {
-                    Picker("外观", selection: Bindable(settings).appearance) {
-                        Text("跟随系统").tag(AppearanceMode.system)
-                        Text("浅色").tag(AppearanceMode.light)
-                        Text("深色").tag(AppearanceMode.dark)
+            SettingsCallout(L10n.string("settings.readingDescription"))
+            SettingsGroup(title: L10n.string("settings.reading")) {
+                SettingsFieldRow(label: L10n.string("settings.appearance")) {
+                    Picker(L10n.string("settings.appearance"), selection: Bindable(settings).appearance) {
+                        Text(L10n.string("appearance.system")).tag(AppearanceMode.system)
+                        Text(L10n.string("appearance.light")).tag(AppearanceMode.light)
+                        Text(L10n.string("appearance.dark")).tag(AppearanceMode.dark)
                     }
                     .pickerStyle(.segmented)
                 }
-                SettingsFieldRow(label: "字体大小") {
-                    Picker("字体大小", selection: Bindable(settings).fontSize) {
-                        Text("小").tag(FontSize.small)
-                        Text("标准").tag(FontSize.standard)
-                        Text("大").tag(FontSize.large)
+                SettingsFieldRow(label: L10n.string("settings.fontSize")) {
+                    Picker(L10n.string("settings.fontSize"), selection: Bindable(settings).fontSize) {
+                        Text(L10n.string("font.small")).tag(FontSize.small)
+                        Text(L10n.string("font.standard")).tag(FontSize.standard)
+                        Text(L10n.string("font.large")).tag(FontSize.large)
                     }
                     .pickerStyle(.segmented)
                 }
@@ -565,7 +565,7 @@ final class ProviderSettingsState {
             _ = try URLNormalizer.endpoint(from: value, useFullEndpoint: settings.useFullEndpoint)
             endpointError = nil
         } catch {
-            endpointError = "请输入有效的服务地址。"
+            endpointError = L10n.string("settings.endpointInvalid")
         }
     }
 
@@ -573,16 +573,16 @@ final class ProviderSettingsState {
         guard validateConfiguration() else { return }
         let key = apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else {
-            setStatus("设置已保存", isError: false)
+            setStatus(L10n.string("settings.saveSuccess"), isError: false)
             return
         }
 
         do {
             try keyStore.saveAPIKey(key)
             apiKeyDraft = ""
-            setStatus("访问密钥已保存", isError: false)
+            setStatus(L10n.string("settings.saveKeySuccess"), isError: false)
         } catch {
-            setStatus("无法保存访问密钥", isError: true)
+            setStatus(L10n.string("settings.saveKeyFailure"), isError: true)
         }
     }
 
@@ -590,9 +590,9 @@ final class ProviderSettingsState {
         do {
             try keyStore.deleteAPIKey()
             apiKeyDraft = ""
-            setStatus("访问密钥已清除", isError: false)
+            setStatus(L10n.string("settings.clearKeySuccess"), isError: false)
         } catch {
-            setStatus("无法清除访问密钥", isError: true)
+            setStatus(L10n.string("settings.clearKeyFailure"), isError: true)
         }
     }
 
@@ -600,9 +600,9 @@ final class ProviderSettingsState {
         do {
             try keyStore.deleteAPIKey()
             UserDefaults.standard.removePersistentDomain(forName: Bundle.main.bundleIdentifier ?? "com.spotask.app")
-            setStatus("本地数据已清除", isError: false)
+            setStatus(L10n.string("settings.resetSuccess"), isError: false)
         } catch {
-            setStatus("无法清除本地数据", isError: true)
+            setStatus(L10n.string("settings.resetFailure"), isError: true)
         }
     }
 
@@ -621,11 +621,11 @@ final class ProviderSettingsState {
                 }
                 let provider = try providerFactory.makeProvider()
                 try await provider.testConnection()
-                setStatus("模型连接正常", isError: false)
+                setStatus(L10n.string("settings.modelConnectionSuccess"), isError: false)
             } catch let error as ChatError {
                 setStatus(error.localizedDescription, isError: true)
             } catch {
-                setStatus("连接失败", isError: true)
+                setStatus(L10n.string("settings.testFailure"), isError: true)
             }
             isTesting = false
         }
@@ -635,7 +635,7 @@ final class ProviderSettingsState {
         validateURL(settings.baseURL)
         guard endpointError == nil, !settings.model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             if settings.model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                setStatus("请输入模型名称", isError: true)
+                setStatus(L10n.string("settings.modelRequired"), isError: true)
             }
             return false
         }

@@ -22,26 +22,26 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
     static let builtIn: [PromptPreset] = [
         PromptPreset(
             id: UUID(uuidString: "EF8CF35C-386A-4389-A137-C207E4DB11FD")!,
-            title: "翻译",
-            instruction: "请准确翻译用户提供的内容。保留原有格式、语气和专有名词；仅输出译文。",
+            title: L10n.string("preset.translate.title"),
+            instruction: L10n.string("preset.translate.instruction"),
             isBuiltIn: true
         ),
         PromptPreset(
             id: UUID(uuidString: "1C85A324-65B3-4EBD-B2C4-0C6B072E284A")!,
-            title: "润色",
-            instruction: "请在不改变原意的前提下润色用户提供的内容，使表达自然、清晰、得体；仅输出润色后的版本。",
+            title: L10n.string("preset.polish.title"),
+            instruction: L10n.string("preset.polish.instruction"),
             isBuiltIn: true
         ),
         PromptPreset(
             id: UUID(uuidString: "5D03D444-EC3D-4F5D-9FB1-91EA5BD4E5B2")!,
-            title: "总结",
-            instruction: "请提炼用户提供内容的重点，以简洁、结构清晰的方式总结。",
+            title: L10n.string("preset.summarize.title"),
+            instruction: L10n.string("preset.summarize.instruction"),
             isBuiltIn: true
         ),
         PromptPreset(
             id: UUID(uuidString: "BF43F694-E4AE-4B5B-9AE9-B4D6D4A4F248")!,
-            title: "解释代码",
-            instruction: "请解释用户提供的代码：先说明用途，再说明关键逻辑、输入输出与注意事项；使用清晰的分段和示例。",
+            title: L10n.string("preset.explainCode.title"),
+            instruction: L10n.string("preset.explainCode.instruction"),
             isBuiltIn: true
         )
     ]

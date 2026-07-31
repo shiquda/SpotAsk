@@ -11,8 +11,8 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     init(settings: AppSettings) {
         self.settings = settings
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        launchAtLoginItem = NSMenuItem(title: "开机启动", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
-        keepWindowOnTopItem = NSMenuItem(title: "窗口置顶", action: #selector(toggleWindowOnTop), keyEquivalent: "")
+        launchAtLoginItem = NSMenuItem(title: L10n.string("menu.launchAtLogin"), action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        keepWindowOnTopItem = NSMenuItem(title: L10n.string("menu.windowOnTop"), action: #selector(toggleWindowOnTop), keyEquivalent: "")
         super.init()
 
         if let button = statusItem.button {
@@ -26,16 +26,16 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
     func rebuildMenu() {
         let menu = NSMenu()
-        menu.addItem(withTitle: "打开 SpotAsk", action: #selector(open), keyEquivalent: "")
-        menu.addItem(withTitle: "新对话", action: #selector(newConversation), keyEquivalent: "")
+        menu.addItem(withTitle: L10n.string("menu.open"), action: #selector(open), keyEquivalent: "")
+        menu.addItem(withTitle: L10n.string("menu.newConversation"), action: #selector(newConversation), keyEquivalent: "")
         menu.addItem(.separator())
-        menu.addItem(withTitle: "设置…", action: #selector(showSettings), keyEquivalent: ",")
+        menu.addItem(withTitle: L10n.string("menu.settings"), action: #selector(showSettings), keyEquivalent: ",")
         launchAtLoginItem.state = settings.launchAtLogin ? .on : .off
         menu.addItem(launchAtLoginItem)
         keepWindowOnTopItem.state = settings.keepWindowOnTop ? .on : .off
         menu.addItem(keepWindowOnTopItem)
         menu.addItem(.separator())
-        menu.addItem(withTitle: "退出", action: #selector(quit), keyEquivalent: "q")
+        menu.addItem(withTitle: L10n.string("menu.quit"), action: #selector(quit), keyEquivalent: "q")
         menu.items.forEach { $0.target = self }
         menu.delegate = self
         statusItem.menu = menu

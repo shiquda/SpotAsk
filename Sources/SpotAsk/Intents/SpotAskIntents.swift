@@ -20,7 +20,7 @@ struct AskSpotAskIntent: AppIntent {
     static let title: LocalizedStringResource = "问 AI？"
     static let description = IntentDescription(
         "在 SpotAsk 中提出一个问题并查看回答。",
-        searchKeywords: ["问AI", "问 AI", "？", "?"]
+        searchKeywords: ["问AI", "问 AI", "？", "?", "ask", "question"]
     )
 
     @available(macOS 26.0, *)
@@ -53,7 +53,7 @@ struct TranslateWithSpotAskIntent: AppIntent {
     static let title: LocalizedStringResource = "翻译"
     static let description = IntentDescription(
         "使用 SpotAsk 翻译内容。",
-        searchKeywords: ["翻译", "问AI", "问 AI", "？", "?"]
+        searchKeywords: ["翻译", "问AI", "问 AI", "？", "?", "translate"]
     )
 
     @available(macOS 26.0, *)
@@ -86,7 +86,7 @@ struct PolishWithSpotAskIntent: AppIntent {
     static let title: LocalizedStringResource = "润色"
     static let description = IntentDescription(
         "使用 SpotAsk 润色内容。",
-        searchKeywords: ["润色", "问AI", "问 AI", "？", "?"]
+        searchKeywords: ["润色", "问AI", "问 AI", "？", "?", "polish", "rewrite"]
     )
 
     @available(macOS 26.0, *)
@@ -119,7 +119,7 @@ struct SummarizeWithSpotAskIntent: AppIntent {
     static let title: LocalizedStringResource = "总结"
     static let description = IntentDescription(
         "使用 SpotAsk 总结内容。",
-        searchKeywords: ["总结", "问AI", "问 AI", "？", "?"]
+        searchKeywords: ["总结", "问AI", "问 AI", "？", "?", "summarize", "summary"]
     )
 
     @available(macOS 26.0, *)
@@ -152,7 +152,7 @@ struct ExplainCodeWithSpotAskIntent: AppIntent {
     static let title: LocalizedStringResource = "解释代码"
     static let description = IntentDescription(
         "使用 SpotAsk 解释代码。",
-        searchKeywords: ["解释代码", "问AI", "问 AI", "？", "?"]
+        searchKeywords: ["解释代码", "问AI", "问 AI", "？", "?", "code", "explain"]
     )
 
     @available(macOS 26.0, *)
