@@ -291,9 +291,10 @@ private func waitForGeneration(in viewModel: ChatViewModel) async {
 }
 
 private struct EmptyKeyStore: APIKeyStoring {
-    func readAPIKey() throws -> String? { nil }
-    func saveAPIKey(_ key: String) throws {}
-    func deleteAPIKey() throws {}
+    func readAPIKey(for providerID: UUID) throws -> String? { nil }
+    func saveAPIKey(_ key: String, for providerID: UUID) throws {}
+    func deleteAPIKey(for providerID: UUID) throws {}
+    func deleteAllAPIKeys() throws {}
 }
 
 @MainActor
@@ -305,6 +306,10 @@ private struct ImmediateProviderFactory: ChatProviderFactory {
     }
 
     func makeProvider() throws -> any ChatProvider { ImmediateProvider(recorder: recorder) }
+    func makeTargetSnapshot() throws -> ProviderTargetSnapshot { .testValue() }
+    func makeProvider(for target: ProviderTargetSnapshot) throws -> any ChatProvider {
+        ImmediateProvider(recorder: recorder)
+    }
 }
 
 private struct ImmediateProvider: ChatProvider {
@@ -326,6 +331,10 @@ private struct HoldingProviderFactory: ChatProviderFactory {
     let recorder: RequestRecorder
 
     func makeProvider() throws -> any ChatProvider { HoldingProvider(recorder: recorder) }
+    func makeTargetSnapshot() throws -> ProviderTargetSnapshot { .testValue() }
+    func makeProvider(for target: ProviderTargetSnapshot) throws -> any ChatProvider {
+        HoldingProvider(recorder: recorder)
+    }
 }
 
 private struct HoldingProvider: ChatProvider {
