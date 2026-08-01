@@ -3,6 +3,12 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing v* tag to publish or replace
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -17,21 +23,88 @@ jobs:
     environment: release
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Resolve release tag
+        env:
+          REQUESTED_TAG: ${{ inputs.release_tag }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            release_tag=$REQUESTED_TAG
+          else
+            release_tag=$GITHUB_REF_NAME
+          fi
+          case "$release_tag" in
+            v*) ;;
+            *) echo "Release tag must start with v" >&2; exit 1 ;;
+          esac
+          echo "RELEASE_TAG=$release_tag" >> "$GITHUB_ENV"
       - name: Confirm release tag matches the app version
         run: |
           app_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
-          tag_version=${GITHUB_REF_NAME#v}
+          tag_version=${RELEASE_TAG#v}
           test "$tag_version" = "$app_version"
-      - run: ./Scripts/make-release-dmg.sh --arch arm64 --output dist
-      - run: ./Scripts/make-release-dmg.sh --arch x86_64 --output dist
+      - name: Import Developer ID and notary credentials
+        env:
+          DEVELOPER_ID_P12_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
+          DEVELOPER_ID_P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+          NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          NOTARY_APP_SPECIFIC_PASSWORD: ${{ secrets.NOTARY_APP_SPECIFIC_PASSWORD }}
+          NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+        run: |
+          test -n "$DEVELOPER_ID_P12_BASE64"
+          test -n "$DEVELOPER_ID_P12_PASSWORD"
+          test -n "$NOTARY_APPLE_ID"
+          test -n "$NOTARY_APP_SPECIFIC_PASSWORD"
+          test -n "$NOTARY_TEAM_ID"
+
+          keychain_path="$RUNNER_TEMP/spotask-release.keychain-db"
+          certificate_path="$RUNNER_TEMP/developer-id.p12"
+          keychain_password=$(uuidgen)
+          notary_profile="spotask-release"
+
+          printf '%s' "$DEVELOPER_ID_P12_BASE64" | base64 --decode > "$certificate_path"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security import "$certificate_path" -P "$DEVELOPER_ID_P12_PASSWORD" -A -t cert -f pkcs12 -k "$keychain_path"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain_path"
+          security list-keychains -d user -s "$keychain_path"
+
+          signing_identity=$(security find-identity -v -p codesigning "$keychain_path" | sed -n 's/.*"\(Developer ID Application:[^"]*\)".*/\1/p' | head -n 1)
+          test -n "$signing_identity"
+
+          xcrun notarytool store-credentials "$notary_profile" \
+            --keychain "$keychain_path" \
+            --apple-id "$NOTARY_APPLE_ID" \
+            --team-id "$NOTARY_TEAM_ID" \
+            --password "$NOTARY_APP_SPECIFIC_PASSWORD"
+
+          echo "SPOTASK_CODESIGN_IDENTITY=$signing_identity" >> "$GITHUB_ENV"
+          echo "SPOTASK_NOTARY_KEYCHAIN=$keychain_path" >> "$GITHUB_ENV"
+          echo "SPOTASK_NOTARY_KEYCHAIN_PROFILE=$notary_profile" >> "$GITHUB_ENV"
+      - name: Build signed and notarized arm64 DMG
+        env:
+          SPOTASK_REQUIRE_DEVELOPER_ID: 1
+          SPOTASK_REQUIRE_NOTARIZATION: 1
+        run: ./Scripts/make-release-dmg.sh --arch arm64 --output dist
+      - name: Build signed and notarized x86_64 DMG
+        env:
+          SPOTASK_REQUIRE_DEVELOPER_ID: 1
+          SPOTASK_REQUIRE_NOTARIZATION: 1
+        run: ./Scripts/make-release-dmg.sh --arch x86_64 --output dist
       - name: Create checksums
-        run: shasum -a 256 dist/*.dmg > "dist/SpotAsk-${GITHUB_REF_NAME}-SHA256SUMS.txt"
+        run: shasum -a 256 dist/*.dmg > "dist/SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt"
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" dist/* --clobber
           else
-            gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes
+            gh release create "$RELEASE_TAG" dist/* --title "$RELEASE_TAG" --generate-notes
+          fi
+      - name: Delete temporary release keychain
+        if: always()
+        run: |
+          if [ -n "${SPOTASK_NOTARY_KEYCHAIN:-}" ]; then
+            security delete-keychain "$SPOTASK_NOTARY_KEYCHAIN" || true
           fi
