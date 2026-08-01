@@ -64,7 +64,7 @@ struct SettingsView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            SettingsSidebar(selection: $selectedSection)
+            SettingsSidebar(selection: $selectedSection, settings: settings)
             Divider()
             ScrollView {
                 Group {
@@ -78,7 +78,7 @@ struct SettingsView: View {
                     case .appearance:
                         AppearanceSettingsPage(settings: settings)
                     case .about:
-                        AboutSettingsPage(updateState: updateState)
+                        AboutSettingsPage(updateState: updateState, settings: settings)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -86,15 +86,18 @@ struct SettingsView: View {
             }
             .background(Color(nsColor: .windowBackgroundColor))
         }
-        .frame(width: 820, height: 590)
+        .frame(width: 860, height: 590)
         .background(Color(nsColor: .windowBackgroundColor))
     }
 }
 
 private struct SettingsSidebar: View {
     @Binding var selection: SettingsSection
+    let settings: AppSettings
 
     var body: some View {
+        let _ = settings.language  // observe so sidebar re-renders on language change
+
         VStack(alignment: .leading, spacing: 4) {
             Text(L10n.string("settings.title"))
                 .font(.system(size: 20, weight: .bold))
@@ -138,71 +141,35 @@ private struct SettingsSidebar: View {
     }
 }
 
+// MARK: - Provider Settings Page
+
 private struct ProviderSettingsPage: View {
     @Bindable var settings: AppSettings
     @Bindable var state: ProviderSettingsState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            SettingsPageHeader(section: .provider)
+            if let catalogError = settings.catalogLoadError {
+                CatalogErrorBanner(error: catalogError)
+            }
+
+            SettingsPageHeader(section: .provider, settings: settings)
             SettingsCallout(L10n.string("settings.providerDescription"))
 
-            SettingsGroup(title: L10n.string("settings.connection")) {
-                SettingsFieldRow(label: settings.useFullEndpoint ? L10n.string("settings.fullEndpoint") : L10n.string("settings.endpoint")) {
-                    TextField("https://api.openai.com/v1", text: $settings.baseURL)
-                        .textFieldStyle(.roundedBorder)
-                        .onChange(of: settings.baseURL) { _, value in state.validateURL(value) }
-                }
-                SettingsToggleRow(label: L10n.string("settings.endpointIncludesPath"), isOn: $settings.useFullEndpoint)
-                    .onChange(of: settings.useFullEndpoint) { _, _ in state.validateURL(settings.baseURL) }
-                if let endpointError = state.endpointError {
-                    Text(endpointError)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                        .padding(.leading, 148)
-                }
-                Divider()
-                SettingsFieldRow(label: L10n.string("settings.model")) {
-                    TextField("gpt-5-mini", text: $settings.model)
-                        .textFieldStyle(.roundedBorder)
-                }
-                SettingsToggleRow(label: L10n.string("settings.streaming"), isOn: $settings.streaming)
-                SettingsFieldRow(label: L10n.string("settings.responseTimeout")) {
-                    Stepper(L10n.string("settings.seconds", Int(settings.timeout)), value: $settings.timeout, in: 10...300, step: 10)
-                        .labelsHidden()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Text(L10n.string("settings.seconds", Int(settings.timeout)))
-                        .foregroundStyle(.secondary)
-                }
-            }
+            HStack(alignment: .top, spacing: 0) {
+                ProviderModelTree(state: state, settings: settings)
+                    .frame(width: 200)
 
-            SettingsGroup(title: L10n.string("settings.accessKey")) {
-                SettingsFieldRow(label: L10n.string("settings.accessKey")) {
-                    SecureField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
-                        .textFieldStyle(.roundedBorder)
-                        .textContentType(.password)
-                }
-                Text(L10n.string("settings.accessKeyOnlyOnMac"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.leading, 148)
                 Divider()
-                HStack(spacing: 10) {
-                    Button(L10n.string("settings.saveAccessKey")) { state.saveKey() }
-                        .buttonStyle(.borderedProminent)
-                        .keyboardShortcut("s")
-                    Button(L10n.string("settings.testConnection")) { state.testConnection() }
-                        .disabled(state.isTesting)
-                    Button(L10n.string("settings.clearAccessKey"), role: .destructive) { state.clearKey() }
-                    Spacer()
-                    if state.isTesting { ProgressView().controlSize(.small) }
-                    if !state.status.isEmpty {
-                        Text(state.status)
-                            .font(.caption)
-                            .foregroundStyle(state.statusIsError ? .red : .green)
-                    }
-                }
+
+                ProviderModelDetail(state: state, settings: settings)
+                    .frame(maxWidth: .infinity)
             }
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Color.primary.opacity(0.12), lineWidth: 0.5)
+            )
 
             SettingsGroup(title: L10n.string("settings.customInstruction")) {
                 TextEditor(text: $settings.systemPrompt)
@@ -214,8 +181,534 @@ private struct ProviderSettingsPage: View {
                     .accessibilityLabel(L10n.string("settings.customInstruction"))
             }
         }
+        .alert(L10n.string("settings.deleteProviderTitle"), isPresented: Binding(
+            get: { state.pendingDeleteProviderID != nil },
+            set: { if !$0 { state.pendingDeleteProviderID = nil } }
+        )) {
+            Button(L10n.string("settings.cancel"), role: .cancel) {
+                state.pendingDeleteProviderID = nil
+            }
+            Button(L10n.string("settings.delete"), role: .destructive) {
+                state.confirmDeleteProvider()
+            }
+        } message: {
+            Text(L10n.string("settings.deleteProviderMessage"))
+        }
+        .alert(L10n.string("settings.deleteModelTitle"), isPresented: Binding(
+            get: { state.pendingDeleteModelID != nil },
+            set: { if !$0 { state.pendingDeleteModelID = nil } }
+        )) {
+            Button(L10n.string("settings.cancel"), role: .cancel) {
+                state.pendingDeleteModelID = nil
+            }
+            Button(L10n.string("settings.delete"), role: .destructive) {
+                state.confirmDeleteModel()
+            }
+        } message: {
+            Text(L10n.string("settings.deleteModelMessage"))
+        }
     }
 }
+
+// MARK: - Catalog Error Banner
+
+private struct CatalogErrorBanner: View {
+    let error: ProviderModelCatalogLoadError
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.red)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(L10n.string("settings.catalogCorruptTitle"))
+                    .font(.system(size: 13, weight: .semibold))
+                Text(L10n.string("settings.catalogCorruptMessage"))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(14)
+        .background(Color.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+// MARK: - Provider/Model Tree
+
+private struct ProviderModelTree: View {
+    @Bindable var state: ProviderSettingsState
+    let settings: AppSettings
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 6) {
+                Text(L10n.string("settings.services"))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                Button {
+                    state.startNewProvider()
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .buttonStyle(.borderless)
+                .help(L10n.string("settings.addProvider"))
+                .accessibilityLabel(L10n.string("settings.addProvider"))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+
+            Divider()
+
+            if state.providers.isEmpty {
+                Text(L10n.string("settings.noServices"))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .padding(12)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(state.providers) { provider in
+                            ProviderTreeRow(
+                                provider: provider,
+                                models: state.modelsForProvider(provider.id),
+                                isExpanded: state.expandedProviderIDs.contains(provider.id),
+                                isSelected: state.selectedProviderID == provider.id && state.selectedModelID == nil,
+                                activeModelID: state.activeModelID,
+                                selectedModelID: state.selectedModelID,
+                                onSelectProvider: { state.selectProvider(provider.id) },
+                                onToggleExpand: { state.toggleProviderExpansion(provider.id) },
+                                onSelectModel: { state.selectModel($0) },
+                                onUseForChat: { state.useModelForChat($0) },
+                                onDeleteModel: { state.requestDeleteModel($0) },
+                                onAddModel: { state.startNewModel(for: provider.id) },
+                                onDeleteProvider: { state.requestDeleteProvider(provider.id) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+}
+
+private struct ProviderTreeRow: View {
+    let provider: ProviderConfiguration
+    let models: [ModelConfiguration]
+    let isExpanded: Bool
+    let isSelected: Bool
+    let activeModelID: UUID?
+    let selectedModelID: UUID?
+    let onSelectProvider: () -> Void
+    let onToggleExpand: () -> Void
+    let onSelectModel: (UUID) -> Void
+    let onUseForChat: (UUID) -> Void
+    let onDeleteModel: (UUID) -> Void
+    let onAddModel: () -> Void
+    let onDeleteProvider: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Provider header row
+            HStack(spacing: 4) {
+                Button {
+                    onToggleExpand()
+                } label: {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 16, height: 16)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(isExpanded
+                    ? L10n.string("settings.collapseProvider", provider.name)
+                    : L10n.string("settings.expandProvider", provider.name))
+
+                Button {
+                    onSelectProvider()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "server.rack")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                        Text(provider.name)
+                            .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Spacer(minLength: 0)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                Menu {
+                    Button {
+                        onAddModel()
+                    } label: {
+                        Label(L10n.string("settings.addModel"), systemImage: "plus")
+                    }
+                    Divider()
+                    Button(role: .destructive) {
+                        onDeleteProvider()
+                    } label: {
+                        Label(L10n.string("settings.delete"), systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+                .menuStyle(.borderlessButton)
+                .frame(width: 18, height: 18)
+                .accessibilityLabel(L10n.string("settings.providerActions", provider.name))
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(isSelected ? Color.primary.opacity(0.08) : .clear)
+
+            // Model rows (when expanded)
+            if isExpanded {
+                ForEach(models) { model in
+                    HStack(spacing: 4) {
+                        Spacer().frame(width: 16) // indent
+                        Button {
+                            onSelectModel(model.id)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .frame(width: 4, height: 4)
+                                    .foregroundStyle(model.id == activeModelID ? Color.cyan : .secondary.opacity(0.4))
+                                Text(model.displayName)
+                                    .font(.system(size: 12.5, weight: selectedModelID == model.id ? .semibold : .regular))
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                                if model.id == activeModelID {
+                                    Text(L10n.string("settings.active"))
+                                        .font(.system(size: 9, weight: .medium))
+                                        .foregroundStyle(.cyan)
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 1)
+                                        .background(Color.cyan.opacity(0.12), in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+                                }
+                                Spacer(minLength: 0)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        Menu {
+                            if model.id != activeModelID {
+                                Button {
+                                    onUseForChat(model.id)
+                                } label: {
+                                    Label(L10n.string("settings.useForChat"), systemImage: "bubble.left.and.bubble.right")
+                                }
+                            }
+                            Divider()
+                            Button(role: .destructive) {
+                                onDeleteModel(model.id)
+                            } label: {
+                                Label(L10n.string("settings.delete"), systemImage: "trash")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.secondary)
+                        }
+                        .menuStyle(.borderlessButton)
+                        .frame(width: 16, height: 16)
+                        .accessibilityLabel(L10n.string("settings.modelActions", model.displayName))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(selectedModelID == model.id ? Color.primary.opacity(0.08) : .clear)
+                }
+
+                // "Add Model" row
+                Button {
+                    onAddModel()
+                } label: {
+                    HStack(spacing: 6) {
+                        Spacer().frame(width: 16)
+                        Image(systemName: "plus")
+                            .font(.system(size: 10))
+                        Text(L10n.string("settings.addModel"))
+                            .font(.system(size: 12))
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+// MARK: - Provider/Model Detail Panel
+
+private struct ProviderModelDetail: View {
+    @Bindable var state: ProviderSettingsState
+    let settings: AppSettings
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                if state.isCreatingProvider {
+                    ProviderDetailForm(state: state, isNew: true)
+                } else if state.selectedProviderID != nil, state.selectedModelID == nil {
+                    ProviderDetailForm(state: state, isNew: false)
+                } else if state.isCreatingModel {
+                    ModelDetailForm(state: state, isNew: true)
+                } else if state.selectedModelID != nil {
+                    ModelDetailForm(state: state, isNew: false)
+                } else {
+                    EmptySelectionView()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(20)
+        }
+    }
+}
+
+private struct EmptySelectionView: View {
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "server.rack")
+                .font(.system(size: 28))
+                .foregroundStyle(.tertiary)
+            Text(L10n.string("settings.selectProviderOrModel"))
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.vertical, 60)
+    }
+}
+
+// MARK: - Provider Detail Form
+
+private struct ProviderDetailForm: View {
+    @Bindable var state: ProviderSettingsState
+    let isNew: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                Text(isNew ? L10n.string("settings.newProvider") : L10n.string("settings.editProvider"))
+                    .font(.system(size: 17, weight: .semibold))
+                Spacer()
+                if !isNew {
+                    Button(role: .destructive) {
+                        if let id = state.selectedProviderID {
+                            state.requestDeleteProvider(id)
+                        }
+                    } label: {
+                        Label(L10n.string("settings.delete"), systemImage: "trash")
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+
+            SettingsGroup(title: L10n.string("settings.providerInfo")) {
+                SettingsFieldRow(label: L10n.string("settings.providerName")) {
+                    TextField(L10n.string("settings.providerNamePlaceholder"), text: $state.draftProviderName)
+                        .textFieldStyle(.roundedBorder)
+                        .onChange(of: state.draftProviderName) { _, _ in state.clearStatus() }
+                }
+                SettingsFieldRow(label: L10n.string("settings.serviceAddress")) {
+                    TextField("https://api.example.com/v1", text: $state.draftProviderAddress)
+                        .textFieldStyle(.roundedBorder)
+                        .onChange(of: state.draftProviderAddress) { _, value in state.validateProviderURL(value) }
+                }
+                if let error = state.providerFieldError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .padding(.leading, 134)
+                }
+                SettingsFieldRow(label: L10n.string("settings.addressMode")) {
+                    Picker(L10n.string("settings.addressMode"), selection: $state.draftProviderAddressMode) {
+                        Text(L10n.string("settings.addressModeBaseURL")).tag(ProviderAddressMode.baseURL)
+                        Text(L10n.string("settings.addressModeFullEndpoint")).tag(ProviderAddressMode.fullEndpoint)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .onChange(of: state.draftProviderAddressMode) { _, _ in
+                        state.validateProviderURL(state.draftProviderAddress)
+                    }
+                }
+                SettingsFieldRow(label: L10n.string("settings.responseTimeout")) {
+                    HStack(spacing: 8) {
+                        Stepper(L10n.string("settings.seconds", Int(state.draftProviderTimeout)), value: $state.draftProviderTimeout, in: 10...300, step: 10)
+                            .labelsHidden()
+                        Text(L10n.string("settings.seconds", Int(state.draftProviderTimeout)))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            if !isNew {
+                SettingsGroup(title: L10n.string("settings.accessKey")) {
+                    SettingsFieldRow(label: L10n.string("settings.accessKey")) {
+                        SecureField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
+                            .textFieldStyle(.roundedBorder)
+                            .textContentType(.password)
+                    }
+                    Text(L10n.string("settings.accessKeyOnlyOnMac"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 134)
+
+                    HStack(spacing: 10) {
+                        Button(L10n.string("settings.saveAccessKey")) { state.saveKey() }
+                            .buttonStyle(.borderedProminent)
+                            .keyboardShortcut("s")
+                        Button(L10n.string("settings.testConnection")) { state.testConnection() }
+                            .disabled(state.isTesting || !state.canTestConnection)
+                        Button(L10n.string("settings.clearAccessKey"), role: .destructive) { state.clearKey() }
+                        Spacer()
+                        if state.isTesting { ProgressView().controlSize(.small) }
+                        if !state.status.isEmpty {
+                            Text(state.status)
+                                .font(.caption)
+                                .foregroundStyle(state.statusIsError ? .red : .green)
+                        }
+                    }
+                }
+            }
+
+            // Save / Cancel buttons
+            HStack {
+                Spacer()
+                if isNew {
+                    Button(L10n.string("settings.cancel")) {
+                        state.cancelEditing()
+                    }
+                    .keyboardShortcut(.cancelAction)
+                }
+                Button(isNew ? L10n.string("settings.create") : L10n.string("settings.save")) {
+                    state.saveProvider()
+                }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+                .disabled(!state.canSaveProvider)
+            }
+        }
+    }
+}
+
+// MARK: - Model Detail Form
+
+private struct ModelDetailForm: View {
+    @Bindable var state: ProviderSettingsState
+    let isNew: Bool
+
+    private var parentProviderName: String {
+        guard let catalog = state.settings.providerRegistry.catalog,
+              let pid = state.newModelParentProviderID ?? state.selectedModel?.providerID,
+              let provider = catalog.providers.first(where: { $0.id == pid }) else {
+            return ""
+        }
+        return provider.name
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                Text(isNew ? L10n.string("settings.newModel") : L10n.string("settings.editModel"))
+                    .font(.system(size: 17, weight: .semibold))
+                Spacer()
+                if !isNew {
+                    Button(role: .destructive) {
+                        if let id = state.selectedModelID {
+                            state.requestDeleteModel(id)
+                        }
+                    } label: {
+                        Label(L10n.string("settings.delete"), systemImage: "trash")
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+
+            SettingsGroup(title: L10n.string("settings.modelInfo")) {
+                SettingsFieldRow(label: L10n.string("settings.displayName")) {
+                    TextField(L10n.string("settings.displayNamePlaceholder"), text: $state.draftModelDisplayName)
+                        .textFieldStyle(.roundedBorder)
+                        .onChange(of: state.draftModelDisplayName) { _, _ in state.clearStatus() }
+                }
+                SettingsFieldRow(label: L10n.string("settings.upstreamModelID")) {
+                    TextField("gpt-5-mini", text: $state.draftModelUpstreamID)
+                        .textFieldStyle(.roundedBorder)
+                        .onChange(of: state.draftModelUpstreamID) { _, _ in state.clearStatus() }
+                }
+                SettingsFieldRow(label: L10n.string("settings.service")) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "server.rack")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                        Text(parentProviderName)
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                SettingsToggleRow(label: L10n.string("settings.streaming"), isOn: $state.draftModelStreaming)
+            }
+
+            // Show active indicator or "Use for Chat" button
+            if let activeID = state.activeModelID {
+                if activeID == state.selectedModelID {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.cyan)
+                            .font(.system(size: 12))
+                        Text(L10n.string("settings.currentlyActiveModel"))
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                } else if !isNew, let modelID = state.selectedModelID {
+                    HStack {
+                        Button {
+                            state.useModelForChat(modelID)
+                        } label: {
+                            Label(L10n.string("settings.useForChat"), systemImage: "bubble.left.and.bubble.right")
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityLabel(L10n.string("settings.useForChat"))
+                        if !state.status.isEmpty {
+                            Text(state.status)
+                                .font(.caption)
+                                .foregroundStyle(state.statusIsError ? .red : .secondary)
+                        }
+                    }
+                }
+            }
+
+            HStack {
+                Spacer()
+                if isNew {
+                    Button(L10n.string("settings.cancel")) {
+                        state.cancelEditing()
+                    }
+                    .keyboardShortcut(.cancelAction)
+                }
+                Button(isNew ? L10n.string("settings.create") : L10n.string("settings.save")) {
+                    state.saveModel()
+                }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+                .disabled(!state.canSaveModel)
+            }
+        }
+    }
+}
+
+// MARK: - Prompt Presets Settings
 
 private struct PromptPresetsSettingsPage: View {
     @Bindable var settings: AppSettings
@@ -223,7 +716,7 @@ private struct PromptPresetsSettingsPage: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            SettingsPageHeader(section: .prompts)
+            SettingsPageHeader(section: .prompts, settings: settings)
             SettingsCallout(L10n.string("settings.promptsDescription"))
 
             SettingsGroup(title: L10n.string("settings.savedPrompts")) {
@@ -375,13 +868,15 @@ private struct PromptPresetEditor: View {
     }
 }
 
+// MARK: - General Settings Page
+
 private struct GeneralSettingsPage: View {
     let settings: AppSettings
     let providerState: ProviderSettingsState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            SettingsPageHeader(section: .general)
+            SettingsPageHeader(section: .general, settings: settings)
             SettingsCallout(L10n.string("settings.generalDescription"))
 
             SettingsGroup(title: L10n.string("settings.language")) {
@@ -453,12 +948,14 @@ private struct GeneralSettingsPage: View {
     }
 }
 
+// MARK: - Appearance Settings Page
+
 private struct AppearanceSettingsPage: View {
     let settings: AppSettings
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            SettingsPageHeader(section: .appearance)
+            SettingsPageHeader(section: .appearance, settings: settings)
             SettingsCallout(L10n.string("settings.readingDescription"))
             SettingsGroup(title: L10n.string("settings.reading")) {
                 SettingsFieldRow(label: L10n.string("settings.appearance")) {
@@ -482,12 +979,15 @@ private struct AppearanceSettingsPage: View {
     }
 }
 
+// MARK: - About Settings Page
+
 private struct AboutSettingsPage: View {
     let updateState: AppUpdateState
+    let settings: AppSettings
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            SettingsPageHeader(section: .about)
+            SettingsPageHeader(section: .about, settings: settings)
             SettingsCallout(L10n.string("settings.aboutDescription"))
 
             SettingsGroup(title: "SpotAsk") {
@@ -559,10 +1059,15 @@ private struct AboutSettingsPage: View {
     }
 }
 
+// MARK: - Reusable Settings Components
+
 private struct SettingsPageHeader: View {
     let section: SettingsSection
+    let settings: AppSettings
 
     var body: some View {
+        let _ = settings.language  // observe so header re-renders on language change
+
         HStack(spacing: 12) {
             Image(systemName: section.symbol)
                 .font(.system(size: 18, weight: .semibold))
@@ -628,23 +1133,109 @@ private struct SettingsToggleRow: View {
     @Binding var isOn: Bool
 
     var body: some View {
-        Toggle(label, isOn: $isOn)
-            .toggleStyle(.switch)
+        HStack(alignment: .center, spacing: 14) {
+            Text(label)
+                .frame(width: 134, alignment: .leading)
+            Toggle("", isOn: $isOn)
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .accessibilityLabel(label)
+        }
     }
 }
+
+// MARK: - Provider Settings State
 
 @MainActor
 @Observable
 final class ProviderSettingsState {
-    private let settings: AppSettings
+    let settings: AppSettings
     private let keyStore: any APIKeyStoring
     private let providerFactory: any ChatProviderFactory
 
+    // MARK: Selection state
+
+    var selectedProviderID: UUID?
+    var selectedModelID: UUID?
+    var expandedProviderIDs: Set<UUID> = []
+    /// Observable mirror of the registry's selectedModelID so the tree
+    /// and detail re-render when the active model changes.
+    var activeModelID: UUID?
+
+    // MARK: Provider draft
+
+    var draftProviderName = ""
+    var draftProviderAddress = ""
+    var draftProviderAddressMode: ProviderAddressMode = .baseURL
+    var draftProviderTimeout: Double = 60
+
+    // MARK: Model draft
+
+    var draftModelDisplayName = ""
+    var draftModelUpstreamID = ""
+    var draftModelStreaming = true
+
+    // MARK: Create/edit mode
+
+    var isCreatingProvider = false
+    var isCreatingModel = false
+    var newModelParentProviderID: UUID?
+
+    // MARK: Access key
+
     var apiKeyDraft = ""
+
+    // MARK: Status
+
     var status = ""
     var statusIsError = false
     var isTesting = false
-    var endpointError: String?
+    var providerFieldError: String?
+
+    // MARK: Delete confirmation
+
+    var pendingDeleteProviderID: UUID?
+    var pendingDeleteModelID: UUID?
+
+    // MARK: Computed properties
+
+    var providers: [ProviderConfiguration] {
+        settings.providerRegistry.catalog?.providers ?? []
+    }
+
+    var selectedModel: ModelConfiguration? {
+        guard let id = selectedModelID,
+              let catalog = settings.providerRegistry.catalog else { return nil }
+        return catalog.models.first(where: { $0.id == id })
+    }
+
+    func modelsForProvider(_ providerID: UUID) -> [ModelConfiguration] {
+        settings.providerRegistry.catalog?.models.filter { $0.providerID == providerID } ?? []
+    }
+
+    var canSaveProvider: Bool {
+        let name = draftProviderName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let address = draftProviderAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !name.isEmpty && !address.isEmpty && providerFieldError == nil
+    }
+
+    var canSaveModel: Bool {
+        let displayName = draftModelDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let upstreamID = draftModelUpstreamID.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !displayName.isEmpty && !upstreamID.isEmpty
+    }
+
+    var canTestConnection: Bool {
+        guard let pid = selectedProviderID,
+              let catalog = settings.providerRegistry.catalog,
+              catalog.models.contains(where: { $0.providerID == pid }) else { return false }
+        let address = draftProviderAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !address.isEmpty
+            && providerFieldError == nil
+            && (try? URLNormalizer.endpoint(from: address, useFullEndpoint: draftProviderAddressMode.usesFullEndpoint)) != nil
+    }
+
+    // MARK: Init
 
     init(
         settings: AppSettings,
@@ -654,27 +1245,327 @@ final class ProviderSettingsState {
         self.settings = settings
         self.keyStore = keyStore
         self.providerFactory = providerFactory
-    }
+        self.activeModelID = settings.providerRegistry.catalog?.selectedModelID
 
-    func validateURL(_ value: String) {
-        do {
-            _ = try URLNormalizer.endpoint(from: value, useFullEndpoint: settings.useFullEndpoint)
-            endpointError = nil
-        } catch {
-            endpointError = L10n.string("settings.endpointInvalid")
+        // Auto-select first provider on init
+        if let firstProvider = settings.providerRegistry.catalog?.providers.first {
+            selectProvider(firstProvider.id)
         }
     }
 
-    func saveKey() {
-        guard validateConfiguration() else { return }
-        let key = apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !key.isEmpty else {
-            setStatus(L10n.string("settings.saveSuccess"), isError: false)
+    // MARK: Selection
+
+    func selectProvider(_ id: UUID) {
+        guard let catalog = settings.providerRegistry.catalog,
+              let provider = catalog.providers.first(where: { $0.id == id }) else { return }
+
+        cancelEditing()
+        selectedProviderID = id
+        selectedModelID = nil
+        expandedProviderIDs.insert(id)
+
+        draftProviderName = provider.name
+        draftProviderAddress = provider.address
+        draftProviderAddressMode = provider.addressMode
+        draftProviderTimeout = provider.timeout
+
+        draftModelDisplayName = ""
+        draftModelUpstreamID = ""
+        draftModelStreaming = true
+
+        apiKeyDraft = ""
+        status = ""
+        statusIsError = false
+        providerFieldError = validateProviderAddress(provider.address)
+    }
+
+    func selectModel(_ id: UUID) {
+        guard let catalog = settings.providerRegistry.catalog,
+              let model = catalog.models.first(where: { $0.id == id }),
+              catalog.providers.contains(where: { $0.id == model.providerID }) else { return }
+
+        cancelEditing()
+        selectedModelID = id
+        selectedProviderID = nil
+        expandedProviderIDs.insert(model.providerID)
+
+        draftModelDisplayName = model.displayName
+        draftModelUpstreamID = model.upstreamModelID
+        draftModelStreaming = model.isStreamingEnabled
+
+        draftProviderName = ""
+        draftProviderAddress = ""
+        draftProviderAddressMode = .baseURL
+        draftProviderTimeout = 60
+
+        apiKeyDraft = ""
+        status = ""
+        statusIsError = false
+        providerFieldError = nil
+    }
+
+    func toggleProviderExpansion(_ id: UUID) {
+        if expandedProviderIDs.contains(id) {
+            expandedProviderIDs.remove(id)
+        } else {
+            expandedProviderIDs.insert(id)
+        }
+    }
+
+    // MARK: Create
+
+    func startNewProvider() {
+        cancelEditing()
+        isCreatingProvider = true
+        selectedProviderID = nil
+        selectedModelID = nil
+
+        draftProviderName = ""
+        draftProviderAddress = ""
+        draftProviderAddressMode = .baseURL
+        draftProviderTimeout = 60
+        apiKeyDraft = ""
+        status = ""
+        statusIsError = false
+        providerFieldError = nil
+    }
+
+    func startNewModel(for providerID: UUID) {
+        cancelEditing()
+        isCreatingModel = true
+        newModelParentProviderID = providerID
+        selectedModelID = nil
+        selectedProviderID = nil
+        expandedProviderIDs.insert(providerID)
+
+        draftModelDisplayName = ""
+        draftModelUpstreamID = ""
+        draftModelStreaming = true
+        status = ""
+        statusIsError = false
+        providerFieldError = nil
+    }
+
+    func cancelEditing() {
+        isCreatingProvider = false
+        isCreatingModel = false
+        newModelParentProviderID = nil
+        status = ""
+        statusIsError = false
+        providerFieldError = nil
+        apiKeyDraft = ""
+
+        // Restore draft from current selection without re-triggering selection
+        if let pid = selectedProviderID,
+           let catalog = settings.providerRegistry.catalog,
+           let provider = catalog.providers.first(where: { $0.id == pid }) {
+            draftProviderName = provider.name
+            draftProviderAddress = provider.address
+            draftProviderAddressMode = provider.addressMode
+            draftProviderTimeout = provider.timeout
+            draftModelDisplayName = ""
+            draftModelUpstreamID = ""
+            draftModelStreaming = true
+        } else if let mid = selectedModelID,
+                  let catalog = settings.providerRegistry.catalog,
+                  let model = catalog.models.first(where: { $0.id == mid }) {
+            draftModelDisplayName = model.displayName
+            draftModelUpstreamID = model.upstreamModelID
+            draftModelStreaming = model.isStreamingEnabled
+            draftProviderName = ""
+            draftProviderAddress = ""
+            draftProviderAddressMode = .baseURL
+            draftProviderTimeout = 60
+        } else {
+            selectedProviderID = nil
+            selectedModelID = nil
+            draftProviderName = ""
+            draftProviderAddress = ""
+            draftProviderAddressMode = .baseURL
+            draftProviderTimeout = 60
+            draftModelDisplayName = ""
+            draftModelUpstreamID = ""
+            draftModelStreaming = true
+        }
+    }
+
+    // MARK: Save
+
+    func saveProvider() {
+        let name = draftProviderName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let address = draftProviderAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !name.isEmpty else {
+            setStatus(L10n.string("settings.providerNameRequired"), isError: true)
+            return
+        }
+        guard !address.isEmpty else {
+            setStatus(L10n.string("settings.providerAddressRequired"), isError: true)
+            return
+        }
+        guard providerFieldError == nil else { return }
+
+        do {
+            let id = isCreatingProvider ? UUID() : (selectedProviderID ?? UUID())
+            let provider = ProviderConfiguration(
+                id: id,
+                name: name,
+                address: address,
+                addressMode: draftProviderAddressMode,
+                timeout: draftProviderTimeout
+            )
+            let saved = try settings.providerRegistry.saveProvider(provider)
+            isCreatingProvider = false
+            selectProvider(saved.id)
+            setStatus(L10n.string("settings.providerSaved"), isError: false)
+        } catch {
+            setStatus(L10n.string("settings.providerSaveFailed"), isError: true)
+        }
+    }
+
+    func saveModel() {
+        let displayName = draftModelDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let upstreamID = draftModelUpstreamID.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !displayName.isEmpty else {
+            setStatus(L10n.string("settings.modelDisplayNameRequired"), isError: true)
+            return
+        }
+        guard !upstreamID.isEmpty else {
+            setStatus(L10n.string("settings.modelUpstreamIDRequired"), isError: true)
             return
         }
 
         do {
-            try keyStore.saveAPIKey(key, for: selectedProviderID())
+            let id = isCreatingModel ? UUID() : (selectedModelID ?? UUID())
+            let providerID: UUID
+            if isCreatingModel, let parentID = newModelParentProviderID {
+                providerID = parentID
+            } else if let existing = selectedModel {
+                providerID = existing.providerID
+            } else {
+                setStatus(L10n.string("settings.modelProviderRequired"), isError: true)
+                return
+            }
+
+            let model = ModelConfiguration(
+                id: id,
+                displayName: displayName,
+                upstreamModelID: upstreamID,
+                providerID: providerID,
+                isStreamingEnabled: draftModelStreaming
+            )
+            let saved = try settings.providerRegistry.saveModel(model)
+            isCreatingModel = false
+            newModelParentProviderID = nil
+            selectModel(saved.id)
+            setStatus(L10n.string("settings.modelSaved"), isError: false)
+        } catch {
+            setStatus(L10n.string("settings.modelSaveFailed"), isError: true)
+        }
+    }
+
+    /// Set a model as the active chat model without switching editing context.
+    func useModelForChat(_ id: UUID) {
+        do {
+            try settings.providerRegistry.selectModel(id: id)
+            syncActiveModelID()
+            setStatus(L10n.string("settings.modelActivated"), isError: false)
+        } catch {
+            setStatus(L10n.string("settings.modelActivateFailed"), isError: true)
+        }
+    }
+
+    // MARK: Delete
+
+    func requestDeleteProvider(_ id: UUID) {
+        pendingDeleteProviderID = id
+    }
+
+    func requestDeleteModel(_ id: UUID) {
+        pendingDeleteModelID = id
+    }
+
+    func confirmDeleteProvider() {
+        guard let id = pendingDeleteProviderID else { return }
+        pendingDeleteProviderID = nil
+
+        // Capture affected editing selection before the provider
+        // (and its models) are removed from the catalog.
+        let wasEditingThisProvider = (selectedProviderID == id)
+        let modelOwnedByThisProvider: UUID? = {
+            if let mid = selectedModelID,
+               let catalog = settings.providerRegistry.catalog,
+               let model = catalog.models.first(where: { $0.id == mid }),
+               model.providerID == id {
+                return mid
+            }
+            return nil
+        }()
+
+        do {
+            try settings.providerRegistry.deleteProvider(id: id, keyStore: keyStore)
+            syncActiveModelID()
+
+            if wasEditingThisProvider || modelOwnedByThisProvider != nil {
+                if let catalog = settings.providerRegistry.catalog,
+                   let newModel = catalog.models.first(where: { $0.id == catalog.selectedModelID }) {
+                    selectModel(newModel.id)
+                } else if let firstProvider = settings.providerRegistry.catalog?.providers.first {
+                    selectProvider(firstProvider.id)
+                }
+            }
+            setStatus(L10n.string("settings.providerDeleted"), isError: false)
+        } catch let error as ProviderModelRegistryError {
+            switch error {
+            case .wouldLeaveNoSelectableModel:
+                setStatus(L10n.string("settings.cannotDeleteLastProvider"), isError: true)
+            default:
+                setStatus(L10n.string("settings.providerDeleteFailed"), isError: true)
+            }
+        } catch {
+            setStatus(L10n.string("settings.providerDeleteFailed"), isError: true)
+        }
+    }
+
+    func confirmDeleteModel() {
+        guard let id = pendingDeleteModelID else { return }
+        pendingDeleteModelID = nil
+        do {
+            try settings.providerRegistry.deleteModel(id: id)
+            syncActiveModelID()
+            if selectedModelID == id {
+                if let catalog = settings.providerRegistry.catalog,
+                   let newModel = catalog.models.first(where: { $0.id == catalog.selectedModelID }) {
+                    selectModel(newModel.id)
+                } else if let firstProvider = settings.providerRegistry.catalog?.providers.first {
+                    selectProvider(firstProvider.id)
+                }
+            }
+            setStatus(L10n.string("settings.modelDeleted"), isError: false)
+        } catch let error as ProviderModelRegistryError {
+            switch error {
+            case .wouldLeaveNoSelectableModel:
+                setStatus(L10n.string("settings.cannotDeleteLastModel"), isError: true)
+            default:
+                setStatus(L10n.string("settings.modelDeleteFailed"), isError: true)
+            }
+        } catch {
+            setStatus(L10n.string("settings.modelDeleteFailed"), isError: true)
+        }
+    }
+
+    // MARK: Access key
+
+    func saveKey() {
+        guard let providerID = selectedProviderID else { return }
+        let key = apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !key.isEmpty else {
+            setStatus(L10n.string("settings.keyEmpty"), isError: true)
+            return
+        }
+        do {
+            try keyStore.saveAPIKey(key, for: providerID)
             apiKeyDraft = ""
             setStatus(L10n.string("settings.saveKeySuccess"), isError: false)
         } catch {
@@ -683,14 +1574,97 @@ final class ProviderSettingsState {
     }
 
     func clearKey() {
+        guard let providerID = selectedProviderID else { return }
         do {
-            try keyStore.deleteAPIKey(for: selectedProviderID())
+            try keyStore.deleteAPIKey(for: providerID)
             apiKeyDraft = ""
             setStatus(L10n.string("settings.clearKeySuccess"), isError: false)
         } catch {
             setStatus(L10n.string("settings.clearKeyFailure"), isError: true)
         }
     }
+
+    func testConnection() {
+        guard let providerID = selectedProviderID,
+              let catalog = settings.providerRegistry.catalog,
+              let model = catalog.models.first(where: { $0.providerID == providerID }) else { return }
+
+        isTesting = true
+        status = ""
+        statusIsError = false
+
+        Task {
+            do {
+                let address = draftProviderAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+                let mode = draftProviderAddressMode
+                let timeout = draftProviderTimeout
+
+                // Save draft key if provided, then read back the stored key
+                let draftKey = apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !draftKey.isEmpty {
+                    try keyStore.saveAPIKey(draftKey, for: providerID)
+                    apiKeyDraft = ""
+                }
+                let storedKey = try keyStore.readAPIKey(for: providerID)
+
+                // Require an API key before constructing the target
+                guard let apiKey = (storedKey ?? (draftKey.isEmpty ? nil : draftKey)),
+                      !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    throw ChatError.missingAPIKey
+                }
+
+                let endpoint = try URLNormalizer.endpoint(
+                    from: address,
+                    useFullEndpoint: mode.usesFullEndpoint
+                )
+                let target = ProviderTargetSnapshot(
+                    modelID: model.id,
+                    providerID: providerID,
+                    endpoint: endpoint,
+                    apiKey: apiKey,
+                    upstreamModelID: model.upstreamModelID,
+                    isStreamingEnabled: model.isStreamingEnabled,
+                    timeout: timeout
+                )
+                let chatProvider = try providerFactory.makeProvider(for: target)
+                try await chatProvider.testConnection()
+                setStatus(L10n.string("settings.modelConnectionSuccess"), isError: false)
+            } catch let error as ChatError {
+                setStatus(error.localizedDescription, isError: true)
+            } catch {
+                setStatus(L10n.string("settings.testFailure"), isError: true)
+            }
+            isTesting = false
+        }
+    }
+
+    // MARK: Validation
+
+    func validateProviderURL(_ value: String) {
+        providerFieldError = validateProviderAddress(value)
+    }
+
+    private func validateProviderAddress(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        do {
+            _ = try URLNormalizer.endpoint(from: trimmed, useFullEndpoint: draftProviderAddressMode.usesFullEndpoint)
+            return nil
+        } catch {
+            return L10n.string("settings.endpointInvalid")
+        }
+    }
+
+    func clearStatus() {
+        status = ""
+        statusIsError = false
+    }
+
+    private func syncActiveModelID() {
+        activeModelID = settings.providerRegistry.catalog?.selectedModelID
+    }
+
+    // MARK: Global data clear
 
     func clearAllLocalData() {
         do {
@@ -702,49 +1676,7 @@ final class ProviderSettingsState {
         }
     }
 
-    func testConnection() {
-        guard validateConfiguration() else { return }
-        isTesting = true
-        status = ""
-        statusIsError = false
-
-        Task {
-            do {
-                let key = apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !key.isEmpty {
-                    try keyStore.saveAPIKey(key, for: selectedProviderID())
-                    apiKeyDraft = ""
-                }
-                let provider = try providerFactory.makeProvider()
-                try await provider.testConnection()
-                setStatus(L10n.string("settings.modelConnectionSuccess"), isError: false)
-            } catch let error as ChatError {
-                setStatus(error.localizedDescription, isError: true)
-            } catch {
-                setStatus(L10n.string("settings.testFailure"), isError: true)
-            }
-            isTesting = false
-        }
-    }
-
-    private func validateConfiguration() -> Bool {
-        validateURL(settings.baseURL)
-        guard endpointError == nil, !settings.model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            if settings.model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                setStatus(L10n.string("settings.modelRequired"), isError: true)
-            }
-            return false
-        }
-        return true
-    }
-
-    private func selectedProviderID() throws -> UUID {
-        guard let catalog = settings.providerRegistry.catalog,
-              let model = catalog.models.first(where: { $0.id == catalog.selectedModelID }) else {
-            throw ChatError.invalidConfiguration
-        }
-        return model.providerID
-    }
+    // MARK: Private
 
     private func setStatus(_ value: String, isError: Bool) {
         status = value
