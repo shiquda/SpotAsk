@@ -159,16 +159,26 @@ final class ChatViewModel {
         let assistantID = UUID()
         messages.append(ChatMessage(id: assistantID, role: .assistant, content: "", state: .streaming))
         retryPromptPreset = promptPreset
+        let target: ProviderTargetSnapshot
+        do {
+            target = try providerFactory.makeTargetSnapshot()
+        } catch let receivedError as ChatError {
+            finishAfterError(receivedError, assistantID: assistantID)
+            return
+        } catch {
+            finishAfterError(.invalidConfiguration, assistantID: assistantID)
+            return
+        }
         let request = ChatRequest(
-            model: settings.model,
+            model: target.upstreamModelID,
             messages: messagesForRequest(using: promptPreset),
-            stream: settings.streaming
+            stream: target.isStreamingEnabled
         )
 
         streamTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let provider = try self.providerFactory.makeProvider()
+                let provider = try self.providerFactory.makeProvider(for: target)
                 self.generationState = .streaming
                 for try await event in provider.stream(request: request) {
                     guard !Task.isCancelled else { throw ChatError.cancelled }

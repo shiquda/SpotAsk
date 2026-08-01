@@ -674,7 +674,7 @@ final class ProviderSettingsState {
         }
 
         do {
-            try keyStore.saveAPIKey(key)
+            try keyStore.saveAPIKey(key, for: selectedProviderID())
             apiKeyDraft = ""
             setStatus(L10n.string("settings.saveKeySuccess"), isError: false)
         } catch {
@@ -684,7 +684,7 @@ final class ProviderSettingsState {
 
     func clearKey() {
         do {
-            try keyStore.deleteAPIKey()
+            try keyStore.deleteAPIKey(for: selectedProviderID())
             apiKeyDraft = ""
             setStatus(L10n.string("settings.clearKeySuccess"), isError: false)
         } catch {
@@ -694,7 +694,7 @@ final class ProviderSettingsState {
 
     func clearAllLocalData() {
         do {
-            try keyStore.deleteAPIKey()
+            try keyStore.deleteAllAPIKeys()
             UserDefaults.standard.removePersistentDomain(forName: Bundle.main.bundleIdentifier ?? "com.spotask.app")
             setStatus(L10n.string("settings.resetSuccess"), isError: false)
         } catch {
@@ -712,7 +712,7 @@ final class ProviderSettingsState {
             do {
                 let key = apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !key.isEmpty {
-                    try keyStore.saveAPIKey(key)
+                    try keyStore.saveAPIKey(key, for: selectedProviderID())
                     apiKeyDraft = ""
                 }
                 let provider = try providerFactory.makeProvider()
@@ -736,6 +736,14 @@ final class ProviderSettingsState {
             return false
         }
         return true
+    }
+
+    private func selectedProviderID() throws -> UUID {
+        guard let catalog = settings.providerRegistry.catalog,
+              let model = catalog.models.first(where: { $0.id == catalog.selectedModelID }) else {
+            throw ChatError.invalidConfiguration
+        }
+        return model.providerID
     }
 
     private func setStatus(_ value: String, isError: Bool) {

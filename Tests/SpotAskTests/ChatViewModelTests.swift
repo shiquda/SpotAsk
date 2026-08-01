@@ -243,6 +243,51 @@ final class ChatViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.canRegenerate, "Nothing to regenerate before an answer exists")
     }
 
+    func testRequestUsesImmutableTargetSnapshotWhenSelectionChangesDuringStartup() async throws {
+        let suiteName = "SpotAskTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let registry = settings.providerRegistry
+        let originalCatalog = try XCTUnwrap(registry.catalog)
+        let originalProvider = try XCTUnwrap(originalCatalog.providers.first)
+        let originalModel = try XCTUnwrap(originalCatalog.models.first)
+        let secondProvider = try registry.saveProvider(
+            ProviderConfiguration(name: "Second", address: "https://second.example/v1", addressMode: .baseURL, timeout: 20)
+        )
+        let secondModel = try registry.saveModel(
+            ModelConfiguration(displayName: "Second", upstreamModelID: "second-upstream", providerID: secondProvider.id, isStreamingEnabled: false)
+        )
+        let snapshot = ProviderTargetSnapshot(
+            modelID: originalModel.id,
+            providerID: originalProvider.id,
+            endpoint: URL(string: "https://original.example/v1/chat/completions")!,
+            apiKey: "old-key",
+            upstreamModelID: originalModel.upstreamModelID,
+            isStreamingEnabled: true,
+            timeout: 60
+        )
+        let factory = SnapshotFactory(
+            snapshot: snapshot,
+            onSnapshot: { try registry.selectModel(id: secondModel.id) }
+        )
+        let viewModel = ChatViewModel(settings: settings, providerFactory: factory, sessionStore: SessionStore(bundleIdentifier: suiteName))
+
+        viewModel.input = "question"
+        viewModel.send()
+        await waitForIdle(viewModel)
+
+        XCTAssertEqual(factory.receivedTargets.count, 1)
+        XCTAssertEqual(registry.catalog?.selectedModelID, secondModel.id)
+        guard let receivedTarget = factory.receivedTargets.first,
+              let request = factory.requests.first else { return XCTFail("Expected a request built from the target snapshot") }
+        XCTAssertEqual(receivedTarget.providerID, originalProvider.id)
+        XCTAssertEqual(receivedTarget.upstreamModelID, originalModel.upstreamModelID)
+        XCTAssertEqual(receivedTarget.apiKey, "old-key")
+        XCTAssertEqual(request.model, originalModel.upstreamModelID)
+        XCTAssertTrue(request.stream)
+    }
+
     private func seedConversation(_ viewModel: ChatViewModel, lastActivity: Date) {
         viewModel.messages = [
             ChatMessage(role: .user, content: "old question", createdAt: lastActivity.addingTimeInterval(-30)),
@@ -294,6 +339,14 @@ private struct MockFactory: ChatProviderFactory {
         recorder.invocation += 1
         return MockProvider(recorder: recorder, steps: scripts.indices.contains(index) ? scripts[index] : [])
     }
+
+    func makeTargetSnapshot() throws -> ProviderTargetSnapshot {
+        ProviderTargetSnapshot.testValue()
+    }
+
+    func makeProvider(for target: ProviderTargetSnapshot) throws -> any ChatProvider {
+        try makeProvider()
+    }
 }
 
 private enum MockStep: Sendable {
@@ -327,4 +380,68 @@ private struct MockProvider: ChatProvider {
     }
 
     func testConnection() async throws {}
+}
+
+@MainActor
+private final class SnapshotFactory: ChatProviderFactory {
+    private let snapshot: ProviderTargetSnapshot
+    private let onSnapshot: () throws -> Void
+    private let recorder = SnapshotRequestRecorder()
+    var receivedTargets: [ProviderTargetSnapshot] { recorder.receivedTargets }
+    var requests: [ChatRequest] { recorder.requests }
+
+    init(snapshot: ProviderTargetSnapshot, onSnapshot: @escaping () throws -> Void) {
+        self.snapshot = snapshot
+        self.onSnapshot = onSnapshot
+    }
+
+    func makeProvider() throws -> any ChatProvider {
+        try makeProvider(for: makeTargetSnapshot())
+    }
+
+    func makeTargetSnapshot() throws -> ProviderTargetSnapshot {
+        try onSnapshot()
+        return snapshot
+    }
+
+    func makeProvider(for target: ProviderTargetSnapshot) throws -> any ChatProvider {
+        recorder.record(target: target)
+        return SnapshotProvider(recorder: recorder)
+    }
+}
+
+private struct SnapshotProvider: ChatProvider {
+    let recorder: SnapshotRequestRecorder
+
+    func stream(request: ChatRequest) -> AsyncThrowingStream<ChatStreamEvent, Error> {
+        recorder.record(request: request)
+        return AsyncThrowingStream { continuation in
+            continuation.yield(.textDelta("answer"))
+            continuation.finish()
+        }
+    }
+
+    func testConnection() async throws {}
+}
+
+private final class SnapshotRequestRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storedTargets: [ProviderTargetSnapshot] = []
+    private var storedRequests: [ChatRequest] = []
+
+    var receivedTargets: [ProviderTargetSnapshot] {
+        lock.withLock { storedTargets }
+    }
+
+    var requests: [ChatRequest] {
+        lock.withLock { storedRequests }
+    }
+
+    func record(target: ProviderTargetSnapshot) {
+        lock.withLock { storedTargets.append(target) }
+    }
+
+    func record(request: ChatRequest) {
+        lock.withLock { storedRequests.append(request) }
+    }
 }

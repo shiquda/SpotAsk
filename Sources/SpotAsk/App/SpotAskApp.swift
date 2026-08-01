@@ -26,6 +26,11 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
     override init() {
         let settings = AppSettings.shared
         let keyStore = LocalAPIKeyStore()
+        do {
+            try settings.migratePendingLegacyAPIKey(using: keyStore)
+        } catch {
+            assertionFailure("Unable to migrate local API key: \(error)")
+        }
         self.settings = settings
         self.keyStore = keyStore
         self.providerFactory = OpenAICompatibleProviderFactory(settings: settings, keyStore: keyStore)

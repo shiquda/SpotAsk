@@ -126,12 +126,16 @@ final class AppSettings {
     }
 
     private let defaults: UserDefaults
-    var baseURL: String { didSet { defaults.set(baseURL, forKey: Key.baseURL) } }
-    var useFullEndpoint: Bool { didSet { defaults.set(useFullEndpoint, forKey: Key.useFullEndpoint) } }
-    var model: String { didSet { defaults.set(model, forKey: Key.model) } }
+    private var providerRegistryStorage: ProviderModelRegistry!
+    var providerRegistry: ProviderModelRegistry { providerRegistryStorage }
+    private var isApplyingCatalogProjection = false
+    var catalogLoadError: ProviderModelCatalogLoadError? { providerRegistry.loadError }
+    var baseURL: String { didSet { defaults.set(baseURL, forKey: Key.baseURL); updateSelectedProviderAddress() } }
+    var useFullEndpoint: Bool { didSet { defaults.set(useFullEndpoint, forKey: Key.useFullEndpoint); updateSelectedProviderAddress() } }
+    var model: String { didSet { defaults.set(model, forKey: Key.model); updateSelectedModel() } }
     var systemPrompt: String { didSet { defaults.set(systemPrompt, forKey: Key.systemPrompt) } }
-    var streaming: Bool { didSet { defaults.set(streaming, forKey: Key.streaming) } }
-    var timeout: Double { didSet { defaults.set(timeout, forKey: Key.timeout) } }
+    var streaming: Bool { didSet { defaults.set(streaming, forKey: Key.streaming); updateSelectedModel() } }
+    var timeout: Double { didSet { defaults.set(timeout, forKey: Key.timeout); updateSelectedProviderTimeout() } }
     var contextLimit: Int { didSet { defaults.set(contextLimit, forKey: Key.contextLimit) } }
     var retainSession: Bool { didSet { defaults.set(retainSession, forKey: Key.retainSession) } }
     var clearInputOnClose: Bool { didSet { defaults.set(clearInputOnClose, forKey: Key.clearInputOnClose) } }
@@ -195,6 +199,26 @@ final class AppSettings {
         panelHeight = defaults.object(forKey: Key.panelHeight) as? Double ?? 520
         keepWindowOnTop = defaults.object(forKey: Key.keepWindowOnTop) as? Bool ?? false
         customPromptPresets = Self.loadCustomPromptPresets(from: defaults)
+        providerRegistryStorage = ProviderModelRegistry(
+            defaults: defaults,
+            legacy: LegacyProviderConfiguration(
+                baseURL: baseURL,
+                useFullEndpoint: useFullEndpoint,
+                model: model,
+                streaming: streaming,
+                timeout: timeout
+            )
+        )
+        providerRegistryStorage.setCatalogChangeHandler { [weak self] in
+            self?.applyCatalogProjection()
+        }
+        applyCatalogProjection()
+    }
+
+    func migratePendingLegacyAPIKey(using keyStore: any LegacyAPIKeyMigrating) throws {
+        guard let providerID = providerRegistry.pendingLegacyAPIKeyMigrationProviderID else { return }
+        try keyStore.migrateLegacyAPIKey(to: providerID)
+        providerRegistry.completeLegacyAPIKeyMigration(to: providerID)
     }
 
     @discardableResult
@@ -228,5 +252,52 @@ final class AppSettings {
             return []
         }
         return presets.filter { !$0.isBuiltIn }
+    }
+
+    private func applyCatalogProjection() {
+        guard let catalog = providerRegistry.catalog,
+              let selectedModel = catalog.models.first(where: { $0.id == catalog.selectedModelID }),
+              let provider = catalog.providers.first(where: { $0.id == selectedModel.providerID }) else { return }
+        isApplyingCatalogProjection = true
+        baseURL = provider.address
+        useFullEndpoint = provider.addressMode.usesFullEndpoint
+        model = selectedModel.upstreamModelID
+        streaming = selectedModel.isStreamingEnabled
+        timeout = provider.timeout
+        isApplyingCatalogProjection = false
+    }
+
+    // Existing settings controls still edit the selected catalog entries until
+    // a dedicated Provider/Model management UI is added.
+    private func updateSelectedProviderAddress() {
+        guard !isApplyingCatalogProjection,
+              let catalog = providerRegistry.catalog,
+              let model = catalog.models.first(where: { $0.id == catalog.selectedModelID }),
+              var provider = catalog.providers.first(where: { $0.id == model.providerID }) else { return }
+        provider.address = baseURL
+        provider.addressMode = useFullEndpoint ? .fullEndpoint : .baseURL
+        _ = try? providerRegistry.saveProvider(provider)
+    }
+
+    private func updateSelectedProviderTimeout() {
+        guard !isApplyingCatalogProjection,
+              let catalog = providerRegistry.catalog,
+              let model = catalog.models.first(where: { $0.id == catalog.selectedModelID }),
+              var provider = catalog.providers.first(where: { $0.id == model.providerID }) else { return }
+        provider.timeout = timeout
+        _ = try? providerRegistry.saveProvider(provider)
+    }
+
+    private func updateSelectedModel() {
+        guard !isApplyingCatalogProjection,
+              let catalog = providerRegistry.catalog,
+              var selected = catalog.models.first(where: { $0.id == catalog.selectedModelID }) else { return }
+        let previousUpstreamModelID = selected.upstreamModelID
+        selected.upstreamModelID = model
+        if selected.displayName == previousUpstreamModelID || selected.displayName.isEmpty {
+            selected.displayName = model
+        }
+        selected.isStreamingEnabled = streaming
+        _ = try? providerRegistry.saveModel(selected)
     }
 }

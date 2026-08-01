@@ -101,6 +101,14 @@ private struct PromptPresetFactory: ChatProviderFactory {
     func makeProvider() throws -> any ChatProvider {
         PromptPresetProvider(recorder: recorder)
     }
+
+    func makeTargetSnapshot() throws -> ProviderTargetSnapshot {
+        ProviderTargetSnapshot.testValue()
+    }
+
+    func makeProvider(for target: ProviderTargetSnapshot) throws -> any ChatProvider {
+        PromptPresetProvider(recorder: recorder)
+    }
 }
 
 private struct PromptPresetProvider: ChatProvider {
