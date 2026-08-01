@@ -7,6 +7,7 @@ struct ChatView: View {
     let keyStore: any APIKeyStoring
     let providerFactory: any ChatProviderFactory
     let onDismiss: () -> Void
+    let commandCenter: SpotAskCommandCenter
 
     @FocusState private var inputFocused: Bool
     @State private var followsLatest = true
@@ -19,13 +20,15 @@ struct ChatView: View {
         settings: AppSettings,
         keyStore: any APIKeyStoring,
         providerFactory: any ChatProviderFactory,
-        onDismiss: @escaping () -> Void = { NSApp.keyWindow?.orderOut(nil) }
+        onDismiss: @escaping () -> Void = { NSApp.keyWindow?.orderOut(nil) },
+        commandCenter: SpotAskCommandCenter = .shared
     ) {
         self.viewModel = viewModel
         self.settings = settings
         self.keyStore = keyStore
         self.providerFactory = providerFactory
         self.onDismiss = onDismiss
+        self.commandCenter = commandCenter
     }
 
     var body: some View {
@@ -50,24 +53,9 @@ struct ChatView: View {
         .onAppear {
             inputFocused = true
             viewModel.offerSessionChoiceIfNeeded()
+            commandCenter.setActionConsumer(handleCommandAction)
         }
         .onExitCommand(perform: handleEscape)
-        .onReceive(NotificationCenter.default.publisher(for: .spotAskFocusInput)) { _ in
-            inputFocused = true
-            viewModel.offerSessionChoiceIfNeeded()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .spotAskNewConversation)) { _ in
-            newConversation()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .spotAskAskQuestion)) { notification in
-            receiveQuestion(from: notification)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .spotAskSelectPromptPreset)) { notification in
-            selectPromptPreset(from: notification)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .spotAskShowSettings)) { _ in
-            viewModel.isSettingsPresented = true
-        }
         .font(contentFont)
         .preferredColorScheme(colorScheme)
         .environment(\.locale, settings.language.locale)
@@ -384,16 +372,33 @@ struct ChatView: View {
         }
     }
 
-    private func receiveQuestion(from notification: Notification) {
-        guard let question = notification.userInfo?["question"] as? String else {
+    private func handleCommandAction(_ action: SpotAskCommandAction) {
+        switch action {
+        case .focusInput:
             inputFocused = true
-            return
+            viewModel.offerSessionChoiceIfNeeded()
+        case let .prepare(promptPreset):
+            viewModel.selectedPromptPreset = promptPreset
+            inputFocused = true
+        case .newConversation:
+            newConversation()
+        case let .ask(question, promptPreset):
+            receiveQuestion(question, promptPreset: promptPreset)
+        case .showSettings:
+            viewModel.isSettingsPresented = true
         }
+    }
+
+    private func receiveQuestion(_ question: String, promptPreset: PromptPreset?) {
         let trimmed = question.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             inputFocused = true
             return
         }
+        // An explicit external question intentionally continues a restored
+        // session, rather than leaving it blocked behind the interactive choice.
+        viewModel.continueSession()
+        viewModel.selectedPromptPreset = promptPreset
         // Do not start a second request while the view model is still unwinding
         // a cancelled stream. The supplied question remains ready to send.
         guard !isGenerating else {
@@ -401,15 +406,9 @@ struct ChatView: View {
             inputFocused = true
             return
         }
-        selectPromptPreset(from: notification)
         viewModel.input = trimmed
         viewModel.send()
-    }
-
-    private func selectPromptPreset(from notification: Notification) {
-        guard let presetID = notification.userInfo?["promptPresetID"] as? String,
-              let id = UUID(uuidString: presetID) else { return }
-        viewModel.selectedPromptPreset = settings.promptPresets.first { $0.id == id }
+        inputFocused = true
     }
 
     private func scrollToBottom(using proxy: ScrollViewProxy) {

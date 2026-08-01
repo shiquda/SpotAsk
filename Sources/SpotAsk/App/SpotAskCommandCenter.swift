@@ -1,56 +1,60 @@
 import SwiftUI
 
+enum SpotAskCommandAction: Equatable {
+    case focusInput
+    case prepare(PromptPreset)
+    case newConversation
+    case ask(String, PromptPreset?)
+    case showSettings
+}
+
 @MainActor
 final class SpotAskCommandCenter {
     static let shared = SpotAskCommandCenter()
 
-    private enum DeferredAction {
-        case open
-        case prepare(PromptPreset)
-        case newConversation
-        case ask(String, PromptPreset?)
-        case showSettings
-    }
-
     private var panelController: (any SpotAskPanelControlling)?
-    private var deferredAction: DeferredAction?
+    private var hasPanelContent = false
+    private var pendingActions: [SpotAskCommandAction] = []
+    private var actionConsumer: ((SpotAskCommandAction) -> Void)?
 
     init() {}
 
     func configure(panelController: any SpotAskPanelControlling) {
         self.panelController = panelController
+        showAndDeliverPendingActions()
     }
 
     func setPanelContent(@ViewBuilder _ content: @escaping () -> some View) {
         panelController?.setContent { AnyView(content()) }
-        if let deferredAction {
-            self.deferredAction = nil
-            perform(deferredAction)
-        }
+        hasPanelContent = true
+        showAndDeliverPendingActions()
+    }
+
+    /// The SwiftUI view calls this from `onAppear`, after its action handling
+    /// closures are installed. Actions received before then stay buffered.
+    func setActionConsumer(_ consumer: @escaping (SpotAskCommandAction) -> Void) {
+        actionConsumer = consumer
+        showAndDeliverPendingActions()
     }
 
     func open() {
-        guard let panelController else {
-            deferredAction = .open
-            return
-        }
-        panelController.show()
+        enqueue(.focusInput)
     }
 
     func prepare(promptPreset: PromptPreset) {
-        guard panelController != nil else {
-            deferredAction = .prepare(promptPreset)
-            return
-        }
-        perform(.prepare(promptPreset))
+        enqueue(.prepare(promptPreset))
     }
 
     func toggle() {
         guard let panelController else {
-            deferredAction = .open
+            enqueue(.focusInput)
             return
         }
-        panelController.toggle()
+        if panelController.isVisible {
+            panelController.toggle()
+        } else {
+            enqueue(.focusInput)
+        }
     }
 
     func close() {
@@ -62,11 +66,7 @@ final class SpotAskCommandCenter {
     }
 
     func startNewConversation() {
-        guard panelController != nil else {
-            deferredAction = .newConversation
-            return
-        }
-        perform(.newConversation)
+        enqueue(.newConversation)
     }
 
     func ask(_ question: String?, promptPreset: PromptPreset? = nil) {
@@ -75,38 +75,25 @@ final class SpotAskCommandCenter {
             open()
             return
         }
-        guard panelController != nil else {
-            deferredAction = .ask(trimmedQuestion, promptPreset)
-            return
-        }
-        perform(.ask(trimmedQuestion, promptPreset))
+        enqueue(.ask(trimmedQuestion, promptPreset))
     }
 
     func showSettings() {
-        guard panelController != nil else {
-            deferredAction = .showSettings
-            return
-        }
-        perform(.showSettings)
+        enqueue(.showSettings)
     }
 
-    private func perform(_ action: DeferredAction) {
-        switch action {
-        case .open:
-            panelController?.show()
-        case let .prepare(promptPreset):
-            panelController?.show()
-            NotificationCenter.default.post(.spotAskSelectPromptPreset(promptPreset))
-        case .newConversation:
-            panelController?.show()
-            NotificationCenter.default.post(name: .spotAskNewConversation, object: nil)
-            NotificationCenter.default.post(name: .spotAskFocusInput, object: nil)
-        case let .ask(question, promptPreset):
-            panelController?.show()
-            NotificationCenter.default.post(.spotAskAskQuestion(question, promptPreset: promptPreset))
-        case .showSettings:
-            panelController?.show()
-            NotificationCenter.default.post(name: .spotAskShowSettings, object: nil)
-        }
+    private func enqueue(_ action: SpotAskCommandAction) {
+        pendingActions.append(action)
+        showAndDeliverPendingActions()
+    }
+
+    private func showAndDeliverPendingActions() {
+        guard hasPanelContent, let panelController, !pendingActions.isEmpty else { return }
+        panelController.show()
+        guard let actionConsumer else { return }
+
+        let actions = pendingActions
+        pendingActions.removeAll()
+        actions.forEach(actionConsumer)
     }
 }
