@@ -7,6 +7,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
     case prompts
     case general
     case appearance
+    case about
 
     var id: Self { self }
 
@@ -16,6 +17,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         case .prompts: L10n.string("settings.prompts")
         case .general: L10n.string("settings.general")
         case .appearance: L10n.string("settings.appearance")
+        case .about: L10n.string("settings.about")
         }
     }
 
@@ -25,6 +27,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         case .prompts: "text.badge.plus"
         case .general: "gearshape.fill"
         case .appearance: "circle.lefthalf.filled"
+        case .about: "info.circle.fill"
         }
     }
 
@@ -34,6 +37,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         case .prompts: .mint
         case .general: .gray
         case .appearance: .indigo
+        case .about: .blue
         }
     }
 }
@@ -43,6 +47,7 @@ struct SettingsView: View {
 
     @State private var selectedSection: SettingsSection = .provider
     @State private var providerState: ProviderSettingsState
+    @State private var updateState = AppUpdateState()
 
     init(
         settings: AppSettings,
@@ -72,6 +77,8 @@ struct SettingsView: View {
                         GeneralSettingsPage(settings: settings, providerState: providerState)
                     case .appearance:
                         AppearanceSettingsPage(settings: settings)
+                    case .about:
+                        AboutSettingsPage(updateState: updateState)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -471,6 +478,83 @@ private struct AppearanceSettingsPage: View {
                     .pickerStyle(.segmented)
                 }
             }
+        }
+    }
+}
+
+private struct AboutSettingsPage: View {
+    let updateState: AppUpdateState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            SettingsPageHeader(section: .about)
+            SettingsCallout(L10n.string("settings.aboutDescription"))
+
+            SettingsGroup(title: "SpotAsk") {
+                SettingsFieldRow(label: L10n.string("settings.version")) {
+                    Text(AppVersion.current.description)
+                        .textSelection(.enabled)
+                }
+                Divider()
+                SettingsFieldRow(label: L10n.string("settings.source")) {
+                    Link(AppUpdateChecker.sourceURL.absoluteString, destination: AppUpdateChecker.sourceURL)
+                        .textSelection(.enabled)
+                }
+            }
+
+            SettingsGroup(title: L10n.string("settings.updates")) {
+                HStack(spacing: 10) {
+                    Button {
+                        updateState.checkForUpdate()
+                    } label: {
+                        Label(L10n.string("settings.checkForUpdates"), systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(updateState.isChecking)
+
+                    if case .updateAvailable = updateState.status {
+                        Link(destination: AppUpdateChecker.downloadURL) {
+                            Label(L10n.string("settings.downloadUpdate"), systemImage: "arrow.down.circle")
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+
+                    if updateState.isChecking {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+
+                if let statusText {
+                    Text(statusText)
+                        .font(.caption)
+                        .foregroundStyle(statusColor)
+                }
+            }
+        }
+    }
+
+    private var statusText: String? {
+        switch updateState.status {
+        case .idle:
+            nil
+        case .checking:
+            L10n.string("settings.checkingForUpdates")
+        case .upToDate:
+            L10n.string("settings.upToDate")
+        case let .updateAvailable(update):
+            L10n.string("settings.updateAvailable", update.version.description)
+        case .unavailable:
+            L10n.string("settings.updateCheckUnavailable")
+        }
+    }
+
+    private var statusColor: Color {
+        switch updateState.status {
+        case .unavailable:
+            .red
+        default:
+            .secondary
         }
     }
 }

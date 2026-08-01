@@ -123,6 +123,17 @@
 "settings.accessKeyOnlyOnMac" = "访问密钥仅保存在这台 Mac 上。";
 "settings.accessKeyPlaceholder" = "输入密钥以保存或更新";
 "settings.appearance" = "外观";
+"settings.about" = "关于";
+"settings.aboutDescription" = "查看应用版本、项目来源和可用更新。";
+"settings.version" = "版本";
+"settings.source" = "项目来源";
+"settings.updates" = "更新";
+"settings.checkForUpdates" = "检查更新";
+"settings.checkingForUpdates" = "正在检查更新…";
+"settings.upToDate" = "已是最新版本。";
+"settings.updateAvailable" = "发现新版本 %@。";
+"settings.downloadUpdate" = "下载更新";
+"settings.updateCheckUnavailable" = "暂时无法检查更新。";
 "settings.behavior" = "行为";
 "settings.clearAccessKey" = "清除密钥";
 "settings.clearAllLocalData" = "清除所有本地数据";

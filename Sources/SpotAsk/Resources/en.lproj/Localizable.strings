@@ -123,6 +123,17 @@
 "settings.accessKeyOnlyOnMac" = "Your access key is stored only on this Mac.";
 "settings.accessKeyPlaceholder" = "Enter an access key to save or update";
 "settings.appearance" = "Appearance";
+"settings.about" = "About";
+"settings.aboutDescription" = "View the app version, project source, and available updates.";
+"settings.version" = "Version";
+"settings.source" = "Project Source";
+"settings.updates" = "Updates";
+"settings.checkForUpdates" = "Check for Updates";
+"settings.checkingForUpdates" = "Checking for updates...";
+"settings.upToDate" = "You're up to date.";
+"settings.updateAvailable" = "Version %@ is available.";
+"settings.downloadUpdate" = "Download Update";
+"settings.updateCheckUnavailable" = "Unable to check for updates right now.";
 "settings.behavior" = "Behavior";
 "settings.clearAccessKey" = "Clear Access Key";
 "settings.clearAllLocalData" = "Clear All Local Data";
