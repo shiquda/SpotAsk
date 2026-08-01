@@ -175,16 +175,6 @@ private struct ProviderSettingsPage: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(Color.primary.opacity(0.12), lineWidth: 0.5)
             )
-
-            SettingsGroup(title: L10n.string("settings.customInstruction")) {
-                TextEditor(text: $settings.systemPrompt)
-                    .font(.body)
-                    .frame(minHeight: 76)
-                    .scrollContentBackground(.hidden)
-                    .padding(8)
-                    .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                    .accessibilityLabel(L10n.string("settings.customInstruction"))
-            }
         }
         .alert(L10n.string("settings.deleteProviderTitle"), isPresented: Binding(
             get: { state.pendingDeleteProviderID != nil },
@@ -806,6 +796,16 @@ private struct PromptPresetsSettingsPage: View {
                         if preset.id != settings.customPromptPresets.last?.id { Divider() }
                     }
                 }
+            }
+
+            SettingsGroup(title: L10n.string("settings.customInstruction")) {
+                TextEditor(text: $settings.systemPrompt)
+                    .font(.body)
+                    .frame(minHeight: 76)
+                    .scrollContentBackground(.hidden)
+                    .padding(8)
+                    .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    .accessibilityLabel(L10n.string("settings.customInstruction"))
             }
         }
         .sheet(item: $editorPreset) { preset in

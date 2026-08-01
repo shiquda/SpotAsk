@@ -34,18 +34,13 @@ struct SettingsLayoutTests {
 
         let tree = try #require(treeScrollView)
         let detail = try #require(detailScrollView)
-        #expect(tree.1.height >= 140, "The provider tree must retain a usable viewport")
-        #expect(detail.1.height >= 140, "The provider detail must retain a usable viewport")
+        let minimumWorkspaceHeight = fixture.hostingView.bounds.height * 0.5
+        #expect(tree.1.height >= minimumWorkspaceHeight, "The provider tree must retain at least half the Settings window height")
+        #expect(detail.1.height >= minimumWorkspaceHeight, "The provider detail must retain at least half the Settings window height")
 
         let documentView = try #require(detail.0.documentView)
         documentView.layoutSubtreeIfNeeded()
-        let viewportHeight = detail.0.contentView.bounds.height
-        let scrollableHeight = documentView.bounds.height - viewportHeight
-        #expect(
-            scrollableHeight >= 300,
-            "The Access Key and save/test controls must be reachable inside the detail scroll region"
-        )
-
+        let scrollableHeight = documentView.bounds.height - detail.0.contentView.bounds.height
         detail.0.contentView.scroll(to: NSPoint(x: 0, y: scrollableHeight))
         detail.0.reflectScrolledClipView(detail.0.contentView)
         #expect(
@@ -61,28 +56,50 @@ struct SettingsLayoutTests {
             let fixture = makeWindow(section: section)
             defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
 
-            let geometries = descendants(of: NSScrollView.self, in: fixture.hostingView).map {
-                $0.convert($0.bounds, to: fixture.hostingView)
+            let scrollViews = descendants(of: NSScrollView.self, in: fixture.hostingView)
+            let geometries = scrollViews.map { scrollView in
+                (
+                    scrollView,
+                    scrollView.convert(scrollView.bounds, to: fixture.hostingView)
+                )
             }
             #expect(fixture.hostingView.frame.size == NSSize(width: 860, height: 590))
 
             let windowBounds = fixture.hostingView.bounds.insetBy(dx: -1, dy: -1)
-            #expect(
-                geometries.allSatisfy(windowBounds.contains),
-                "Scroll views on \(section) must stay inside the Settings window"
-            )
-
             if scrollingSections.contains(section) {
-                let pageScrollView = geometries.first { frame in
+                let pageScrollView = geometries.first { _, frame in
                     frame.width >= 550 && frame.height >= 500
                 }
-                _ = try #require(
+                let page = try #require(
                     pageScrollView,
                     "The \(section) page must retain its page-level scrolling"
                 )
+                #expect(
+                    windowBounds.contains(page.1),
+                    "The \(section) page scroll region must stay inside the Settings window"
+                )
+                if section == .prompts {
+                    let documentView = try #require(page.0.documentView)
+                    documentView.layoutSubtreeIfNeeded()
+                    let scrollableHeight = max(
+                        0,
+                        documentView.bounds.height - page.0.contentView.bounds.height
+                    )
+                    page.0.contentView.scroll(to: NSPoint(x: 0, y: scrollableHeight))
+                    page.0.reflectScrolledClipView(page.0.contentView)
+
+                    let textViews = descendants(of: NSTextView.self, in: fixture.hostingView)
+                    #expect(
+                        textViews.contains { textView in
+                            let frame = textView.convert(textView.bounds, to: fixture.hostingView)
+                            return windowBounds.intersects(frame)
+                        },
+                        "The Custom Instructions editor must be visible after scrolling Prompts to the bottom"
+                    )
+                }
             } else {
                 #expect(
-                    geometries.isEmpty,
+                    scrollViews.isEmpty,
                     "The \(section) page should not gain an unnecessary scroll layer"
                 )
             }
