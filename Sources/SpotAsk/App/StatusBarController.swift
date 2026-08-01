@@ -42,6 +42,10 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         statusItem.menu = menu
     }
 
+    func setVisible(_ isVisible: Bool) {
+        statusItem.isVisible = isVisible
+    }
+
     func menuWillOpen(_ menu: NSMenu) {
         launchAtLoginItem.state = settings.launchAtLogin ? .on : .off
         keepWindowOnTopItem.state = settings.keepWindowOnTop ? .on : .off

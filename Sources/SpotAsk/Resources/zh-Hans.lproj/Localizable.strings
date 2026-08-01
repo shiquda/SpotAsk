@@ -192,6 +192,7 @@
 "settings.cancel" = "取消";
 "settings.fontSize" = "字体大小";
 "settings.launchAtLogin" = "登录时启动";
+"settings.showMenuBarIcon" = "显示菜单栏图标";
 "settings.language" = "语言";
 "settings.contextLimit" = "保留的对话条数";
 "settings.unlimited" = "无限制";

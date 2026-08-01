@@ -906,6 +906,7 @@ private struct GeneralSettingsPage: View {
                 }
                 SettingsToggleRow(label: L10n.string("settings.launchAtLogin"), isOn: Bindable(settings).launchAtLogin)
                     .onChange(of: settings.launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
+                SettingsToggleRow(label: L10n.string("settings.showMenuBarIcon"), isOn: Bindable(settings).showsMenuBarIcon)
                 SettingsToggleRow(label: L10n.string("settings.restoreSession"), isOn: Bindable(settings).retainSession)
                 SettingsToggleRow(label: L10n.string("settings.clearInputOnClose"), isOn: Bindable(settings).clearInputOnClose)
                 SettingsToggleRow(

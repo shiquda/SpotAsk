@@ -15,6 +15,76 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertTrue(AppSettings(defaults: defaults).keepWindowOnTop)
     }
 
+    func testMenuBarIconDefaultsToVisibleAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let settings = AppSettings(defaults: defaults)
+        XCTAssertTrue(settings.showsMenuBarIcon)
+
+        settings.showsMenuBarIcon = false
+        XCTAssertFalse(AppSettings(defaults: defaults).showsMenuBarIcon)
+    }
+
+    func testChangingMenuBarIconPreferenceNotifiesTheRunningApplication() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: defaults)
+        let expectation = expectation(forNotification: .spotAskMenuBarIconVisibilityChanged, object: settings)
+
+        settings.showsMenuBarIcon = false
+
+        wait(for: [expectation], timeout: 0)
+    }
+
+    func testMenuBarAndDockPresentationsUseOppositeRecoveryEntrances() {
+        let menuBar = AppEntryPresentation(showsMenuBarIcon: true)
+        XCTAssertTrue(menuBar.showsStatusItem)
+        XCTAssertEqual(menuBar.activationPolicy, .accessory)
+
+        let dock = AppEntryPresentation(showsMenuBarIcon: false)
+        XCTAssertFalse(dock.showsStatusItem)
+        XCTAssertEqual(dock.activationPolicy, .regular)
+    }
+
+    func testEntryPresentationCoordinatorAppliesInitialAndLivePreference() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: defaults)
+        var statusItemVisibility: [Bool] = []
+        var activationPolicies: [NSApplication.ActivationPolicy] = []
+
+        let coordinator = AppEntryPresentationCoordinator(
+            settings: settings,
+            setStatusItemVisible: { statusItemVisibility.append($0) },
+            setActivationPolicy: { activationPolicies.append($0) }
+        )
+        XCTAssertNotNil(coordinator)
+        XCTAssertEqual(statusItemVisibility, [true])
+        XCTAssertEqual(activationPolicies, [.accessory])
+
+        settings.showsMenuBarIcon = false
+        XCTAssertEqual(statusItemVisibility, [true, false])
+        XCTAssertEqual(activationPolicies, [.accessory, .regular])
+
+        settings.showsMenuBarIcon = true
+        XCTAssertEqual(statusItemVisibility, [true, false, true])
+        XCTAssertEqual(activationPolicies, [.accessory, .regular, .accessory])
+    }
+
+    func testDockReopenRequestsThePanelOnlyWhenNoWindowIsVisible() {
+        var openRequests = 0
+
+        XCTAssertTrue(handleDockReopen(hasVisibleWindows: false) { openRequests += 1 })
+        XCTAssertEqual(openRequests, 1)
+
+        XCTAssertTrue(handleDockReopen(hasVisibleWindows: true) { openRequests += 1 })
+        XCTAssertEqual(openRequests, 1)
+    }
+
     func testDraftIsKeptOnCloseByDefaultAndOptOutPersists() {
         let suite = "AppSettingsTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!

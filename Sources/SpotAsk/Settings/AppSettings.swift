@@ -1,6 +1,10 @@
 import Foundation
 import Observation
 
+extension Notification.Name {
+    static let spotAskMenuBarIconVisibilityChanged = Notification.Name("com.spotask.menu-bar-icon-visibility-changed")
+}
+
 struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var title: String
@@ -122,6 +126,7 @@ final class AppSettings {
         static let panelOriginX = "panelOriginX"
         static let panelOriginY = "panelOriginY"
         static let keepWindowOnTop = "keepWindowOnTop"
+        static let showsMenuBarIcon = "showsMenuBarIcon"
         static let customPromptPresets = "customPromptPresets"
     }
 
@@ -151,6 +156,12 @@ final class AppSettings {
     var hotKeyPreset: HotKeyPreset { didSet { defaults.set(hotKeyPreset.rawValue, forKey: Key.hotKeyPreset) } }
     var panelWidth: Double { didSet { defaults.set(panelWidth, forKey: Key.panelWidth) } }
     var panelHeight: Double { didSet { defaults.set(panelHeight, forKey: Key.panelHeight) } }
+    var showsMenuBarIcon: Bool {
+        didSet {
+            defaults.set(showsMenuBarIcon, forKey: Key.showsMenuBarIcon)
+            NotificationCenter.default.post(name: .spotAskMenuBarIconVisibilityChanged, object: self)
+        }
+    }
 
     /// Last window position, remembered across launches. Nil until the window
     /// has been shown once, or after the saved spot falls off every screen.
@@ -197,6 +208,7 @@ final class AppSettings {
         hotKeyPreset = HotKeyPreset(rawValue: defaults.string(forKey: Key.hotKeyPreset) ?? "optionSpace") ?? .optionSpace
         panelWidth = defaults.object(forKey: Key.panelWidth) as? Double ?? 720
         panelHeight = defaults.object(forKey: Key.panelHeight) as? Double ?? 520
+        showsMenuBarIcon = defaults.object(forKey: Key.showsMenuBarIcon) as? Bool ?? true
         keepWindowOnTop = defaults.object(forKey: Key.keepWindowOnTop) as? Bool ?? false
         customPromptPresets = Self.loadCustomPromptPresets(from: defaults)
         providerRegistryStorage = ProviderModelRegistry(

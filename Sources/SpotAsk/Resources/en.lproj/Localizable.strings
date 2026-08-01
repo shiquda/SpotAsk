@@ -192,6 +192,7 @@
 "settings.cancel" = "Cancel";
 "settings.fontSize" = "Font Size";
 "settings.launchAtLogin" = "Launch at login";
+"settings.showMenuBarIcon" = "Show menu bar icon";
 "settings.language" = "Language";
 "settings.contextLimit" = "Conversation history limit";
 "settings.unlimited" = "Unlimited";

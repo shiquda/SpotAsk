@@ -3,6 +3,74 @@ import AppKit
 import Carbon.HIToolbox
 import SwiftUI
 
+enum AppEntryPresentation: Equatable {
+    case menuBar
+    case dock
+
+    init(showsMenuBarIcon: Bool) {
+        self = showsMenuBarIcon ? .menuBar : .dock
+    }
+
+    var activationPolicy: NSApplication.ActivationPolicy {
+        switch self {
+        case .menuBar: .accessory
+        case .dock: .regular
+        }
+    }
+
+    var showsStatusItem: Bool {
+        self == .menuBar
+    }
+}
+
+func handleDockReopen(hasVisibleWindows: Bool, openPanel: () -> Void) -> Bool {
+    guard !hasVisibleWindows else { return true }
+    openPanel()
+    return true
+}
+
+@MainActor
+final class AppEntryPresentationCoordinator: NSObject {
+    private let settings: AppSettings
+    private let notificationCenter: NotificationCenter
+    private let setStatusItemVisible: (Bool) -> Void
+    private let setActivationPolicy: (NSApplication.ActivationPolicy) -> Void
+
+    init(
+        settings: AppSettings,
+        notificationCenter: NotificationCenter = .default,
+        setStatusItemVisible: @escaping (Bool) -> Void,
+        setActivationPolicy: @escaping (NSApplication.ActivationPolicy) -> Void
+    ) {
+        self.settings = settings
+        self.notificationCenter = notificationCenter
+        self.setStatusItemVisible = setStatusItemVisible
+        self.setActivationPolicy = setActivationPolicy
+        super.init()
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(update),
+            name: .spotAskMenuBarIconVisibilityChanged,
+            object: settings
+        )
+        applyCurrentPreference()
+    }
+
+    deinit {
+        notificationCenter.removeObserver(self)
+    }
+
+    @objc private func update() {
+        applyCurrentPreference()
+    }
+
+    private func applyCurrentPreference() {
+        let presentation = AppEntryPresentation(showsMenuBarIcon: settings.showsMenuBarIcon)
+        setStatusItemVisible(presentation.showsStatusItem)
+        setActivationPolicy(presentation.activationPolicy)
+    }
+}
+
 @main
 struct SpotAskApp: App {
     @NSApplicationDelegateAdaptor(SpotAskAppDelegate.self) private var appDelegate
@@ -22,6 +90,7 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
     private let panelController = SpotAskPanelController()
     private let globalHotKey = GlobalHotKey()
     private var statusBarController: StatusBarController?
+    private var entryPresentationCoordinator: AppEntryPresentationCoordinator?
 
     override init() {
         let settings = AppSettings.shared
@@ -44,9 +113,15 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
         SpotAskCommandCenter.shared.configure(panelController: panelController)
         statusBarController = StatusBarController(settings: settings)
+        entryPresentationCoordinator = AppEntryPresentationCoordinator(
+            settings: settings,
+            setStatusItemVisible: { [weak statusBarController] in
+                statusBarController?.setVisible($0)
+            },
+            setActivationPolicy: { NSApp.setActivationPolicy($0) }
+        )
         SpotAskCommandCenter.shared.setPanelContent {
             ChatView(
                 viewModel: self.chatViewModel,
@@ -68,6 +143,12 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         NotificationCenter.default.removeObserver(self)
         globalHotKey.unregister()
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        handleDockReopen(hasVisibleWindows: flag) {
+            SpotAskCommandCenter.shared.open()
+        }
     }
 
     @objc private func reconfigureGlobalHotKey() {
