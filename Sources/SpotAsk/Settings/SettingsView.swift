@@ -52,9 +52,11 @@ struct SettingsView: View {
     init(
         settings: AppSettings,
         keyStore: any APIKeyStoring,
-        providerFactory: any ChatProviderFactory
+        providerFactory: any ChatProviderFactory,
+        initialSection: SettingsSection = .provider
     ) {
         self.settings = settings
+        _selectedSection = State(initialValue: initialSection)
         _providerState = State(initialValue: ProviderSettingsState(
             settings: settings,
             keyStore: keyStore,
@@ -66,24 +68,26 @@ struct SettingsView: View {
         HStack(spacing: 0) {
             SettingsSidebar(selection: $selectedSection, settings: settings)
             Divider()
-            ScrollView {
-                Group {
-                    switch selectedSection {
-                    case .provider:
-                        ProviderSettingsPage(settings: settings, state: providerState)
-                    case .prompts:
+            Group {
+                switch selectedSection {
+                case .provider:
+                    ProviderSettingsPage(settings: settings, state: providerState)
+                case .prompts:
+                    ScrollView {
                         PromptPresetsSettingsPage(settings: settings)
-                    case .general:
-                        GeneralSettingsPage(settings: settings, providerState: providerState)
-                    case .appearance:
-                        AppearanceSettingsPage(settings: settings)
-                    case .about:
-                        AboutSettingsPage(updateState: updateState, settings: settings)
                     }
+                case .general:
+                    ScrollView {
+                        GeneralSettingsPage(settings: settings, providerState: providerState)
+                    }
+                case .appearance:
+                    AppearanceSettingsPage(settings: settings)
+                case .about:
+                    AboutSettingsPage(updateState: updateState, settings: settings)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(32)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .padding(32)
             .background(Color(nsColor: .windowBackgroundColor))
         }
         .frame(width: 860, height: 590)
@@ -165,6 +169,7 @@ private struct ProviderSettingsPage: View {
                 ProviderModelDetail(state: state, settings: settings)
                     .frame(maxWidth: .infinity)
             }
+            .frame(maxHeight: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -476,7 +481,7 @@ private struct ProviderModelDetail: View {
                     EmptySelectionView()
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(20)
         }
     }
@@ -493,7 +498,7 @@ private struct EmptySelectionView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
     }
 }
