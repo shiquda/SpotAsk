@@ -14,6 +14,7 @@ struct ChatView: View {
     @State private var didCopyLastAnswer = false
     @State private var inputHeight = ChatInputTextView.minHeight
     @State private var showsNewConversationConfirmation = false
+    @State private var reasoningToggle = ReasoningToggleStateStore()
 
     init(
         viewModel: ChatViewModel,
@@ -39,7 +40,7 @@ struct ChatView: View {
             Divider()
             composer
         }
-        .frame(minWidth: 520, minHeight: 320)
+        .frame(minWidth: 364, minHeight: 320)
         .background(Color(nsColor: .windowBackgroundColor))
         .sheet(isPresented: $viewModel.isSettingsPresented) {
             SettingsView(settings: settings, keyStore: keyStore, providerFactory: providerFactory)
@@ -54,11 +55,15 @@ struct ChatView: View {
             inputFocused = true
             viewModel.offerSessionChoiceIfNeeded()
             commandCenter.setActionConsumer(handleCommandAction)
+            reasoningToggle.reconcile(messages: viewModel.messages)
         }
         .onExitCommand(perform: handleEscape)
         .font(contentFont)
         .preferredColorScheme(colorScheme)
         .environment(\.locale, settings.language.locale)
+        .onChange(of: viewModel.messages) { _, messages in
+            reasoningToggle.reconcile(messages: messages)
+        }
     }
 
     private var header: some View {
@@ -198,6 +203,9 @@ struct ChatView: View {
                 .onChange(of: viewModel.messages.last?.content) { _, _ in
                     scrollToBottom(using: proxy)
                 }
+                .onChange(of: viewModel.messages.last?.reasoningContent) { _, _ in
+                    scrollToBottom(using: proxy)
+                }
                 }
             }
         }
@@ -235,7 +243,10 @@ struct ChatView: View {
             UserMessageContentView(message: message)
         case .assistant:
             VStack(alignment: .leading, spacing: 8) {
-                if message.content.isEmpty, (message.state == .streaming || message.state == .complete) {
+                if let reasoning = message.reasoningContent, !reasoning.isEmpty {
+                    reasoningSection(message: message, reasoning: reasoning)
+                }
+                if message.content.isEmpty, message.state == .streaming {
                     HStack(spacing: 8) {
                         ProgressView().controlSize(.small)
                         Text(L10n.string("chat.generating"))
@@ -260,6 +271,41 @@ struct ChatView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func reasoningSection(message: ChatMessage, reasoning: String) -> some View {
+        let state = reasoningToggle.state(for: message.id)
+        VStack(alignment: .leading, spacing: 4) {
+            Button {
+                reasoningToggle.toggleByUser(messageID: message.id)
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: state.isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.caption.weight(.medium))
+                        .frame(width: 14, height: 14)
+                    Text(L10n.string("chat.reasoning"))
+                        .font(.caption.weight(.medium))
+                    if message.state == .streaming {
+                        ProgressView()
+                            .controlSize(.mini)
+                            .scaleEffect(0.7)
+                    }
+                }
+                .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(state.isExpanded ? L10n.string("chat.reasoningCollapse") : L10n.string("chat.reasoningExpand"))
+            if state.isExpanded {
+                Text(reasoning)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(.quinary, in: RoundedRectangle(cornerRadius: 6))
             }
         }
     }

@@ -21,6 +21,9 @@
 "chat.newConversationConfirmMessage" = "当前对话内容将被清除。";
 "chat.newConversationConfirmTitle" = "开始新对话？";
 "chat.questionCopied" = "问题已复制";
+"chat.reasoning" = "思考过程";
+"chat.reasoningExpand" = "展开思考过程";
+"chat.reasoningCollapse" = "收起思考过程";
 "chat.regenerate" = "重新生成回答";
 "chat.requestFailed" = "请求失败";
 "chat.retry" = "重试";

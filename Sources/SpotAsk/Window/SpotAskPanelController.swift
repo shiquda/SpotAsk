@@ -99,7 +99,7 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
         applyWindowLevel(panel)
         panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
-        panel.minSize = NSSize(width: 520, height: 320)
+        panel.minSize = NSSize(width: 364, height: 320)
         panel.delegate = self
         if let contentBuilder {
             panel.contentView = NSHostingView(rootView: contentBuilder())

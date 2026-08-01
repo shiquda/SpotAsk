@@ -21,6 +21,9 @@
 "chat.newConversationConfirmMessage" = "The current conversation will be cleared.";
 "chat.newConversationConfirmTitle" = "Start a new conversation?";
 "chat.questionCopied" = "Question copied";
+"chat.reasoning" = "Thinking";
+"chat.reasoningExpand" = "Show thinking";
+"chat.reasoningCollapse" = "Hide thinking";
 "chat.regenerate" = "Regenerate answer";
 "chat.requestFailed" = "Request failed";
 "chat.retry" = "Retry";
