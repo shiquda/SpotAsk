@@ -20,7 +20,7 @@ Download the matching package from [GitHub Releases](https://github.com/shiquda/
 - **Apple silicon** — choose the `arm64` DMG for M-series Macs.
 - **Intel** — choose the `x86_64` DMG for Intel Macs.
 
-The packages do not yet have a Developer ID, so macOS asks you to confirm the first launch.
+The packages do not yet have a Developer ID, so macOS asks you to confirm the first launch. To use SpotAsk from Spotlight, Siri, or Shortcuts, build it from source with your own Apple development team by following [Build with system integrations](#build-with-system-integrations).
 
 ## Quick start
 
@@ -41,6 +41,18 @@ open build/SpotAsk.app
 ```
 
 After launch, SpotAsk appears in your menu bar. The app has no Dock icon.
+
+### Build with system integrations
+
+Spotlight, Siri, and Shortcuts require a build signed with an Apple development team. A free Apple Account is sufficient for a personal build:
+
+1. Open `SpotAsk.xcodeproj` in Xcode.
+2. Select the SpotAsk target, then open **Signing & Capabilities**.
+3. Choose your Personal Team under **Team** and keep **Automatically manage signing** enabled.
+4. If Xcode reports that the bundle identifier is unavailable, change **Bundle Identifier** to a unique value.
+5. Run the app from Xcode once before using its actions in Shortcuts.
+
+Personal Team builds are intended for personal use and may need to be rebuilt periodically.
 
 ## First-run configuration
 

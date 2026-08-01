@@ -20,7 +20,7 @@
 - **Apple silicon** — M 系列芯片的 Mac 请选择名称带 `arm64` 的 DMG。
 - **Intel** — Intel 芯片的 Mac 请选择名称带 `x86_64` 的 DMG。
 
-软件包目前尚未获得 Apple Developer ID 验证，首次打开时需要在 macOS 中确认。
+软件包目前尚未获得 Apple Developer ID 验证，首次打开时需要在 macOS 中确认。若要通过 Spotlight、Siri 或快捷指令调用 SpotAsk，请按照下方的[启用系统联动](#启用系统联动)说明，使用自己的 Apple 开发团队从源码构建。
 
 ## 快速开始
 
@@ -41,6 +41,18 @@ open build/SpotAsk.app
 ```
 
 启动后 SpotAsk 会出现在菜单栏中，不在程序坞显示图标。
+
+### 启用系统联动
+
+Spotlight、Siri 和快捷指令需要使用 Apple 开发团队签名的构建版本。个人构建使用免费的 Apple 账户即可：
+
+1. 使用 Xcode 打开 `SpotAsk.xcodeproj`。
+2. 选择 SpotAsk target，然后打开 **Signing & Capabilities**。
+3. 在 **Team** 中选择你的 Personal Team，并保持 **Automatically manage signing** 开启。
+4. 如果 Xcode 提示 Bundle Identifier 不可用，请将 **Bundle Identifier** 改为一个唯一值。
+5. 先从 Xcode 运行一次 SpotAsk，再到快捷指令中使用相关操作。
+
+Personal Team 构建仅适合个人使用，并且可能需要定期重新构建。
 
 ## 首次配置
 
