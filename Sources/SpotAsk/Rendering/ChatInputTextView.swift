@@ -52,13 +52,19 @@ struct ChatInputTextView: NSViewRepresentable {
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.setAccessibilityLabel(L10n.string("chat.inputAccessibility"))
 
-        let scrollView = NSScrollView()
+        let scrollView = ComposerScrollView()
         scrollView.documentView = textView
         scrollView.drawsBackground = false
         scrollView.hasVerticalScroller = true
         scrollView.autohidesScrollers = true
         scrollView.hasHorizontalScroller = false
         scrollView.borderType = .noBorder
+        scrollView.onWindowChange = { [weak coordinator = context.coordinator, weak scrollView] in
+            guard let coordinator, let scrollView else { return }
+            DispatchQueue.main.async {
+                coordinator.applyInitialFocusOnce(in: scrollView)
+            }
+        }
         return scrollView
     }
 
@@ -86,6 +92,7 @@ struct ChatInputTextView: NSViewRepresentable {
 
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: ChatInputTextView
+        private var needsInitialFocus = true
 
         init(parent: ChatInputTextView) {
             self.parent = parent
@@ -105,6 +112,19 @@ struct ChatInputTextView: NSViewRepresentable {
             parent.isFocused = false
         }
 
+        @MainActor
+        func applyInitialFocusOnce(in scrollView: NSScrollView) {
+            guard needsInitialFocus,
+                  let textView = scrollView.documentView as? ComposerTextView,
+                  let window = scrollView.window else { return }
+            if window.firstResponder === textView {
+                needsInitialFocus = false
+                return
+            }
+            guard window.makeFirstResponder(textView) else { return }
+            needsInitialFocus = false
+        }
+
         /// Grows the editor with its content between one and six lines; beyond
         /// that the enclosing scroll view takes over. Only writes back on a
         /// real change so layout never loops.
@@ -117,6 +137,15 @@ struct ChatInputTextView: NSViewRepresentable {
             guard abs(height - parent.height) > 0.5 else { return }
             parent.height = height
         }
+    }
+}
+
+private final class ComposerScrollView: NSScrollView {
+    var onWindowChange: (() -> Void)?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        onWindowChange?()
     }
 }
 

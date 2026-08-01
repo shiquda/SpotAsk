@@ -4,6 +4,33 @@ import Testing
 @testable import SpotAsk
 
 struct SpotAskIntentTests {
+    @Test @MainActor func coldStartOpenMakesHostedComposerFirstResponder() async {
+        let commandCenter = SpotAskCommandCenter()
+        let panel = HostingPanelController()
+        let settings = makeSettings()
+        let viewModel = ChatViewModel(
+            settings: settings,
+            providerFactory: ImmediateProviderFactory(),
+            sessionStore: SessionStore(bundleIdentifier: "SpotAskIntentTests.\(UUID().uuidString)")
+        )
+
+        commandCenter.open()
+        commandCenter.configure(panelController: panel)
+        commandCenter.setPanelContent {
+            ChatView(
+                viewModel: viewModel,
+                settings: settings,
+                keyStore: EmptyKeyStore(),
+                providerFactory: ImmediateProviderFactory(),
+                commandCenter: commandCenter
+            )
+        }
+
+        await panel.waitForComposerFocus()
+
+        #expect(panel.composerIsFirstResponder)
+    }
+
     @Test @MainActor func coldStartAskReachesHostedChatViewModelExactlyOnce() async {
         let commandCenter = SpotAskCommandCenter()
         let panel = HostingPanelController()
@@ -253,13 +280,52 @@ private final class HostingPanelController: SpotAskPanelControlling {
         )
         window.contentView = hostingView
         self.window = window
-        window.orderFront(nil)
+        window.makeKeyAndOrderFront(nil)
         hostingView.layoutSubtreeIfNeeded()
     }
 
     func hide() { isVisible = false }
     func toggle() { isVisible.toggle() }
     func toggleWindowOnTop() {}
+
+    var composerIsFirstResponder: Bool {
+        guard let firstResponder = window?.firstResponder as? NSTextView else { return false }
+        return hostingView?.contains(firstResponder) == true
+    }
+
+    func waitForComposer() async {
+        for _ in 0 ..< 100 {
+            if hostingView?.firstDescendant(of: NSTextView.self) != nil { return }
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        Issue.record("Timed out waiting for the hosted composer")
+    }
+
+    func waitForComposerFocus() async {
+        await waitForComposer()
+        for _ in 0 ..< 100 {
+            if composerIsFirstResponder { return }
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        Issue.record("Timed out waiting for the hosted composer to receive focus")
+    }
+
+}
+
+private extension NSView {
+    func firstDescendant<T: NSView>(of type: T.Type) -> T? {
+        if let match = self as? T { return match }
+        for subview in subviews {
+            if let match = subview.firstDescendant(of: type) { return match }
+        }
+        return nil
+    }
+
+    func contains(_ candidate: NSView) -> Bool {
+        candidate === self || candidate.isDescendant(of: self)
+    }
 }
 
 @MainActor
