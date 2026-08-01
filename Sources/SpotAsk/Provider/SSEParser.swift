@@ -45,7 +45,8 @@ struct SSEParser: Sendable {
             throw ChatError.decodingFailed
         }
         var events: [ChatStreamEvent] = []
-        if let content = response.choices.first?.delta.content, !content.isEmpty { events.append(.textDelta(content)) }
+        if let reasoning = response.choices.first?.delta.reasoningContent, !reasoning.isEmpty { events.append(.reasoningDelta(reasoning)) }
+        if let content = response.choices.first?.delta.content, !content.isEmpty { events.append(.answerDelta(content)) }
         if let usage = response.usage { events.append(.usage(.init(inputTokens: usage.promptTokens, outputTokens: usage.completionTokens))) }
         return events
     }
@@ -53,7 +54,15 @@ struct SSEParser: Sendable {
 
 private struct StreamResponse: Decodable {
     struct Choice: Decodable {
-        struct Delta: Decodable { let content: String? }
+        struct Delta: Decodable {
+            let content: String?
+            let reasoningContent: String?
+
+            enum CodingKeys: String, CodingKey {
+                case content
+                case reasoningContent = "reasoning_content"
+            }
+        }
         let delta: Delta
     }
     struct Usage: Decodable {

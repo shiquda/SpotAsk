@@ -26,9 +26,7 @@ struct OpenAICompatibleProvider: ChatProvider {
                     if !(httpResponse.value(forHTTPHeaderField: "Content-Type")?.lowercased().contains("text/event-stream") ?? false) {
                         let data = try await collect(bytes)
                         let completion = try JSONDecoder().decode(NonStreamingResponse.self, from: data)
-                        if let content = completion.choices.first?.message.content, !content.isEmpty {
-                            continuation.yield(.textDelta(content))
-                        }
+                        for event in completion.events { continuation.yield(event) }
                         continuation.yield(.completed)
                         continuation.finish()
                         return
@@ -79,7 +77,7 @@ struct OpenAICompatibleProvider: ChatProvider {
                     let (data, response) = try await urlSession.data(for: urlRequest)
                     try validate(response: response, data: data)
                     let completion = try JSONDecoder().decode(NonStreamingResponse.self, from: data)
-                    if let content = completion.choices.first?.message.content, !content.isEmpty { continuation.yield(.textDelta(content)) }
+                    for event in completion.events { continuation.yield(event) }
                     continuation.yield(.completed)
                     continuation.finish()
                 } catch is CancellationError {
@@ -148,12 +146,28 @@ struct OpenAICompatibleProvider: ChatProvider {
     }
 }
 
-private struct NonStreamingResponse: Decodable {
+struct NonStreamingResponse: Decodable {
     struct Choice: Decodable {
-        struct Message: Decodable { let content: String? }
+        struct Message: Decodable {
+            let content: String?
+            let reasoningContent: String?
+
+            enum CodingKeys: String, CodingKey {
+                case content
+                case reasoningContent = "reasoning_content"
+            }
+        }
         let message: Message
     }
     let choices: [Choice]
+
+    var events: [ChatStreamEvent] {
+        guard let message = choices.first?.message else { return [] }
+        var events: [ChatStreamEvent] = []
+        if let reasoning = message.reasoningContent, !reasoning.isEmpty { events.append(.reasoningDelta(reasoning)) }
+        if let answer = message.content, !answer.isEmpty { events.append(.answerDelta(answer)) }
+        return events
+    }
 }
 
 private struct OpenAIRequest: Encodable {

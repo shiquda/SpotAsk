@@ -20,7 +20,8 @@ final class ChatViewModel {
     private let providerFactory: any ChatProviderFactory
     private let sessionStore: SessionStore
     private var streamTask: Task<Void, Never>?
-    private var pendingText = ""
+    private var pendingAnswer = ""
+    private var pendingReasoning = ""
     private var flushTask: Task<Void, Never>?
     private var retryPromptPreset: PromptPreset?
 
@@ -68,7 +69,7 @@ final class ChatViewModel {
         guard generationState == .connecting || generationState == .streaming else { return }
         streamTask?.cancel()
         flushTask?.cancel()
-        flushPendingText()
+        flushPendingDeltas()
         if let index = messages.lastIndex(where: { $0.role == .assistant && $0.state == .streaming }) {
             messages[index].state = .cancelled
         }
@@ -86,7 +87,8 @@ final class ChatViewModel {
     func newConversation() {
         streamTask?.cancel()
         flushTask?.cancel()
-        pendingText = ""
+        pendingAnswer = ""
+        pendingReasoning = ""
         messages.removeAll()
         input = ""
         error = nil
@@ -183,12 +185,13 @@ final class ChatViewModel {
                 for try await event in provider.stream(request: request) {
                     guard !Task.isCancelled else { throw ChatError.cancelled }
                     switch event {
-                    case let .textDelta(text): self.append(text, to: assistantID)
+                    case let .reasoningDelta(reasoning): self.appendReasoning(reasoning, to: assistantID)
+                    case let .answerDelta(answer): self.appendAnswer(answer, to: assistantID)
                     case .completed: break
                     case .usage: break
                     }
                 }
-                self.flushPendingText()
+                self.flushPendingDeltas()
                 self.completeAssistant(with: assistantID, state: .complete)
                 self.generationState = .idle
                 self.persistIfNeeded()
@@ -211,7 +214,18 @@ final class ChatViewModel {
         .filter { !$0.isEmpty }
         .joined(separator: "\n\n")
         if !prompt.isEmpty { result.append(ChatMessage(role: .system, content: prompt)) }
-        let conversation = messages.filter { $0.role == .user || ($0.role == .assistant && $0.state == .complete) }
+        let conversation = messages
+            .filter { $0.role == .user || ($0.role == .assistant && $0.state == .complete) }
+            .map { message in
+                ChatMessage(
+                    id: message.id,
+                    role: message.role,
+                    content: message.content,
+                    createdAt: message.createdAt,
+                    state: message.state,
+                    appliedPresetTitle: message.appliedPresetTitle
+                )
+            }
         let maximum = settings.contextLimit == 0 ? Int.max : settings.contextLimit
         let recent = Array(conversation.suffix(maximum))
         var totalCharacters = 0
@@ -223,29 +237,48 @@ final class ChatViewModel {
         return result
     }
 
-    private func append(_ text: String, to assistantID: UUID) {
+    private func appendAnswer(_ text: String, to assistantID: UUID) {
         guard let index = messages.firstIndex(where: { $0.id == assistantID }) else { return }
         if messages[index].content.isEmpty {
             messages[index].content = text
             return
         }
-        pendingText += text
+        pendingAnswer += text
+        scheduleFlush()
+    }
+
+    private func appendReasoning(_ text: String, to assistantID: UUID) {
+        guard let index = messages.firstIndex(where: { $0.id == assistantID }) else { return }
+        if messages[index].reasoningContent == nil {
+            messages[index].reasoningContent = text
+            return
+        }
+        pendingReasoning += text
+        scheduleFlush()
+    }
+
+    private func scheduleFlush() {
         guard flushTask == nil else { return }
         flushTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(40))
             guard !Task.isCancelled else { return }
-            self?.flushPendingText()
+            self?.flushPendingDeltas()
         }
     }
 
-    private func flushPendingText() {
+    private func flushPendingDeltas() {
         defer { flushTask = nil }
-        guard !pendingText.isEmpty, let index = messages.lastIndex(where: { $0.role == .assistant && $0.state == .streaming }) else {
-            pendingText = ""
+        guard let index = messages.lastIndex(where: { $0.role == .assistant && $0.state == .streaming }) else {
+            pendingAnswer = ""
+            pendingReasoning = ""
             return
         }
-        messages[index].content += pendingText
-        pendingText = ""
+        messages[index].content += pendingAnswer
+        if !pendingReasoning.isEmpty {
+            messages[index].reasoningContent = (messages[index].reasoningContent ?? "") + pendingReasoning
+        }
+        pendingAnswer = ""
+        pendingReasoning = ""
     }
 
     private func completeAssistant(with id: UUID, state: MessageState) {
@@ -254,7 +287,7 @@ final class ChatViewModel {
     }
 
     private func finishAfterError(_ receivedError: ChatError, assistantID: UUID) {
-        flushPendingText()
+        flushPendingDeltas()
         if receivedError == .cancelled {
             completeAssistant(with: assistantID, state: .cancelled)
             generationState = .cancelled

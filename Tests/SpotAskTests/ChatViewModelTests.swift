@@ -5,7 +5,7 @@ import XCTest
 final class ChatViewModelTests: XCTestCase {
     func testSendAndFollowUpIncludeConversationContext() async {
         let recorder = RequestRecorder()
-        let viewModel = makeViewModel(recorder: recorder, scripts: [[.text("first answer")], [.text("second answer")]])
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("first answer")], [.answer("second answer")]])
 
         viewModel.input = "first question"
         viewModel.send()
@@ -35,7 +35,7 @@ final class ChatViewModelTests: XCTestCase {
 
     func testCancelPreservesPartialResponse() async {
         let recorder = RequestRecorder()
-        let viewModel = makeViewModel(recorder: recorder, scripts: [[.text("partial"), .pending]])
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.reasoning("partial reasoning"), .answer("partial"), .pending]])
 
         viewModel.input = "question"
         viewModel.send()
@@ -44,12 +44,26 @@ final class ChatViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.generationState, .cancelled)
         XCTAssertEqual(viewModel.lastAssistantMessage?.content, "partial")
+        XCTAssertEqual(viewModel.lastAssistantMessage?.reasoningContent, "partial reasoning")
         XCTAssertEqual(viewModel.lastAssistantMessage?.state, .cancelled)
+    }
+
+    func testFailurePreservesPartialReasoningAndAnswer() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.reasoning("partial reasoning"), .answer("partial answer"), .failure(.timeout)]])
+
+        viewModel.input = "question"
+        viewModel.send()
+        await waitForState(viewModel, .failed)
+
+        XCTAssertEqual(viewModel.lastAssistantMessage?.reasoningContent, "partial reasoning")
+        XCTAssertEqual(viewModel.lastAssistantMessage?.content, "partial answer")
+        XCTAssertEqual(viewModel.lastAssistantMessage?.state, .failed)
     }
 
     func testRetryDoesNotDuplicateUserMessage() async {
         let recorder = RequestRecorder()
-        let viewModel = makeViewModel(recorder: recorder, scripts: [[.failure(.rateLimited)], [.text("recovered")]])
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.failure(.rateLimited)], [.answer("recovered")]])
 
         viewModel.input = "retry me"
         viewModel.send()
@@ -64,7 +78,7 @@ final class ChatViewModelTests: XCTestCase {
 
     func testNewConversationClearsMessages() async {
         let recorder = RequestRecorder()
-        let viewModel = makeViewModel(recorder: recorder, scripts: [[.text("answer")]])
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("answer")]])
         viewModel.input = "question"
         viewModel.send()
         await waitForIdle(viewModel)
@@ -77,7 +91,7 @@ final class ChatViewModelTests: XCTestCase {
 
     func testContextLimitKeepsMostRecentMessages() async {
         let recorder = RequestRecorder()
-        let viewModel = makeViewModel(recorder: recorder, scripts: [[.text("a1")], [.text("a2")], [.text("a3")]], contextLimit: 2)
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("a1")], [.answer("a2")], [.answer("a3")]], contextLimit: 2)
         for question in ["q1", "q2", "q3"] {
             viewModel.input = question
             viewModel.send()
@@ -87,11 +101,38 @@ final class ChatViewModelTests: XCTestCase {
         XCTAssertEqual(recorder.requests[2].messages.map(\.content), ["You are a helpful assistant.", "a2", "q3"])
     }
 
+    func testFollowUpRequestExcludesAssistantReasoning() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.reasoning("private chain"), .answer("first answer")], [.answer("second answer")]])
+
+        viewModel.input = "first question"
+        viewModel.send()
+        await waitForIdle(viewModel)
+        viewModel.input = "follow up"
+        viewModel.send()
+        await waitForIdle(viewModel)
+
+        let assistant = recorder.requests[1].messages.first { $0.role == .assistant }
+        XCTAssertEqual(assistant?.content, "first answer")
+        XCTAssertNil(assistant?.reasoningContent)
+    }
+
+    func testSessionStorePersistsReasoningContent() throws {
+        let bundleIdentifier = "SpotAskTests.\(UUID().uuidString)"
+        let store = SessionStore(bundleIdentifier: bundleIdentifier)
+        defer { try? store.clear() }
+        let message = ChatMessage(role: .assistant, content: "answer", reasoningContent: "reasoning")
+
+        try store.save([message])
+
+        XCTAssertEqual(try store.load(), [message])
+    }
+
     // MARK: - Stale session choice
 
     func testStaleSessionOffersChoiceAndBlocksSendUntilResolved() async {
         let recorder = RequestRecorder()
-        let viewModel = makeViewModel(recorder: recorder, scripts: [[.text("new answer")]])
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("new answer")]])
         seedConversation(viewModel, lastActivity: Date(timeIntervalSinceNow: -30 * 60))
 
         viewModel.offerSessionChoiceIfNeeded()
@@ -149,7 +190,7 @@ final class ChatViewModelTests: XCTestCase {
 
     func testRecallLastQuestionFillsEmptyInputWithoutTouchingMessages() async {
         let recorder = RequestRecorder()
-        let viewModel = makeViewModel(recorder: recorder, scripts: [[.text("answer")]])
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("answer")]])
         viewModel.input = "first question"
         viewModel.send()
         await waitForIdle(viewModel)
@@ -174,7 +215,7 @@ final class ChatViewModelTests: XCTestCase {
 
     func testRegenerateReplacesLatestAnswerWithoutDuplicatingQuestion() async {
         let recorder = RequestRecorder()
-        let viewModel = makeViewModel(recorder: recorder, scripts: [[.text("first answer")], [.text("second answer")]])
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("first answer")], [.answer("second answer")]])
         viewModel.input = "question"
         viewModel.send()
         await waitForIdle(viewModel)
@@ -193,7 +234,7 @@ final class ChatViewModelTests: XCTestCase {
     func testRegenerateReusesOneShotPromptFromCurrentSession() async {
         let recorder = RequestRecorder()
         let preset = PromptPreset(title: "Custom Polish", instruction: "Polish with extra care")
-        let viewModel = makeViewModel(recorder: recorder, scripts: [[.text("a1")], [.text("a2")]]) { settings in
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("a1")], [.answer("a2")]]) { settings in
             settings.saveCustomPromptPreset(preset)
         }
         viewModel.selectedPromptPreset = preset
@@ -211,7 +252,7 @@ final class ChatViewModelTests: XCTestCase {
     func testRegenerateLooksUpOneShotPromptByTitleForRestoredSession() async {
         let recorder = RequestRecorder()
         let preset = PromptPreset(title: "Custom Polish", instruction: "Polish with extra care")
-        let viewModel = makeViewModel(recorder: recorder, scripts: [[.text("regenerated")]]) { settings in
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("regenerated")]]) { settings in
             settings.saveCustomPromptPreset(preset)
         }
         // Simulates a session restored from disk: only the preset title survived.
@@ -350,7 +391,8 @@ private struct MockFactory: ChatProviderFactory {
 }
 
 private enum MockStep: Sendable {
-    case text(String)
+    case reasoning(String)
+    case answer(String)
     case failure(ChatError)
     case pending
 }
@@ -364,7 +406,8 @@ private struct MockProvider: ChatProvider {
         return AsyncThrowingStream { continuation in
             for step in steps {
                 switch step {
-                case let .text(value): continuation.yield(.textDelta(value))
+                case let .reasoning(value): continuation.yield(.reasoningDelta(value))
+                case let .answer(value): continuation.yield(.answerDelta(value))
                 case let .failure(error): continuation.finish(throwing: error); return
                 case .pending:
                     let task = Task {
@@ -416,7 +459,7 @@ private struct SnapshotProvider: ChatProvider {
     func stream(request: ChatRequest) -> AsyncThrowingStream<ChatStreamEvent, Error> {
         recorder.record(request: request)
         return AsyncThrowingStream { continuation in
-            continuation.yield(.textDelta("answer"))
+            continuation.yield(.answerDelta("answer"))
             continuation.finish()
         }
     }

@@ -9,7 +9,7 @@ final class SSEParserTests: XCTestCase {
         XCTAssertEqual(try parser.feed(Data("data: {\"choices\":[{\"delta\":{\"content\":\"Hel".utf8)), [])
         XCTAssertEqual(
             try parser.feed(Data("lo\"}}]}\n".utf8)),
-            [.textDelta("Hello")]
+            [.answerDelta("Hello")]
         )
     }
 
@@ -19,7 +19,7 @@ final class SSEParserTests: XCTestCase {
         let unicodeStart = event.firstIndex(of: 0xE4)!
 
         XCTAssertEqual(try parser.feed(Data(event.prefix(upTo: event.index(after: unicodeStart)))), [])
-        XCTAssertEqual(try parser.feed(Data(event.suffix(from: event.index(after: unicodeStart)))), [.textDelta("你")])
+        XCTAssertEqual(try parser.feed(Data(event.suffix(from: event.index(after: unicodeStart)))), [.answerDelta("你")])
     }
 
     func testIgnoresEmptyDataEvent() throws {
@@ -39,7 +39,7 @@ final class SSEParserTests: XCTestCase {
 
         XCTAssertEqual(
             try parser.feed(Data(stream.utf8)),
-            [.textDelta("Hello"), .usage(.init(inputTokens: 12, outputTokens: 4)), .completed]
+            [.answerDelta("Hello"), .usage(.init(inputTokens: 12, outputTokens: 4)), .completed]
         )
     }
 
@@ -50,7 +50,25 @@ final class SSEParserTests: XCTestCase {
             []
         )
 
-        XCTAssertEqual(try parser.finish(), [.textDelta("final")])
+        XCTAssertEqual(try parser.finish(), [.answerDelta("final")])
+    }
+
+    func testParsesReasoningAndAnswerDeltas() throws {
+        var parser = SSEParser()
+
+        XCTAssertEqual(
+            try parser.feed(Data("data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"Plan\",\"content\":\"Answer\"}}]}\n".utf8)),
+            [.reasoningDelta("Plan"), .answerDelta("Answer")]
+        )
+    }
+
+    func testDecodesNonStreamingReasoningAndAnswer() throws {
+        let response = try JSONDecoder().decode(
+            NonStreamingResponse.self,
+            from: Data("{\"choices\":[{\"message\":{\"reasoning_content\":\"Plan\",\"content\":\"Answer\"}}]}".utf8)
+        )
+
+        XCTAssertEqual(response.events, [.reasoningDelta("Plan"), .answerDelta("Answer")])
     }
 
     func testServerErrorPayloadBecomesChatError() throws {

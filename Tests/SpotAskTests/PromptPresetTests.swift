@@ -71,6 +71,7 @@ struct PromptPresetTests {
 
         #expect(message.id == id)
         #expect(message.appliedPresetTitle == nil)
+        #expect(message.reasoningContent == nil)
     }
 
     private func waitForIdle(_ viewModel: ChatViewModel) async {
@@ -117,7 +118,7 @@ private struct PromptPresetProvider: ChatProvider {
     func stream(request: ChatRequest) -> AsyncThrowingStream<ChatStreamEvent, Error> {
         recorder.requests.append(request)
         return AsyncThrowingStream { continuation in
-            continuation.yield(.textDelta("done"))
+            continuation.yield(.answerDelta("done"))
             continuation.finish()
         }
     }

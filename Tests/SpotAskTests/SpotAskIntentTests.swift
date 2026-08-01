@@ -318,7 +318,7 @@ private struct ImmediateProvider: ChatProvider {
     func stream(request: ChatRequest) -> AsyncThrowingStream<ChatStreamEvent, Error> {
         recorder?.requestCount += 1
         return AsyncThrowingStream { continuation in
-            continuation.yield(.textDelta("answer"))
+            continuation.yield(.answerDelta("answer"))
             continuation.finish()
         }
     }

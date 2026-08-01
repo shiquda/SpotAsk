@@ -17,6 +17,8 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     let role: ChatRole
     var content: String
+    /// Model-supplied reasoning, kept separate from the answer sent in later requests.
+    var reasoningContent: String?
     let createdAt: Date
     var state: MessageState
     let appliedPresetTitle: String?
@@ -25,6 +27,7 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         id: UUID = UUID(),
         role: ChatRole,
         content: String,
+        reasoningContent: String? = nil,
         createdAt: Date = .now,
         state: MessageState = .complete,
         appliedPresetTitle: String? = nil
@@ -32,6 +35,7 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         self.id = id
         self.role = role
         self.content = content
+        self.reasoningContent = reasoningContent
         self.createdAt = createdAt
         self.state = state
         self.appliedPresetTitle = appliedPresetTitle
@@ -41,6 +45,7 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         case id
         case role
         case content
+        case reasoningContent
         case createdAt
         case state
         case appliedPresetTitle
@@ -51,6 +56,7 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         id = try container.decode(UUID.self, forKey: .id)
         role = try container.decode(ChatRole.self, forKey: .role)
         content = try container.decode(String.self, forKey: .content)
+        reasoningContent = try container.decodeIfPresent(String.self, forKey: .reasoningContent)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         state = try container.decode(MessageState.self, forKey: .state)
         appliedPresetTitle = try container.decodeIfPresent(String.self, forKey: .appliedPresetTitle)
@@ -61,6 +67,7 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         try container.encode(id, forKey: .id)
         try container.encode(role, forKey: .role)
         try container.encode(content, forKey: .content)
+        try container.encodeIfPresent(reasoningContent, forKey: .reasoningContent)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(state, forKey: .state)
         try container.encodeIfPresent(appliedPresetTitle, forKey: .appliedPresetTitle)
@@ -85,7 +92,8 @@ struct InputOutputUsage: Equatable, Sendable {
 }
 
 enum ChatStreamEvent: Equatable, Sendable {
-    case textDelta(String)
+    case reasoningDelta(String)
+    case answerDelta(String)
     case completed
     case usage(InputOutputUsage)
 }
