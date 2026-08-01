@@ -384,6 +384,13 @@ private struct ProviderTreeRow: View {
                                     .font(.system(size: 12.5, weight: selectedModelID == model.id ? .semibold : .regular))
                                     .lineLimit(1)
                                     .truncationMode(.tail)
+                                if model.source == .discovered {
+                                    Image(systemName: "arrow.down.circle")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(.secondary)
+                                        .help(L10n.string("settings.discoveredModel"))
+                                        .accessibilityLabel(L10n.string("settings.discoveredModel"))
+                                }
                                 if model.id == activeModelID {
                                     Text(L10n.string("settings.active"))
                                         .font(.system(size: 9, weight: .medium))
@@ -553,6 +560,35 @@ private struct ProviderDetailForm: View {
                 }
             }
 
+            if !isNew, state.selectedProviderSupportsModelRefresh {
+                SettingsGroup(title: L10n.string("settings.availableModels")) {
+                    Text(L10n.string("settings.modelRefreshDescription"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 10) {
+                        Button {
+                            state.refreshModels()
+                        } label: {
+                            Label(L10n.string("settings.refreshModels"), systemImage: "arrow.clockwise")
+                        }
+                        .disabled(!state.canRefreshModels || state.isRefreshingModels)
+
+                        if state.isRefreshingModels {
+                            ProgressView().controlSize(.small)
+                            Button(L10n.string("settings.stopRefresh")) {
+                                state.cancelModelRefresh()
+                            }
+                        }
+                        if let status = state.modelRefreshStatusText {
+                            Text(status)
+                                .font(.caption)
+                                .foregroundStyle(state.modelRefreshStatusIsError ? .red : .green)
+                        }
+                    }
+                }
+            }
+
             if !isNew {
                 SettingsGroup(title: L10n.string("settings.accessKey")) {
                     SettingsFieldRow(label: L10n.string("settings.accessKey")) {
@@ -656,6 +692,12 @@ private struct ModelDetailForm: View {
                             .font(.system(size: 13))
                             .foregroundStyle(.secondary)
                     }
+                }
+                if state.selectedModel?.source == .discovered {
+                    Text(L10n.string("settings.discoveredModelHint"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 134)
                 }
                 SettingsToggleRow(label: L10n.string("settings.streaming"), isOn: $state.draftModelStreaming)
             }
@@ -1153,6 +1195,9 @@ final class ProviderSettingsState {
     let settings: AppSettings
     private let keyStore: any APIKeyStoring
     private let providerFactory: any ChatProviderFactory
+    private let modelDiscovery: any ProviderModelDiscovering
+    private var modelRefreshTask: Task<Void, Never>?
+    private var modelRefreshGeneration = 0
 
     // MARK: Selection state
 
@@ -1192,6 +1237,7 @@ final class ProviderSettingsState {
     var statusIsError = false
     var isTesting = false
     var providerFieldError: String?
+    var modelRefreshStatus: ModelRefreshStatus = .idle
 
     // MARK: Delete confirmation
 
@@ -1236,16 +1282,53 @@ final class ProviderSettingsState {
             && (try? URLNormalizer.endpoint(from: address, useFullEndpoint: draftProviderAddressMode.usesFullEndpoint)) != nil
     }
 
+    var selectedProviderSupportsModelRefresh: Bool {
+        guard let providerID = selectedProviderID,
+              let provider = settings.providerRegistry.catalog?.providers.first(where: { $0.id == providerID }) else {
+            return false
+        }
+        return provider.addressMode == .baseURL
+    }
+
+    var canRefreshModels: Bool {
+        selectedProviderSupportsModelRefresh && !isRefreshingModels
+    }
+
+    var isRefreshingModels: Bool {
+        if case .loading = modelRefreshStatus { return true }
+        return false
+    }
+
+    var modelRefreshStatusText: String? {
+        switch modelRefreshStatus {
+        case .idle, .loading: return nil
+        case let .success(count): return L10n.string("settings.modelRefreshSuccess", count)
+        case .missingAccessKey: return L10n.string("settings.modelRefreshNeedsKey")
+        case .cancelled: return L10n.string("settings.modelRefreshCancelled")
+        case .failed: return L10n.string("settings.modelRefreshFailed")
+        case .unavailable: return L10n.string("settings.modelRefreshUnavailable")
+        }
+    }
+
+    var modelRefreshStatusIsError: Bool {
+        switch modelRefreshStatus {
+        case .missingAccessKey, .failed: true
+        case .idle, .loading, .success, .cancelled, .unavailable: false
+        }
+    }
+
     // MARK: Init
 
     init(
         settings: AppSettings,
         keyStore: any APIKeyStoring,
-        providerFactory: any ChatProviderFactory
+        providerFactory: any ChatProviderFactory,
+        modelDiscovery: any ProviderModelDiscovering = OpenAICompatibleModelDiscovery()
     ) {
         self.settings = settings
         self.keyStore = keyStore
         self.providerFactory = providerFactory
+        self.modelDiscovery = modelDiscovery
         self.activeModelID = settings.providerRegistry.catalog?.selectedModelID
 
         // Auto-select first provider on init
@@ -1260,6 +1343,7 @@ final class ProviderSettingsState {
         guard let catalog = settings.providerRegistry.catalog,
               let provider = catalog.providers.first(where: { $0.id == id }) else { return }
 
+        invalidateModelRefresh()
         cancelEditing()
         selectedProviderID = id
         selectedModelID = nil
@@ -1285,6 +1369,7 @@ final class ProviderSettingsState {
               let model = catalog.models.first(where: { $0.id == id }),
               catalog.providers.contains(where: { $0.id == model.providerID }) else { return }
 
+        invalidateModelRefresh()
         cancelEditing()
         selectedModelID = id
         selectedProviderID = nil
@@ -1316,6 +1401,7 @@ final class ProviderSettingsState {
     // MARK: Create
 
     func startNewProvider() {
+        invalidateModelRefresh()
         cancelEditing()
         isCreatingProvider = true
         selectedProviderID = nil
@@ -1332,6 +1418,7 @@ final class ProviderSettingsState {
     }
 
     func startNewModel(for providerID: UUID) {
+        invalidateModelRefresh()
         cancelEditing()
         isCreatingModel = true
         newModelParentProviderID = providerID
@@ -1406,6 +1493,7 @@ final class ProviderSettingsState {
         }
         guard providerFieldError == nil else { return }
 
+        invalidateModelRefresh()
         do {
             let id = isCreatingProvider ? UUID() : (selectedProviderID ?? UUID())
             let provider = ProviderConfiguration(
@@ -1454,7 +1542,8 @@ final class ProviderSettingsState {
                 displayName: displayName,
                 upstreamModelID: upstreamID,
                 providerID: providerID,
-                isStreamingEnabled: draftModelStreaming
+                isStreamingEnabled: draftModelStreaming,
+                source: .manual
             )
             let saved = try settings.providerRegistry.saveModel(model)
             isCreatingModel = false
@@ -1490,6 +1579,9 @@ final class ProviderSettingsState {
     func confirmDeleteProvider() {
         guard let id = pendingDeleteProviderID else { return }
         pendingDeleteProviderID = nil
+        if selectedProviderID == id {
+            invalidateModelRefresh()
+        }
 
         // Capture affected editing selection before the provider
         // (and its models) are removed from the catalog.
@@ -1639,6 +1731,67 @@ final class ProviderSettingsState {
         }
     }
 
+    // MARK: Model discovery
+
+    func refreshModels() {
+        guard let providerID = selectedProviderID,
+              let provider = settings.providerRegistry.catalog?.providers.first(where: { $0.id == providerID }) else {
+            return
+        }
+        guard provider.addressMode == .baseURL else {
+            modelRefreshStatus = .unavailable
+            return
+        }
+
+        invalidateModelRefresh(status: .loading)
+        let generation = modelRefreshGeneration
+        let keyStore = keyStore
+        let modelDiscovery = modelDiscovery
+        let registry = settings.providerRegistry
+        modelRefreshTask = Task { [weak self] in
+            do {
+                guard let apiKey = try keyStore.readAPIKey(for: providerID),
+                      !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    throw ProviderModelDiscoveryError.missingAPIKey
+                }
+                let upstreamModelIDs = try await modelDiscovery.models(for: provider, apiKey: apiKey)
+                try Task.checkCancellation()
+                guard let self, self.modelRefreshGeneration == generation else { return }
+                try registry.replaceDiscoveredModels(for: providerID, upstreamModelIDs: upstreamModelIDs)
+                self.syncActiveModelID()
+                let discoveredModelCount = registry.catalog?.models.filter {
+                    $0.providerID == providerID && $0.source == .discovered
+                }.count ?? 0
+                self.modelRefreshStatus = .success(discoveredModelCount)
+            } catch let error as ProviderModelDiscoveryError {
+                guard let self, self.modelRefreshGeneration == generation else { return }
+                switch error {
+                case .missingAPIKey:
+                    self.modelRefreshStatus = .missingAccessKey
+                case .unavailableForFullEndpoint:
+                    self.modelRefreshStatus = .unavailable
+                case .cancelled:
+                    self.modelRefreshStatus = .cancelled
+                case .invalidResponse, .unsuccessfulStatus, .networkUnavailable, .timeout:
+                    self.modelRefreshStatus = .failed
+                }
+            } catch is CancellationError {
+                guard let self, self.modelRefreshGeneration == generation else { return }
+                self.modelRefreshStatus = .cancelled
+            } catch {
+                guard let self, self.modelRefreshGeneration == generation else { return }
+                self.modelRefreshStatus = .failed
+            }
+            if let self, self.modelRefreshGeneration == generation {
+                self.modelRefreshTask = nil
+            }
+        }
+    }
+
+    func cancelModelRefresh() {
+        invalidateModelRefresh(status: .cancelled)
+    }
+
     // MARK: Validation
 
     func validateProviderURL(_ value: String) {
@@ -1654,6 +1807,13 @@ final class ProviderSettingsState {
         } catch {
             return L10n.string("settings.endpointInvalid")
         }
+    }
+
+    private func invalidateModelRefresh(status: ModelRefreshStatus = .idle) {
+        modelRefreshGeneration &+= 1
+        modelRefreshTask?.cancel()
+        modelRefreshTask = nil
+        modelRefreshStatus = status
     }
 
     func clearStatus() {

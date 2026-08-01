@@ -202,6 +202,7 @@
 "settings.active" = "当前";
 "settings.addModel" = "添加模型";
 "settings.addProvider" = "添加服务";
+"settings.availableModels" = "可用模型";
 "settings.addressMode" = "地址类型";
 "settings.addressModeBaseURL" = "服务根地址";
 "settings.addressModeFullEndpoint" = "完整请求地址";
@@ -218,6 +219,8 @@
 "settings.deleteProviderTitle" = "删除服务？";
 "settings.displayName" = "显示名称";
 "settings.displayNamePlaceholder" = "例如：GPT-5 Mini";
+"settings.discoveredModel" = "来自服务";
+"settings.discoveredModelHint" = "此模型来自该服务。保存修改后将作为自定义模型保留。";
 "settings.editModel" = "编辑模型";
 "settings.editProvider" = "编辑服务";
 "settings.expandProvider" = "展开 %@";
@@ -227,6 +230,12 @@
 "settings.modelDeleted" = "模型已删除。";
 "settings.modelDisplayNameRequired" = "请输入显示名称。";
 "settings.modelInfo" = "模型详情";
+"settings.modelRefreshCancelled" = "已停止更新模型。";
+"settings.modelRefreshDescription" = "更新此服务可用的模型。";
+"settings.modelRefreshFailed" = "无法更新模型。请检查服务地址和访问密钥后重试。";
+"settings.modelRefreshNeedsKey" = "请先保存访问密钥，再更新模型。";
+"settings.modelRefreshSuccess" = "模型列表已更新（%d 个）。";
+"settings.modelRefreshUnavailable" = "请使用服务根地址更新模型。你仍可手动添加模型。";
 "settings.modelProviderRequired" = "请为此模型选择服务。";
 "settings.modelSaveFailed" = "无法保存模型。";
 "settings.modelSaved" = "模型已保存。";
@@ -246,9 +255,11 @@
 "settings.providerNameRequired" = "请输入服务名称。";
 "settings.providerSaveFailed" = "无法保存服务。";
 "settings.providerSaved" = "服务已保存。";
+"settings.refreshModels" = "更新模型";
 "settings.selectProviderOrModel" = "选择服务或模型以查看详情。";
 "settings.service" = "服务";
 "settings.serviceAddress" = "服务地址";
+"settings.stopRefresh" = "停止";
 "settings.services" = "服务";
 "settings.upstreamModelID" = "模型 ID";
 "settings.useForChat" = "用于对话";

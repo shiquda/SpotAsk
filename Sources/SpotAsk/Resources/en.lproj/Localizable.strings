@@ -202,6 +202,7 @@
 "settings.active" = "Active";
 "settings.addModel" = "Add Model";
 "settings.addProvider" = "Add Provider";
+"settings.availableModels" = "Available Models";
 "settings.addressMode" = "Address Type";
 "settings.addressModeBaseURL" = "Service Root";
 "settings.addressModeFullEndpoint" = "Full Request Address";
@@ -218,6 +219,8 @@
 "settings.deleteProviderTitle" = "Delete Provider?";
 "settings.displayName" = "Display Name";
 "settings.displayNamePlaceholder" = "e.g. GPT-5 Mini";
+"settings.discoveredModel" = "From service";
+"settings.discoveredModelHint" = "Added from this service. Saving changes keeps it as a custom model.";
 "settings.editModel" = "Edit Model";
 "settings.editProvider" = "Edit Provider";
 "settings.expandProvider" = "Expand %@";
@@ -227,6 +230,12 @@
 "settings.modelDeleted" = "Model deleted.";
 "settings.modelDisplayNameRequired" = "Enter a display name.";
 "settings.modelInfo" = "Model Details";
+"settings.modelRefreshCancelled" = "Model update stopped.";
+"settings.modelRefreshDescription" = "Update the models available from this service.";
+"settings.modelRefreshFailed" = "Could not update models. Check the service address and access key, then try again.";
+"settings.modelRefreshNeedsKey" = "Save an access key before updating models.";
+"settings.modelRefreshSuccess" = "Updated model list (%d).";
+"settings.modelRefreshUnavailable" = "Use a service root address to update models here. You can still add models yourself.";
 "settings.modelProviderRequired" = "Select a service for this model.";
 "settings.modelSaveFailed" = "Could not save model.";
 "settings.modelSaved" = "Model saved.";
@@ -246,9 +255,11 @@
 "settings.providerNameRequired" = "Enter a provider name.";
 "settings.providerSaveFailed" = "Could not save provider.";
 "settings.providerSaved" = "Provider saved.";
+"settings.refreshModels" = "Refresh Models";
 "settings.selectProviderOrModel" = "Select a service or model to view its details.";
 "settings.service" = "Service";
 "settings.serviceAddress" = "Service Address";
+"settings.stopRefresh" = "Stop";
 "settings.services" = "SERVICES";
 "settings.upstreamModelID" = "Model ID";
 "settings.useForChat" = "Use for Chat";

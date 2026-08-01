@@ -129,6 +129,27 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(L10n.string("settings.title", language: .simplifiedChinese), "设置")
     }
 
+    func testModelRefreshStringsExistInEnglishAndSimplifiedChinese() {
+        let keys = [
+            "settings.availableModels",
+            "settings.refreshModels",
+            "settings.modelRefreshDescription",
+            "settings.modelRefreshUnavailable",
+            "settings.modelRefreshNeedsKey",
+            "settings.modelRefreshSuccess",
+            "settings.modelRefreshFailed",
+            "settings.modelRefreshCancelled",
+            "settings.stopRefresh",
+            "settings.discoveredModel",
+            "settings.discoveredModelHint"
+        ]
+
+        for key in keys {
+            XCTAssertNotEqual(L10n.string(key, language: .english), key)
+            XCTAssertNotEqual(L10n.string(key, language: .simplifiedChinese), key)
+        }
+    }
+
     func testSimplifiedChineseUsesTheSwiftPMPackagedLocalizationDirectory() {
         let bundle = L10n.localizedBundle(for: .simplifiedChinese)
 

@@ -671,16 +671,226 @@ final class ProviderSettingsStateTests: XCTestCase {
                       "Error message should indicate missing key, got: \(state.status)")
     }
 
+    func testRefreshModelsShowsLoadingThenAddsDiscoveredModelsWithoutChangingDraft() async throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let provider = try XCTUnwrap(settings.providerRegistry.catalog?.providers.first)
+        let discovery = StubModelDiscovery(result: .success([" service-model ", "service-model"]))
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(apiKey: "saved-key"),
+            providerFactory: NoopProviderFactory(),
+            modelDiscovery: discovery
+        )
+        state.draftProviderName = "Unsaved name"
+
+        state.refreshModels()
+
+        XCTAssertEqual(state.modelRefreshStatus, .loading)
+        await waitForModelRefresh(state)
+        XCTAssertEqual(state.modelRefreshStatus, .success(1))
+        XCTAssertEqual(state.draftProviderName, "Unsaved name")
+        XCTAssertEqual(discovery.callCount, 1)
+        XCTAssertEqual(
+            settings.providerRegistry.catalog?.models.first(where: { $0.providerID == provider.id && $0.source == .discovered })?.upstreamModelID,
+            "service-model"
+        )
+    }
+
+    func testRefreshFailureLeavesCatalogUntouched() async throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let provider = try XCTUnwrap(settings.providerRegistry.catalog?.providers.first)
+        try settings.providerRegistry.replaceDiscoveredModels(for: provider.id, upstreamModelIDs: ["existing"])
+        let beforeRefresh = settings.providerRegistry.catalog
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(apiKey: "saved-key"),
+            providerFactory: NoopProviderFactory(),
+            modelDiscovery: StubModelDiscovery(result: .failure(URLError(.cannotConnectToHost)))
+        )
+
+        state.refreshModels()
+        await waitForModelRefresh(state)
+
+        XCTAssertEqual(state.modelRefreshStatus, .failed)
+        XCTAssertEqual(settings.providerRegistry.catalog, beforeRefresh)
+    }
+
+    func testRefreshWithoutAccessKeyDoesNotCallService() async throws {
+        let discovery = StubModelDiscovery(result: .success(["unused"]))
+        let state = makeState(keyStore: RecordingKeyStore(), modelDiscovery: discovery)
+
+        state.refreshModels()
+        await waitForModelRefresh(state)
+
+        XCTAssertEqual(state.modelRefreshStatus, .missingAccessKey)
+        XCTAssertEqual(discovery.callCount, 0)
+    }
+
+    func testFullEndpointDoesNotSendModelRefreshRequest() async throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        var provider = try XCTUnwrap(settings.providerRegistry.catalog?.providers.first)
+        provider.address = "https://example.com/v1/chat/completions"
+        provider.addressMode = .fullEndpoint
+        try settings.providerRegistry.saveProvider(provider)
+        let discovery = StubModelDiscovery(result: .success(["unused"]))
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(apiKey: "saved-key"),
+            providerFactory: NoopProviderFactory(),
+            modelDiscovery: discovery
+        )
+
+        state.refreshModels()
+        await Task.yield()
+
+        XCTAssertFalse(state.canRefreshModels)
+        XCTAssertEqual(state.modelRefreshStatus, .unavailable)
+        XCTAssertEqual(discovery.callCount, 0)
+    }
+
+    func testCancelledRefreshKeepsCatalogAndReportsStoppedState() async throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let beforeRefresh = settings.providerRegistry.catalog
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(apiKey: "saved-key"),
+            providerFactory: NoopProviderFactory(),
+            modelDiscovery: StubModelDiscovery(result: .failure(CancellationError()))
+        )
+
+        state.refreshModels()
+        await waitForModelRefresh(state)
+
+        XCTAssertEqual(state.modelRefreshStatus, .cancelled)
+        XCTAssertEqual(settings.providerRegistry.catalog, beforeRefresh)
+    }
+
+    func testSwitchingProvidersKeepsNewRefreshOwnedByTheNewProvider() async throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let firstProvider = try XCTUnwrap(settings.providerRegistry.catalog?.providers.first)
+        let secondProvider = try settings.providerRegistry.saveProvider(
+            ProviderConfiguration(name: "Second", address: "https://second.example/v1", addressMode: .baseURL, timeout: 30)
+        )
+        let discovery = ControlledModelDiscovery()
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(apiKey: "saved-key"),
+            providerFactory: NoopProviderFactory(),
+            modelDiscovery: discovery
+        )
+
+        state.refreshModels()
+        let firstCallStarted = await discovery.waitForCallCount(1)
+        XCTAssertTrue(firstCallStarted)
+        state.selectProvider(secondProvider.id)
+        state.refreshModels()
+        let secondCallStarted = await discovery.waitForCallCount(2)
+        XCTAssertTrue(secondCallStarted)
+
+        await discovery.resume(call: 0, returning: ["stale-model"])
+        await Task.yield()
+        XCTAssertTrue(state.isRefreshingModels)
+
+        state.cancelModelRefresh()
+        XCTAssertEqual(state.modelRefreshStatus, .cancelled)
+        await discovery.resume(call: 1, returning: ["current-model"])
+        await Task.yield()
+
+        XCTAssertEqual(state.modelRefreshStatus, .cancelled)
+        XCTAssertFalse(settings.providerRegistry.catalog?.models.contains {
+            $0.providerID == firstProvider.id && $0.upstreamModelID == "stale-model"
+        } ?? true)
+        XCTAssertFalse(settings.providerRegistry.catalog?.models.contains {
+            $0.providerID == secondProvider.id && $0.upstreamModelID == "current-model"
+        } ?? true)
+    }
+
+    func testSavingProviderConfigurationInvalidatesItsInFlightRefresh() async throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let provider = try XCTUnwrap(settings.providerRegistry.catalog?.providers.first)
+        let discovery = ControlledModelDiscovery()
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(apiKey: "saved-key"),
+            providerFactory: NoopProviderFactory(),
+            modelDiscovery: discovery
+        )
+
+        state.refreshModels()
+        let refreshStarted = await discovery.waitForCallCount(1)
+        XCTAssertTrue(refreshStarted)
+        state.draftProviderAddress = "https://new.example/v1"
+        state.validateProviderURL(state.draftProviderAddress)
+        state.saveProvider()
+        await discovery.resume(call: 0, returning: ["stale-model"])
+        await Task.yield()
+
+        XCTAssertEqual(
+            settings.providerRegistry.catalog?.providers.first(where: { $0.id == provider.id })?.address,
+            "https://new.example/v1"
+        )
+        XCTAssertFalse(settings.providerRegistry.catalog?.models.contains {
+            $0.providerID == provider.id && $0.upstreamModelID == "stale-model"
+        } ?? true)
+        XCTAssertFalse(state.isRefreshingModels)
+    }
+
+    func testRefreshFallbackSynchronizesActiveModelMirror() async throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let provider = try XCTUnwrap(settings.providerRegistry.catalog?.providers.first)
+        try settings.providerRegistry.replaceDiscoveredModels(for: provider.id, upstreamModelIDs: ["temporary"])
+        let discovered = try XCTUnwrap(settings.providerRegistry.catalog?.models.first { $0.source == .discovered })
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(apiKey: "saved-key"),
+            providerFactory: NoopProviderFactory(),
+            modelDiscovery: StubModelDiscovery(result: .success([]))
+        )
+        state.useModelForChat(discovered.id)
+
+        state.refreshModels()
+        await waitForModelRefresh(state)
+
+        XCTAssertNotEqual(settings.providerRegistry.catalog?.selectedModelID, discovered.id)
+        XCTAssertEqual(state.activeModelID, settings.providerRegistry.catalog?.selectedModelID)
+    }
+
     // MARK: - Helpers
 
-    private func makeState(keyStore: RecordingKeyStore) -> ProviderSettingsState {
+    private func makeState(
+        keyStore: RecordingKeyStore,
+        modelDiscovery: any ProviderModelDiscovering = StubModelDiscovery(result: .success([]))
+    ) -> ProviderSettingsState {
         let defaults = UserDefaults(suiteName: "ProviderSettingsStateTests.\(UUID().uuidString)")!
         let settings = AppSettings(defaults: defaults)
         return ProviderSettingsState(
             settings: settings,
             keyStore: keyStore,
-            providerFactory: NoopProviderFactory()
+            providerFactory: NoopProviderFactory(),
+            modelDiscovery: modelDiscovery
         )
+    }
+
+    private func waitForModelRefresh(_ state: ProviderSettingsState) async {
+        for _ in 0 ..< 100 {
+            if !state.isRefreshingModels { return }
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTFail("Timed out waiting for model refresh")
     }
 
     private func makeDefaults() -> (UserDefaults, String) {
@@ -690,6 +900,7 @@ final class ProviderSettingsStateTests: XCTestCase {
 }
 
 private final class RecordingKeyStore: APIKeyStoring, @unchecked Sendable {
+    private let apiKey: String?
     private(set) var readCount = 0
     private(set) var saveCount = 0
     private(set) var deleteCount = 0
@@ -698,9 +909,13 @@ private final class RecordingKeyStore: APIKeyStoring, @unchecked Sendable {
     private(set) var savedProviderIDs: [UUID] = []
     private(set) var deletedProviderIDs: [UUID] = []
 
+    init(apiKey: String? = nil) {
+        self.apiKey = apiKey
+    }
+
     func readAPIKey(for providerID: UUID) throws -> String? {
         readCount += 1
-        return nil
+        return apiKey
     }
 
     func saveAPIKey(_ key: String, for providerID: UUID) throws {
@@ -715,6 +930,46 @@ private final class RecordingKeyStore: APIKeyStoring, @unchecked Sendable {
     }
 
     func deleteAllAPIKeys() throws { deleteAllCount += 1 }
+}
+
+private final class StubModelDiscovery: ProviderModelDiscovering, @unchecked Sendable {
+    private let result: Result<[String], Error>
+    private(set) var callCount = 0
+
+    init(result: Result<[String], Error>) {
+        self.result = result
+    }
+
+    func models(for provider: ProviderConfiguration, apiKey: String) async throws -> [String] {
+        callCount += 1
+        return try result.get()
+    }
+}
+
+private actor ControlledModelDiscovery: ProviderModelDiscovering {
+    private struct PendingCall {
+        let continuation: CheckedContinuation<[String], Error>
+    }
+
+    private var pendingCalls: [PendingCall] = []
+
+    func models(for provider: ProviderConfiguration, apiKey: String) async throws -> [String] {
+        try await withCheckedThrowingContinuation { continuation in
+            pendingCalls.append(PendingCall(continuation: continuation))
+        }
+    }
+
+    func waitForCallCount(_ expectedCount: Int) async -> Bool {
+        for _ in 0 ..< 100 {
+            if pendingCalls.count >= expectedCount { return true }
+            await Task.yield()
+        }
+        return false
+    }
+
+    func resume(call index: Int, returning models: [String]) {
+        pendingCalls[index].continuation.resume(returning: models)
+    }
 }
 
 @MainActor

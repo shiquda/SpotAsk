@@ -24,6 +24,7 @@ final class ProviderModelRegistryTests: XCTestCase {
         XCTAssertEqual(model.displayName, "legacy-model")
         XCTAssertEqual(model.upstreamModelID, "legacy-model")
         XCTAssertFalse(model.isStreamingEnabled)
+        XCTAssertEqual(model.source, .manual)
         XCTAssertEqual(catalog.selectedModelID, model.id)
 
         let reloaded = AppSettings(defaults: defaults)
@@ -297,6 +298,78 @@ final class ProviderModelRegistryTests: XCTestCase {
 
         XCTAssertThrowsError(try registry.deleteProvider(id: originalProvider.id, keyStore: keyStore))
         XCTAssertEqual(registry.catalog, beforeDelete)
+    }
+
+    func testLegacySchemaModelsDecodeAsManual() throws {
+        let providerID = UUID()
+        let modelID = UUID()
+        let catalogData = Data("""
+        {"schemaVersion":1,"providers":[{"id":"\(providerID.uuidString)","name":"Service","address":"https://example.com/v1","addressMode":"baseURL","timeout":30}],"models":[{"id":"\(modelID.uuidString)","displayName":"Model","upstreamModelID":"model","providerID":"\(providerID.uuidString)","isStreamingEnabled":true}],"selectedModelID":"\(modelID.uuidString)"}
+        """.utf8)
+
+        let catalog = try JSONDecoder().decode(ProviderModelCatalog.self, from: catalogData)
+
+        XCTAssertEqual(catalog.models.first?.source, .manual)
+    }
+
+    func testReplacingDiscoveredModelsPreservesManualModelsAndOtherProviders() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let registry = AppSettings(defaults: defaults).providerRegistry
+        let catalog = try XCTUnwrap(registry.catalog)
+        let provider = try XCTUnwrap(catalog.providers.first)
+        let manual = try registry.saveModel(
+            ModelConfiguration(displayName: "Pinned", upstreamModelID: "manual", providerID: provider.id, isStreamingEnabled: false)
+        )
+        let otherProvider = try registry.saveProvider(
+            ProviderConfiguration(name: "Other", address: "https://other.example/v1", addressMode: .baseURL, timeout: 30)
+        )
+        let otherModel = try registry.saveModel(
+            ModelConfiguration(displayName: "Other", upstreamModelID: "other", providerID: otherProvider.id, isStreamingEnabled: true)
+        )
+
+        try registry.replaceDiscoveredModels(for: provider.id, upstreamModelIDs: [" z ", "manual", "a", "a", " "])
+
+        let refreshed = try XCTUnwrap(registry.catalog)
+        XCTAssertEqual(refreshed.models.first(where: { $0.id == manual.id }), manual)
+        XCTAssertEqual(refreshed.models.first(where: { $0.id == otherModel.id }), otherModel)
+        XCTAssertEqual(
+            refreshed.models.filter { $0.providerID == provider.id && $0.source == .discovered }.map(\.upstreamModelID),
+            ["a", "z"]
+        )
+        XCTAssertFalse(refreshed.models.contains { $0.providerID == provider.id && $0.source == .discovered && $0.upstreamModelID == "manual" })
+    }
+
+    func testEmptyRefreshRemovesDiscoveredModelsAndFallsBackFromActiveModel() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let registry = AppSettings(defaults: defaults).providerRegistry
+        let provider = try XCTUnwrap(registry.catalog?.providers.first)
+        let manual = try XCTUnwrap(registry.catalog?.models.first)
+        try registry.replaceDiscoveredModels(for: provider.id, upstreamModelIDs: ["discovered"])
+        let discovered = try XCTUnwrap(registry.catalog?.models.first(where: { $0.source == .discovered }))
+        try registry.selectModel(id: discovered.id)
+
+        try registry.replaceDiscoveredModels(for: provider.id, upstreamModelIDs: [])
+
+        XCTAssertEqual(registry.catalog?.models, [manual])
+        XCTAssertEqual(registry.catalog?.selectedModelID, manual.id)
+    }
+
+    func testRefreshThatWouldLeaveNoModelIsAtomic() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let registry = AppSettings(defaults: defaults).providerRegistry
+        let provider = try XCTUnwrap(registry.catalog?.providers.first)
+        let manual = try XCTUnwrap(registry.catalog?.models.first)
+        try registry.replaceDiscoveredModels(for: provider.id, upstreamModelIDs: ["discovered"])
+        try registry.deleteModel(id: manual.id)
+        let beforeRefresh = registry.catalog
+
+        XCTAssertThrowsError(try registry.replaceDiscoveredModels(for: provider.id, upstreamModelIDs: [])) { error in
+            XCTAssertEqual(error as? ProviderModelRegistryError, .wouldLeaveNoSelectableModel)
+        }
+        XCTAssertEqual(registry.catalog, beforeRefresh)
     }
 
     private func makeDefaults() -> (UserDefaults, String) {

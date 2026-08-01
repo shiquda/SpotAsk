@@ -130,6 +130,54 @@ final class ProviderModelRegistry {
         }
     }
 
+    func replaceDiscoveredModels(for providerID: UUID, upstreamModelIDs: [String]) throws {
+        let normalizedIDs = Set(
+            upstreamModelIDs
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        ).sorted()
+
+        try update { catalog in
+            guard catalog.providers.contains(where: { $0.id == providerID }) else {
+                throw ProviderModelRegistryError.missingProvider(providerID)
+            }
+
+            let manualModelIDs = Set(
+                catalog.models
+                    .filter { $0.providerID == providerID && $0.source == .manual }
+                    .map(\.upstreamModelID)
+            )
+            let existingDiscoveredModels = Dictionary(
+                grouping: catalog.models.filter { $0.providerID == providerID && $0.source == .discovered },
+                by: \.upstreamModelID
+            ).mapValues { $0[0] }
+
+            let discoveredModels = normalizedIDs.compactMap { upstreamModelID -> ModelConfiguration? in
+                guard !manualModelIDs.contains(upstreamModelID) else { return nil }
+                if let existing = existingDiscoveredModels[upstreamModelID] {
+                    return existing
+                }
+                return ModelConfiguration(
+                    displayName: upstreamModelID,
+                    upstreamModelID: upstreamModelID,
+                    providerID: providerID,
+                    isStreamingEnabled: true,
+                    source: .discovered
+                )
+            }
+
+            catalog.models.removeAll { $0.providerID == providerID && $0.source == .discovered }
+            catalog.models.append(contentsOf: discoveredModels)
+
+            guard !catalog.models.isEmpty else {
+                throw ProviderModelRegistryError.wouldLeaveNoSelectableModel
+            }
+            if !catalog.models.contains(where: { $0.id == catalog.selectedModelID }) {
+                catalog.selectedModelID = catalog.models[0].id
+            }
+        }
+    }
+
     func deleteModel(id: UUID) throws {
         try update { catalog in
             guard let index = catalog.models.firstIndex(where: { $0.id == id }) else {

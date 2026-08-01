@@ -39,6 +39,7 @@
 		001000000000000000000025 /* ProviderModelCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000032 /* ProviderModelCatalog.swift */; };
 		001000000000000000000026 /* ProviderModelRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000033 /* ProviderModelRegistry.swift */; };
 		001000000000000000000027 /* ProviderTargetResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000034 /* ProviderTargetResolver.swift */; };
+		001000000000000000000029 /* ProviderModelDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000036 /* ProviderModelDiscovery.swift */; };
 		001000000000000000000028 /* ReasoningToggleState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000035 /* ReasoningToggleState.swift */; };
 /* End PBXBuildFile section */
 
@@ -81,6 +82,7 @@
 		002000000000000000000033 /* ProviderModelRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/ProviderModelRegistry.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000034 /* ProviderTargetResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/ProviderTargetResolver.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000035 /* ReasoningToggleState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ReasoningToggleState.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000036 /* ProviderModelDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/ProviderModelDiscovery.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -110,6 +112,7 @@
 				002000000000000000000032 /* ProviderModelCatalog.swift */,
 				002000000000000000000033 /* ProviderModelRegistry.swift */,
 				002000000000000000000034 /* ProviderTargetResolver.swift */,
+				002000000000000000000036 /* ProviderModelDiscovery.swift */,
 				00200000000000000000000B /* SSEParser.swift */,
 				00200000000000000000000C /* ChatInputTextView.swift */,
 				00200000000000000000000D /* ChatView.swift */,
@@ -246,6 +249,7 @@
 				001000000000000000000024,
 				001000000000000000000025, 001000000000000000000026,
 				001000000000000000000027, 001000000000000000000028,
+				001000000000000000000029,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

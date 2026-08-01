@@ -21,6 +21,21 @@ final class URLNormalizerTests: XCTestCase {
         XCTAssertEqual(endpoint.absoluteString, "https://api.example.com/v1/chat/completions")
     }
 
+    func testDerivesModelsEndpointWithoutDoubleSlashes() throws {
+        XCTAssertEqual(
+            try URLNormalizer.modelsEndpoint(from: "https://api.example.com").absoluteString,
+            "https://api.example.com/models"
+        )
+        XCTAssertEqual(
+            try URLNormalizer.modelsEndpoint(from: "https://api.example.com/v1/").absoluteString,
+            "https://api.example.com/v1/models"
+        )
+        XCTAssertEqual(
+            try URLNormalizer.modelsEndpoint(from: "https://api.example.com/v1/chat/completions/").absoluteString,
+            "https://api.example.com/v1/models"
+        )
+    }
+
     func testFullEndpointModeRequiresChatCompletionsPath() throws {
         XCTAssertThrowsError(
             try URLNormalizer.endpoint(from: "https://api.example.com/v1", useFullEndpoint: true)
