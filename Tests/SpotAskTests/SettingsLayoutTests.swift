@@ -66,6 +66,15 @@ struct SettingsLayoutTests {
             #expect(fixture.hostingView.frame.size == NSSize(width: 860, height: 590))
 
             let windowBounds = fixture.hostingView.bounds.insetBy(dx: -1, dy: -1)
+            let horizontalOverflow = descendants(of: NSView.self, in: fixture.hostingView)
+                .dropFirst()
+                .map { $0.convert($0.bounds, to: fixture.hostingView) }
+                .filter { !$0.isEmpty }
+                .filter { $0.minX < windowBounds.minX || $0.maxX > windowBounds.maxX }
+            #expect(
+                horizontalOverflow.isEmpty,
+                "The \(section) page must keep all chrome within the fixed Settings width: \(horizontalOverflow)"
+            )
             if scrollingSections.contains(section) {
                 let pageScrollView = geometries.first { _, frame in
                     frame.width >= 550 && frame.height >= 500
@@ -103,6 +112,65 @@ struct SettingsLayoutTests {
                     "The \(section) page should not gain an unnecessary scroll layer"
                 )
             }
+        }
+    }
+
+    // MARK: - Horizontal bounds
+
+    @Test func fixedSettingsWindowKeepsSidebarAndServiceChromeInsideBounds() throws {
+        let fixture = makeWindow(section: .provider)
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+
+        let hostingBounds = fixture.hostingView.bounds.insetBy(dx: -0.5, dy: 0)
+        let frames = descendants(of: NSView.self, in: fixture.hostingView)
+            .dropFirst()
+            .map { $0.convert($0.bounds, to: fixture.hostingView) }
+            .filter { !$0.isEmpty }
+        let escaped = frames.filter {
+            $0.minX < hostingBounds.minX || $0.maxX > hostingBounds.maxX
+        }
+        #expect(
+            escaped.isEmpty,
+            "Settings sidebar or Service chrome escaped the fixed 860pt width: \(escaped)"
+        )
+
+        let detailScrollView = try #require(
+            descendants(of: NSScrollView.self, in: fixture.hostingView).first {
+                let frame = $0.convert($0.bounds, to: fixture.hostingView)
+                return frame.minX > 400 && frame.width > 300
+            },
+            "The Service detail must remain a distinct scroll region"
+        )
+        let detailFrame = detailScrollView.convert(detailScrollView.bounds, to: fixture.hostingView)
+        #expect(
+            hostingBounds.contains(detailFrame),
+            "The right-side Service detail, which contains the Delete action, escaped the fixed window: \(detailFrame)"
+        )
+    }
+
+    @Test func providerDetailControlsKeepOneContainedColumn() throws {
+        let fixture = makeWindow(section: .provider)
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+
+        let hostingBounds = fixture.hostingView.bounds.insetBy(dx: -0.5, dy: 0)
+        let fieldFrames = descendants(of: NSTextField.self, in: fixture.hostingView)
+            .map { $0.convert($0.bounds, to: fixture.hostingView) }
+            .filter { $0.width > 100 && $0.minX > 400 }
+        let controls = try #require(
+            fieldFrames.first.map { _ in fieldFrames },
+            "Provider Service Details and Access Key controls should expose AppKit text-field geometry"
+        )
+
+        let reference = try #require(controls.first)
+        for frame in controls {
+            #expect(
+                abs(frame.minX - reference.minX) < 1 && abs(frame.maxX - reference.maxX) < 1,
+                "Provider detail controls must share one column; expected \(reference), found \(frame)"
+            )
+            #expect(
+                frame.minX >= hostingBounds.minX && frame.maxX <= hostingBounds.maxX,
+                "Provider detail control escaped the fixed window horizontally: \(frame)"
+            )
         }
     }
 
@@ -148,6 +216,7 @@ struct SettingsLayoutTests {
         }
         return result
     }
+
 }
 
 @MainActor

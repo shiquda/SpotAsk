@@ -87,7 +87,7 @@ struct SettingsView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .padding(32)
+            .padding(20)
             .background(Color(nsColor: .windowBackgroundColor))
         }
         .frame(width: 860, height: 590)
@@ -472,7 +472,7 @@ private struct ProviderModelDetail: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(20)
+            .padding(16)
         }
     }
 }
@@ -532,7 +532,6 @@ private struct ProviderDetailForm: View {
                     Text(error)
                         .font(.caption)
                         .foregroundStyle(.red)
-                        .padding(.leading, 134)
                 }
                 SettingsFieldRow(label: L10n.string("settings.addressMode")) {
                     Picker(L10n.string("settings.addressMode"), selection: $state.draftProviderAddressMode) {
@@ -554,7 +553,6 @@ private struct ProviderDetailForm: View {
                     }
                 }
             }
-
             if !isNew, state.selectedProviderSupportsModelRefresh {
                 SettingsGroup(title: L10n.string("settings.availableModels")) {
                     Text(L10n.string("settings.modelRefreshDescription"))
@@ -594,21 +592,37 @@ private struct ProviderDetailForm: View {
                     Text(L10n.string("settings.accessKeyOnlyOnMac"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                        .padding(.leading, 134)
 
-                    HStack(spacing: 10) {
-                        Button(L10n.string("settings.saveAccessKey")) { state.saveKey() }
-                            .buttonStyle(.borderedProminent)
-                            .keyboardShortcut("s")
-                        Button(L10n.string("settings.testConnection")) { state.testConnection() }
-                            .disabled(state.isTesting || !state.canTestConnection)
-                        Button(L10n.string("settings.clearAccessKey"), role: .destructive) { state.clearKey() }
-                        Spacer()
-                        if state.isTesting { ProgressView().controlSize(.small) }
-                        if !state.status.isEmpty {
-                            Text(state.status)
-                                .font(.caption)
-                                .foregroundStyle(state.statusIsError ? .red : .green)
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 10) {
+                            Button(L10n.string("settings.saveAccessKey")) { state.saveKey() }
+                                .buttonStyle(.borderedProminent)
+                                .keyboardShortcut("s")
+                            Button(L10n.string("settings.testConnection")) { state.testConnection() }
+                                .disabled(state.isTesting || !state.canTestConnection)
+                            Button(L10n.string("settings.clearAccessKey"), role: .destructive) { state.clearKey() }
+                            Spacer()
+                            if state.isTesting { ProgressView().controlSize(.small) }
+                            if !state.status.isEmpty {
+                                Text(state.status)
+                                    .font(.caption)
+                                    .foregroundStyle(state.statusIsError ? .red : .green)
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Button(L10n.string("settings.saveAccessKey")) { state.saveKey() }
+                                .buttonStyle(.borderedProminent)
+                                .keyboardShortcut("s")
+                            Button(L10n.string("settings.testConnection")) { state.testConnection() }
+                                .disabled(state.isTesting || !state.canTestConnection)
+                            Button(L10n.string("settings.clearAccessKey"), role: .destructive) { state.clearKey() }
+                            if state.isTesting { ProgressView().controlSize(.small) }
+                            if !state.status.isEmpty {
+                                Text(state.status)
+                                    .font(.caption)
+                                    .foregroundStyle(state.statusIsError ? .red : .green)
+                            }
                         }
                     }
                 }
@@ -631,6 +645,7 @@ private struct ProviderDetailForm: View {
                 .disabled(!state.canSaveProvider)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -692,7 +707,6 @@ private struct ModelDetailForm: View {
                     Text(L10n.string("settings.discoveredModelHint"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                        .padding(.leading, 134)
                 }
                 SettingsToggleRow(label: L10n.string("settings.streaming"), isOn: $state.draftModelStreaming)
             }
@@ -742,6 +756,7 @@ private struct ModelDetailForm: View {
                 .disabled(!state.canSaveModel)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -1156,22 +1171,46 @@ private struct SettingsGroup<Content: View>: View {
             VStack(alignment: .leading, spacing: 13) {
                 content
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
             .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
+/// A label/control row that lays out horizontally when the panel is wide enough
+/// for the fixed 134pt label column, and stacks the label above the control when
+/// it is not. The horizontal candidate demands at least 400pt so every row in a
+/// given column makes the same choice, keeping the Service editor visually uniform.
 private struct SettingsFieldRow<Content: View>: View {
     let label: String
     @ViewBuilder let content: Content
 
-    var body: some View {
+    private var wideForm: some View {
         HStack(alignment: .center, spacing: 14) {
             Text(label)
                 .frame(width: 134, alignment: .leading)
             content
                 .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var stackedForm: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.secondary)
+            content
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            wideForm
+                .frame(minWidth: 400)
+            stackedForm
         }
     }
 }
@@ -1180,14 +1219,28 @@ private struct SettingsToggleRow: View {
     let label: String
     @Binding var isOn: Bool
 
+    private var toggle: some View {
+        Toggle("", isOn: $isOn)
+            .toggleStyle(.switch)
+            .labelsHidden()
+            .accessibilityLabel(label)
+    }
+
     var body: some View {
-        HStack(alignment: .center, spacing: 14) {
-            Text(label)
-                .frame(width: 134, alignment: .leading)
-            Toggle("", isOn: $isOn)
-                .toggleStyle(.switch)
-                .labelsHidden()
-                .accessibilityLabel(label)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 14) {
+                Text(label)
+                    .frame(width: 134, alignment: .leading)
+                toggle
+            }
+            .frame(minWidth: 400)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(label)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+                toggle
+            }
         }
     }
 }
