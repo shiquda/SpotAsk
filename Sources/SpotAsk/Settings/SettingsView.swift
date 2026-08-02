@@ -125,6 +125,7 @@ private struct SettingsSidebar: View {
                     }
                     .padding(.horizontal, 12)
                     .frame(height: 44)
+                    .contentShape(Rectangle())
                     .background(selection == section ? Color.primary.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
                 .buttonStyle(.plain)
