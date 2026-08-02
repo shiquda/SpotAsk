@@ -10,7 +10,7 @@ struct ChatView: View {
     let commandCenter: SpotAskCommandCenter
 
     @FocusState private var inputFocused: Bool
-    @State private var followsLatest = true
+    @State private var scrollFollowState = ScrollFollowState()
     @State private var didCopyLastAnswer = false
     @State private var inputHeight = ChatInputTextView.minHeight
     @State private var showsNewConversationConfirmation = false
@@ -165,10 +165,6 @@ struct ChatView: View {
                         Color.clear
                             .frame(height: 1)
                             .id("conversation-bottom")
-                        ScrollPositionObserver { isNearBottom in
-                            followsLatest = isNearBottom
-                        }
-                        .frame(height: 0)
                     }
                     .frame(maxWidth: 760, alignment: .leading)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -176,12 +172,12 @@ struct ChatView: View {
                     .padding(.vertical, 20)
                 }
                 .overlay(alignment: .bottomTrailing) {
-                    if !followsLatest {
+                    if !scrollFollowState.followsLatest {
                         Button {
+                            scrollFollowState.resumeFollowing()
                             withAnimation(.easeOut(duration: 0.16)) {
                                 proxy.scrollTo("conversation-bottom", anchor: .bottom)
                             }
-                            followsLatest = true
                         } label: {
                             Image(systemName: "arrow.down")
                                 .frame(width: 28, height: 28)
@@ -196,6 +192,13 @@ struct ChatView: View {
                     DispatchQueue.main.async {
                         proxy.scrollTo("conversation-bottom", anchor: .bottom)
                     }
+                }
+                .onScrollGeometryChange(for: Bool.self, of: Self.isNearBottom) { _, isNearBottom in
+                    scrollFollowState.positionChanged(isNearBottom: isNearBottom)
+                }
+                .onScrollPhaseChange { _, newPhase, context in
+                    scrollFollowState.positionChanged(isNearBottom: Self.isNearBottom(context.geometry))
+                    scrollFollowState.phaseChanged(to: Self.scrollFollowPhase(for: newPhase))
                 }
                 .onChange(of: viewModel.messages.last?.id) { _, _ in
                     scrollToBottom(using: proxy)
@@ -389,13 +392,13 @@ struct ChatView: View {
     private func confirmNewConversation() {
         viewModel.newConversation()
         inputFocused = true
-        followsLatest = true
+        scrollFollowState.resumeFollowing()
     }
 
     private func startFreshSession() {
         viewModel.startFreshSession()
         inputFocused = true
-        followsLatest = true
+        scrollFollowState.resumeFollowing()
     }
 
     private func handleEscape() {
@@ -458,10 +461,27 @@ struct ChatView: View {
     }
 
     private func scrollToBottom(using proxy: ScrollViewProxy) {
-        guard followsLatest else { return }
+        guard scrollFollowState.followsLatest else { return }
         DispatchQueue.main.async {
-            guard followsLatest else { return }
+            guard scrollFollowState.followsLatest else { return }
             proxy.scrollTo("conversation-bottom", anchor: .bottom)
+        }
+    }
+
+    private static func isNearBottom(_ geometry: ScrollGeometry) -> Bool {
+        geometry.visibleRect.maxY >= geometry.contentSize.height - 12
+    }
+
+    private static func scrollFollowPhase(for phase: ScrollPhase) -> ScrollFollowState.Phase {
+        switch phase {
+        case .idle:
+            .idle
+        case .tracking, .interacting:
+            .userInteracting
+        case .decelerating:
+            .userDecelerating
+        case .animating:
+            .programmaticAnimating
         }
     }
 }

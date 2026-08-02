@@ -1,62 +1,45 @@
-import AppKit
-import SwiftUI
+import Foundation
 
-struct ScrollPositionObserver: NSViewRepresentable {
-    let onNearBottomChanged: (Bool) -> Void
-
-    func makeNSView(context: Context) -> TrackingView {
-        let view = TrackingView()
-        view.onNearBottomChanged = onNearBottomChanged
-        return view
+/// Keeps the user's follow preference separate from the scroll view's current
+/// geometry. A programmatic scroll can change the latter, but must never turn
+/// a user's paused preference back into automatic following.
+struct ScrollFollowState: Equatable {
+    enum Phase: Equatable {
+        case idle
+        case userInteracting
+        case userDecelerating
+        case programmaticAnimating
     }
 
-    func updateNSView(_ view: TrackingView, context: Context) {
-        view.onNearBottomChanged = onNearBottomChanged
-        view.startObservingIfNeeded()
-    }
-}
+    private(set) var followsLatest = true
+    private var isNearBottom = true
+    private var isHandlingUserScroll = false
 
-final class TrackingView: NSView {
-    var onNearBottomChanged: ((Bool) -> Void)?
-
-    private weak var observedScrollView: NSScrollView?
-    private var isObserving = false
-    private var lastValue: Bool?
-
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        startObservingIfNeeded()
+    mutating func positionChanged(isNearBottom: Bool) {
+        self.isNearBottom = isNearBottom
     }
 
-    func startObservingIfNeeded() {
-        guard !isObserving else { return }
-        DispatchQueue.main.async { [weak self] in self?.beginObserving() }
+    mutating func phaseChanged(to phase: Phase) {
+        switch phase {
+        case .userInteracting:
+            // Stop on the first input phase, before the view moves beyond the
+            // near-bottom tolerance used to decide whether to resume later.
+            followsLatest = false
+            isHandlingUserScroll = true
+        case .userDecelerating:
+            followsLatest = false
+            isHandlingUserScroll = true
+        case .idle:
+            guard isHandlingUserScroll else { return }
+            isHandlingUserScroll = false
+            followsLatest = isNearBottom
+        case .programmaticAnimating:
+            break
+        }
     }
 
-    private func beginObserving() {
-        guard !isObserving, let scrollView = enclosingScrollView else { return }
-        observedScrollView = scrollView
-        scrollView.contentView.postsBoundsChangedNotifications = true
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleBoundsChange),
-            name: NSView.boundsDidChangeNotification,
-            object: scrollView.contentView
-        )
-        isObserving = true
-        reportPosition()
-    }
-
-    @objc private func handleBoundsChange(_ notification: Notification) {
-        reportPosition()
-    }
-
-    private func reportPosition() {
-        guard let scrollView = observedScrollView, let documentView = scrollView.documentView else { return }
-        let visibleBottom = scrollView.contentView.bounds.maxY
-        let isNearBottom = visibleBottom >= documentView.bounds.maxY - 12
-        guard isNearBottom != lastValue else { return }
-        lastValue = isNearBottom
-        onNearBottomChanged?(isNearBottom)
+    mutating func resumeFollowing() {
+        followsLatest = true
+        isHandlingUserScroll = false
     }
 }
