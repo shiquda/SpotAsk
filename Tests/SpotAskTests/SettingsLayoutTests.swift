@@ -153,13 +153,31 @@ struct SettingsLayoutTests {
         defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
 
         let hostingBounds = fixture.hostingView.bounds.insetBy(dx: -0.5, dy: 0)
-        let fieldFrames = descendants(of: NSTextField.self, in: fixture.hostingView)
-            .map { $0.convert($0.bounds, to: fixture.hostingView) }
-            .filter { $0.width > 100 && $0.minX > 400 }
-        let controls = try #require(
-            fieldFrames.first.map { _ in fieldFrames },
-            "Provider Service Details and Access Key controls should expose AppKit text-field geometry"
+        let textFields = descendants(of: NSTextField.self, in: fixture.hostingView)
+        let expectedInputs = expectedProviderDetailInputs(from: textFields)
+        let providerNameFields = expectedInputs.providerName
+        let accessKeyFields = expectedInputs.accessKey
+        #expect(
+            providerNameFields.count == 1,
+            "Provider Service Details must expose exactly one Name text field"
         )
+        #expect(
+            accessKeyFields.count == 1,
+            "Access Key must expose exactly one secure text field"
+        )
+        let providerNameField = try #require(providerNameFields.first)
+        let accessKeyField = try #require(accessKeyFields.first)
+        let controls = [providerNameField, accessKeyField].map {
+            $0.convert($0.bounds, to: fixture.hostingView)
+        }
+        let detailScrollView = try #require(
+            descendants(of: NSScrollView.self, in: fixture.hostingView).first {
+                let frame = $0.convert($0.bounds, to: fixture.hostingView)
+                return frame.minX > 400 && frame.width > 300
+            },
+            "The Service detail must remain a distinct scroll region"
+        )
+        let detailFrame = detailScrollView.convert(detailScrollView.bounds, to: fixture.hostingView)
 
         let reference = try #require(controls.first)
         for frame in controls {
@@ -168,10 +186,39 @@ struct SettingsLayoutTests {
                 "Provider detail controls must share one column; expected \(reference), found \(frame)"
             )
             #expect(
+                frame.width >= 300,
+                "Provider detail controls must retain an editable width: \(frame)"
+            )
+            #expect(
+                frame.minX >= detailFrame.minX && frame.maxX <= detailFrame.maxX,
+                "Provider detail control must remain in the Service detail column: \(frame)"
+            )
+            #expect(
                 frame.minX >= hostingBounds.minX && frame.maxX <= hostingBounds.maxX,
                 "Provider detail control escaped the fixed window horizontally: \(frame)"
             )
         }
+    }
+
+    @Test func providerDetailInputLookupRejectsMissingSecureAccessKey() {
+        let providerNameField = NSTextField()
+        providerNameField.placeholderString = L10n.string("settings.providerNamePlaceholder")
+        let serviceAddressField = NSTextField()
+        serviceAddressField.placeholderString = "https://api.example.com/v1"
+
+        let withoutAccessKey = expectedProviderDetailInputs(
+            from: [providerNameField, serviceAddressField]
+        )
+        #expect(withoutAccessKey.providerName.count == 1)
+        #expect(withoutAccessKey.accessKey.isEmpty)
+
+        let accessKeyField = NSSecureTextField()
+        accessKeyField.placeholderString = L10n.string("settings.accessKeyPlaceholder")
+        let expected = expectedProviderDetailInputs(
+            from: [providerNameField, serviceAddressField, accessKeyField]
+        )
+        #expect(expected.providerName.count == 1)
+        #expect(expected.accessKey.count == 1)
     }
 
     private func makeWindow(section: SettingsSection) -> SettingsWindowFixture {
@@ -215,6 +262,21 @@ struct SettingsLayoutTests {
             result.append(contentsOf: descendants(of: type, in: subview))
         }
         return result
+    }
+
+    private func expectedProviderDetailInputs(
+        from textFields: [NSTextField]
+    ) -> (providerName: [NSTextField], accessKey: [NSTextField]) {
+        (
+            providerName: textFields.filter {
+                !($0 is NSSecureTextField)
+                    && $0.placeholderString == L10n.string("settings.providerNamePlaceholder")
+            },
+            accessKey: textFields.filter {
+                $0 is NSSecureTextField
+                    && $0.placeholderString == L10n.string("settings.accessKeyPlaceholder")
+            }
+        )
     }
 
 }
