@@ -32,9 +32,11 @@
 "chat.retryFailedRequest" = "重试最近一次失败请求";
 "chat.selectPrompt" = "选择提问方式";
 "chat.send" = "发送问题";
+"chat.showFullQuestion" = "展开完整问题";
 "chat.sessionIdleNotice" = "距离上次提问已有一段时间。";
 "chat.startNewQuestion" = "开始新问题";
 "chat.stop" = "停止生成";
+"chat.collapseQuestion" = "收起问题";
 "chat.stopped" = "已停止生成";
 "chat.usePrompt" = "本次使用：%@";
 "chat.user" = "你";

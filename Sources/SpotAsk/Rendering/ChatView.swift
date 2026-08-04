@@ -72,6 +72,45 @@ func chatEscapeAction(
     return .dismissWindow
 }
 
+/// Decides when a sent question needs an initially compact presentation.
+/// The original message content is always retained and rendered when expanded.
+enum UserMessageDisplayPolicy {
+    static let characterThreshold = 500
+    static let explicitLineThreshold = 8
+    static let collapsedLineLimit = 8
+
+    static func shouldCollapse(_ content: String) -> Bool {
+        content.count > characterThreshold || explicitLineCount(in: content) >= explicitLineThreshold
+    }
+
+    static func explicitLineCount(in content: String) -> Int {
+        content.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline).count
+    }
+}
+
+/// View-owned expansion state for user messages. Keeping it above lazy rows
+/// preserves a user's choice while a row is temporarily recycled off-screen.
+struct UserMessageExpansionState: Equatable {
+    private(set) var expandedMessageIDs: Set<UUID> = []
+
+    mutating func reconcile(messages: [ChatMessage]) {
+        let currentUserMessageIDs = Set(messages.lazy.filter { $0.role == .user }.map(\.id))
+        expandedMessageIDs.formIntersection(currentUserMessageIDs)
+    }
+
+    func isExpanded(messageID: UUID) -> Bool {
+        expandedMessageIDs.contains(messageID)
+    }
+
+    mutating func toggle(messageID: UUID) {
+        if expandedMessageIDs.contains(messageID) {
+            expandedMessageIDs.remove(messageID)
+        } else {
+            expandedMessageIDs.insert(messageID)
+        }
+    }
+}
+
 struct ChatView: View {
     @Bindable var viewModel: ChatViewModel
     let settings: AppSettings
@@ -85,6 +124,7 @@ struct ChatView: View {
     @State private var didCopyLastAnswer = false
     @State private var inputHeight = ChatInputTextView.minHeight
     @State private var reasoningToggle = ReasoningToggleStateStore()
+    @State private var userMessageExpansionState = UserMessageExpansionState()
     @State private var isPresetPopoverPresented = false
     @State private var showsShortcutHints = false
     @State private var shortcutDispatcher: InAppShortcutDispatcher?
@@ -135,6 +175,7 @@ struct ChatView: View {
             viewModel.offerSessionChoiceIfNeeded()
             commandCenter.setActionConsumer(handleCommandAction)
             reasoningToggle.reconcile(messages: viewModel.messages)
+            userMessageExpansionState.reconcile(messages: viewModel.messages)
             installShortcutDispatcher()
         }
         .onDisappear {
@@ -155,6 +196,7 @@ struct ChatView: View {
         .environment(\.locale, settings.language.locale)
         .onChange(of: viewModel.messages) { _, messages in
             reasoningToggle.reconcile(messages: messages)
+            userMessageExpansionState.reconcile(messages: messages)
         }
         .onChange(of: settings.promptPresets) { _, _ in
             synchronizeSelectedPromptPreset()
@@ -361,7 +403,11 @@ struct ChatView: View {
         case .system:
             EmptyView()
         case .user:
-            UserMessageContentView(message: message)
+            UserMessageContentView(
+                message: message,
+                isExpanded: userMessageExpansionState.isExpanded(messageID: message.id),
+                onToggleExpansion: { userMessageExpansionState.toggle(messageID: message.id) }
+            )
         case .assistant:
             VStack(alignment: .leading, spacing: 8) {
                 if let reasoning = message.reasoningContent, !reasoning.isEmpty {
@@ -1399,8 +1445,14 @@ private struct PopoverOutsideClickMonitor: NSViewRepresentable {
 
 private struct UserMessageContentView: View {
     let message: ChatMessage
+    let isExpanded: Bool
+    let onToggleExpansion: () -> Void
 
     @State private var didCopy = false
+
+    private var isCollapsible: Bool {
+        UserMessageDisplayPolicy.shouldCollapse(message.content)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -1437,10 +1489,26 @@ private struct UserMessageContentView: View {
             Text(message.content)
                 .textSelection(.enabled)
                 .lineSpacing(2)
+                .lineLimit(isCollapsible && !isExpanded ? UserMessageDisplayPolicy.collapsedLineLimit : nil)
                 .frame(maxWidth: 620, alignment: .leading)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 9)
                 .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
+
+            if isCollapsible {
+                Button(action: onToggleExpansion) {
+                    Label(
+                        isExpanded
+                            ? L10n.string("chat.collapseQuestion")
+                            : L10n.string("chat.showFullQuestion"),
+                        systemImage: isExpanded ? "chevron.up" : "chevron.down"
+                    )
+                    .font(.caption.weight(.medium))
+                }
+                .buttonStyle(.borderless)
+                .help(isExpanded ? L10n.string("chat.collapseQuestion") : L10n.string("chat.showFullQuestion"))
+                .accessibilityLabel(isExpanded ? L10n.string("chat.collapseQuestion") : L10n.string("chat.showFullQuestion"))
+            }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(L10n.string("chat.user"))

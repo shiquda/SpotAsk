@@ -32,9 +32,11 @@
 "chat.retryFailedRequest" = "Retry the most recent failed request";
 "chat.selectPrompt" = "Choose how to ask";
 "chat.send" = "Send question";
+"chat.showFullQuestion" = "Show full question";
 "chat.sessionIdleNotice" = "It's been a while since your last question.";
 "chat.startNewQuestion" = "Start New Question";
 "chat.stop" = "Stop generating";
+"chat.collapseQuestion" = "Collapse question";
 "chat.stopped" = "Generation stopped";
 "chat.usePrompt" = "Use for this question: %@";
 "chat.user" = "You";
