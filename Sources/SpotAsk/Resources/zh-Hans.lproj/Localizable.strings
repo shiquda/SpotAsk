@@ -195,12 +195,12 @@
 "settings.new" = "新建";
 "settings.newPrompt" = "新建提示词";
 "settings.promptContent" = "内容";
-"settings.promptCatalogDescription" = "拖动调整顺序。关闭后不会在提问窗口显示，也不会响应快捷键或系统快捷指令。";
+"settings.promptCatalogDescription" = "使用上移和下移按钮调整顺序。关闭后不会在提问窗口显示，也不会响应快捷键或系统快捷指令。";
 "settings.promptEnabled" = "启用";
 "settings.promptPosition" = "第 %d 项，共 %d 项";
 "settings.prompts" = "提示词";
 "settings.promptsDescription" = "在提问窗口选择提示词，可仅用于下一次提问。";
-"settings.reorderHint" = "拖动以调整顺序。";
+"settings.reorderHint" = "使用上移和下移按钮调整顺序。";
 "settings.reorderPrompt" = "重新排序：%@";
 "settings.moveDown" = "下移";
 "settings.moveUp" = "上移";

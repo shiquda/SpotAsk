@@ -951,6 +951,9 @@ private struct BrandMark: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 18, height: 18)
+                    // App icon resources are opaque; match the icon's native
+                    // silhouette so its square corners do not show in the titlebar.
+                    .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
             } else {
                 RoundedRectangle(cornerRadius: 5)
                     .fill(Brand.accent)
@@ -1060,21 +1063,29 @@ private struct PresetStripView: View {
     let onSelect: (PromptPreset) -> Void
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(presets) { preset in
-                    ChipView(
-                        title: preset.title,
-                        icon: preset.symbolName,
-                        isSelected: selection?.id == preset.id,
-                        shortcut: showsShortcutHints ? shortcutForPreset(preset) : nil
-                    ) {
-                        onSelect(preset)
+        GeometryReader { geometry in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(presets) { preset in
+                        ChipView(
+                            title: preset.title,
+                            icon: preset.symbolName,
+                            isSelected: selection?.id == preset.id,
+                            shortcut: showsShortcutHints ? shortcutForPreset(preset) : nil
+                        ) {
+                            onSelect(preset)
+                        }
                     }
                 }
+                // A horizontal ScrollView lays out short content at its leading
+                // edge. Match the viewport width so the chip group is centered
+                // until it needs to scroll.
+                .frame(minWidth: geometry.size.width, alignment: .center)
             }
+            .scrollClipDisabled()
         }
-        .frame(maxWidth: 460, maxHeight: 38)
+        .frame(maxWidth: 460)
+        .frame(height: 38)
     }
 }
 
@@ -1095,7 +1106,6 @@ private struct ChipView: View {
                     .font(.system(size: 13))
                 Text(title)
                     .font(.system(size: 13, weight: .medium))
-                ShortcutKeycap(shortcut: shortcut)
             }
             .foregroundStyle(isSelected ? Color.white : (isHovering ? Brand.fg : Brand.muted))
             .padding(.horizontal, 13)
@@ -1117,6 +1127,12 @@ private struct ChipView: View {
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+        .overlay(alignment: .bottomTrailing) {
+            ShortcutKeycap(shortcut: shortcut)
+                .allowsHitTesting(false)
+                .offset(x: 5, y: 5)
+        }
+        .zIndex(shortcut == nil ? 0 : 1)
         .focused($isFocused)
         .onHover { isHovering = $0 }
         .animation(.easeOut(duration: 0.12), value: isHovering)

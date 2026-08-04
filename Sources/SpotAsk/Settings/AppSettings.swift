@@ -89,152 +89,6 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
     }
 }
 
-enum PromptPresetOrder {
-    static func targetIndex(
-        in orderedRowMidYs: [CGFloat],
-        currentIndex: Int,
-        pointerY: CGFloat,
-        hysteresis: CGFloat
-    ) -> Int? {
-        guard orderedRowMidYs.indices.contains(currentIndex) else { return nil }
-        let threshold = max(0, hysteresis)
-
-        if pointerY < orderedRowMidYs[currentIndex] - threshold {
-            return orderedRowMidYs.firstIndex { pointerY < $0 - threshold } ?? 0
-        }
-        if pointerY > orderedRowMidYs[currentIndex] + threshold {
-            return orderedRowMidYs.lastIndex { pointerY > $0 + threshold }
-                ?? orderedRowMidYs.count - 1
-        }
-        return currentIndex
-    }
-
-    static func moving(
-        _ presets: [PromptPreset],
-        id: UUID,
-        to targetIndex: Int
-    ) -> [PromptPreset] {
-        guard let sourceIndex = presets.firstIndex(where: { $0.id == id }) else { return presets }
-        let destinationIndex = min(max(targetIndex, 0), presets.count - 1)
-        guard sourceIndex != destinationIndex else { return presets }
-
-        var reordered = presets
-        let preset = reordered.remove(at: sourceIndex)
-        reordered.insert(preset, at: destinationIndex)
-        return reordered
-    }
-}
-
-/// Immutable row slots captured when a prompt-preset drag begins. Keeping the
-/// geometry stable prevents a reordered row's transient layout frame from
-/// affecting the next drag event.
-struct PromptPresetDragSlots {
-    let frames: [CGRect]
-    private let framesByID: [UUID: CGRect]
-    private let rowSpacing: CGFloat
-
-    init(rowFrames: [UUID: CGRect]) {
-        frames = rowFrames.values.sorted { $0.midY < $1.midY }
-        framesByID = rowFrames
-        rowSpacing = Self.spacing(between: frames)
-    }
-
-    init(frames: [CGRect]) {
-        self.frames = frames.sorted { $0.midY < $1.midY }
-        framesByID = [:]
-        rowSpacing = Self.spacing(between: self.frames)
-    }
-
-    func frame(at index: Int) -> CGRect? {
-        guard frames.indices.contains(index) else { return nil }
-        return frames[index]
-    }
-
-    func targetIndex(
-        currentIndex: Int,
-        pointerY: CGFloat,
-        hysteresis: CGFloat
-    ) -> Int? {
-        PromptPresetOrder.targetIndex(
-            in: frames.map(\.midY),
-            currentIndex: currentIndex,
-            pointerY: pointerY,
-            hysteresis: hysteresis
-        )
-    }
-
-    func targetIndex(
-        in orderedIDs: [UUID],
-        currentIndex: Int,
-        pointerY: CGFloat,
-        hysteresis: CGFloat
-    ) -> Int? {
-        guard let framesByID = layoutFrames(in: orderedIDs) else { return nil }
-        return PromptPresetOrder.targetIndex(
-            in: orderedIDs.compactMap { framesByID[$0]?.midY },
-            currentIndex: currentIndex,
-            pointerY: pointerY,
-            hysteresis: hysteresis
-        )
-    }
-
-    func frame(for presetID: UUID, in orderedIDs: [UUID]) -> CGRect? {
-        layoutFrames(in: orderedIDs)?[presetID]
-    }
-
-    /// Returns the offset from a target slot that keeps the dragged card under
-    /// the pointer while constraining the full card to the captured list.
-    func constrainedOffset(pointerY: CGFloat, at targetIndex: Int) -> CGFloat? {
-        guard let targetFrame = frame(at: targetIndex) else {
-            return nil
-        }
-        return constrainedOffset(pointerY: pointerY, for: targetFrame)
-    }
-
-    func constrainedOffset(pointerY: CGFloat, for targetFrame: CGRect) -> CGFloat? {
-        guard
-              let listMinY = frames.map(\.minY).min(),
-              let listMaxY = frames.map(\.maxY).max() else {
-            return nil
-        }
-
-        let minimumOffset = listMinY - targetFrame.minY
-        let maximumOffset = listMaxY - targetFrame.maxY
-        return min(
-            max(pointerY - targetFrame.midY, minimumOffset),
-            maximumOffset
-        )
-    }
-
-    func layoutFrames(in orderedIDs: [UUID]) -> [UUID: CGRect]? {
-        guard orderedIDs.count == frames.count,
-              Set(orderedIDs).count == orderedIDs.count,
-              Set(orderedIDs) == Set(framesByID.keys),
-              let firstFrame = frames.first else {
-            return nil
-        }
-
-        var nextMinY = firstFrame.minY
-        var result: [UUID: CGRect] = [:]
-        for presetID in orderedIDs {
-            guard let sourceFrame = framesByID[presetID] else { return nil }
-            result[presetID] = CGRect(
-                x: sourceFrame.minX,
-                y: nextMinY,
-                width: sourceFrame.width,
-                height: sourceFrame.height
-            )
-            nextMinY += sourceFrame.height + rowSpacing
-        }
-        return result
-    }
-
-    private static func spacing(between frames: [CGRect]) -> CGFloat {
-        guard frames.count > 1 else { return 0 }
-        return max(0, frames[1].minY - frames[0].maxY)
-    }
-}
-
 enum HotKeyPreset: String, CaseIterable, Identifiable {
     case optionSpace
     case controlSpace
@@ -508,26 +362,19 @@ final class AppSettings {
         promptPresetCatalog[index].isEnabled = isEnabled
     }
 
-    func movePromptPreset(id: UUID, before destinationID: UUID) {
-        guard id != destinationID,
-              let sourceIndex = promptPresetCatalog.firstIndex(where: { $0.id == id }),
-              let destinationIndex = promptPresetCatalog.firstIndex(where: { $0.id == destinationID }) else { return }
-        let preset = promptPresetCatalog.remove(at: sourceIndex)
-        let insertionIndex = sourceIndex < destinationIndex ? destinationIndex - 1 : destinationIndex
-        promptPresetCatalog.insert(preset, at: insertionIndex)
-    }
+    @discardableResult
+    func movePromptPreset(id: UUID, by offset: Int) -> Bool {
+        guard offset == -1 || offset == 1,
+              let sourceIndex = promptPresetCatalog.firstIndex(where: { $0.id == id }) else {
+            return false
+        }
+        let destinationIndex = sourceIndex + offset
+        guard promptPresetCatalog.indices.contains(destinationIndex) else { return false }
 
-    /// Applies a completed reorder in one catalog update. Callers can freely
-    /// stage transient drag positions without writing UserDefaults until the
-    /// final order is known.
-    func commitPromptPresetOrder(_ orderedIDs: [UUID]) {
-        guard orderedIDs.count == promptPresetCatalog.count,
-              Set(orderedIDs).count == orderedIDs.count,
-              Set(orderedIDs) == Set(promptPresetCatalog.map(\.id)),
-              orderedIDs != promptPresetCatalog.map(\.id) else { return }
-
-        let presetsByID = Dictionary(uniqueKeysWithValues: promptPresetCatalog.map { ($0.id, $0) })
-        promptPresetCatalog = orderedIDs.compactMap { presetsByID[$0] }
+        var reorderedPresets = promptPresetCatalog
+        reorderedPresets.swapAt(sourceIndex, destinationIndex)
+        promptPresetCatalog = reorderedPresets
+        return true
     }
 
     func enabledPromptPreset(id: UUID) -> PromptPreset? {
