@@ -4,10 +4,10 @@ import SwiftUI
 /// An AppKit editor gives us the marked-text signal required to avoid sending
 /// while a Chinese, Japanese, or Korean input method is choosing a candidate.
 struct ChatInputTextView: NSViewRepresentable {
-    /// Fits roughly one line of body text including the editor's insets.
-    static let minHeight: CGFloat = 52
+    /// Fits one line of body text including the editor's insets.
+    static let minHeight: CGFloat = 40
     /// Fits roughly six lines; the editor scrolls internally beyond that.
-    static let maxHeight: CGFloat = 120
+    static let maxHeight: CGFloat = 132
 
     @Binding var text: String
     @FocusState.Binding var isFocused: Bool
@@ -109,6 +109,9 @@ struct ChatInputTextView: NSViewRepresentable {
         }
 
         func textDidEndEditing(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView,
+                  let scrollView = textView.enclosingScrollView,
+                  scrollView.window?.firstResponder !== textView else { return }
             parent.isFocused = false
         }
 

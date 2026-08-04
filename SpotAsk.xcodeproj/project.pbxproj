@@ -41,6 +41,7 @@
 		001000000000000000000027 /* ProviderTargetResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000034 /* ProviderTargetResolver.swift */; };
 		001000000000000000000029 /* ProviderModelDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000036 /* ProviderModelDiscovery.swift */; };
 		001000000000000000000028 /* ReasoningToggleState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000035 /* ReasoningToggleState.swift */; };
+		00100000000000000000002A /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000037 /* SettingsWindowController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -83,6 +84,7 @@
 		002000000000000000000034 /* ProviderTargetResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/ProviderTargetResolver.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000035 /* ReasoningToggleState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ReasoningToggleState.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000036 /* ProviderModelDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/ProviderModelDiscovery.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000037 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Window/SettingsWindowController.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -129,6 +131,7 @@
 				002000000000000000000017 /* SafeLogger.swift */,
 				002000000000000000000018 /* URLNormalizer.swift */,
 				002000000000000000000019 /* SpotAskPanelController.swift */,
+				002000000000000000000037 /* SettingsWindowController.swift */,
 				002000000000000000000023 /* Localization.swift */,
 			);
 			name = Sources;
@@ -245,6 +248,7 @@
 				001000000000000000000013, 001000000000000000000014, 001000000000000000000015,
 				001000000000000000000016, 001000000000000000000017, 001000000000000000000018,
 				001000000000000000000019,
+				00100000000000000000002A,
 				001000000000000000000020,
 				001000000000000000000024,
 				001000000000000000000025, 001000000000000000000026,

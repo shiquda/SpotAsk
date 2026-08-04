@@ -8,6 +8,7 @@
 "chat.copyCompleteAnswer" = "复制完整回答";
 "chat.copyLastAnswer" = "复制最后一条完整回答";
 "chat.copyQuestion" = "复制问题";
+"chat.clearPrompt" = "清除提示词";
 "chat.continueConversation" = "继续上一段对话";
 "chat.directQuestion" = "直接提问";
 "chat.copied" = "已复制";
@@ -62,10 +63,10 @@
 "intent.ask.shortTitle" = "问 AI？";
 "intent.ask.summary" = "使用 SpotAsk 提问";
 "intent.ask.title" = "问 AI？";
-"intent.explainCode.description" = "使用 SpotAsk 解释代码。";
-"intent.explainCode.shortTitle" = "解释代码";
-"intent.explainCode.summary" = "使用 SpotAsk 解释";
-"intent.explainCode.title" = "解释代码";
+"intent.explain.description" = "使用 SpotAsk 解释内容。";
+"intent.explain.shortTitle" = "解释";
+"intent.explain.summary" = "使用 SpotAsk 解释";
+"intent.explain.title" = "解释";
 "intent.newConversation.description" = "清空当前对话并打开 SpotAsk。";
 "intent.newConversation.shortTitle" = "新对话";
 "intent.newConversation.title" = "开始新的 SpotAsk 对话";
@@ -102,8 +103,8 @@
 "总结" = "总结";
 "使用 SpotAsk 总结内容。" = "使用 SpotAsk 总结内容。";
 "使用 SpotAsk 总结" = "使用 SpotAsk 总结";
-"解释代码" = "解释代码";
-"使用 SpotAsk 解释代码。" = "使用 SpotAsk 解释代码。";
+"解释" = "解释";
+"使用 SpotAsk 解释内容。" = "使用 SpotAsk 解释内容。";
 "使用 SpotAsk 解释" = "使用 SpotAsk 解释";
 "开始新的 SpotAsk 对话" = "开始新的 SpotAsk 对话";
 "清空当前对话并打开 SpotAsk。" = "清空当前对话并打开 SpotAsk。";
@@ -114,8 +115,8 @@
 "menu.quit" = "退出";
 "menu.settings" = "设置…";
 "menu.windowOnTop" = "窗口置顶";
-"preset.explainCode.instruction" = "请解释用户提供的代码：先说明用途，再说明关键逻辑、输入输出与注意事项；使用清晰的分段和示例。";
-"preset.explainCode.title" = "解释代码";
+"preset.explain.instruction" = "请清晰解释用户提供的内容：说明其用途与含义、核心要点，以及有助于理解的背景；用简洁、结构清晰的方式表达。";
+"preset.explain.title" = "解释";
 "preset.polish.instruction" = "请在不改变原意的前提下润色用户提供的内容，使表达自然、清晰、得体；仅输出润色后的版本。";
 "preset.polish.title" = "润色";
 "preset.summarize.instruction" = "请提炼用户提供内容的重点，以简洁、结构清晰的方式总结。";

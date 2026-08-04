@@ -110,7 +110,7 @@ struct PolishWithSpotAskIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        await SpotAskCommandCenter.shared.ask(text, promptPreset: PromptPreset.builtIn[1])
+        await SpotAskCommandCenter.shared.ask(text, promptPreset: PromptPreset.builtIn[3])
         return .result()
     }
 }
@@ -148,11 +148,11 @@ struct SummarizeWithSpotAskIntent: AppIntent {
     }
 }
 
-struct ExplainCodeWithSpotAskIntent: AppIntent {
-    static let title: LocalizedStringResource = "解释代码"
+struct ExplainWithSpotAskIntent: AppIntent {
+    static let title: LocalizedStringResource = "解释"
     static let description = IntentDescription(
-        "使用 SpotAsk 解释代码。",
-        searchKeywords: ["解释代码", "问AI", "问 AI", "？", "?", "code", "explain"]
+        "使用 SpotAsk 解释内容。",
+        searchKeywords: ["解释", "问AI", "问 AI", "？", "?", "explain"]
     )
 
     @available(macOS 26.0, *)
@@ -176,7 +176,7 @@ struct ExplainCodeWithSpotAskIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        await SpotAskCommandCenter.shared.ask(text, promptPreset: PromptPreset.builtIn[3])
+        await SpotAskCommandCenter.shared.ask(text, promptPreset: PromptPreset.builtIn[1])
         return .result()
     }
 }
@@ -220,10 +220,10 @@ struct SpotAskShortcuts: AppShortcutsProvider {
             systemImageName: "translate"
         )
         AppShortcut(
-            intent: PolishWithSpotAskIntent(),
-            phrases: ["使用 \(.applicationName) 润色"],
-            shortTitle: "润色",
-            systemImageName: "text.badge.checkmark"
+            intent: ExplainWithSpotAskIntent(),
+            phrases: ["使用 \(.applicationName) 解释"],
+            shortTitle: "解释",
+            systemImageName: "lightbulb"
         )
         AppShortcut(
             intent: SummarizeWithSpotAskIntent(),
@@ -232,10 +232,10 @@ struct SpotAskShortcuts: AppShortcutsProvider {
             systemImageName: "text.line.first.and.arrowtriangle.forward"
         )
         AppShortcut(
-            intent: ExplainCodeWithSpotAskIntent(),
-            phrases: ["使用 \(.applicationName) 解释代码"],
-            shortTitle: "解释代码",
-            systemImageName: "chevron.left.forwardslash.chevron.right"
+            intent: PolishWithSpotAskIntent(),
+            phrases: ["使用 \(.applicationName) 润色"],
+            shortTitle: "润色",
+            systemImageName: "pencil.and.scribble"
         )
         AppShortcut(
             intent: NewSpotAskConversationIntent(),

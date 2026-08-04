@@ -188,13 +188,13 @@ struct SpotAskIntentTests {
             String(describing: TranslateWithSpotAskIntent.title),
             String(describing: PolishWithSpotAskIntent.title),
             String(describing: SummarizeWithSpotAskIntent.title),
-            String(describing: ExplainCodeWithSpotAskIntent.title)
+            String(describing: ExplainWithSpotAskIntent.title)
         ]
         let keywords = [
             String(describing: TranslateWithSpotAskIntent.description.searchKeywords),
             String(describing: PolishWithSpotAskIntent.description.searchKeywords),
             String(describing: SummarizeWithSpotAskIntent.description.searchKeywords),
-            String(describing: ExplainCodeWithSpotAskIntent.description.searchKeywords)
+            String(describing: ExplainWithSpotAskIntent.description.searchKeywords)
         ]
 
         #expect(titles.joined(separator: "\n").contains("翻译"))
@@ -208,7 +208,28 @@ struct SpotAskIntentTests {
         #expect(TranslateWithSpotAskIntent(text: "Hello").text == "Hello")
         #expect(PolishWithSpotAskIntent(text: "Hello").text == "Hello")
         #expect(SummarizeWithSpotAskIntent(text: "Hello").text == "Hello")
-        #expect(ExplainCodeWithSpotAskIntent(text: "let x = 1").text == "let x = 1")
+        #expect(ExplainWithSpotAskIntent(text: "let x = 1").text == "let x = 1")
+    }
+
+    @Test func builtInPresetsAreOrderedTranslateExplainSummarizePolish() {
+        let titles = PromptPreset.builtIn.map(\.title)
+
+        #expect(titles == [
+            L10n.string("preset.translate.title"),
+            L10n.string("preset.explain.title"),
+            L10n.string("preset.summarize.title"),
+            L10n.string("preset.polish.title")
+        ])
+        #expect(PromptPreset.builtIn.map(\.isBuiltIn) == [true, true, true, true])
+    }
+
+    @Test func presetIntentsTargetTheirMatchingBuiltInPreset() {
+        // After the reorder the preset indices are fixed: Translate 0, Explain 1,
+        // Summarize 2, Polish 3. Each intent must point at the matching entry.
+        #expect(PromptPreset.builtIn[0].title == L10n.string("preset.translate.title"))
+        #expect(PromptPreset.builtIn[1].title == L10n.string("preset.explain.title"))
+        #expect(PromptPreset.builtIn[2].title == L10n.string("preset.summarize.title"))
+        #expect(PromptPreset.builtIn[3].title == L10n.string("preset.polish.title"))
     }
 }
 

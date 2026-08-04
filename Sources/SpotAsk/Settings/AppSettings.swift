@@ -32,9 +32,9 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
             isBuiltIn: true
         ),
         PromptPreset(
-            id: UUID(uuidString: "1C85A324-65B3-4EBD-B2C4-0C6B072E284A")!,
-            title: L10n.string("preset.polish.title"),
-            instruction: L10n.string("preset.polish.instruction"),
+            id: UUID(uuidString: "BF43F694-E4AE-4B5B-9AE9-B4D6D4A4F248")!,
+            title: L10n.string("preset.explain.title"),
+            instruction: L10n.string("preset.explain.instruction"),
             isBuiltIn: true
         ),
         PromptPreset(
@@ -44,9 +44,9 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
             isBuiltIn: true
         ),
         PromptPreset(
-            id: UUID(uuidString: "BF43F694-E4AE-4B5B-9AE9-B4D6D4A4F248")!,
-            title: L10n.string("preset.explainCode.title"),
-            instruction: L10n.string("preset.explainCode.instruction"),
+            id: UUID(uuidString: "1C85A324-65B3-4EBD-B2C4-0C6B072E284A")!,
+            title: L10n.string("preset.polish.title"),
+            instruction: L10n.string("preset.polish.instruction"),
             isBuiltIn: true
         )
         ]

@@ -15,6 +15,11 @@ struct ChatView: View {
     @State private var inputHeight = ChatInputTextView.minHeight
     @State private var showsNewConversationConfirmation = false
     @State private var reasoningToggle = ReasoningToggleStateStore()
+    @State private var isPresetPopoverPresented = false
+
+    /// Owns the standalone settings window. Created lazily on first use and
+    /// reused thereafter so repeated opens never stack duplicate windows.
+    @State private var settingsWindowController: SettingsWindowController?
 
     init(
         viewModel: ChatViewModel,
@@ -42,8 +47,10 @@ struct ChatView: View {
         }
         .frame(minWidth: 364, minHeight: 320)
         .background(Color(nsColor: .windowBackgroundColor))
-        .sheet(isPresented: $viewModel.isSettingsPresented) {
-            SettingsView(settings: settings, keyStore: keyStore, providerFactory: providerFactory)
+        .onChange(of: viewModel.isSettingsPresented) { _, isPresented in
+            if isPresented {
+                presentSettingsWindow()
+            }
         }
         .alert(L10n.string("chat.newConversationConfirmTitle"), isPresented: $showsNewConversationConfirmation) {
             Button(L10n.string("settings.cancel"), role: .cancel) {}
@@ -68,71 +75,65 @@ struct ChatView: View {
 
     private var header: some View {
         HStack(spacing: 6) {
-            Text("SpotAsk")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.primary)
+            HStack(spacing: 8) {
+                BrandMark()
+                Text("SpotAsk")
+                    .font(.system(size: 15, weight: .semibold))
+                    .kerning(-0.15)
+                    .foregroundStyle(Brand.fg)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(Text("SpotAsk"))
             if isGenerating {
                 ProgressView()
                     .controlSize(.small)
                     .accessibilityLabel(L10n.string("chat.generating"))
             }
             Spacer()
+            // Cmd-L keeps focusing the (always-focused) composer even though
+            // the visible header icon was removed. A zero-size, hidden button
+            // carries the shortcut so nothing renders and VoiceOver skips it.
+            Button(action: { inputFocused = true }) {
+                EmptyView()
+            }
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
+            .keyboardShortcut("l", modifiers: .command)
             if viewModel.canRegenerate {
-                Button { viewModel.regenerate() } label: {
+                HeaderIconButton(action: { viewModel.regenerate() }) {
                     Image(systemName: "arrow.clockwise")
                 }
-                .buttonStyle(.plain)
-                .frame(width: 28, height: 28)
-                .contentShape(Rectangle())
                 .help(L10n.string("chat.regenerate"))
                 .accessibilityLabel(L10n.string("chat.regenerate"))
                 .keyboardShortcut("r", modifiers: .command)
             }
             if let answer = viewModel.lastAssistantMessage, !answer.content.isEmpty {
-                Button { copyLastAnswer(answer.content) } label: {
+                HeaderIconButton(action: { copyLastAnswer(answer.content) }) {
                     Image(systemName: didCopyLastAnswer ? "checkmark" : "doc.on.doc")
                 }
-                .buttonStyle(.plain)
-                .frame(width: 28, height: 28)
-                .contentShape(Rectangle())
                 .help(didCopyLastAnswer ? L10n.string("chat.copied") : L10n.string("chat.copyLastAnswer"))
                 .accessibilityLabel(didCopyLastAnswer ? L10n.string("chat.copied") : L10n.string("chat.copyLastAnswer"))
                 .keyboardShortcut("c", modifiers: [.command, .shift])
             }
-            Button { inputFocused = true } label: {
-                Image(systemName: "cursorarrow.rays")
-            }
-            .buttonStyle(.plain)
-            .frame(width: 28, height: 28)
-            .help(L10n.string("chat.focusInput"))
-            .accessibilityLabel(L10n.string("chat.focusInput"))
-            .keyboardShortcut("l", modifiers: .command)
-            Button { SpotAskCommandCenter.shared.toggleWindowOnTop() } label: {
+            HeaderIconButton(action: { SpotAskCommandCenter.shared.toggleWindowOnTop() }) {
                 Image(systemName: settings.keepWindowOnTop ? "pin.fill" : "pin")
             }
-            .buttonStyle(.plain)
-            .frame(width: 28, height: 28)
-            .contentShape(Rectangle())
             .help(L10n.string("settings.windowOnTop"))
             .accessibilityLabel(L10n.string("settings.windowOnTop"))
-            Button { viewModel.isSettingsPresented = true } label: {
+            HeaderIconButton(action: { openSettings() }) {
                 Image(systemName: "gearshape")
             }
-            .buttonStyle(.plain)
-            .frame(width: 28, height: 28)
             .help(L10n.string("settings.title"))
             .accessibilityLabel(L10n.string("settings.title"))
             .keyboardShortcut(",", modifiers: .command)
-            Button { newConversation() } label: {
+            HeaderIconButton(action: { newConversation() }) {
                 Image(systemName: "square.and.pencil")
             }
-            .buttonStyle(.plain)
-            .frame(width: 28, height: 28)
             .help(L10n.string("chat.newConversation"))
             .accessibilityLabel(L10n.string("chat.newConversation"))
             .keyboardShortcut("n", modifiers: .command)
         }
-        .foregroundStyle(.secondary)
         .padding(.horizontal, 14)
         .frame(height: 46)
     }
@@ -142,11 +143,21 @@ struct ChatView: View {
         if viewModel.messages.isEmpty {
             VStack(spacing: 8) {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 22, weight: .medium))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 26, weight: .medium))
+                    .foregroundStyle(Brand.muted)
                 Text(L10n.string("chat.askAnything"))
-                    .font(.system(size: 15))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 17, weight: .medium))
+                    .kerning(-0.17)
+                    .foregroundStyle(Brand.fg)
+                Text(L10n.string("chat.selectPrompt"))
+                    .font(.system(size: 13))
+                    .foregroundStyle(Brand.muted)
+                PresetStripView(
+                    presets: PromptPreset.builtIn,
+                    selection: $viewModel.selectedPromptPreset,
+                    onSelect: { applyPreset($0) }
+                )
+                .padding(.top, 10)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -185,6 +196,7 @@ struct ChatView: View {
                         .buttonStyle(.borderedProminent)
                         .clipShape(Circle())
                         .padding(14)
+                        .help(L10n.string("chat.goToBottom"))
                         .accessibilityLabel(L10n.string("chat.goToBottom"))
                     }
                 }
@@ -300,6 +312,7 @@ struct ChatView: View {
                 .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
+            .help(state.isExpanded ? L10n.string("chat.reasoningCollapse") : L10n.string("chat.reasoningExpand"))
             .accessibilityLabel(state.isExpanded ? L10n.string("chat.reasoningCollapse") : L10n.string("chat.reasoningExpand"))
             if state.isExpanded {
                 Text(reasoning)
@@ -314,46 +327,71 @@ struct ChatView: View {
     }
 
     private var composer: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            PromptPresetPicker(
-                presets: settings.promptPresets,
-                selection: $viewModel.selectedPromptPreset
-            )
-            ChatInputTextView(
-                text: $viewModel.input,
-                isFocused: $inputFocused,
-                height: $inputHeight,
-                onSubmit: viewModel.send,
-                onEscape: handleEscape,
-                onRecall: { viewModel.recallLastQuestion() }
-            )
-            .frame(height: inputHeight)
-            .animation(.easeOut(duration: 0.12), value: inputHeight)
-            .background(.quinary, in: RoundedRectangle(cornerRadius: 5))
-            .overlay {
-                RoundedRectangle(cornerRadius: 5).strokeBorder(.quaternary, lineWidth: 1)
-            }
-            .overlay(alignment: .topLeading) {
-                if viewModel.input.isEmpty {
-                    Text(L10n.string("chat.inputPlaceholder"))
-                        .foregroundStyle(.tertiary)
-                        .padding(.leading, 10)
-                        .padding(.top, 10)
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .bottom, spacing: 8) {
+                if !viewModel.messages.isEmpty {
+                    PresetPopoverTrigger(
+                        presets: PromptPreset.builtIn,
+                        selection: $viewModel.selectedPromptPreset,
+                        isPresented: $isPresetPopoverPresented,
+                        onSelect: { applyPreset($0) }
+                    )
+                    .transition(.opacity)
+                }
+                ChatInputTextView(
+                    text: $viewModel.input,
+                    isFocused: $inputFocused,
+                    height: $inputHeight,
+                    onSubmit: viewModel.send,
+                    onEscape: handleEscape,
+                    onRecall: { viewModel.recallLastQuestion() }
+                )
+                .frame(height: inputHeight)
+                .animation(.easeOut(duration: 0.12), value: inputHeight)
+                .background(inputFocused ? Brand.bg : Brand.surface, in: RoundedRectangle(cornerRadius: 12))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(inputFocused ? Brand.accent : Brand.border, lineWidth: 1)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Brand.accent.opacity(0.15), lineWidth: 6)
+                        .blur(radius: 4)
+                        .opacity(inputFocused ? 1 : 0)
                         .allowsHitTesting(false)
                 }
+                .overlay(alignment: .topLeading) {
+                    if viewModel.input.isEmpty {
+                        Text(placeholderText)
+                            .foregroundStyle(Brand.muted)
+                            .padding(.leading, 14)
+                            .padding(.top, 10)
+                            .allowsHitTesting(false)
+                    }
+                }
+                .animation(.easeOut(duration: 0.12), value: inputFocused)
+                ComposerSendButton(isGenerating: isGenerating, canSend: viewModel.canSend, action: primaryAction)
             }
-            Button(action: primaryAction) {
-                Image(systemName: isGenerating ? "stop.fill" : "arrow.up")
-                    .frame(width: 22, height: 22)
+            if let preset = viewModel.selectedPromptPreset {
+                HStack {
+                    Spacer(minLength: 0)
+                    SelectedPresetBadge(title: preset.title, icon: PresetIcon.symbol(for: preset.id)) {
+                        viewModel.selectedPromptPreset = nil
+                        inputFocused = true
+                    }
+                }
+                .transition(.opacity)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.regular)
-            .disabled(!isGenerating && !viewModel.canSend)
-            .help(isGenerating ? L10n.string("chat.stop") : L10n.string("chat.send"))
-            .accessibilityLabel(isGenerating ? L10n.string("chat.stop") : L10n.string("chat.send"))
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.vertical, 12)
+    }
+
+    private var placeholderText: String {
+        guard let preset = viewModel.selectedPromptPreset else {
+            return L10n.string("chat.inputPlaceholder")
+        }
+        return PresetPlaceholder.text(for: preset.id, title: preset.title)
     }
 
     private var isGenerating: Bool {
@@ -381,6 +419,47 @@ struct ChatView: View {
         else { viewModel.send() }
     }
 
+    /// Entry point for every settings request (header gear, command center).
+    /// Sets the trigger boolean (the source of truth) and shows the window,
+    /// bringing it to the front even if it is already open.
+    private func openSettings() {
+        viewModel.isSettingsPresented = true
+        presentSettingsWindow()
+    }
+
+    /// Lazily builds the standalone settings window controller on first use and
+    /// shows it. When the window closes, the controller clears
+    /// `viewModel.isSettingsPresented`, keeping the trigger boolean in sync.
+    private func presentSettingsWindow() {
+        if settingsWindowController == nil {
+            settingsWindowController = SettingsWindowController(
+                settings: settings,
+                keyStore: keyStore,
+                providerFactory: providerFactory,
+                onClose: { viewModel.isSettingsPresented = false }
+            )
+        }
+        settingsWindowController?.show()
+    }
+
+    /// Applies a preset from the quick-strip or the in-conversation popover.
+    /// With a non-empty draft it selects the preset and sends immediately, so
+    /// the user skips the send button; with an empty or whitespace-only draft
+    /// it only selects the preset, swaps the placeholder, and focuses the
+    /// input (Return still sends). "直接提问" passes nil and never sends.
+    private func applyPreset(_ preset: PromptPreset?) {
+        guard let preset else {
+            viewModel.selectedPromptPreset = nil
+            inputFocused = true
+            return
+        }
+        viewModel.selectedPromptPreset = preset
+        inputFocused = true
+        guard !viewModel.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              viewModel.canSend else { return }
+        viewModel.send()
+    }
+
     private func newConversation() {
         guard viewModel.messages.isEmpty else {
             showsNewConversationConfirmation = true
@@ -402,8 +481,13 @@ struct ChatView: View {
     }
 
     private func handleEscape() {
-        if isGenerating { viewModel.cancel() }
-        else { dismiss() }
+        if isPresetPopoverPresented {
+            isPresetPopoverPresented = false
+        } else if isGenerating {
+            viewModel.cancel()
+        } else {
+            dismiss()
+        }
     }
 
     private func dismiss() {
@@ -434,7 +518,7 @@ struct ChatView: View {
         case let .ask(question, promptPreset):
             receiveQuestion(question, promptPreset: promptPreset)
         case .showSettings:
-            viewModel.isSettingsPresented = true
+            openSettings()
         }
     }
 
@@ -486,54 +570,520 @@ struct ChatView: View {
     }
 }
 
-private struct PromptPresetPicker: View {
-    let presets: [PromptPreset]
-    @Binding var selection: PromptPreset?
+// MARK: - Brand tokens
 
-    var body: some View {
-        Menu {
-            Button {
-                selection = nil
-            } label: {
-                if selection == nil {
-                    Label(L10n.string("chat.directQuestion"), systemImage: "checkmark")
-                } else {
-                    Text(L10n.string("chat.directQuestion"))
-                }
-            }
+/// The six SpotAsk brand tokens from the redesign contract. Hover and glow
+/// variants are derived with `darker` / `opacity` (the oklch-relative
+/// adjustments of the prototype), never with a new hard-coded color.
+private enum Brand {
+    static let bg = Color(red: 1, green: 1, blue: 1)
+    static let surface = Color(red: 0xF7 / 255, green: 0xF8 / 255, blue: 0xFA / 255)
+    static let fg = Color(red: 0x11 / 255, green: 0x11 / 255, blue: 0x11 / 255)
+    static let muted = Color(red: 0x6B / 255, green: 0x72 / 255, blue: 0x80 / 255)
+    static let border = Color(red: 0xD9 / 255, green: 0xDE / 255, blue: 0xE7 / 255)
+    static let accent = Color(red: 0x16 / 255, green: 0x77 / 255, blue: 0xFF / 255)
+}
 
-            Divider()
-
-            ForEach(presets) { preset in
-                Button {
-                    selection = preset
-                } label: {
-                    if selection?.id == preset.id {
-                        Label(preset.title, systemImage: "checkmark")
-                    } else {
-                        Text(preset.title)
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: 5) {
-                Image(systemName: selection == nil ? "wand.and.stars" : "sparkles")
-                if let selection {
-                    Text(selection.title)
-                        .lineLimit(1)
-                }
-            }
-            .frame(minWidth: 28, maxWidth: 116)
+private extension Color {
+    /// Darkens toward black in sRGB, standing in for the prototype's
+    /// `oklch(from c calc(l - amount) c h)` hover adjustment.
+    func darker(_ amount: Double) -> Color {
+        let clamped = min(max(amount, 0), 1)
+        let ns = NSColor(self).usingColorSpace(.sRGB) ?? NSColor(self)
+        func scaled(_ component: CGFloat) -> Double {
+            Double(component) * (1 - clamped)
         }
-        .menuStyle(.borderlessButton)
-        .fixedSize(horizontal: selection != nil, vertical: false)
-        .help(menuHelp)
-        .accessibilityLabel(menuHelp)
+        return Color(red: scaled(ns.redComponent),
+                     green: scaled(ns.greenComponent),
+                     blue: scaled(ns.blueComponent),
+                     opacity: Double(ns.alphaComponent))
+    }
+}
+
+// MARK: - Preset placeholder copy
+
+/// The prototype switches the placeholder per preset. The preset prompt text
+/// is localized, so per-preset guidance is derived here (the resource tables
+/// are read-only for this change). Built-in presets are matched by their
+/// stable identity or localized title; anything else falls back to a generic
+/// task-oriented prompt.
+private enum PresetPlaceholder {
+    private static let translateID = UUID(uuidString: "EF8CF35C-386A-4389-A137-C207E4DB11FD")!
+    private static let polishID = UUID(uuidString: "1C85A324-65B3-4EBD-B2C4-0C6B072E284A")!
+    private static let summarizeID = UUID(uuidString: "5D03D444-EC3D-4F5D-9FB1-91EA5BD4E5B2")!
+    private static let explainID = UUID(uuidString: "BF43F694-E4AE-4B5B-9AE9-B4D6D4A4F248")!
+
+    private static var isChinese: Bool {
+        L10n.string("chat.inputPlaceholder").contains("输入")
     }
 
-    private var menuHelp: String {
-        guard let selection else { return L10n.string("chat.selectPrompt") }
-        return L10n.string("chat.usePrompt", selection.title)
+    static func text(for id: UUID, title: String) -> String {
+        if id == translateID || title == L10n.string("preset.translate.title") {
+            return isChinese ? "输入要翻译的内容…" : "Enter text to translate..."
+        }
+        if id == polishID || title == L10n.string("preset.polish.title") {
+            return isChinese ? "输入要润色的文字…" : "Enter text to polish..."
+        }
+        if id == summarizeID || title == L10n.string("preset.summarize.title") {
+            return isChinese ? "粘贴要总结的内容…" : "Paste content to summarize..."
+        }
+        if id == explainID || title == L10n.string("preset.explain.title") {
+            return isChinese ? "输入要解释的内容…" : "Enter content to explain..."
+        }
+        return L10n.string("chat.usePrompt", title)
+    }
+}
+
+// MARK: - Preset semantic icons
+
+/// SF Symbol per built-in preset, keyed by its stable UUID (the same identity
+/// used for the placeholder copy). Falls back to the brand sparkle for any
+/// preset without a specific mapping. No third-party icons or assets.
+private enum PresetIcon {
+    static func symbol(for id: UUID) -> String {
+        switch id.uuidString.uppercased() {
+        case "EF8CF35C-386A-4389-A137-C207E4DB11FD": return "globe"
+        case "1C85A324-65B3-4EBD-B2C4-0C6B072E284A": return "pencil.and.scribble"
+        case "5D03D444-EC3D-4F5D-9FB1-91EA5BD4E5B2": return "text.alignleft"
+        case "BF43F694-E4AE-4B5B-9AE9-B4D6D4A4F248": return "lightbulb"
+        default: return "sparkles"
+        }
+    }
+}
+
+// MARK: - Brand mark
+
+/// The 18×18 accent square with a white sparkle, paired with the wordmark.
+private struct BrandMark: View {
+    var body: some View {
+        RoundedRectangle(cornerRadius: 5)
+            .fill(Brand.accent)
+            .frame(width: 18, height: 18)
+            .overlay {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+            .accessibilityHidden(true)
+    }
+}
+
+// MARK: - Header icon button
+
+/// The prototype's `.icon-btn`: a 28×28 hit target whose hover fills a
+/// `surface` rounded square and darkens the glyph to `fg` (never grays it),
+/// with a 2pt accent ring standing in for `:focus-visible`. Wraps the button's
+/// label only — action, help, accessibility label, and keyboard shortcut stay
+/// on the caller.
+private struct HeaderIconButton<Label: View>: View {
+    let action: () -> Void
+    @ViewBuilder let label: () -> Label
+
+    @State private var isHovering = false
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        Button(action: action) {
+            label()
+                .font(.system(size: 16))
+                .foregroundStyle(isHovering ? Brand.fg : Brand.muted)
+                .frame(width: 28, height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 6).fill(isHovering ? Brand.surface : Color.clear)
+                )
+                .overlay {
+                    if isFocused {
+                        RoundedRectangle(cornerRadius: 6).strokeBorder(Brand.accent, lineWidth: 2)
+                    }
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .focused($isFocused)
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+    }
+}
+
+// MARK: - Empty-state preset strip
+
+/// One-tap preset chips shown only before the first message. Tapping selects
+/// the preset, highlights the chip, and hands focus back to the input.
+private struct PresetStripView: View {
+    let presets: [PromptPreset]
+    @Binding var selection: PromptPreset?
+    let onSelect: (PromptPreset) -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(presets) { preset in
+                ChipView(
+                    title: preset.title,
+                    icon: PresetIcon.symbol(for: preset.id),
+                    isSelected: selection?.id == preset.id
+                ) {
+                    onSelect(preset)
+                }
+            }
+        }
+        .frame(maxWidth: 460)
+    }
+}
+
+private struct ChipView: View {
+    let title: String
+    let icon: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    @State private var isHovering = false
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 13))
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
+            }
+            .foregroundStyle(isSelected ? Color.white : (isHovering ? Brand.fg : Brand.muted))
+            .padding(.horizontal, 13)
+            .padding(.vertical, 7)
+            .background(
+                Capsule().fill(isSelected ? Brand.accent : Brand.surface)
+            )
+            .overlay {
+                Capsule().strokeBorder(
+                    isSelected ? Brand.accent : (isHovering ? Brand.muted : Brand.border),
+                    lineWidth: 1
+                )
+            }
+            .overlay {
+                if isFocused, !isSelected {
+                    Capsule().strokeBorder(Brand.accent, lineWidth: 2).padding(-2)
+                }
+            }
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .focused($isFocused)
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .animation(.easeOut(duration: 0.12), value: isSelected)
+        .help(L10n.string("chat.usePrompt", title))
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+// MARK: - In-conversation preset trigger + popover
+
+/// The 36×36 circular trigger shown once a conversation has started. It opens
+/// an upward popover listing "直接提问" plus every preset; the current item
+/// carries a check. Selecting applies immediately and closes.
+private struct PresetPopoverTrigger: View {
+    let presets: [PromptPreset]
+    @Binding var selection: PromptPreset?
+    @Binding var isPresented: Bool
+    let onSelect: (PromptPreset?) -> Void
+
+    @State private var isHovering = false
+    @FocusState private var isFocused: Bool
+
+    private var hasSelection: Bool { selection != nil }
+
+    var body: some View {
+        Button {
+            isPresented.toggle()
+        } label: {
+            Image(systemName: "sparkles")
+                .font(.system(size: 16))
+                .foregroundStyle(hasSelection ? Brand.accent : (isHovering ? Brand.fg : Brand.muted))
+                .frame(width: 36, height: 36)
+                .background(
+                    Circle().fill(isHovering || isPresented ? Brand.surface : Brand.bg)
+                )
+                .overlay {
+                    Circle().strokeBorder(hasSelection ? Brand.accent : Brand.border, lineWidth: 1)
+                }
+                .overlay {
+                    if isFocused {
+                        Circle().strokeBorder(Brand.accent, lineWidth: 2).padding(-2)
+                    }
+                }
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .focused($isFocused)
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .help(L10n.string("chat.selectPrompt"))
+        .accessibilityLabel(L10n.string("chat.selectPrompt"))
+        .accessibilityValue(hasSelection ? selection!.title : L10n.string("chat.directQuestion"))
+        .background(
+            PopoverOutsideClickMonitor(isPresented: $isPresented)
+        )
+        .popover(
+            isPresented: $isPresented,
+            attachmentAnchor: .point(.top),
+            arrowEdge: .bottom
+        ) {
+            PresetPopoverContent(
+                presets: presets,
+                selection: selection
+            ) { preset in
+                isPresented = false
+                onSelect(preset)
+            }
+        }
+    }
+}
+
+private struct PresetPopoverContent: View {
+    let presets: [PromptPreset]
+    let selection: PromptPreset?
+    let onChoose: (PromptPreset?) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            PopoverRow(
+                title: L10n.string("chat.directQuestion"),
+                icon: "text.bubble",
+                isSelected: selection == nil
+            ) {
+                onChoose(nil)
+            }
+            Divider().padding(.vertical, 4).padding(.horizontal, 6)
+            ForEach(presets) { preset in
+                PopoverRow(
+                    title: preset.title,
+                    icon: PresetIcon.symbol(for: preset.id),
+                    isSelected: selection?.id == preset.id
+                ) {
+                    onChoose(preset)
+                }
+            }
+        }
+        .padding(5)
+        .frame(minWidth: 180)
+        .fixedSize()
+    }
+}
+
+private struct PopoverRow: View {
+    let title: String
+    let icon: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    @State private var isHovering = false
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 13))
+                    .foregroundStyle(isHovering ? Brand.fg : Brand.muted)
+                    .frame(width: 14)
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Brand.fg)
+                Spacer(minLength: 8)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Brand.accent)
+                    .opacity(isSelected ? 1 : 0)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 8).fill(isHovering ? Brand.surface : Color.clear)
+            )
+            .overlay {
+                if isFocused {
+                    RoundedRectangle(cornerRadius: 8).strokeBorder(Brand.accent, lineWidth: 2)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .focused($isFocused)
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.1), value: isHovering)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+// MARK: - Circular send / stop button
+
+/// The 36×36 circular anchor of the composer. Accent when sending, near-black
+/// when generating; hover darkens via the oklch-equivalent `darker`.
+private struct ComposerSendButton: View {
+    let isGenerating: Bool
+    let canSend: Bool
+    let action: () -> Void
+
+    @State private var isHovering = false
+    @FocusState private var isFocused: Bool
+
+    private var isEnabled: Bool { isGenerating || canSend }
+
+    private var fill: Color {
+        let base = isGenerating ? Brand.fg : Brand.accent
+        guard isHovering, isEnabled else { return base }
+        return base.darker(isGenerating ? 0.05 : 0.08)
+    }
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: isGenerating ? "stop.fill" : "arrow.up")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(fill))
+                .overlay {
+                    if isFocused {
+                        Circle().strokeBorder(Brand.accent, lineWidth: 2).padding(-3)
+                    }
+                }
+                .contentShape(Circle())
+        }
+        .buttonStyle(CircularPressButtonStyle())
+        .focused($isFocused)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.35)
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: fill)
+        .help(isGenerating ? L10n.string("chat.stop") : L10n.string("chat.send"))
+        .accessibilityLabel(isGenerating ? L10n.string("chat.stop") : L10n.string("chat.send"))
+    }
+}
+
+/// Nudges the circle down 1pt while pressed, mirroring the prototype's
+/// `:active { transform: translateY(1px) }`.
+private struct CircularPressButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .offset(y: configuration.isPressed ? 1 : 0)
+    }
+}
+
+// MARK: - Selected preset badge
+
+private struct SelectedPresetBadge: View {
+    let title: String
+    let icon: String
+    let onClear: () -> Void
+
+    @State private var isClearHovering = false
+    @FocusState private var isClearFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 11))
+            Text(title)
+                .font(.system(size: 11, weight: .medium))
+                .lineLimit(1)
+            Button(action: onClear) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(isClearHovering ? Brand.fg : Brand.muted)
+                    .frame(width: 16, height: 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 3).fill(isClearHovering ? Brand.surface : Color.clear)
+                    )
+                    .overlay {
+                        if isClearFocused {
+                            RoundedRectangle(cornerRadius: 3).strokeBorder(Brand.accent, lineWidth: 2)
+                        }
+                    }
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .focused($isClearFocused)
+            .onHover { isClearHovering = $0 }
+            .animation(.easeOut(duration: 0.12), value: isClearHovering)
+            .help(L10n.string("chat.clearPrompt"))
+            .accessibilityLabel(L10n.string("chat.clearPrompt"))
+        }
+        .foregroundStyle(Brand.accent)
+        .accessibilityElement(children: .contain)
+    }
+}
+
+// MARK: - Click-outside-to-close for the preset popover
+
+/// Installs a local event monitor while the popover is open. A left or right
+/// mouse-down outside the popover's window closes it (the click also proceeds
+/// to its target); clicks inside the popover pass through untouched. `esc`
+/// closes separately via the composer's existing escape handling.
+private struct PopoverOutsideClickMonitor: NSViewRepresentable {
+    @Binding var isPresented: Bool
+
+    func makeCoordinator() -> Coordinator { Coordinator(isPresented: $isPresented) }
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        context.coordinator.updateMonitoring(anchor: view)
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        context.coordinator.isPresented = $isPresented
+        context.coordinator.updateMonitoring(anchor: nsView)
+    }
+
+    static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
+        coordinator.stop()
+    }
+
+    final class Coordinator {
+        var isPresented: Binding<Bool>
+        private weak var anchor: NSView?
+        private var monitor: Any?
+
+        init(isPresented: Binding<Bool>) {
+            self.isPresented = isPresented
+        }
+
+        @MainActor
+        func updateMonitoring(anchor: NSView) {
+            self.anchor = anchor
+            if isPresented.wrappedValue {
+                start()
+            } else {
+                stop()
+            }
+        }
+
+        @MainActor
+        private func start() {
+            guard monitor == nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+                guard let self, self.isPresented.wrappedValue else { return event }
+                if let anchor = self.anchor,
+                   let eventWindow = event.window,
+                   let anchorWindow = anchor.window,
+                   eventWindow != anchorWindow {
+                    // The click landed in another window of this app — the
+                    // transient popover window. Let it through without closing.
+                    return event
+                }
+                self.isPresented.wrappedValue = false
+                return event
+            }
+        }
+
+        func stop() {
+            if let monitor {
+                NSEvent.removeMonitor(monitor)
+                self.monitor = nil
+            }
+        }
     }
 }
 

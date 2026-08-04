@@ -4,13 +4,15 @@ A focused AI chat companion that lives in your macOS menu bar. Connect a compati
 
 [简体中文](README.zh-CN.md)
 
+![SpotAsk showing the chat composer and built-in prompt actions](images/spotask-chat.png)
+
 ## What SpotAsk does
 
 - **Ask from anywhere** — press Option + Space to open a focused chat window, ready for a question.
 - **Use your own service** — connect a service compatible with the OpenAI Chat Completions API. You control the service address, model, and access key.
 - **See answers as they arrive** — stop a response, retry a failed request, or regenerate the latest answer.
 - **Copy what you need** — grab the full answer, or copy individual code blocks in one click.
-- **Automate common tasks** — built-in prompts for translate, polish, summarize, and explain-code. Create your own for repeated workflows.
+- **Automate common tasks** — built-in prompts for translate, explain, summarize, and polish. Create your own for repeated workflows.
 - **Work with Spotlight, Siri, and Shortcuts** — ask a question, start a new conversation, or run a prompt directly from macOS.
 
 ## Download
@@ -35,8 +37,7 @@ You can also build SpotAsk from source.
 **Build and run**
 
 ```sh
-swift build -c release
-./Scripts/make-app-bundle.sh
+./scripts/make-app-bundle.sh
 open build/SpotAsk.app
 ```
 
@@ -75,7 +76,7 @@ Use **Test Connection** to confirm the values work, then close Settings and star
 | Copy an answer | Right-click the answer, or use the copy button |
 | Copy a code block | Click the copy icon on any code block |
 | Start a new conversation | Choose New Conversation from the menu bar |
-| Pick a prompt | Select a built-in or custom prompt above the input before sending |
+| Use a prompt | With content in the input, select a prompt to send immediately. With an empty input, select one, enter your question, then press Return. |
 
 The window remembers its size and position across launches.
 
@@ -97,12 +98,12 @@ swift test
 swift build -c release
 
 # Create an app bundle
-./Scripts/make-app-bundle.sh
+./scripts/make-app-bundle.sh
 open build/SpotAsk.app
 
 # Create an Apple silicon or Intel DMG
-./Scripts/make-release-dmg.sh --arch arm64
-./Scripts/make-release-dmg.sh --arch x86_64
+./scripts/make-release-dmg.sh --arch arm64
+./scripts/make-release-dmg.sh --arch x86_64
 ```
 
 ### Project overview

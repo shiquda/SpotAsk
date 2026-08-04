@@ -8,6 +8,7 @@
 "chat.copyCompleteAnswer" = "Copy full answer";
 "chat.copyLastAnswer" = "Copy latest full answer";
 "chat.copyQuestion" = "Copy question";
+"chat.clearPrompt" = "Clear prompt";
 "chat.continueConversation" = "Continue Previous Conversation";
 "chat.directQuestion" = "Ask directly";
 "chat.copied" = "Copied";
@@ -62,10 +63,10 @@
 "intent.ask.shortTitle" = "Ask AI";
 "intent.ask.summary" = "Ask with SpotAsk";
 "intent.ask.title" = "Ask AI?";
-"intent.explainCode.description" = "Explain code with SpotAsk.";
-"intent.explainCode.shortTitle" = "Explain Code";
-"intent.explainCode.summary" = "Explain with SpotAsk";
-"intent.explainCode.title" = "Explain Code";
+"intent.explain.description" = "Explain content with SpotAsk.";
+"intent.explain.shortTitle" = "Explain";
+"intent.explain.summary" = "Explain with SpotAsk";
+"intent.explain.title" = "Explain";
 "intent.newConversation.description" = "Clear the current conversation and open SpotAsk.";
 "intent.newConversation.shortTitle" = "New Conversation";
 "intent.newConversation.title" = "Start a New SpotAsk Conversation";
@@ -102,8 +103,8 @@
 "总结" = "Summarize";
 "使用 SpotAsk 总结内容。" = "Summarize content with SpotAsk.";
 "使用 SpotAsk 总结" = "Summarize with SpotAsk";
-"解释代码" = "Explain Code";
-"使用 SpotAsk 解释代码。" = "Explain code with SpotAsk.";
+"解释" = "Explain";
+"使用 SpotAsk 解释内容。" = "Explain content with SpotAsk.";
 "使用 SpotAsk 解释" = "Explain with SpotAsk";
 "开始新的 SpotAsk 对话" = "Start a New SpotAsk Conversation";
 "清空当前对话并打开 SpotAsk。" = "Clear the current conversation and open SpotAsk.";
@@ -114,8 +115,8 @@
 "menu.quit" = "Quit";
 "menu.settings" = "Settings...";
 "menu.windowOnTop" = "Keep Window on Top";
-"preset.explainCode.instruction" = "Explain the code provided by the user: first describe its purpose, then cover the key logic, inputs, outputs, and considerations. Use clear sections and examples.";
-"preset.explainCode.title" = "Explain Code";
+"preset.explain.instruction" = "Clearly explain the content provided by the user: describe its purpose and meaning, the key points, and any context that aids understanding. Use a concise, well-structured explanation.";
+"preset.explain.title" = "Explain";
 "preset.polish.instruction" = "Polish the content provided by the user without changing its meaning. Make the writing natural, clear, and appropriate; output only the revised version.";
 "preset.polish.title" = "Polish";
 "preset.summarize.instruction" = "Extract the key points from the content provided by the user and summarize them concisely with a clear structure.";

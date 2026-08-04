@@ -6,5 +6,5 @@
 "使用 ${applicationName} 翻译" = "Translate with ${applicationName}";
 "使用 ${applicationName} 润色" = "Polish with ${applicationName}";
 "使用 ${applicationName} 总结" = "Summarize with ${applicationName}";
-"使用 ${applicationName} 解释代码" = "Explain code with ${applicationName}";
+"使用 ${applicationName} 解释" = "Explain with ${applicationName}";
 "在 ${applicationName} 开始新对话" = "Start a new conversation in ${applicationName}";

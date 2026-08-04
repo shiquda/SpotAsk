@@ -318,6 +318,9 @@ private struct ProviderTreeRow: View {
                         .frame(width: 16, height: 16)
                 }
                 .buttonStyle(.plain)
+                .help(isExpanded
+                    ? L10n.string("settings.collapseProvider", provider.name)
+                    : L10n.string("settings.expandProvider", provider.name))
                 .accessibilityLabel(isExpanded
                     ? L10n.string("settings.collapseProvider", provider.name)
                     : L10n.string("settings.expandProvider", provider.name))
@@ -358,6 +361,7 @@ private struct ProviderTreeRow: View {
                 }
                 .menuStyle(.borderlessButton)
                 .frame(width: 18, height: 18)
+                .help(L10n.string("settings.providerActions", provider.name))
                 .accessibilityLabel(L10n.string("settings.providerActions", provider.name))
             }
             .padding(.horizontal, 8)
@@ -422,6 +426,7 @@ private struct ProviderTreeRow: View {
                         }
                         .menuStyle(.borderlessButton)
                         .frame(width: 16, height: 16)
+                        .help(L10n.string("settings.modelActions", model.displayName))
                         .accessibilityLabel(L10n.string("settings.modelActions", model.displayName))
                     }
                     .padding(.horizontal, 8)
