@@ -1,10 +1,30 @@
-# SpotAsk
+<p align="center">
+  <img src="images/spotask-icon.png" width="104" alt="SpotAsk 应用图标">
+</p>
 
-一款专注的 AI 对话工具，常驻 macOS 菜单栏。接入兼容服务后，随时开始提问。
+<h1 align="center">SpotAsk</h1>
 
-[English](README.md)
+<p align="center">
+  一款专注的 AI 对话工具，常驻 macOS 菜单栏。接入兼容服务后，随时开始提问。
+</p>
 
-![SpotAsk 展示聊天输入区与内置快捷操作](images/spotask-chat.png)
+<p align="center">
+  <a href="https://github.com/shiquda/SpotAsk/releases/latest"><img alt="最新发布" src="https://img.shields.io/github/v/release/shiquda/SpotAsk?display_name=tag&sort=semver"></a>
+  <a href="https://github.com/shiquda/SpotAsk/actions/workflows/ci.yml"><img alt="CI 状态" src="https://github.com/shiquda/SpotAsk/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="许可证：AGPL-3.0" src="https://img.shields.io/github/license/shiquda/SpotAsk"></a>
+</p>
+
+<p align="center">
+  macOS 15+ · 支持 Apple silicon 和 Intel · AGPL-3.0
+</p>
+
+<p align="center">
+  <a href="#下载">下载</a> · <a href="#快速开始">从源码构建</a> · <a href="README.md">English</a>
+</p>
+
+<p align="center">
+  <img src="images/spotask-chat.png" width="640" alt="SpotAsk 展示聊天输入区与内置快捷操作">
+</p>
 
 ## 主要功能
 

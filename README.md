@@ -1,10 +1,30 @@
-# SpotAsk
+<p align="center">
+  <img src="images/spotask-icon.png" width="104" alt="SpotAsk app icon">
+</p>
 
-A focused AI chat companion that lives in your macOS menu bar. Connect a compatible service and ask from anywhere.
+<h1 align="center">SpotAsk</h1>
 
-[简体中文](README.zh-CN.md)
+<p align="center">
+  A focused AI chat companion that lives in your macOS menu bar. Connect a compatible service and ask from anywhere.
+</p>
 
-![SpotAsk showing the chat composer and built-in prompt actions](images/spotask-chat.png)
+<p align="center">
+  <a href="https://github.com/shiquda/SpotAsk/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/shiquda/SpotAsk?display_name=tag&sort=semver"></a>
+  <a href="https://github.com/shiquda/SpotAsk/actions/workflows/ci.yml"><img alt="CI status" src="https://github.com/shiquda/SpotAsk/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/github/license/shiquda/SpotAsk"></a>
+</p>
+
+<p align="center">
+  macOS 15+ · Apple silicon and Intel · AGPL-3.0
+</p>
+
+<p align="center">
+  <a href="#download">Download</a> · <a href="#quick-start">Build from source</a> · <a href="README.zh-CN.md">简体中文</a>
+</p>
+
+<p align="center">
+  <img src="images/spotask-chat.png" width="640" alt="SpotAsk showing the chat composer and built-in prompt actions">
+</p>
 
 ## What SpotAsk does
 
