@@ -129,9 +129,11 @@ final class AppSettings {
         static let keepWindowOnTop = "keepWindowOnTop"
         static let showsMenuBarIcon = "showsMenuBarIcon"
         static let customPromptPresets = "customPromptPresets"
+        static let inAppShortcutConfiguration = "inAppShortcutConfiguration"
     }
 
     private let defaults: UserDefaults
+    private var inAppShortcutConfiguration: InAppShortcutConfiguration
     private var providerRegistryStorage: ProviderModelRegistry!
     var providerRegistry: ProviderModelRegistry { providerRegistryStorage }
     private var isApplyingCatalogProjection = false
@@ -187,11 +189,18 @@ final class AppSettings {
     }
     var keepWindowOnTop: Bool { didSet { defaults.set(keepWindowOnTop, forKey: Key.keepWindowOnTop) } }
     var customPromptPresets: [PromptPreset] {
-        didSet { saveCustomPromptPresets() }
+        didSet {
+            saveCustomPromptPresets()
+            cleanUpShortcutAssignments()
+        }
     }
 
     var promptPresets: [PromptPreset] {
         PromptPreset.builtIn + customPromptPresets
+    }
+
+    var shortcutAssignments: [InAppShortcutAssignment] {
+        inAppShortcutConfiguration.resolvedAssignments(for: promptPresets)
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -216,6 +225,7 @@ final class AppSettings {
         showsMenuBarIcon = defaults.object(forKey: Key.showsMenuBarIcon) as? Bool ?? true
         keepWindowOnTop = defaults.object(forKey: Key.keepWindowOnTop) as? Bool ?? false
         customPromptPresets = Self.loadCustomPromptPresets(from: defaults)
+        inAppShortcutConfiguration = Self.loadInAppShortcutConfiguration(from: defaults)
         providerRegistryStorage = ProviderModelRegistry(
             defaults: defaults,
             legacy: LegacyProviderConfiguration(
@@ -230,6 +240,7 @@ final class AppSettings {
             self?.applyCatalogProjection()
         }
         applyCatalogProjection()
+        cleanUpShortcutAssignments()
     }
 
     func migratePendingLegacyAPIKey(using keyStore: any LegacyAPIKeyMigrating) throws {
@@ -258,6 +269,40 @@ final class AppSettings {
         customPromptPresets.removeAll { $0.id == id }
     }
 
+    func shortcut(for target: InAppShortcutTarget) -> InAppShortcut? {
+        inAppShortcutConfiguration.shortcut(for: target, presets: promptPresets)
+    }
+
+    func shortcutTarget(for shortcut: InAppShortcut) -> InAppShortcutTarget? {
+        inAppShortcutConfiguration.target(for: shortcut, presets: promptPresets)
+    }
+
+    @discardableResult
+    func assignShortcut(_ shortcut: InAppShortcut, to target: InAppShortcutTarget) -> InAppShortcutAssignmentError? {
+        let error = inAppShortcutConfiguration.assign(shortcut, to: target, presets: promptPresets)
+        if error == nil { saveInAppShortcutConfiguration() }
+        return error
+    }
+
+    @discardableResult
+    func removeShortcut(for target: InAppShortcutTarget) -> InAppShortcutAssignmentError? {
+        let error = inAppShortcutConfiguration.removeShortcut(for: target, presets: promptPresets)
+        if error == nil { saveInAppShortcutConfiguration() }
+        return error
+    }
+
+    @discardableResult
+    func resetShortcut(for target: InAppShortcutTarget) -> InAppShortcutAssignmentError? {
+        let error = inAppShortcutConfiguration.resetShortcut(for: target, presets: promptPresets)
+        if error == nil { saveInAppShortcutConfiguration() }
+        return error
+    }
+
+    func resetAllShortcuts() {
+        inAppShortcutConfiguration.resetAll()
+        saveInAppShortcutConfiguration()
+    }
+
     private func saveCustomPromptPresets() {
         guard let data = try? JSONEncoder().encode(customPromptPresets) else { return }
         defaults.set(data, forKey: Key.customPromptPresets)
@@ -269,6 +314,26 @@ final class AppSettings {
             return []
         }
         return presets.filter { !$0.isBuiltIn }
+    }
+
+    private static func loadInAppShortcutConfiguration(from defaults: UserDefaults) -> InAppShortcutConfiguration {
+        guard let data = defaults.data(forKey: Key.inAppShortcutConfiguration),
+              let configuration = try? JSONDecoder().decode(InAppShortcutConfiguration.self, from: data) else {
+            // Existing installations have no shortcut payload. Their current
+            // hard-coded command behavior is represented by derived defaults.
+            return InAppShortcutConfiguration()
+        }
+        return configuration
+    }
+
+    private func saveInAppShortcutConfiguration() {
+        guard let data = try? JSONEncoder().encode(inAppShortcutConfiguration) else { return }
+        defaults.set(data, forKey: Key.inAppShortcutConfiguration)
+    }
+
+    private func cleanUpShortcutAssignments() {
+        guard inAppShortcutConfiguration.cleanUp(for: promptPresets) else { return }
+        saveInAppShortcutConfiguration()
     }
 
     private func applyCatalogProjection() {
