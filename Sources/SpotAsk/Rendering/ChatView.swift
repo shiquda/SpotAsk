@@ -42,6 +42,36 @@ func shortcutPresetSelection(current: PromptPreset?, requested: PromptPreset) ->
     current?.id == requested.id ? nil : requested
 }
 
+enum ChatEscapeAction: Equatable {
+    case preserveMarkedText
+    case dismissPresetPopover
+    case cancelGeneration
+    case startNewConversation
+    case dismissWindow
+}
+
+func chatEscapeAction(
+    hasMarkedText: Bool,
+    isPresetPopoverPresented: Bool,
+    isGenerating: Bool,
+    startsNewConversation: Bool,
+    hasMessages: Bool
+) -> ChatEscapeAction {
+    if hasMarkedText {
+        return .preserveMarkedText
+    }
+    if isPresetPopoverPresented {
+        return .dismissPresetPopover
+    }
+    if isGenerating {
+        return .cancelGeneration
+    }
+    if startsNewConversation, hasMessages {
+        return .startNewConversation
+    }
+    return .dismissWindow
+}
+
 struct ChatView: View {
     @Bindable var viewModel: ChatViewModel
     let settings: AppSettings
@@ -529,14 +559,7 @@ struct ChatView: View {
     }
 
     private func composerHasMarkedText() -> Bool {
-        var responder = chatWindowReference.window?.firstResponder
-        while let current = responder {
-            if let textView = current as? NSTextView {
-                return textView.hasMarkedText()
-            }
-            responder = current.nextResponder
-        }
-        return false
+        responderHasMarkedText(chatWindowReference.window?.firstResponder)
     }
 
     private func performShortcutTarget(_ target: InAppShortcutTarget) -> Bool {
@@ -670,11 +693,22 @@ struct ChatView: View {
     }
 
     private func handleEscape() {
-        if isPresetPopoverPresented {
+        switch chatEscapeAction(
+            hasMarkedText: composerHasMarkedText(),
+            isPresetPopoverPresented: isPresetPopoverPresented,
+            isGenerating: isGenerating,
+            startsNewConversation: settings.escapeStartsNewConversation,
+            hasMessages: !viewModel.messages.isEmpty
+        ) {
+        case .preserveMarkedText:
+            break
+        case .dismissPresetPopover:
             isPresetPopoverPresented = false
-        } else if isGenerating {
+        case .cancelGeneration:
             viewModel.cancel()
-        } else {
+        case .startNewConversation:
+            newConversation()
+        case .dismissWindow:
             dismiss()
         }
     }

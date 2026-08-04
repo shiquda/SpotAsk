@@ -144,6 +144,7 @@
 "settings.clearAllLocalData" = "清除所有本地数据";
 "settings.clearInputOnClose" = "关闭窗口时清空输入框";
 "settings.confirmBeforeStartingNewConversation" = "开始新对话前确认";
+"settings.escapeStartsNewConversation" = "按 Esc 开始新对话";
 "settings.connection" = "连接";
 "settings.customInstruction" = "自定义指令";
 "settings.customPromptEmpty" = "还没有自定义提示词。";

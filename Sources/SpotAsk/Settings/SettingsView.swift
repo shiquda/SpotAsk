@@ -1324,6 +1324,7 @@ private struct GeneralSettingsPage: View {
                 SettingsToggleRow(label: L10n.string("settings.restoreSession"), isOn: Bindable(settings).retainSession)
                 SettingsToggleRow(label: L10n.string("settings.clearInputOnClose"), isOn: Bindable(settings).clearInputOnClose)
                 SettingsToggleRow(label: L10n.string("settings.confirmBeforeStartingNewConversation"), isOn: Bindable(settings).confirmBeforeStartingNewConversation)
+                SettingsToggleRow(label: L10n.string("settings.escapeStartsNewConversation"), isOn: Bindable(settings).escapeStartsNewConversation)
                 SettingsToggleRow(
                     label: L10n.string("settings.windowOnTop"),
                     isOn: Binding(

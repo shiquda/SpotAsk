@@ -144,6 +144,7 @@
 "settings.clearAllLocalData" = "Clear All Local Data";
 "settings.clearInputOnClose" = "Clear input when closing the window";
 "settings.confirmBeforeStartingNewConversation" = "Confirm before starting a new conversation";
+"settings.escapeStartsNewConversation" = "Press Esc to start a new conversation";
 "settings.connection" = "Connection";
 "settings.customInstruction" = "Custom Instructions";
 "settings.customPromptEmpty" = "You have not created any custom prompts yet.";

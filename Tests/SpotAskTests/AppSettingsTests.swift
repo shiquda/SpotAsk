@@ -109,6 +109,100 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertFalse(AppSettings(defaults: defaults).confirmBeforeStartingNewConversation)
     }
 
+    func testEscapeStartsNewConversationDefaultsToOffAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        XCTAssertFalse(AppSettings(defaults: defaults).escapeStartsNewConversation)
+
+        let settings = AppSettings(defaults: defaults)
+        settings.escapeStartsNewConversation = true
+        XCTAssertTrue(AppSettings(defaults: defaults).escapeStartsNewConversation)
+
+        settings.escapeStartsNewConversation = false
+        XCTAssertFalse(AppSettings(defaults: defaults).escapeStartsNewConversation)
+    }
+
+    func testEscapePrioritizesMarkedTextPopoverAndGeneration() {
+        XCTAssertEqual(
+            chatEscapeAction(
+                hasMarkedText: true,
+                isPresetPopoverPresented: true,
+                isGenerating: true,
+                startsNewConversation: true,
+                hasMessages: true
+            ),
+            .preserveMarkedText
+        )
+        XCTAssertEqual(
+            chatEscapeAction(
+                hasMarkedText: false,
+                isPresetPopoverPresented: true,
+                isGenerating: true,
+                startsNewConversation: true,
+                hasMessages: true
+            ),
+            .dismissPresetPopover
+        )
+        XCTAssertEqual(
+            chatEscapeAction(
+                hasMarkedText: false,
+                isPresetPopoverPresented: false,
+                isGenerating: true,
+                startsNewConversation: true,
+                hasMessages: true
+            ),
+            .cancelGeneration
+        )
+    }
+
+    func testEscapeUsesNewConversationOnlyWhenEnabledAndMessagesExist() {
+        XCTAssertEqual(
+            chatEscapeAction(
+                hasMarkedText: false,
+                isPresetPopoverPresented: false,
+                isGenerating: false,
+                startsNewConversation: false,
+                hasMessages: true
+            ),
+            .dismissWindow
+        )
+        XCTAssertEqual(
+            chatEscapeAction(
+                hasMarkedText: false,
+                isPresetPopoverPresented: false,
+                isGenerating: false,
+                startsNewConversation: true,
+                hasMessages: true
+            ),
+            .startNewConversation
+        )
+        XCTAssertEqual(
+            chatEscapeAction(
+                hasMarkedText: false,
+                isPresetPopoverPresented: false,
+                isGenerating: false,
+                startsNewConversation: true,
+                hasMessages: false
+            ),
+            .dismissWindow
+        )
+    }
+
+    func testResponderMarkedTextGuardRecognizesAndReleasesComposition() {
+        let textView = NSTextView()
+        textView.setMarkedText(
+            "zhong",
+            selectedRange: NSRange(location: 0, length: 0),
+            replacementRange: NSRange(location: 0, length: 0)
+        )
+        XCTAssertTrue(responderHasMarkedText(textView))
+
+        textView.unmarkText()
+        XCTAssertFalse(responderHasMarkedText(textView))
+    }
+
     func testPanelOriginPersistsAndClears() {
         let suite = "AppSettingsTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!

@@ -1,8 +1,21 @@
 import AppKit
 import SwiftUI
 
+@MainActor
+func responderHasMarkedText(_ responder: NSResponder?) -> Bool {
+    var currentResponder = responder
+    while let current = currentResponder {
+        if let textView = current as? NSTextView, textView.hasMarkedText() {
+            return true
+        }
+        currentResponder = current.nextResponder
+    }
+    return false
+}
+
 private final class SettingsWindow: NSWindow {
     override func cancelOperation(_ sender: Any?) {
+        guard !responderHasMarkedText(firstResponder) else { return }
         performClose(sender)
     }
 }
