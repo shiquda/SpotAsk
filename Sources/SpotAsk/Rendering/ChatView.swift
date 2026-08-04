@@ -215,9 +215,7 @@ struct ChatView: View {
     private var conversation: some View {
         if viewModel.messages.isEmpty {
             VStack(spacing: 8) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 26, weight: .medium))
-                    .foregroundStyle(Brand.muted)
+                EmptyStateBrandMark()
                 Text(L10n.string("chat.askAnything"))
                     .font(.system(size: 17, weight: .medium))
                     .kerning(-0.17)
@@ -846,18 +844,57 @@ private enum PresetPlaceholder {
 
 // MARK: - Brand mark
 
-/// The 18×18 accent square with a white sparkle, paired with the wordmark.
+/// Returns the app icon only when the executable app bundle provides it.
+/// SwiftPM tests run from a different main bundle, so callers retain a local
+/// SF Symbol fallback instead of depending on `Bundle.module`.
+func spotAskAppIconImage(bundle: Bundle = .main) -> NSImage? {
+    guard let url = bundle.url(forResource: "AppIcon", withExtension: "icns") else {
+        return nil
+    }
+    return NSImage(contentsOf: url)
+}
+
+/// The compact app icon shown alongside the title wordmark.
 private struct BrandMark: View {
     var body: some View {
-        RoundedRectangle(cornerRadius: 5)
-            .fill(Brand.accent)
-            .frame(width: 18, height: 18)
-            .overlay {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.white)
+        Group {
+            if let appIcon = spotAskAppIconImage() {
+                Image(nsImage: appIcon)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 18, height: 18)
+            } else {
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(Brand.accent)
+                    .frame(width: 18, height: 18)
+                    .overlay {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
             }
-            .accessibilityHidden(true)
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// The app icon gives the first empty conversation screen the same identity
+/// as the app bundle while retaining the prior lightweight fallback.
+private struct EmptyStateBrandMark: View {
+    var body: some View {
+        Group {
+            if let appIcon = spotAskAppIconImage() {
+                Image(nsImage: appIcon)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 44, height: 44)
+            } else {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 26, weight: .medium))
+                    .foregroundStyle(Brand.muted)
+            }
+        }
+        .accessibilityLabel(Text("SpotAsk"))
     }
 }
 

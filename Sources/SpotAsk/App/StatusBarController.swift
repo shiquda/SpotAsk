@@ -1,6 +1,34 @@
 import AppKit
 import ServiceManagement
 
+/// Draws a small monochrome version of the SpotAsk beacon from the app icon.
+/// A template image lets macOS choose the correct status-bar color in each
+/// appearance and selected-menu state.
+func spotAskStatusBarImage() -> NSImage? {
+    let image = NSImage(size: NSSize(width: 18, height: 18))
+    image.lockFocus()
+    NSColor.black.setFill()
+
+    let beam = NSBezierPath()
+    beam.move(to: NSPoint(x: 2.75, y: 2.25))
+    beam.line(to: NSPoint(x: 15.25, y: 2.25))
+    beam.line(to: NSPoint(x: 11.15, y: 13.4))
+    beam.line(to: NSPoint(x: 6.85, y: 13.4))
+    beam.close()
+    beam.fill()
+
+    let cap = NSBezierPath(
+        roundedRect: NSRect(x: 6.1, y: 14.55, width: 5.8, height: 2.1),
+        xRadius: 0.65,
+        yRadius: 0.65
+    )
+    cap.fill()
+
+    image.unlockFocus()
+    image.isTemplate = true
+    return image
+}
+
 @MainActor
 final class StatusBarController: NSObject, NSMenuDelegate {
     private let settings: AppSettings
@@ -10,13 +38,14 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
     init(settings: AppSettings) {
         self.settings = settings
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         launchAtLoginItem = NSMenuItem(title: L10n.string("menu.launchAtLogin"), action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
         keepWindowOnTopItem = NSMenuItem(title: L10n.string("menu.windowOnTop"), action: #selector(toggleWindowOnTop), keyEquivalent: "")
         super.init()
 
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "sparkle", accessibilityDescription: "SpotAsk")
+            button.image = spotAskStatusBarImage()
+                ?? NSImage(systemSymbolName: "sparkle", accessibilityDescription: "SpotAsk")
             button.imagePosition = .imageOnly
             button.toolTip = "SpotAsk"
         }
