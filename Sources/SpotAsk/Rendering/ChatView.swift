@@ -76,13 +76,17 @@ struct ChatView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+            // A single hairline separates the elevated header material from
+            // the content below. The composer reads as part of the window's
+            // bottom chrome, so it is not boxed in by a second divider.
             Divider()
             conversation
-            Divider()
             composer
         }
+        // Content spans the full window; the header's Material draws the
+        // chrome and the conversation insets clear of it (see below).
+        .ignoresSafeArea()
         .frame(minWidth: 364, minHeight: 320)
-        .background(Color(nsColor: .windowBackgroundColor))
         .onChange(of: viewModel.isSettingsPresented) { _, isPresented in
             if isPresented {
                 presentSettingsWindow()
@@ -164,8 +168,17 @@ struct ChatView: View {
             .accessibilityLabel(L10n.string("chat.newConversation"))
             .keyboardShortcut("n", modifiers: .command)
         }
-        .padding(.horizontal, 14)
-        .frame(height: 46)
+        // `fullSizeContentView` puts SwiftUI beneath the traffic lights.
+        // Reserve their titlebar region so the brand never overlaps them.
+        .padding(.leading, 78)
+        .padding(.trailing, 14)
+        // Keep the controls and material in the native 32pt titlebar band.
+        .frame(height: 32)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // The header is the one elevated chrome surface: a system Material
+        // (AppKit vibrancy under the hood), not a hand-drawn blur. It sits in
+        // the titlebar area and reads as the window's native top bar.
+        .background(HeaderMaterial())
     }
 
     @ViewBuilder
@@ -212,6 +225,9 @@ struct ChatView: View {
                     .padding(.horizontal, 24)
                     .padding(.vertical, 20)
                 }
+                // Keep scrolled content clear of the header Material and the
+                // composer chrome as it passes beneath them at the edges.
+                .contentMargins(.top, 32, for: .scrollContent)
                 .overlay(alignment: .bottomTrailing) {
                     if !scrollFollowState.followsLatest {
                         Button {
@@ -604,6 +620,25 @@ struct ChatView: View {
             .userDecelerating
         case .animating:
             .programmaticAnimating
+        }
+    }
+}
+
+// MARK: - Header material
+
+/// The header's elevated chrome background. Uses a system Material on macOS 15
+/// (`.regular` over the window, AppKit vibrancy under the hood) and the native
+/// Liquid Glass chrome on macOS 26 — never a hand-drawn blur, backdrop filter,
+/// or hard-coded translucent fill. The material supplies its own legibility,
+/// so the header's text and icons render directly on it.
+private struct HeaderMaterial: View {
+    var body: some View {
+        if #available(macOS 26, *) {
+            Color.clear
+                .glassEffect(.regular, in: .rect)
+        } else {
+            Rectangle()
+                .fill(.regularMaterial)
         }
     }
 }

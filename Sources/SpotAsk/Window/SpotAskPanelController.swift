@@ -21,6 +21,7 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
     private let settings: AppSettings
     private var panel: SpotAskPanel?
     private var contentBuilder: (() -> AnyView)?
+    private var shouldCenterNormalizedInitialSize = false
 
     init(settings: AppSettings = .shared) {
         self.settings = settings
@@ -36,7 +37,12 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
     func show() {
         let panel = makePanelIfNeeded()
         constrain(panel)
-        restorePositionOrCenter(panel)
+        if shouldCenterNormalizedInitialSize {
+            center(panel)
+            shouldCenterNormalizedInitialSize = false
+        } else {
+            restorePositionOrCenter(panel)
+        }
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
         DispatchQueue.main.async { [weak panel] in
@@ -85,7 +91,8 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
     private func makePanelIfNeeded() -> SpotAskPanel {
         if let panel { return panel }
 
-        let initialSize = NSSize(width: settings.panelWidth, height: settings.panelHeight)
+        let initialSize = normalizedInitialSize()
+        shouldCenterNormalizedInitialSize = initialSize.width > settings.panelWidth
         let panel = SpotAskPanel(
             contentRect: NSRect(origin: .zero, size: initialSize),
             styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
@@ -96,6 +103,7 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
         panel.titleVisibility = .hidden
         panel.titlebarAppearsTransparent = true
         panel.isReleasedWhenClosed = false
+        panel.isMovableByWindowBackground = true
         applyWindowLevel(panel)
         panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
@@ -104,14 +112,34 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
         if let contentBuilder {
             panel.contentView = NSHostingView(rootView: contentBuilder())
         }
+        applyContentCornerRadius(panel)
         self.panel = panel
         return panel
+    }
+
+    /// Avoid restoring an overly narrow, portrait-like panel while retaining
+    /// the user's chosen height. A corrected frame is centered once on launch.
+    private func normalizedInitialSize() -> NSSize {
+        let height = settings.panelHeight
+        return NSSize(
+            width: max(settings.panelWidth, height * 1.5),
+            height: height
+        )
     }
 
     private func applyWindowLevel(_ panel: NSPanel?) {
         guard let panel else { return }
         panel.level = settings.keepWindowOnTop ? .floating : .normal
         panel.isFloatingPanel = settings.keepWindowOnTop
+    }
+
+    /// Match the header's continuous geometry without relying on a private
+    /// NSWindow API. Apply this after the SwiftUI hosting view is installed.
+    private func applyContentCornerRadius(_ panel: SpotAskPanel) {
+        panel.contentView?.wantsLayer = true
+        panel.contentView?.layer?.cornerRadius = 14
+        panel.contentView?.layer?.cornerCurve = .continuous
+        panel.contentView?.layer?.masksToBounds = true
     }
 
     /// Restores the saved frame when it is still reachable on a connected
