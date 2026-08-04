@@ -1,3 +1,4 @@
+import AppKit
 import Observation
 import ServiceManagement
 import SwiftUI
@@ -5,6 +6,7 @@ import SwiftUI
 enum SettingsSection: CaseIterable, Hashable, Identifiable {
     case provider
     case prompts
+    case shortcuts
     case general
     case appearance
     case about
@@ -15,6 +17,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         switch self {
         case .provider: L10n.string("settings.provider")
         case .prompts: L10n.string("settings.prompts")
+        case .shortcuts: L10n.string("settings.shortcuts")
         case .general: L10n.string("settings.general")
         case .appearance: L10n.string("settings.appearance")
         case .about: L10n.string("settings.about")
@@ -25,6 +28,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         switch self {
         case .provider: "network"
         case .prompts: "text.badge.plus"
+        case .shortcuts: "command"
         case .general: "gearshape.fill"
         case .appearance: "circle.lefthalf.filled"
         case .about: "info.circle.fill"
@@ -35,6 +39,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         switch self {
         case .provider: .cyan
         case .prompts: .mint
+        case .shortcuts: .orange
         case .general: .gray
         case .appearance: .indigo
         case .about: .blue
@@ -75,6 +80,10 @@ struct SettingsView: View {
                 case .prompts:
                     ScrollView {
                         PromptPresetsSettingsPage(settings: settings)
+                    }
+                case .shortcuts:
+                    ScrollView {
+                        ShortcutSettingsPage(settings: settings)
                     }
                 case .general:
                     ScrollView {
@@ -933,6 +942,310 @@ private struct PromptPresetEditor: View {
         }
         .padding(24)
         .frame(width: 460)
+    }
+}
+
+// MARK: - In-app Shortcuts Settings
+
+private struct ShortcutSettingsPage: View {
+    @Bindable var settings: AppSettings
+    @State private var feedback: String?
+
+    private let operations = InAppShortcutOperation.allCases
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            SettingsPageHeader(section: .shortcuts, settings: settings)
+            Text(L10n.string("settings.shortcutsDescription"))
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let feedback {
+                Text(feedback)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            }
+
+            SettingsGroup(title: L10n.string("settings.shortcutActions")) {
+                ForEach(operations) { operation in
+                    ShortcutSettingsRow(
+                        title: operation.title,
+                        target: .operation(operation),
+                        settings: settings,
+                        feedback: $feedback
+                    )
+                    if operation != operations.last { Divider() }
+                }
+            }
+
+            SettingsGroup(title: L10n.string("settings.shortcutPrompts")) {
+                ForEach(settings.promptPresets) { preset in
+                    ShortcutSettingsRow(
+                        title: preset.title,
+                        target: .promptPreset(preset.id),
+                        settings: settings,
+                        feedback: $feedback
+                    )
+                    if preset.id != settings.promptPresets.last?.id { Divider() }
+                }
+            }
+
+            HStack {
+                Spacer()
+                Button {
+                    settings.resetAllShortcuts()
+                    feedback = L10n.string("settings.shortcutsRestored")
+                } label: {
+                    Label(L10n.string("settings.resetAllShortcuts"), systemImage: "arrow.counterclockwise")
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+    }
+}
+
+private struct ShortcutSettingsRow: View {
+    let title: String
+    let target: InAppShortcutTarget
+    @Bindable var settings: AppSettings
+    @Binding var feedback: String?
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(title)
+                .font(.system(size: 14, weight: .medium))
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            ShortcutRecorder(
+                shortcut: settings.shortcut(for: target),
+                onRecord: assign,
+                onInvalid: { feedback = L10n.string("settings.shortcutInvalid") }
+            )
+            .frame(width: 176, height: 28)
+            .accessibilityLabel(title)
+
+            Button {
+                guard settings.removeShortcut(for: target) == nil else { return }
+                feedback = L10n.string("settings.shortcutCleared")
+            } label: {
+                Image(systemName: "xmark")
+            }
+            .buttonStyle(.borderless)
+            .disabled(settings.shortcut(for: target) == nil)
+            .help(L10n.string("settings.clearShortcut"))
+            .accessibilityLabel(L10n.string("settings.clearShortcut") + " " + title)
+
+            Button {
+                guard settings.resetShortcut(for: target) == nil else { return }
+                feedback = L10n.string("settings.shortcutRestored")
+            } label: {
+                Image(systemName: "arrow.counterclockwise")
+            }
+            .buttonStyle(.borderless)
+            .help(L10n.string("settings.resetShortcut"))
+            .accessibilityLabel(L10n.string("settings.resetShortcut") + " " + title)
+        }
+    }
+
+    private func assign(_ shortcut: InAppShortcut) {
+        switch settings.assignShortcut(shortcut, to: target) {
+        case nil:
+            feedback = L10n.string("settings.shortcutSaved")
+        case .unsupportedShortcut:
+            feedback = L10n.string("settings.shortcutInvalid")
+        case let .duplicateShortcut(existingTarget):
+            feedback = L10n.string("settings.shortcutDuplicate", targetTitle(existingTarget))
+        case .unavailableTarget:
+            feedback = L10n.string("settings.shortcutUnavailable")
+        }
+    }
+
+    private func targetTitle(_ target: InAppShortcutTarget) -> String {
+        switch target {
+        case let .operation(operation):
+            operation.title
+        case let .promptPreset(id):
+            settings.promptPresets.first(where: { $0.id == id })?.title ?? L10n.string("settings.shortcuts")
+        }
+    }
+}
+
+private extension InAppShortcutOperation {
+    var title: String {
+        switch self {
+        case .focusInput: L10n.string("shortcut.focusInput")
+        case .regenerateOrRetry: L10n.string("shortcut.regenerateOrRetry")
+        case .copyAnswer: L10n.string("shortcut.copyAnswer")
+        case .toggleWindowOnTop: L10n.string("shortcut.toggleWindowOnTop")
+        case .showSettings: L10n.string("shortcut.showSettings")
+        case .newConversation: L10n.string("shortcut.newConversation")
+        case .sendOrCancel: L10n.string("shortcut.sendOrCancel")
+        }
+    }
+}
+
+private struct ShortcutRecorder: NSViewRepresentable {
+    let shortcut: InAppShortcut?
+    let onRecord: (InAppShortcut) -> Void
+    let onInvalid: () -> Void
+
+    func makeNSView(context: Context) -> ShortcutRecorderField {
+        let field = ShortcutRecorderField()
+        field.setAccessibilityRole(.textField)
+        field.onRecord = onRecord
+        field.onInvalid = onInvalid
+        return field
+    }
+
+    func updateNSView(_ field: ShortcutRecorderField, context: Context) {
+        field.stringValue = InAppShortcutDisplay.text(for: shortcut)
+        field.onRecord = onRecord
+        field.onInvalid = onInvalid
+    }
+}
+
+private final class ShortcutRecorderField: NSTextField {
+    var onRecord: ((InAppShortcut) -> Void)?
+    var onInvalid: (() -> Void)?
+    private var monitor: Any?
+    private var windowObservers: [NSObjectProtocol] = []
+
+    override var acceptsFirstResponder: Bool { true }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        isEditable = false
+        isSelectable = false
+        alignment = .center
+        font = .systemFont(ofSize: 12, weight: .medium)
+        focusRingType = .default
+        lineBreakMode = .byTruncatingMiddle
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    deinit {
+        MainActor.assumeIsolated {
+            removeMonitor()
+            removeWindowObservers()
+        }
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(self)
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        removeMonitor()
+        removeWindowObservers()
+        guard let window else { return }
+        windowObservers = [
+            NotificationCenter.default.addObserver(
+                forName: NSWindow.didBecomeKeyNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.installMonitorIfNeeded()
+                }
+            },
+            NotificationCenter.default.addObserver(
+                forName: NSWindow.didResignKeyNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.removeMonitor()
+                }
+            },
+            NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.removeMonitor()
+                }
+            }
+        ]
+        installMonitorIfNeeded()
+    }
+
+    private func installMonitorIfNeeded() {
+        guard monitor == nil, window?.isKeyWindow == true else { return }
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self,
+                  ShortcutRecorderCaptureEligibility.shouldCapture(
+                      isRecorderWindowKey: self.window?.isKeyWindow == true,
+                      isActiveWindowRecorderWindow: NSApp.keyWindow === self.window,
+                      isRecorderFirstResponder: self.window?.firstResponder === self
+                  ) else { return event }
+            self.keyDown(with: event)
+            return nil
+        }
+    }
+
+    private func removeMonitor() {
+        if let monitor {
+            NSEvent.removeMonitor(monitor)
+            self.monitor = nil
+        }
+    }
+
+    private func removeWindowObservers() {
+        for observer in windowObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        windowObservers = []
+    }
+
+    override func keyDown(with event: NSEvent) {
+        if event.keyCode == 53 {
+            window?.makeFirstResponder(nil)
+            return
+        }
+        guard let shortcut = shortcut(from: event) else {
+            onInvalid?()
+            NSSound.beep()
+            return
+        }
+        onRecord?(shortcut)
+    }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        keyDown(with: event)
+        return true
+    }
+
+    private func shortcut(from event: NSEvent) -> InAppShortcut? {
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        var shortcutModifiers: InAppShortcutModifiers = []
+        if modifiers.contains(.command) { shortcutModifiers.insert(.command) }
+        if modifiers.contains(.shift) { shortcutModifiers.insert(.shift) }
+        if modifiers.contains(.option) { shortcutModifiers.insert(.option) }
+        if modifiers.contains(.control) { shortcutModifiers.insert(.control) }
+        guard let key = event.charactersIgnoringModifiers?.lowercased() else { return nil }
+        let shortcut = InAppShortcut(key: key, modifiers: shortcutModifiers)
+        return shortcut.isSupported ? shortcut : nil
+    }
+}
+
+enum ShortcutRecorderCaptureEligibility {
+    static func shouldCapture(
+        isRecorderWindowKey: Bool,
+        isActiveWindowRecorderWindow: Bool,
+        isRecorderFirstResponder: Bool
+    ) -> Bool {
+        isRecorderWindowKey && isActiveWindowRecorderWindow && isRecorderFirstResponder
     }
 }
 

@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Testing
 @testable import SpotAsk
@@ -95,6 +96,127 @@ struct InAppShortcutTests {
         let reloaded = AppSettings(defaults: fixture.defaults)
         #expect(reloaded.shortcut(for: target) == nil)
         #expect(!reloaded.shortcutAssignments.contains { $0.target == target })
+    }
+
+    @Test("Dispatcher resolves current assignments and leaves unavailable events alone")
+    func dispatcherResolvesDynamicallyWithoutConsumingUnavailableEvents() throws {
+        let fixture = makeSettings()
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+        let sendTarget = InAppShortcutTarget.operation(.sendOrCancel)
+        #expect(fixture.settings.assignShortcut(.command("z"), to: sendTarget) == nil)
+
+        var handledTargets: [InAppShortcutTarget] = []
+        var hintsVisible = false
+        let dispatcher = InAppShortcutDispatcher(
+            settings: fixture.settings,
+            isForeground: { true },
+            hasMarkedText: { false },
+            handleTarget: { target in
+                handledTargets.append(target)
+                return target == sendTarget
+            },
+            setHintsVisible: { hintsVisible = $0 }
+        )
+        let remappedEvent = try #require(keyEvent(key: "z", keyCode: 6))
+        #expect(dispatcher.process(remappedEvent) == nil)
+        #expect(handledTargets == [sendTarget])
+
+        let unavailableEvent = try #require(keyEvent(key: "l", keyCode: 37))
+        let unchanged = dispatcher.process(unavailableEvent)
+        #expect(unchanged === unavailableEvent)
+
+        let commandDown = try #require(NSEvent.keyEvent(
+            with: .flagsChanged,
+            location: .zero,
+            modifierFlags: [.command],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "",
+            charactersIgnoringModifiers: "",
+            isARepeat: false,
+            keyCode: 55
+        ))
+        #expect(dispatcher.process(commandDown) === commandDown)
+        #expect(hintsVisible)
+    }
+
+    @Test("Dispatcher preserves marked text events")
+    func dispatcherPreservesMarkedText() throws {
+        let fixture = makeSettings()
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+        var handled = false
+        let dispatcher = InAppShortcutDispatcher(
+            settings: fixture.settings,
+            isForeground: { true },
+            hasMarkedText: { true },
+            handleTarget: { _ in
+                handled = true
+                return true
+            },
+            setHintsVisible: { _ in }
+        )
+        let event = try #require(keyEvent(key: "l", keyCode: 37))
+        #expect(dispatcher.process(event) === event)
+        #expect(!handled)
+    }
+
+    @Test("Command-held hints include non-Command assignments")
+    func commandHeldHintsIncludeAllConfiguredModifiers() {
+        let optionShortcut = InAppShortcut(key: "t", modifiers: .option)
+        let controlShortcut = InAppShortcut(key: "k", modifiers: .control)
+        let shiftShortcut = InAppShortcut(key: "y", modifiers: .shift)
+
+        #expect(inAppShortcutHint(optionShortcut, commandHintsVisible: true) == optionShortcut)
+        #expect(inAppShortcutHint(controlShortcut, commandHintsVisible: true) == controlShortcut)
+        #expect(inAppShortcutHint(shiftShortcut, commandHintsVisible: true) == shiftShortcut)
+        #expect(inAppShortcutHint(optionShortcut, commandHintsVisible: false) == nil)
+    }
+
+    @Test("Shortcut labels use standard macOS modifier symbols")
+    func shortcutLabelsUseStandardModifierSymbols() {
+        let shortcut = InAppShortcut(key: "k", modifiers: [.command, .shift, .option, .control])
+        #expect(InAppShortcutDisplay.labels(for: shortcut) == ["⌘", "⇧", "⌥", "⌃", "K"])
+        #expect(InAppShortcutDisplay.labels(for: shortcut, includeCommand: false) == ["⇧", "⌥", "⌃", "K"])
+    }
+
+    @Test("Recorder captures only in its active key window")
+    func recorderCaptureEligibilityRequiresActiveKeyWindow() {
+        #expect(ShortcutRecorderCaptureEligibility.shouldCapture(
+            isRecorderWindowKey: true,
+            isActiveWindowRecorderWindow: true,
+            isRecorderFirstResponder: true
+        ))
+        #expect(!ShortcutRecorderCaptureEligibility.shouldCapture(
+            isRecorderWindowKey: false,
+            isActiveWindowRecorderWindow: true,
+            isRecorderFirstResponder: true
+        ))
+        #expect(!ShortcutRecorderCaptureEligibility.shouldCapture(
+            isRecorderWindowKey: true,
+            isActiveWindowRecorderWindow: false,
+            isRecorderFirstResponder: true
+        ))
+        #expect(!ShortcutRecorderCaptureEligibility.shouldCapture(
+            isRecorderWindowKey: true,
+            isActiveWindowRecorderWindow: true,
+            isRecorderFirstResponder: false
+        ))
+    }
+
+    private func keyEvent(key: String, keyCode: UInt16) -> NSEvent? {
+        NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [.command],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: key,
+            charactersIgnoringModifiers: key,
+            isARepeat: false,
+            keyCode: keyCode
+        )
     }
 
     private func makeSettings() -> (settings: AppSettings, defaults: UserDefaults, suiteName: String) {

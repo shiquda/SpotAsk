@@ -50,7 +50,7 @@ struct SettingsLayoutTests {
     }
 
     @Test func otherSettingsPagesKeepTheirExpectedScrollBehavior() throws {
-        let scrollingSections: Set<SettingsSection> = [.prompts, .general]
+        let scrollingSections: Set<SettingsSection> = [.prompts, .shortcuts, .general]
 
         for section in SettingsSection.allCases where section != .provider {
             let fixture = makeWindow(section: section)

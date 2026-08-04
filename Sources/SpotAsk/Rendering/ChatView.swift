@@ -38,6 +38,10 @@ private enum NewConversationConfirmation {
     }
 }
 
+func shortcutPresetSelection(current: PromptPreset?, requested: PromptPreset) -> PromptPreset? {
+    current?.id == requested.id ? nil : requested
+}
+
 struct ChatView: View {
     @Bindable var viewModel: ChatViewModel
     let settings: AppSettings
@@ -52,6 +56,9 @@ struct ChatView: View {
     @State private var inputHeight = ChatInputTextView.minHeight
     @State private var reasoningToggle = ReasoningToggleStateStore()
     @State private var isPresetPopoverPresented = false
+    @State private var showsShortcutHints = false
+    @State private var shortcutDispatcher: InAppShortcutDispatcher?
+    @State private var chatWindowReference = ChatWindowReference()
 
     /// Owns the standalone settings window. Created lazily on first use and
     /// reused thereafter so repeated opens never stack duplicate windows.
@@ -87,6 +94,7 @@ struct ChatView: View {
         // chrome and the conversation insets clear of it (see below).
         .ignoresSafeArea()
         .frame(minWidth: 364, minHeight: 320)
+        .background(ChatWindowReader(reference: chatWindowReference))
         .onChange(of: viewModel.isSettingsPresented) { _, isPresented in
             if isPresented {
                 presentSettingsWindow()
@@ -97,6 +105,19 @@ struct ChatView: View {
             viewModel.offerSessionChoiceIfNeeded()
             commandCenter.setActionConsumer(handleCommandAction)
             reasoningToggle.reconcile(messages: viewModel.messages)
+            installShortcutDispatcher()
+        }
+        .onDisappear {
+            shortcutDispatcher?.stop()
+            shortcutDispatcher = nil
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { notification in
+            if (notification.object as? NSWindow) === chatWindowReference.window {
+                showsShortcutHints = false
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
+            showsShortcutHints = false
         }
         .onExitCommand(perform: handleEscape)
         .font(contentFont)
@@ -124,23 +145,16 @@ struct ChatView: View {
                     .accessibilityLabel(L10n.string("chat.generating"))
             }
             Spacer()
-            // Cmd-L keeps focusing the (always-focused) composer even though
-            // the visible header icon was removed. A zero-size, hidden button
-            // carries the shortcut so nothing renders and VoiceOver skips it.
-            Button(action: { inputFocused = true }) {
-                EmptyView()
-            }
-            .frame(width: 0, height: 0)
-            .opacity(0)
-            .accessibilityHidden(true)
-            .keyboardShortcut("l", modifiers: .command)
             if viewModel.canRegenerate {
                 HeaderIconButton(action: { viewModel.regenerate() }) {
                     Image(systemName: "arrow.clockwise")
                 }
                 .help(L10n.string("chat.regenerate"))
                 .accessibilityLabel(L10n.string("chat.regenerate"))
-                .keyboardShortcut("r", modifiers: .command)
+                .overlay(alignment: .bottomTrailing) {
+                    ShortcutKeycap(shortcut: shortcutHint(for: .operation(.regenerateOrRetry)))
+                        .offset(x: 5, y: 5)
+                }
             }
             if let answer = viewModel.lastAssistantMessage, !answer.content.isEmpty {
                 HeaderIconButton(action: { copyLastAnswer(answer.content) }) {
@@ -148,25 +162,38 @@ struct ChatView: View {
                 }
                 .help(didCopyLastAnswer ? L10n.string("chat.copied") : L10n.string("chat.copyLastAnswer"))
                 .accessibilityLabel(didCopyLastAnswer ? L10n.string("chat.copied") : L10n.string("chat.copyLastAnswer"))
-                .keyboardShortcut("c", modifiers: [.command, .shift])
+                .overlay(alignment: .bottomTrailing) {
+                    ShortcutKeycap(shortcut: shortcutHint(for: .operation(.copyAnswer)))
+                        .offset(x: 5, y: 5)
+                }
             }
             HeaderIconButton(action: { SpotAskCommandCenter.shared.toggleWindowOnTop() }) {
                 Image(systemName: settings.keepWindowOnTop ? "pin.fill" : "pin")
             }
             .help(L10n.string("settings.windowOnTop"))
             .accessibilityLabel(L10n.string("settings.windowOnTop"))
+            .overlay(alignment: .bottomTrailing) {
+                ShortcutKeycap(shortcut: shortcutHint(for: .operation(.toggleWindowOnTop)))
+                    .offset(x: 5, y: 5)
+            }
             HeaderIconButton(action: { openSettings() }) {
                 Image(systemName: "gearshape")
             }
             .help(L10n.string("settings.title"))
             .accessibilityLabel(L10n.string("settings.title"))
-            .keyboardShortcut(",", modifiers: .command)
+            .overlay(alignment: .bottomTrailing) {
+                ShortcutKeycap(shortcut: shortcutHint(for: .operation(.showSettings)))
+                    .offset(x: 5, y: 5)
+            }
             HeaderIconButton(action: { newConversation() }) {
                 Image(systemName: "square.and.pencil")
             }
             .help(L10n.string("chat.newConversation"))
             .accessibilityLabel(L10n.string("chat.newConversation"))
-            .keyboardShortcut("n", modifiers: .command)
+            .overlay(alignment: .bottomTrailing) {
+                ShortcutKeycap(shortcut: shortcutHint(for: .operation(.newConversation)))
+                    .offset(x: 5, y: 5)
+            }
         }
         // `fullSizeContentView` puts SwiftUI beneath the traffic lights.
         // Reserve their titlebar region so the brand never overlaps them.
@@ -196,8 +223,10 @@ struct ChatView: View {
                     .font(.system(size: 13))
                     .foregroundStyle(Brand.muted)
                 PresetStripView(
-                    presets: PromptPreset.builtIn,
+                    presets: settings.promptPresets,
                     selection: $viewModel.selectedPromptPreset,
+                    showsShortcutHints: showsShortcutHints,
+                    shortcutForPreset: shortcutHint(for:),
                     onSelect: { applyPreset($0) }
                 )
                 .padding(.top, 10)
@@ -324,8 +353,11 @@ struct ChatView: View {
                             .font(.caption)
                             .foregroundStyle(.red)
                         Button(L10n.string("chat.retry")) { viewModel.retry() }
-                            .keyboardShortcut("r", modifiers: .command)
                             .accessibilityLabel(L10n.string("chat.retryFailedRequest"))
+                            .overlay(alignment: .bottomTrailing) {
+                                ShortcutKeycap(shortcut: shortcutHint(for: .operation(.regenerateOrRetry)))
+                                    .offset(x: 5, y: 4)
+                            }
                     }
                 } else if message.state == .cancelled {
                     Text(L10n.string("chat.stopped"))
@@ -377,9 +409,11 @@ struct ChatView: View {
             HStack(alignment: .bottom, spacing: 8) {
                 if !viewModel.messages.isEmpty {
                     PresetPopoverTrigger(
-                        presets: PromptPreset.builtIn,
+                        presets: settings.promptPresets,
                         selection: $viewModel.selectedPromptPreset,
                         isPresented: $isPresetPopoverPresented,
+                        showsShortcutHints: showsShortcutHints,
+                        shortcutForPreset: shortcutHint(for:),
                         onSelect: { applyPreset($0) }
                     )
                     .transition(.opacity)
@@ -415,8 +449,17 @@ struct ChatView: View {
                             .allowsHitTesting(false)
                     }
                 }
+                .overlay(alignment: .bottomTrailing) {
+                    ShortcutKeycap(shortcut: shortcutHint(for: .operation(.focusInput)))
+                        .padding(8)
+                }
                 .animation(.easeOut(duration: 0.12), value: inputFocused)
-                ComposerSendButton(isGenerating: isGenerating, canSend: viewModel.canSend, action: primaryAction)
+                ComposerSendButton(
+                    isGenerating: isGenerating,
+                    canSend: viewModel.canSend,
+                    shortcut: shortcutHint(for: .operation(.sendOrCancel)),
+                    action: primaryAction
+                )
             }
             if let preset = viewModel.selectedPromptPreset {
                 HStack {
@@ -463,6 +506,84 @@ struct ChatView: View {
     private func primaryAction() {
         if isGenerating { viewModel.cancel() }
         else { viewModel.send() }
+    }
+
+    private func installShortcutDispatcher() {
+        guard shortcutDispatcher == nil else { return }
+        let dispatcher = InAppShortcutDispatcher(
+            settings: settings,
+            isForeground: {
+                guard let window = chatWindowReference.window else { return false }
+                return window === NSApp.keyWindow && window.isKeyWindow
+            },
+            hasMarkedText: composerHasMarkedText,
+            handleTarget: performShortcutTarget,
+            setHintsVisible: { showsShortcutHints = $0 }
+        )
+        dispatcher.start()
+        shortcutDispatcher = dispatcher
+    }
+
+    private func composerHasMarkedText() -> Bool {
+        var responder = chatWindowReference.window?.firstResponder
+        while let current = responder {
+            if let textView = current as? NSTextView {
+                return textView.hasMarkedText()
+            }
+            responder = current.nextResponder
+        }
+        return false
+    }
+
+    private func performShortcutTarget(_ target: InAppShortcutTarget) -> Bool {
+        switch target {
+        case let .promptPreset(id):
+            guard let preset = settings.promptPresets.first(where: { $0.id == id }) else { return false }
+            applyPreset(shortcutPresetSelection(current: viewModel.selectedPromptPreset, requested: preset))
+            return true
+        case let .operation(operation):
+            switch operation {
+            case .focusInput:
+                inputFocused = true
+                viewModel.offerSessionChoiceIfNeeded()
+                return true
+            case .regenerateOrRetry:
+                if viewModel.canRegenerate {
+                    viewModel.regenerate()
+                    return true
+                }
+                if viewModel.generationState == .failed {
+                    viewModel.retry()
+                    return true
+                }
+                return false
+            case .copyAnswer:
+                guard let answer = viewModel.lastAssistantMessage, !answer.content.isEmpty else { return false }
+                copyLastAnswer(answer.content)
+                return true
+            case .toggleWindowOnTop:
+                SpotAskCommandCenter.shared.toggleWindowOnTop()
+                return true
+            case .showSettings:
+                openSettings()
+                return true
+            case .newConversation:
+                newConversation()
+                return true
+            case .sendOrCancel:
+                guard isGenerating || viewModel.canSend else { return false }
+                primaryAction()
+                return true
+            }
+        }
+    }
+
+    private func shortcutHint(for target: InAppShortcutTarget) -> InAppShortcut? {
+        inAppShortcutHint(settings.shortcut(for: target), commandHintsVisible: showsShortcutHints)
+    }
+
+    private func shortcutHint(for preset: PromptPreset) -> InAppShortcut? {
+        shortcutHint(for: .promptPreset(preset.id))
     }
 
     /// Entry point for every settings request (header gear, command center).
@@ -746,8 +867,7 @@ private struct BrandMark: View {
 /// The prototype's `.icon-btn`: a 28×28 hit target whose hover fills a
 /// `surface` rounded square and darkens the glyph to `fg` (never grays it),
 /// with a 2pt accent ring standing in for `:focus-visible`. Wraps the button's
-/// label only — action, help, accessibility label, and keyboard shortcut stay
-/// on the caller.
+/// label only; its behavior and accessibility stay on the caller.
 private struct HeaderIconButton<Label: View>: View {
     let action: () -> Void
     @ViewBuilder let label: () -> Label
@@ -778,6 +898,32 @@ private struct HeaderIconButton<Label: View>: View {
     }
 }
 
+private struct ShortcutKeycap: View {
+    let shortcut: InAppShortcut?
+
+    var body: some View {
+        if let shortcut {
+            HStack(spacing: 2) {
+                ForEach(InAppShortcutDisplay.labels(for: shortcut, includeCommand: false), id: \.self) { label in
+                    Text(label)
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                .strokeBorder(Brand.border, lineWidth: 0.5)
+                        }
+                }
+            }
+            .fixedSize()
+            .accessibilityHidden(true)
+            .allowsHitTesting(false)
+        }
+    }
+}
+
 // MARK: - Empty-state preset strip
 
 /// One-tap preset chips shown only before the first message. Tapping selects
@@ -785,21 +931,26 @@ private struct HeaderIconButton<Label: View>: View {
 private struct PresetStripView: View {
     let presets: [PromptPreset]
     @Binding var selection: PromptPreset?
+    let showsShortcutHints: Bool
+    let shortcutForPreset: (PromptPreset) -> InAppShortcut?
     let onSelect: (PromptPreset) -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
-            ForEach(presets) { preset in
-                ChipView(
-                    title: preset.title,
-                    icon: PresetIcon.symbol(for: preset.id),
-                    isSelected: selection?.id == preset.id
-                ) {
-                    onSelect(preset)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(presets) { preset in
+                    ChipView(
+                        title: preset.title,
+                        icon: PresetIcon.symbol(for: preset.id),
+                        isSelected: selection?.id == preset.id,
+                        shortcut: showsShortcutHints ? shortcutForPreset(preset) : nil
+                    ) {
+                        onSelect(preset)
+                    }
                 }
             }
         }
-        .frame(maxWidth: 460)
+        .frame(maxWidth: 460, maxHeight: 38)
     }
 }
 
@@ -807,6 +958,7 @@ private struct ChipView: View {
     let title: String
     let icon: String
     let isSelected: Bool
+    let shortcut: InAppShortcut?
     let action: () -> Void
 
     @State private var isHovering = false
@@ -819,6 +971,7 @@ private struct ChipView: View {
                     .font(.system(size: 13))
                 Text(title)
                     .font(.system(size: 13, weight: .medium))
+                ShortcutKeycap(shortcut: shortcut)
             }
             .foregroundStyle(isSelected ? Color.white : (isHovering ? Brand.fg : Brand.muted))
             .padding(.horizontal, 13)
@@ -859,6 +1012,8 @@ private struct PresetPopoverTrigger: View {
     let presets: [PromptPreset]
     @Binding var selection: PromptPreset?
     @Binding var isPresented: Bool
+    let showsShortcutHints: Bool
+    let shortcutForPreset: (PromptPreset) -> InAppShortcut?
     let onSelect: (PromptPreset?) -> Void
 
     @State private var isHovering = false
@@ -904,7 +1059,9 @@ private struct PresetPopoverTrigger: View {
         ) {
             PresetPopoverContent(
                 presets: presets,
-                selection: selection
+                selection: selection,
+                showsShortcutHints: showsShortcutHints,
+                shortcutForPreset: shortcutForPreset
             ) { preset in
                 isPresented = false
                 onSelect(preset)
@@ -916,6 +1073,8 @@ private struct PresetPopoverTrigger: View {
 private struct PresetPopoverContent: View {
     let presets: [PromptPreset]
     let selection: PromptPreset?
+    let showsShortcutHints: Bool
+    let shortcutForPreset: (PromptPreset) -> InAppShortcut?
     let onChoose: (PromptPreset?) -> Void
 
     var body: some View {
@@ -932,7 +1091,8 @@ private struct PresetPopoverContent: View {
                 PopoverRow(
                     title: preset.title,
                     icon: PresetIcon.symbol(for: preset.id),
-                    isSelected: selection?.id == preset.id
+                    isSelected: selection?.id == preset.id,
+                    shortcut: showsShortcutHints ? shortcutForPreset(preset) : nil
                 ) {
                     onChoose(preset)
                 }
@@ -948,6 +1108,7 @@ private struct PopoverRow: View {
     let title: String
     let icon: String
     let isSelected: Bool
+    var shortcut: InAppShortcut? = nil
     let action: () -> Void
 
     @State private var isHovering = false
@@ -964,6 +1125,7 @@ private struct PopoverRow: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Brand.fg)
                 Spacer(minLength: 8)
+                ShortcutKeycap(shortcut: shortcut)
                 Image(systemName: "checkmark")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Brand.accent)
@@ -997,6 +1159,7 @@ private struct PopoverRow: View {
 private struct ComposerSendButton: View {
     let isGenerating: Bool
     let canSend: Bool
+    let shortcut: InAppShortcut?
     let action: () -> Void
 
     @State private var isHovering = false
@@ -1032,6 +1195,10 @@ private struct ComposerSendButton: View {
         .animation(.easeOut(duration: 0.12), value: fill)
         .help(isGenerating ? L10n.string("chat.stop") : L10n.string("chat.send"))
         .accessibilityLabel(isGenerating ? L10n.string("chat.stop") : L10n.string("chat.send"))
+        .overlay(alignment: .bottomTrailing) {
+            ShortcutKeycap(shortcut: shortcut)
+                .offset(x: 5, y: 5)
+        }
     }
 }
 

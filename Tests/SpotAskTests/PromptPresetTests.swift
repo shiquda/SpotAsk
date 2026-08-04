@@ -5,6 +5,14 @@ import Testing
 @Suite("Prompt presets")
 @MainActor
 struct PromptPresetTests {
+    @Test("Pressing the selected prompt shortcut clears the prompt")
+    func selectedPromptShortcutClearsSelection() {
+        let translate = PromptPreset.builtIn[0]
+
+        #expect(shortcutPresetSelection(current: translate, requested: translate) == nil)
+        #expect(shortcutPresetSelection(current: translate, requested: PromptPreset.builtIn[1]) == PromptPreset.builtIn[1])
+    }
+
     @Test("Custom presets persist, update, and delete")
     func customPresetsPersist() {
         let suiteName = "PromptPresetTests.\(UUID().uuidString)"

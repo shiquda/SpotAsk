@@ -1,6 +1,12 @@
 import AppKit
 import SwiftUI
 
+private final class SettingsWindow: NSWindow {
+    override func cancelOperation(_ sender: Any?) {
+        performClose(sender)
+    }
+}
+
 /// Presents `SettingsView` in a standard, independent macOS window instead of
 /// an attached sheet. The window is titled, draggable, closable via its normal
 /// close control, and reusable: repeated requests bring the same window to the
@@ -52,7 +58,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 
         // SettingsView carries a fixed 860×590 frame; size the window to fit it.
         let contentRect = NSRect(origin: .zero, size: NSSize(width: 860, height: 590))
-        let window = NSWindow(
+        let window = SettingsWindow(
             contentRect: contentRect,
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,

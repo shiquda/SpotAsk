@@ -77,6 +77,12 @@ struct SpotAskApp: App {
 
     var body: some Scene {
         Settings { EmptyView() }
+            // Settings are presented by SettingsWindowController. Replacing
+            // the system command prevents its empty Settings scene from also
+            // opening when the in-app Command-comma shortcut is used.
+            .commands {
+                CommandGroup(replacing: .appSettings) { }
+            }
     }
 }
 
