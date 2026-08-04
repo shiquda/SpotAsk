@@ -86,6 +86,42 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
     }
 }
 
+enum PromptPresetOrder {
+    static func targetIndex(
+        in orderedRowMidYs: [CGFloat],
+        currentIndex: Int,
+        pointerY: CGFloat,
+        hysteresis: CGFloat
+    ) -> Int? {
+        guard orderedRowMidYs.indices.contains(currentIndex) else { return nil }
+        let threshold = max(0, hysteresis)
+
+        if pointerY < orderedRowMidYs[currentIndex] - threshold {
+            return orderedRowMidYs.firstIndex { pointerY < $0 - threshold } ?? 0
+        }
+        if pointerY > orderedRowMidYs[currentIndex] + threshold {
+            return orderedRowMidYs.lastIndex { pointerY > $0 + threshold }
+                ?? orderedRowMidYs.count - 1
+        }
+        return currentIndex
+    }
+
+    static func moving(
+        _ presets: [PromptPreset],
+        id: UUID,
+        to targetIndex: Int
+    ) -> [PromptPreset] {
+        guard let sourceIndex = presets.firstIndex(where: { $0.id == id }) else { return presets }
+        let destinationIndex = min(max(targetIndex, 0), presets.count - 1)
+        guard sourceIndex != destinationIndex else { return presets }
+
+        var reordered = presets
+        let preset = reordered.remove(at: sourceIndex)
+        reordered.insert(preset, at: destinationIndex)
+        return reordered
+    }
+}
+
 enum HotKeyPreset: String, CaseIterable, Identifiable {
     case optionSpace
     case controlSpace
@@ -336,6 +372,19 @@ final class AppSettings {
         let preset = promptPresetCatalog.remove(at: sourceIndex)
         let insertionIndex = sourceIndex < destinationIndex ? destinationIndex - 1 : destinationIndex
         promptPresetCatalog.insert(preset, at: insertionIndex)
+    }
+
+    /// Applies a completed reorder in one catalog update. Callers can freely
+    /// stage transient drag positions without writing UserDefaults until the
+    /// final order is known.
+    func commitPromptPresetOrder(_ orderedIDs: [UUID]) {
+        guard orderedIDs.count == promptPresetCatalog.count,
+              Set(orderedIDs).count == orderedIDs.count,
+              Set(orderedIDs) == Set(promptPresetCatalog.map(\.id)),
+              orderedIDs != promptPresetCatalog.map(\.id) else { return }
+
+        let presetsByID = Dictionary(uniqueKeysWithValues: promptPresetCatalog.map { ($0.id, $0) })
+        promptPresetCatalog = orderedIDs.compactMap { presetsByID[$0] }
     }
 
     func enabledPromptPreset(id: UUID) -> PromptPreset? {

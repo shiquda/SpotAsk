@@ -111,6 +111,115 @@ struct PromptPresetTests {
         #expect(settings.promptPresets.map(\.id) == originalIDs)
     }
 
+    @Test("Completed prompt reorder commits a staged first-to-last move and persists it")
+    func completedPromptReorderCommitsStagedFirstToLastMove() {
+        let suiteName = "PromptPresetTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let custom = PromptPreset(title: "邮件改写", instruction: "改写为简洁邮件。")
+        #expect(settings.saveCustomPromptPreset(custom))
+
+        let originalIDs = settings.promptPresets.map(\.id)
+        let firstID = try! #require(originalIDs.first)
+        let stagedIDs = PromptPresetOrder.moving(
+            settings.promptPresets,
+            id: firstID,
+            to: settings.promptPresets.count - 1
+        ).map(\.id)
+
+        #expect(stagedIDs == Array(originalIDs.dropFirst()) + [firstID])
+        // The local drag order does not touch settings until the final commit.
+        #expect(settings.promptPresets.map(\.id) == originalIDs)
+        settings.commitPromptPresetOrder(stagedIDs)
+
+        #expect(settings.promptPresets.map(\.id) == stagedIDs)
+        #expect(AppSettings(defaults: defaults).promptPresets.map(\.id) == stagedIDs)
+    }
+
+    @Test("Single-frame drag target selection clamps a first item to the final row")
+    func singleFrameDragTargetClampsFirstItemToFinalRow() {
+        let rowMidYs: [CGFloat] = [20, 60, 100, 140]
+
+        #expect(
+            PromptPresetOrder.targetIndex(
+                in: rowMidYs,
+                currentIndex: 0,
+                pointerY: 10_000,
+                hysteresis: 6
+            ) == rowMidYs.count - 1
+        )
+    }
+
+    @Test("Single-frame drag target selection clamps a final item to the first row")
+    func singleFrameDragTargetClampsFinalItemToFirstRow() {
+        let rowMidYs: [CGFloat] = [20, 60, 100, 140]
+
+        #expect(
+            PromptPresetOrder.targetIndex(
+                in: rowMidYs,
+                currentIndex: rowMidYs.count - 1,
+                pointerY: -10_000,
+                hysteresis: 6
+            ) == 0
+        )
+    }
+
+    @Test("Drag target selection preserves adjacent-row hysteresis boundaries")
+    func dragTargetSelectionPreservesHysteresisBoundaries() {
+        let rowMidYs: [CGFloat] = [20, 60, 100]
+        let rowHeight: CGFloat = 40
+        let hysteresis = rowHeight * 0.15
+
+        #expect(
+            PromptPresetOrder.targetIndex(
+                in: rowMidYs,
+                currentIndex: 1,
+                pointerY: rowMidYs[0] - hysteresis,
+                hysteresis: hysteresis
+            ) == 1
+        )
+        #expect(
+            PromptPresetOrder.targetIndex(
+                in: rowMidYs,
+                currentIndex: 1,
+                pointerY: rowMidYs[0] - hysteresis - 0.1,
+                hysteresis: hysteresis
+            ) == 0
+        )
+        #expect(
+            PromptPresetOrder.targetIndex(
+                in: rowMidYs,
+                currentIndex: 1,
+                pointerY: rowMidYs[2] + hysteresis,
+                hysteresis: hysteresis
+            ) == 1
+        )
+        #expect(
+            PromptPresetOrder.targetIndex(
+                in: rowMidYs,
+                currentIndex: 1,
+                pointerY: rowMidYs[2] + hysteresis + 0.1,
+                hysteresis: hysteresis
+            ) == 2
+        )
+    }
+
+    @Test("Incomplete or duplicate staged prompt orders are rejected")
+    func invalidCompletedPromptOrdersAreRejected() {
+        let suiteName = "PromptPresetTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let originalIDs = settings.promptPresets.map(\.id)
+        let firstID = try! #require(originalIDs.first)
+
+        settings.commitPromptPresetOrder(Array(originalIDs.dropLast()))
+        settings.commitPromptPresetOrder(Array(repeating: firstID, count: originalIDs.count))
+
+        #expect(settings.promptPresets.map(\.id) == originalIDs)
+    }
+
     @Test("System shortcut prompt lookup stops at disabled built-in prompts")
     func disabledBuiltInPromptsAreUnavailableToSystemShortcuts() {
         let suiteName = "PromptPresetTests.\(UUID().uuidString)"

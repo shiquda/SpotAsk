@@ -115,6 +115,23 @@ struct SettingsLayoutTests {
         }
     }
 
+    @Test func promptPresetTogglesKeepOneTrailingColumnForBuiltInAndCustomRows() throws {
+        let fixture = makeWindow(section: .prompts, includingCustomPrompt: true)
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+
+        let switches = descendants(of: NSSwitch.self, in: fixture.hostingView)
+        #expect(switches.count == PromptPreset.builtIn.count + 1)
+
+        let frames = switches.map { $0.convert($0.bounds, to: fixture.hostingView) }
+        let reference = try #require(frames.first)
+        for frame in frames {
+            #expect(
+                abs(frame.minX - reference.minX) < 1 && abs(frame.maxX - reference.maxX) < 1,
+                "Every prompt enable control must remain in the shared trailing column: \(frames)"
+            )
+        }
+    }
+
     // MARK: - Horizontal bounds
 
     @Test func fixedSettingsWindowKeepsSidebarAndServiceChromeInsideBounds() throws {
@@ -221,10 +238,18 @@ struct SettingsLayoutTests {
         #expect(expected.accessKey.count == 1)
     }
 
-    private func makeWindow(section: SettingsSection) -> SettingsWindowFixture {
+    private func makeWindow(
+        section: SettingsSection,
+        includingCustomPrompt: Bool = false
+    ) -> SettingsWindowFixture {
         let suiteName = "SettingsLayoutTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         let settings = AppSettings(defaults: defaults)
+        if includingCustomPrompt {
+            _ = settings.saveCustomPromptPreset(
+                PromptPreset(title: "Custom", instruction: "Custom prompt instruction.")
+            )
+        }
         let hostingView = NSHostingView(rootView: AnyView(
             SettingsView(
                 settings: settings,
