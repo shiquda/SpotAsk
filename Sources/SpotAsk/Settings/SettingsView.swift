@@ -102,6 +102,7 @@ struct SettingsView: View {
         }
         .frame(width: 860, height: 590)
         .background(Color(nsColor: .windowBackgroundColor))
+        .preferredColorScheme(settings.appearance.colorScheme)
     }
 }
 

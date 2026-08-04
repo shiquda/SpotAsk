@@ -565,11 +565,7 @@ struct ChatView: View {
     }
 
     private var colorScheme: ColorScheme? {
-        switch settings.appearance {
-        case .system: nil
-        case .light: .light
-        case .dark: .dark
-        }
+        settings.appearance.colorScheme
     }
 
     private var contentFont: Font {
@@ -864,12 +860,24 @@ private struct HeaderMaterial: View {
 /// variants are derived with `darker` / `opacity` (the oklch-relative
 /// adjustments of the prototype), never with a new hard-coded color.
 private enum Brand {
-    static let bg = Color(red: 1, green: 1, blue: 1)
-    static let surface = Color(red: 0xF7 / 255, green: 0xF8 / 255, blue: 0xFA / 255)
-    static let fg = Color(red: 0x11 / 255, green: 0x11 / 255, blue: 0x11 / 255)
-    static let muted = Color(red: 0x6B / 255, green: 0x72 / 255, blue: 0x80 / 255)
-    static let border = Color(red: 0xD9 / 255, green: 0xDE / 255, blue: 0xE7 / 255)
+    static let bg = dynamic(light: 0xFFFFFF, dark: 0x17191D)
+    static let surface = dynamic(light: 0xF7F8FA, dark: 0x22252B)
+    static let fg = dynamic(light: 0x111111, dark: 0xF4F5F7)
+    static let muted = dynamic(light: 0x6B7280, dark: 0xA9B1BD)
+    static let border = dynamic(light: 0xD9DEE7, dark: 0x3C424C)
     static let accent = Color(red: 0x16 / 255, green: 0x77 / 255, blue: 0xFF / 255)
+
+    private static func dynamic(light: Int, dark: Int) -> Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            let value = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+            return NSColor(
+                red: CGFloat((value >> 16) & 0xFF) / 255,
+                green: CGFloat((value >> 8) & 0xFF) / 255,
+                blue: CGFloat(value & 0xFF) / 255,
+                alpha: 1
+            )
+        })
+    }
 }
 
 private extension Color {

@@ -1,8 +1,11 @@
-import Foundation
 import Observation
+import AppKit
+import Foundation
+import SwiftUI
 
 extension Notification.Name {
     static let spotAskMenuBarIconVisibilityChanged = Notification.Name("com.spotask.menu-bar-icon-visibility-changed")
+    static let spotAskAppearanceChanged = Notification.Name("com.spotask.appearance-changed")
 }
 
 struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
@@ -141,7 +144,32 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
     case system
     case light
     case dark
+
     var id: String { rawValue }
+
+    /// The matching SwiftUI override. `nil` deliberately inherits the system
+    /// appearance instead of pinning a view to the current system value.
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
+        }
+    }
+
+    /// The matching AppKit override for independently hosted windows.
+    var nsAppearance: NSAppearance? {
+        switch self {
+        case .system: nil
+        case .light: NSAppearance(named: .aqua)
+        case .dark: NSAppearance(named: .darkAqua)
+        }
+    }
+
+    @MainActor
+    func apply(to window: NSWindow) {
+        window.appearance = nsAppearance
+    }
 }
 
 enum FontSize: String, CaseIterable, Identifiable {
@@ -225,7 +253,12 @@ final class AppSettings {
         didSet { defaults.set(escapeStartsNewConversation, forKey: Key.escapeStartsNewConversation) }
     }
     var launchAtLogin: Bool { didSet { defaults.set(launchAtLogin, forKey: Key.launchAtLogin) } }
-    var appearance: AppearanceMode { didSet { defaults.set(appearance.rawValue, forKey: Key.appearance) } }
+    var appearance: AppearanceMode {
+        didSet {
+            defaults.set(appearance.rawValue, forKey: Key.appearance)
+            NotificationCenter.default.post(name: .spotAskAppearanceChanged, object: self)
+        }
+    }
     var fontSize: FontSize { didSet { defaults.set(fontSize.rawValue, forKey: Key.fontSize) } }
     var language: AppLanguage {
         didSet {

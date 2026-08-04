@@ -25,6 +25,17 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
 
     init(settings: AppSettings = .shared) {
         self.settings = settings
+        super.init()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(applyCurrentAppearance),
+            name: .spotAskAppearanceChanged,
+            object: settings
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     func setContent(_ content: @escaping () -> AnyView) {
@@ -36,6 +47,7 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
 
     func show() {
         let panel = makePanelIfNeeded()
+        applyCurrentAppearance()
         constrain(panel)
         if shouldCenterNormalizedInitialSize {
             center(panel)
@@ -104,6 +116,7 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
         panel.titlebarAppearsTransparent = true
         panel.isReleasedWhenClosed = false
         panel.isMovableByWindowBackground = true
+        settings.appearance.apply(to: panel)
         applyWindowLevel(panel)
         panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
@@ -131,6 +144,11 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
         guard let panel else { return }
         panel.level = settings.keepWindowOnTop ? .floating : .normal
         panel.isFloatingPanel = settings.keepWindowOnTop
+    }
+
+    @objc private func applyCurrentAppearance() {
+        guard let panel else { return }
+        settings.appearance.apply(to: panel)
     }
 
     /// Match the header's continuous geometry without relying on a private

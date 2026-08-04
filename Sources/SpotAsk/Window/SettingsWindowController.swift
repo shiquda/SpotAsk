@@ -45,12 +45,23 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         self.providerFactory = providerFactory
         self.onClose = onClose
         super.init()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(applyCurrentAppearance),
+            name: .spotAskAppearanceChanged,
+            object: settings
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     /// Shows the settings window, creating it on first use and bringing it to
     /// the front on every subsequent request.
     func show() {
         let window = makeWindowIfNeeded()
+        applyCurrentAppearance()
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
     }
@@ -79,10 +90,16 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         )
         window.title = L10n.string("settings.title")
         window.contentView = hostingView
+        settings.appearance.apply(to: window)
         window.isReleasedWhenClosed = false
         window.delegate = self
         window.center()
         self.window = window
         return window
+    }
+
+    @objc private func applyCurrentAppearance() {
+        guard let window else { return }
+        settings.appearance.apply(to: window)
     }
 }
