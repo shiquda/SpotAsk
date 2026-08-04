@@ -193,6 +193,8 @@
 "settings.new" = "新建";
 "settings.newPrompt" = "新建提示词";
 "settings.promptContent" = "内容";
+"settings.promptCatalogDescription" = "拖动调整顺序。关闭后不会在提问窗口显示，也不会响应快捷键或系统快捷指令。";
+"settings.promptEnabled" = "启用";
 "settings.prompts" = "提示词";
 "settings.promptsDescription" = "在提问窗口选择提示词，可仅用于下一次提问；也可以设为默认指令。";
 "settings.provider" = "服务设置";

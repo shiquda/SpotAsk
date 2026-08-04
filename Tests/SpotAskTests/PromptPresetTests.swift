@@ -33,6 +33,62 @@ struct PromptPresetTests {
         #expect(settings.customPromptPresets.isEmpty)
     }
 
+    @Test("Legacy custom presets migrate into one persistent prompt catalog")
+    func legacyCustomPresetsMigrateIdempotently() throws {
+        let suiteName = "PromptPresetTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let legacyPreset = PromptPreset(title: "邮件改写", instruction: "改写为简洁邮件。")
+        var legacyJSON = try #require(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode([legacyPreset])) as? [[String: Any]]
+        )
+        legacyJSON[0].removeValue(forKey: "isEnabled")
+        let legacyData = try JSONSerialization.data(withJSONObject: legacyJSON)
+        defaults.set(legacyData, forKey: "customPromptPresets")
+
+        let migrated = AppSettings(defaults: defaults)
+        #expect(migrated.promptPresets.map(\.id) == PromptPreset.builtIn.map(\.id) + [legacyPreset.id])
+        #expect(migrated.customPromptPresets == [legacyPreset])
+        #expect(defaults.data(forKey: "promptPresetCatalog") != nil)
+
+        let reloaded = AppSettings(defaults: defaults)
+        #expect(reloaded.promptPresets == migrated.promptPresets)
+        #expect(reloaded.customPromptPresets == [legacyPreset])
+    }
+
+    @Test("Prompt catalog order and enabled state persist")
+    func promptCatalogOrderAndEnabledStatePersist() {
+        let suiteName = "PromptPresetTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let custom = PromptPreset(title: "邮件改写", instruction: "改写为简洁邮件。")
+        #expect(settings.saveCustomPromptPreset(custom))
+
+        let translate = PromptPreset.builtIn[0]
+        settings.movePromptPreset(id: custom.id, before: translate.id)
+        settings.setPromptPresetEnabled(id: translate.id, isEnabled: false)
+
+        let reloaded = AppSettings(defaults: defaults)
+        #expect(reloaded.promptPresets.first?.id == custom.id)
+        #expect(reloaded.enabledPromptPreset(id: translate.id) == nil)
+        #expect(!reloaded.enabledPromptPresets.contains(where: { $0.id == translate.id }))
+    }
+
+    @Test("System shortcut prompt lookup stops at disabled built-in prompts")
+    func disabledBuiltInPromptsAreUnavailableToSystemShortcuts() {
+        let suiteName = "PromptPresetTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let translate = PromptPreset.builtIn[0]
+
+        #expect(enabledBuiltInPromptPreset(id: translate.id, settings: settings)?.id == translate.id)
+        settings.setPromptPresetEnabled(id: translate.id, isEnabled: false)
+        #expect(enabledBuiltInPromptPreset(id: translate.id, settings: settings) == nil)
+        #expect(settings.promptPresetAllowedForUse(translate) == nil)
+    }
+
     @Test("A selected preset applies to one request only")
     func selectedPresetAppliesToOneRequestOnly() async {
         let suiteName = "PromptPresetTests.\(UUID().uuidString)"

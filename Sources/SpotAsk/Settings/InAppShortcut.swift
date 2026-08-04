@@ -240,13 +240,11 @@ struct InAppShortcutConfiguration: Codable, Equatable, Sendable {
         let operationAssignments = operations.map {
             InAppShortcutAssignment(target: .operation($0.0), shortcut: $0.1)
         }
-        let builtInIDs = Set(PromptPreset.builtIn.map(\.id))
-        let builtIn = presets.filter { builtInIDs.contains($0.id) }
-        let custom = presets.filter { !builtInIDs.contains($0.id) }
-        let promptAssignments = builtIn.prefix(4).enumerated().map {
+        // The catalog order is the shortcut order. A freshly migrated catalog
+        // starts with the historical four built-ins followed by custom prompts,
+        // preserving existing Command-1 through Command-9 assignments.
+        let promptAssignments = presets.prefix(9).enumerated().map {
             InAppShortcutAssignment(target: .promptPreset($0.element.id), shortcut: .command("\($0.offset + 1)"))
-        } + custom.prefix(5).enumerated().map {
-            InAppShortcutAssignment(target: .promptPreset($0.element.id), shortcut: .command("\($0.offset + 5)"))
         }
         return operationAssignments + promptAssignments
     }

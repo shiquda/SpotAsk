@@ -249,6 +249,34 @@ final class ChatViewModelTests: XCTestCase {
         XCTAssertEqual(recorder.requests[1].messages.first?.content, "You are a helpful assistant.\n\nPolish with extra care")
     }
 
+    func testRegenerateDoesNotReuseDisabledOneShotPrompt() async {
+        let suiteName = "SpotAskTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let preset = PromptPreset(title: "Custom Polish", instruction: "Polish with extra care")
+        XCTAssertTrue(settings.saveCustomPromptPreset(preset))
+        let recorder = RequestRecorder()
+        let viewModel = ChatViewModel(
+            settings: settings,
+            providerFactory: MockFactory(recorder: recorder, scripts: [[.answer("a1")], [.answer("a2")]]),
+            sessionStore: SessionStore(bundleIdentifier: suiteName)
+        )
+
+        viewModel.selectedPromptPreset = preset
+        viewModel.input = "question"
+        viewModel.send()
+        await waitForIdle(viewModel)
+        settings.setPromptPresetEnabled(id: preset.id, isEnabled: false)
+
+        viewModel.regenerate()
+        await waitForIdle(viewModel)
+
+        XCTAssertEqual(recorder.requests.count, 2)
+        XCTAssertEqual(recorder.requests[1].messages.first?.content, "You are a helpful assistant.")
+        XCTAssertFalse(recorder.requests[1].messages.contains { $0.content.contains(preset.instruction) })
+    }
+
     func testRegenerateLooksUpOneShotPromptByTitleForRestoredSession() async {
         let recorder = RequestRecorder()
         let preset = PromptPreset(title: "Custom Polish", instruction: "Polish with extra care")

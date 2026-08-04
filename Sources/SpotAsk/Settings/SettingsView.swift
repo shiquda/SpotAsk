@@ -1,6 +1,7 @@
 import AppKit
 import Observation
 import ServiceManagement
+import Foundation
 import SwiftUI
 
 enum SettingsSection: CaseIterable, Hashable, Identifiable {
@@ -780,6 +781,7 @@ private struct ModelDetailForm: View {
 private struct PromptPresetsSettingsPage: View {
     @Bindable var settings: AppSettings
     @State private var editorPreset: PromptPreset?
+    @State private var draggedPresetID: UUID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
@@ -787,17 +789,8 @@ private struct PromptPresetsSettingsPage: View {
             SettingsCallout(L10n.string("settings.promptsDescription"))
 
             SettingsGroup(title: L10n.string("settings.savedPrompts")) {
-                ForEach(PromptPreset.builtIn) { preset in
-                    PromptPresetRow(preset: preset) {
-                        settings.systemPrompt = preset.instruction
-                    }
-                    if preset.id != PromptPreset.builtIn.last?.id { Divider() }
-                }
-            }
-
-            SettingsGroup(title: L10n.string("settings.customPrompts")) {
                 HStack {
-                    Text(L10n.string("settings.customPromptsDescription"))
+                    Text(L10n.string("settings.promptCatalogDescription"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -809,22 +802,27 @@ private struct PromptPresetsSettingsPage: View {
                     .buttonStyle(.bordered)
                 }
 
-                if settings.customPromptPresets.isEmpty {
-                    Text(L10n.string("settings.customPromptEmpty"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.vertical, 6)
-                } else {
+                ForEach(settings.promptPresets) { preset in
                     Divider()
-                    ForEach(settings.customPromptPresets) { preset in
-                        PromptPresetRow(
-                            preset: preset,
-                            onSetDefault: { settings.systemPrompt = preset.instruction },
-                            onEdit: { editorPreset = preset },
-                            onDelete: { settings.deleteCustomPromptPreset(id: preset.id) }
-                        )
-                        if preset.id != settings.customPromptPresets.last?.id { Divider() }
+                    PromptPresetRow(
+                        preset: preset,
+                        settings: settings,
+                        onSetDefault: { settings.systemPrompt = preset.instruction },
+                        onEdit: preset.isBuiltIn ? nil : { editorPreset = preset },
+                        onDelete: preset.isBuiltIn ? nil : { settings.deleteCustomPromptPreset(id: preset.id) }
+                    )
+                    .onDrag {
+                        draggedPresetID = preset.id
+                        return NSItemProvider(object: preset.id.uuidString as NSString)
                     }
+                    .onDrop(
+                        of: [.text],
+                        delegate: PromptPresetDropDelegate(
+                            destinationID: preset.id,
+                            draggedPresetID: $draggedPresetID,
+                            onMove: settings.movePromptPreset(id:before:)
+                        )
+                    )
                 }
             }
 
@@ -847,14 +845,20 @@ private struct PromptPresetsSettingsPage: View {
     }
 }
 
+@MainActor
 private struct PromptPresetRow: View {
     let preset: PromptPreset
+    @Bindable var settings: AppSettings
     let onSetDefault: () -> Void
     var onEdit: (() -> Void)?
     var onDelete: (() -> Void)?
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "line.3.horizontal")
+                .foregroundStyle(.tertiary)
+                .padding(.top, 4)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(preset.title)
                     .font(.system(size: 14, weight: .semibold))
@@ -866,6 +870,15 @@ private struct PromptPresetRow: View {
             }
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 7) {
+                Toggle(
+                    L10n.string("settings.promptEnabled"),
+                    isOn: Binding(
+                        get: { preset.isEnabled },
+                        set: { settings.setPromptPresetEnabled(id: preset.id, isEnabled: $0) }
+                    )
+                )
+                .toggleStyle(.switch)
+                .controlSize(.small)
                 Button(L10n.string("settings.defaultInstruction"), action: onSetDefault)
                     .buttonStyle(.borderless)
                     .help(L10n.string("settings.defaultInstruction"))
@@ -887,6 +900,26 @@ private struct PromptPresetRow: View {
                 }
             }
         }
+    }
+}
+
+private struct PromptPresetDropDelegate: DropDelegate {
+    let destinationID: UUID
+    @Binding var draggedPresetID: UUID?
+    let onMove: (UUID, UUID) -> Void
+
+    func dropEntered(info: DropInfo) {
+        guard let draggedPresetID, draggedPresetID != destinationID else { return }
+        onMove(draggedPresetID, destinationID)
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggedPresetID = nil
+        return true
     }
 }
 
@@ -984,14 +1017,14 @@ private struct ShortcutSettingsPage: View {
             }
 
             SettingsGroup(title: L10n.string("settings.shortcutPrompts")) {
-                ForEach(settings.promptPresets) { preset in
+                ForEach(settings.enabledPromptPresets) { preset in
                     ShortcutSettingsRow(
                         title: preset.title,
                         target: .promptPreset(preset.id),
                         settings: settings,
                         feedback: $feedback
                     )
-                    if preset.id != settings.promptPresets.last?.id { Divider() }
+                    if preset.id != settings.enabledPromptPresets.last?.id { Divider() }
                 }
             }
 

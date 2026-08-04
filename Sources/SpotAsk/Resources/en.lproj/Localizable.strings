@@ -193,6 +193,8 @@
 "settings.newPrompt" = "New Prompt";
 "settings.namePlaceholder" = "For example: Rewrite an email";
 "settings.promptContent" = "Content";
+"settings.promptCatalogDescription" = "Drag to change the order. Turned-off prompts are unavailable in the question window, shortcuts, and system shortcuts.";
+"settings.promptEnabled" = "Enabled";
 "settings.prompts" = "Prompts";
 "settings.promptsDescription" = "Choose a prompt in the question window to use it for your next question, or set it as the default instruction.";
 "settings.provider" = "Service";

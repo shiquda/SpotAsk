@@ -1,4 +1,11 @@
 import AppIntents
+import Foundation
+
+@MainActor
+func enabledBuiltInPromptPreset(id: UUID, settings: AppSettings) -> PromptPreset? {
+    guard PromptPreset.builtIn.contains(where: { $0.id == id }) else { return nil }
+    return settings.enabledPromptPreset(id: id)
+}
 
 struct OpenSpotAskIntent: AppIntent {
     static let title: LocalizedStringResource = "打开 SpotAsk"
@@ -77,7 +84,12 @@ struct TranslateWithSpotAskIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        await SpotAskCommandCenter.shared.ask(text, promptPreset: PromptPreset.builtIn[0])
+        guard let preset = await MainActor.run(body: {
+            enabledBuiltInPromptPreset(id: PromptPreset.builtIn[0].id, settings: AppSettings.shared)
+        }) else {
+            return .result()
+        }
+        await SpotAskCommandCenter.shared.ask(text, promptPreset: preset)
         return .result()
     }
 }
@@ -110,7 +122,12 @@ struct PolishWithSpotAskIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        await SpotAskCommandCenter.shared.ask(text, promptPreset: PromptPreset.builtIn[3])
+        guard let preset = await MainActor.run(body: {
+            enabledBuiltInPromptPreset(id: PromptPreset.builtIn[3].id, settings: AppSettings.shared)
+        }) else {
+            return .result()
+        }
+        await SpotAskCommandCenter.shared.ask(text, promptPreset: preset)
         return .result()
     }
 }
@@ -143,7 +160,12 @@ struct SummarizeWithSpotAskIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        await SpotAskCommandCenter.shared.ask(text, promptPreset: PromptPreset.builtIn[2])
+        guard let preset = await MainActor.run(body: {
+            enabledBuiltInPromptPreset(id: PromptPreset.builtIn[2].id, settings: AppSettings.shared)
+        }) else {
+            return .result()
+        }
+        await SpotAskCommandCenter.shared.ask(text, promptPreset: preset)
         return .result()
     }
 }
@@ -176,7 +198,12 @@ struct ExplainWithSpotAskIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        await SpotAskCommandCenter.shared.ask(text, promptPreset: PromptPreset.builtIn[1])
+        guard let preset = await MainActor.run(body: {
+            enabledBuiltInPromptPreset(id: PromptPreset.builtIn[1].id, settings: AppSettings.shared)
+        }) else {
+            return .result()
+        }
+        await SpotAskCommandCenter.shared.ask(text, promptPreset: preset)
         return .result()
     }
 }

@@ -126,6 +126,9 @@ struct ChatView: View {
         .onChange(of: viewModel.messages) { _, messages in
             reasoningToggle.reconcile(messages: messages)
         }
+        .onChange(of: settings.promptPresets) { _, _ in
+            synchronizeSelectedPromptPreset()
+        }
     }
 
     private var header: some View {
@@ -223,7 +226,7 @@ struct ChatView: View {
                     .font(.system(size: 13))
                     .foregroundStyle(Brand.muted)
                 PresetStripView(
-                    presets: settings.promptPresets,
+                    presets: settings.enabledPromptPresets,
                     selection: $viewModel.selectedPromptPreset,
                     showsShortcutHints: showsShortcutHints,
                     shortcutForPreset: shortcutHint(for:),
@@ -409,7 +412,7 @@ struct ChatView: View {
             HStack(alignment: .bottom, spacing: 8) {
                 if !viewModel.messages.isEmpty {
                     PresetPopoverTrigger(
-                        presets: settings.promptPresets,
+                        presets: settings.enabledPromptPresets,
                         selection: $viewModel.selectedPromptPreset,
                         isPresented: $isPresetPopoverPresented,
                         showsShortcutHints: showsShortcutHints,
@@ -505,7 +508,10 @@ struct ChatView: View {
 
     private func primaryAction() {
         if isGenerating { viewModel.cancel() }
-        else { viewModel.send() }
+        else {
+            synchronizeSelectedPromptPreset()
+            viewModel.send()
+        }
     }
 
     private func installShortcutDispatcher() {
@@ -538,7 +544,7 @@ struct ChatView: View {
     private func performShortcutTarget(_ target: InAppShortcutTarget) -> Bool {
         switch target {
         case let .promptPreset(id):
-            guard let preset = settings.promptPresets.first(where: { $0.id == id }) else { return false }
+            guard let preset = settings.enabledPromptPreset(id: id) else { return false }
             applyPreset(shortcutPresetSelection(current: viewModel.selectedPromptPreset, requested: preset))
             return true
         case let .operation(operation):
@@ -620,11 +626,21 @@ struct ChatView: View {
             inputFocused = true
             return
         }
-        viewModel.selectedPromptPreset = preset
+        guard let enabledPreset = settings.promptPresetAllowedForUse(preset) else {
+            viewModel.selectedPromptPreset = nil
+            inputFocused = true
+            return
+        }
+        viewModel.selectedPromptPreset = enabledPreset
         inputFocused = true
         guard !viewModel.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               viewModel.canSend else { return }
         viewModel.send()
+    }
+
+    private func synchronizeSelectedPromptPreset() {
+        guard let selectedPreset = viewModel.selectedPromptPreset else { return }
+        viewModel.selectedPromptPreset = settings.promptPresetAllowedForUse(selectedPreset)
     }
 
     private func newConversation() {
@@ -686,7 +702,7 @@ struct ChatView: View {
             inputFocused = true
             viewModel.offerSessionChoiceIfNeeded()
         case let .prepare(promptPreset):
-            viewModel.selectedPromptPreset = promptPreset
+            viewModel.selectedPromptPreset = settings.promptPresetAllowedForUse(promptPreset)
             inputFocused = true
         case .newConversation:
             newConversation()
@@ -706,7 +722,7 @@ struct ChatView: View {
         // An explicit external question intentionally continues a restored
         // session, rather than leaving it blocked behind the interactive choice.
         viewModel.continueSession()
-        viewModel.selectedPromptPreset = promptPreset
+        viewModel.selectedPromptPreset = promptPreset.flatMap(settings.promptPresetAllowedForUse)
         // Do not start a second request while the view model is still unwinding
         // a cancelled stream. The supplied question remains ready to send.
         guard !isGenerating else {

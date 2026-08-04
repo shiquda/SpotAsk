@@ -150,8 +150,10 @@ final class ChatViewModel {
     /// by title; the in-memory preset wins while it is still around.
     private func promptPresetForLastUserMessage() -> PromptPreset? {
         guard let title = messages.last(where: { $0.role == .user })?.appliedPresetTitle else { return nil }
-        if retryPromptPreset?.title == title { return retryPromptPreset }
-        return settings.promptPresets.first { $0.title == title }
+        if let retryPromptPreset, retryPromptPreset.title == title {
+            return settings.promptPresetAllowedForUse(retryPromptPreset)
+        }
+        return settings.enabledPromptPresets.first { $0.title == title }
     }
 
     private func beginRequest(using promptPreset: PromptPreset? = nil) {

@@ -10,17 +10,38 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
     var title: String
     var instruction: String
     let isBuiltIn: Bool
+    var isEnabled: Bool
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case instruction
+        case isBuiltIn
+        case isEnabled
+    }
 
     init(
         id: UUID = UUID(),
         title: String,
         instruction: String,
-        isBuiltIn: Bool = false
+        isBuiltIn: Bool = false,
+        isEnabled: Bool = true
     ) {
         self.id = id
         self.title = title
         self.instruction = instruction
         self.isBuiltIn = isBuiltIn
+        self.isEnabled = isEnabled
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        instruction = try container.decode(String.self, forKey: .instruction)
+        isBuiltIn = try container.decode(Bool.self, forKey: .isBuiltIn)
+        // Prompt presets saved before the catalog always remain enabled.
+        isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
     }
 
     static var builtIn: [PromptPreset] {
@@ -129,6 +150,7 @@ final class AppSettings {
         static let keepWindowOnTop = "keepWindowOnTop"
         static let showsMenuBarIcon = "showsMenuBarIcon"
         static let customPromptPresets = "customPromptPresets"
+        static let promptPresetCatalog = "promptPresetCatalog"
         static let inAppShortcutConfiguration = "inAppShortcutConfiguration"
     }
 
@@ -188,19 +210,28 @@ final class AppSettings {
         }
     }
     var keepWindowOnTop: Bool { didSet { defaults.set(keepWindowOnTop, forKey: Key.keepWindowOnTop) } }
-    var customPromptPresets: [PromptPreset] {
+    private var promptPresetCatalog: [PromptPreset] {
         didSet {
+            savePromptPresetCatalog()
             saveCustomPromptPresets()
             cleanUpShortcutAssignments()
         }
     }
 
     var promptPresets: [PromptPreset] {
-        PromptPreset.builtIn + customPromptPresets
+        promptPresetCatalog
+    }
+
+    var enabledPromptPresets: [PromptPreset] {
+        promptPresetCatalog.filter(\.isEnabled)
+    }
+
+    var customPromptPresets: [PromptPreset] {
+        promptPresetCatalog.filter { !$0.isBuiltIn }
     }
 
     var shortcutAssignments: [InAppShortcutAssignment] {
-        inAppShortcutConfiguration.resolvedAssignments(for: promptPresets)
+        inAppShortcutConfiguration.resolvedAssignments(for: enabledPromptPresets)
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -224,7 +255,7 @@ final class AppSettings {
         panelHeight = defaults.object(forKey: Key.panelHeight) as? Double ?? 520
         showsMenuBarIcon = defaults.object(forKey: Key.showsMenuBarIcon) as? Bool ?? true
         keepWindowOnTop = defaults.object(forKey: Key.keepWindowOnTop) as? Bool ?? false
-        customPromptPresets = Self.loadCustomPromptPresets(from: defaults)
+        promptPresetCatalog = Self.loadPromptPresetCatalog(from: defaults)
         inAppShortcutConfiguration = Self.loadInAppShortcutConfiguration(from: defaults)
         providerRegistryStorage = ProviderModelRegistry(
             defaults: defaults,
@@ -240,6 +271,8 @@ final class AppSettings {
             self?.applyCatalogProjection()
         }
         applyCatalogProjection()
+        savePromptPresetCatalog()
+        saveCustomPromptPresets()
         cleanUpShortcutAssignments()
     }
 
@@ -256,44 +289,77 @@ final class AppSettings {
         let instruction = preset.instruction.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty, !instruction.isEmpty else { return false }
 
-        let savedPreset = PromptPreset(id: preset.id, title: title, instruction: instruction)
-        if let index = customPromptPresets.firstIndex(where: { $0.id == preset.id }) {
-            customPromptPresets[index] = savedPreset
+        let savedPreset = PromptPreset(
+            id: preset.id,
+            title: title,
+            instruction: instruction,
+            isEnabled: promptPresetCatalog.first(where: { $0.id == preset.id })?.isEnabled ?? preset.isEnabled
+        )
+        if let index = promptPresetCatalog.firstIndex(where: { $0.id == preset.id && !$0.isBuiltIn }) {
+            promptPresetCatalog[index] = savedPreset
         } else {
-            customPromptPresets.append(savedPreset)
+            promptPresetCatalog.append(savedPreset)
         }
         return true
     }
 
     func deleteCustomPromptPreset(id: UUID) {
-        customPromptPresets.removeAll { $0.id == id }
+        promptPresetCatalog.removeAll { $0.id == id && !$0.isBuiltIn }
+    }
+
+    func setPromptPresetEnabled(id: UUID, isEnabled: Bool) {
+        guard let index = promptPresetCatalog.firstIndex(where: { $0.id == id }) else { return }
+        promptPresetCatalog[index].isEnabled = isEnabled
+    }
+
+    func movePromptPreset(id: UUID, before destinationID: UUID) {
+        guard id != destinationID,
+              let sourceIndex = promptPresetCatalog.firstIndex(where: { $0.id == id }),
+              let destinationIndex = promptPresetCatalog.firstIndex(where: { $0.id == destinationID }) else { return }
+        let preset = promptPresetCatalog.remove(at: sourceIndex)
+        let insertionIndex = sourceIndex < destinationIndex ? destinationIndex - 1 : destinationIndex
+        promptPresetCatalog.insert(preset, at: insertionIndex)
+    }
+
+    func enabledPromptPreset(id: UUID) -> PromptPreset? {
+        promptPresetCatalog.first(where: { $0.id == id && $0.isEnabled })
+    }
+
+    /// Resolves catalog entries to their current value and enabled state while
+    /// retaining compatibility with an already-buffered legacy action whose
+    /// custom preset was never written to this installation's catalog.
+    func promptPresetAllowedForUse(_ preset: PromptPreset) -> PromptPreset? {
+        guard let catalogPreset = promptPresetCatalog.first(where: { $0.id == preset.id }) else {
+            return preset
+        }
+        return catalogPreset.isEnabled ? catalogPreset : nil
     }
 
     func shortcut(for target: InAppShortcutTarget) -> InAppShortcut? {
-        inAppShortcutConfiguration.shortcut(for: target, presets: promptPresets)
+        inAppShortcutConfiguration.shortcut(for: target, presets: enabledPromptPresets)
     }
 
     func shortcutTarget(for shortcut: InAppShortcut) -> InAppShortcutTarget? {
-        inAppShortcutConfiguration.target(for: shortcut, presets: promptPresets)
+        inAppShortcutConfiguration.target(for: shortcut, presets: enabledPromptPresets)
     }
 
     @discardableResult
     func assignShortcut(_ shortcut: InAppShortcut, to target: InAppShortcutTarget) -> InAppShortcutAssignmentError? {
-        let error = inAppShortcutConfiguration.assign(shortcut, to: target, presets: promptPresets)
+        let error = inAppShortcutConfiguration.assign(shortcut, to: target, presets: enabledPromptPresets)
         if error == nil { saveInAppShortcutConfiguration() }
         return error
     }
 
     @discardableResult
     func removeShortcut(for target: InAppShortcutTarget) -> InAppShortcutAssignmentError? {
-        let error = inAppShortcutConfiguration.removeShortcut(for: target, presets: promptPresets)
+        let error = inAppShortcutConfiguration.removeShortcut(for: target, presets: enabledPromptPresets)
         if error == nil { saveInAppShortcutConfiguration() }
         return error
     }
 
     @discardableResult
     func resetShortcut(for target: InAppShortcutTarget) -> InAppShortcutAssignmentError? {
-        let error = inAppShortcutConfiguration.resetShortcut(for: target, presets: promptPresets)
+        let error = inAppShortcutConfiguration.resetShortcut(for: target, presets: enabledPromptPresets)
         if error == nil { saveInAppShortcutConfiguration() }
         return error
     }
@@ -306,6 +372,51 @@ final class AppSettings {
     private func saveCustomPromptPresets() {
         guard let data = try? JSONEncoder().encode(customPromptPresets) else { return }
         defaults.set(data, forKey: Key.customPromptPresets)
+    }
+
+    private func savePromptPresetCatalog() {
+        guard let data = try? JSONEncoder().encode(promptPresetCatalog) else { return }
+        defaults.set(data, forKey: Key.promptPresetCatalog)
+    }
+
+    private static func loadPromptPresetCatalog(from defaults: UserDefaults) -> [PromptPreset] {
+        let legacyCustomPresets = loadCustomPromptPresets(from: defaults)
+        guard let data = defaults.data(forKey: Key.promptPresetCatalog),
+              let catalog = try? JSONDecoder().decode([PromptPreset].self, from: data) else {
+            return normalizedPromptPresetCatalog(PromptPreset.builtIn + legacyCustomPresets)
+        }
+        return normalizedPromptPresetCatalog(catalog, legacyCustomPresets: legacyCustomPresets)
+    }
+
+    private static func normalizedPromptPresetCatalog(
+        _ catalog: [PromptPreset],
+        legacyCustomPresets: [PromptPreset] = []
+    ) -> [PromptPreset] {
+        let builtIns = Dictionary(uniqueKeysWithValues: PromptPreset.builtIn.map { ($0.id, $0) })
+        var seenIDs = Set<UUID>()
+        var normalized: [PromptPreset] = []
+
+        for preset in catalog where seenIDs.insert(preset.id).inserted {
+            if let builtIn = builtIns[preset.id] {
+                normalized.append(PromptPreset(
+                    id: builtIn.id,
+                    title: builtIn.title,
+                    instruction: builtIn.instruction,
+                    isBuiltIn: true,
+                    isEnabled: preset.isEnabled
+                ))
+            } else if !preset.isBuiltIn {
+                normalized.append(preset)
+            }
+        }
+
+        for builtIn in PromptPreset.builtIn where seenIDs.insert(builtIn.id).inserted {
+            normalized.append(builtIn)
+        }
+        for preset in legacyCustomPresets where seenIDs.insert(preset.id).inserted {
+            normalized.append(preset)
+        }
+        return normalized
     }
 
     private static func loadCustomPromptPresets(from defaults: UserDefaults) -> [PromptPreset] {
@@ -332,7 +443,7 @@ final class AppSettings {
     }
 
     private func cleanUpShortcutAssignments() {
-        guard inAppShortcutConfiguration.cleanUp(for: promptPresets) else { return }
+        guard inAppShortcutConfiguration.cleanUp(for: enabledPromptPresets) else { return }
         saveInAppShortcutConfiguration()
     }
 

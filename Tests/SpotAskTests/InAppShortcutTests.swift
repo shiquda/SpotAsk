@@ -98,6 +98,24 @@ struct InAppShortcutTests {
         #expect(!reloaded.shortcutAssignments.contains { $0.target == target })
     }
 
+    @Test("Disabling a prompt removes its shortcut from every resolution path")
+    func disabledPromptShortcutsAreCleanedUp() {
+        let fixture = makeSettings()
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+        let preset = PromptPreset.builtIn[0]
+        let target = InAppShortcutTarget.promptPreset(preset.id)
+
+        #expect(fixture.settings.assignShortcut(.command("z"), to: target) == nil)
+        #expect(fixture.settings.shortcutTarget(for: .command("z")) == target)
+        fixture.settings.setPromptPresetEnabled(id: preset.id, isEnabled: false)
+
+        #expect(fixture.settings.shortcut(for: target) == nil)
+        #expect(fixture.settings.shortcutTarget(for: .command("z")) == nil)
+        let reloaded = AppSettings(defaults: fixture.defaults)
+        #expect(reloaded.shortcut(for: target) == nil)
+        #expect(!reloaded.shortcutAssignments.contains { $0.target == target })
+    }
+
     @Test("Dispatcher resolves current assignments and leaves unavailable events alone")
     func dispatcherResolvesDynamicallyWithoutConsumingUnavailableEvents() throws {
         let fixture = makeSettings()
