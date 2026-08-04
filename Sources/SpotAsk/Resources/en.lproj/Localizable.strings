@@ -174,7 +174,6 @@
 "shortcut.newConversation" = "New conversation";
 "shortcut.sendOrCancel" = "Send or stop";
 "settings.customPromptsDescription" = "Create prompts for tasks you do often.";
-"settings.defaultInstruction" = "Set as default instruction";
 "settings.delete" = "Delete";
 "settings.edit" = "Edit";
 "settings.editPrompt" = "Edit Prompt";
@@ -198,8 +197,13 @@
 "settings.promptContent" = "Content";
 "settings.promptCatalogDescription" = "Drag to change the order. Turned-off prompts are unavailable in the question window, shortcuts, and system shortcuts.";
 "settings.promptEnabled" = "Enabled";
+"settings.promptPosition" = "%d of %d";
 "settings.prompts" = "Prompts";
-"settings.promptsDescription" = "Choose a prompt in the question window to use it for your next question, or set it as the default instruction.";
+"settings.promptsDescription" = "Choose a prompt in the question window to use it for your next question.";
+"settings.reorderHint" = "Drag to change the order.";
+"settings.reorderPrompt" = "Reorder %@";
+"settings.moveDown" = "Move down";
+"settings.moveUp" = "Move up";
 "settings.provider" = "Service";
 "settings.providerDescription" = "Manage your AI services and models.";
 "settings.reading" = "Reading";

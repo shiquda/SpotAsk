@@ -174,7 +174,6 @@
 "shortcut.newConversation" = "开始新对话";
 "shortcut.sendOrCancel" = "发送或停止";
 "settings.customPromptsDescription" = "新建适合自己常用任务的提示词。";
-"settings.defaultInstruction" = "设为默认指令";
 "settings.delete" = "删除";
 "settings.edit" = "编辑";
 "settings.editPrompt" = "编辑提示词";
@@ -198,8 +197,13 @@
 "settings.promptContent" = "内容";
 "settings.promptCatalogDescription" = "拖动调整顺序。关闭后不会在提问窗口显示，也不会响应快捷键或系统快捷指令。";
 "settings.promptEnabled" = "启用";
+"settings.promptPosition" = "第 %d 项，共 %d 项";
 "settings.prompts" = "提示词";
-"settings.promptsDescription" = "在提问窗口选择提示词，可仅用于下一次提问；也可以设为默认指令。";
+"settings.promptsDescription" = "在提问窗口选择提示词，可仅用于下一次提问。";
+"settings.reorderHint" = "拖动以调整顺序。";
+"settings.reorderPrompt" = "重新排序：%@";
+"settings.moveDown" = "下移";
+"settings.moveUp" = "上移";
 "settings.provider" = "服务设置";
 "settings.providerDescription" = "管理你的 AI 服务与模型。";
 "settings.reading" = "阅读";

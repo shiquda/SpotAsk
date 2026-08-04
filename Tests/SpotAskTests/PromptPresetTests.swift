@@ -75,6 +75,42 @@ struct PromptPresetTests {
         #expect(!reloaded.enabledPromptPresets.contains(where: { $0.id == translate.id }))
     }
 
+    @Test("Prompt catalog adjacent reordering preserves every preset identity")
+    func promptCatalogAdjacentReorderingPreservesIdentities() {
+        let suiteName = "PromptPresetTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let custom = PromptPreset(title: "邮件改写", instruction: "改写为简洁邮件。")
+        #expect(settings.saveCustomPromptPreset(custom))
+
+        let initialIDs = settings.promptPresets.map(\.id)
+        let firstBuiltIn = try! #require(settings.promptPresets.first)
+
+        settings.movePromptPreset(id: custom.id, before: firstBuiltIn.id)
+        #expect(settings.promptPresets.prefix(2).map(\.id) == [custom.id, firstBuiltIn.id])
+
+        // The UI uses this inverse move to swap a dragged item one row down.
+        settings.movePromptPreset(id: firstBuiltIn.id, before: custom.id)
+        #expect(settings.promptPresets.prefix(2).map(\.id) == [firstBuiltIn.id, custom.id])
+        #expect(Set(settings.promptPresets.map(\.id)) == Set(initialIDs))
+    }
+
+    @Test("Invalid and self prompt catalog moves leave the order unchanged")
+    func invalidPromptCatalogMovesLeaveOrderUnchanged() {
+        let suiteName = "PromptPresetTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let originalIDs = settings.promptPresets.map(\.id)
+        let firstID = try! #require(originalIDs.first)
+
+        settings.movePromptPreset(id: firstID, before: firstID)
+        settings.movePromptPreset(id: UUID(), before: firstID)
+
+        #expect(settings.promptPresets.map(\.id) == originalIDs)
+    }
+
     @Test("System shortcut prompt lookup stops at disabled built-in prompts")
     func disabledBuiltInPromptsAreUnavailableToSystemShortcuts() {
         let suiteName = "PromptPresetTests.\(UUID().uuidString)"
@@ -145,6 +181,12 @@ struct PromptPresetTests {
         #expect(PromptPreset.builtIn[0].symbolName == "globe")
         #expect(PromptPreset.builtIn[1].symbolName == "lightbulb")
         #expect(PromptPreset(title: "Custom", instruction: "Do it").symbolName == "sparkles")
+    }
+
+    @Test("Prompt position accessibility text formats numeric positions")
+    func promptPositionAccessibilityTextUsesNumericArguments() {
+        #expect(L10n.string("settings.promptPosition", language: .english, arguments: [2, 5]) == "2 of 5")
+        #expect(L10n.string("settings.promptPosition", language: .simplifiedChinese, arguments: [2, 5]) == "第 2 项，共 5 项")
     }
 
     private func waitForIdle(_ viewModel: ChatViewModel) async {

@@ -782,6 +782,11 @@ private struct PromptPresetsSettingsPage: View {
     @Bindable var settings: AppSettings
     @State private var editorPreset: PromptPreset?
     @State private var draggedPresetID: UUID?
+    @State private var dragStartMidY: CGFloat?
+    @State private var dragOffset: CGFloat = 0
+    @State private var rowFrames: [UUID: CGRect] = [:]
+
+    private let promptListCoordinateSpace = "promptPresetList"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
@@ -802,28 +807,26 @@ private struct PromptPresetsSettingsPage: View {
                     .buttonStyle(.bordered)
                 }
 
-                ForEach(settings.promptPresets) { preset in
-                    Divider()
-                    PromptPresetRow(
-                        preset: preset,
-                        settings: settings,
-                        onSetDefault: { settings.systemPrompt = preset.instruction },
-                        onEdit: preset.isBuiltIn ? nil : { editorPreset = preset },
-                        onDelete: preset.isBuiltIn ? nil : { settings.deleteCustomPromptPreset(id: preset.id) }
-                    )
-                    .onDrag {
-                        draggedPresetID = preset.id
-                        return NSItemProvider(object: preset.id.uuidString as NSString)
+                VStack(spacing: 6) {
+                    ForEach(Array(settings.promptPresets.enumerated()), id: \.element.id) { index, preset in
+                        promptPresetCard(id: preset.id, isDragging: draggedPresetID == preset.id) {
+                            PromptPresetRow(
+                                preset: preset,
+                                settings: settings,
+                                position: index + 1,
+                                totalCount: settings.promptPresets.count,
+                                reorderGesture: dragGesture(for: preset.id),
+                                onMoveUp: index > 0 ? { movePromptPreset(at: index, by: -1) } : nil,
+                                onMoveDown: index + 1 < settings.promptPresets.count ? { movePromptPreset(at: index, by: 1) } : nil,
+                                onEdit: preset.isBuiltIn ? nil : { editorPreset = preset },
+                                onDelete: preset.isBuiltIn ? nil : { settings.deleteCustomPromptPreset(id: preset.id) }
+                            )
+                        }
                     }
-                    .onDrop(
-                        of: [.text],
-                        delegate: PromptPresetDropDelegate(
-                            destinationID: preset.id,
-                            draggedPresetID: $draggedPresetID,
-                            onMove: settings.movePromptPreset(id:before:)
-                        )
-                    )
                 }
+                .coordinateSpace(name: promptListCoordinateSpace)
+                .onPreferenceChange(PromptPresetRowFramePreferenceKey.self) { rowFrames = $0 }
+                .animation(.easeInOut(duration: 0.16), value: settings.promptPresets.map(\.id))
             }
 
             SettingsGroup(title: L10n.string("settings.customInstruction")) {
@@ -843,22 +846,145 @@ private struct PromptPresetsSettingsPage: View {
             }
         }
     }
+
+    private func dragGesture(for presetID: UUID) -> some Gesture {
+        DragGesture(minimumDistance: 2, coordinateSpace: .named(promptListCoordinateSpace))
+            .onChanged { value in
+                updateDrag(for: presetID, translation: value.translation.height)
+            }
+            .onEnded { _ in
+                endDrag()
+            }
+    }
+
+    private func promptPresetCard<Content: View>(
+        id: UUID,
+        isDragging: Bool,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        ZStack {
+            content()
+                .padding(.horizontal, 10)
+                .padding(.vertical, 9)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    isDragging ? Color.accentColor.opacity(0.12) : Color.primary.opacity(0.035),
+                    in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                }
+                .offset(y: isDragging ? dragOffset : 0)
+        }
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: PromptPresetRowFramePreferenceKey.self,
+                    value: [id: proxy.frame(in: .named(promptListCoordinateSpace))]
+                )
+            }
+        }
+        .zIndex(isDragging ? 1 : 0)
+    }
+
+    private func updateDrag(for presetID: UUID, translation: CGFloat) {
+        guard draggedPresetID == nil || draggedPresetID == presetID,
+              let rowFrame = rowFrames[presetID] else { return }
+
+        if draggedPresetID == nil {
+            draggedPresetID = presetID
+            dragStartMidY = rowFrame.midY
+        }
+
+        guard let dragStartMidY else { return }
+        let pointerY = dragStartMidY + translation
+        let constrainedPointerY = constrainedPointerY(pointerY, for: rowFrame)
+        dragOffset = constrainedPointerY - rowFrame.midY
+
+        // The raw pointer can still cross the terminal row's midpoint after the card reaches a visual edge.
+        while reorderDraggedPresetIfNeeded(id: presetID, pointerY: pointerY, rowHeight: rowFrame.height) {}
+    }
+
+    private func constrainedPointerY(_ pointerY: CGFloat, for rowFrame: CGRect) -> CGFloat {
+        guard let listMinY = rowFrames.values.map(\.minY).min(),
+              let listMaxY = rowFrames.values.map(\.maxY).max() else {
+            return pointerY
+        }
+
+        let minimumOffset = listMinY - rowFrame.minY
+        let maximumOffset = listMaxY - rowFrame.maxY
+        let offset = min(max(pointerY - rowFrame.midY, minimumOffset), maximumOffset)
+        return rowFrame.midY + offset
+    }
+
+    private func reorderDraggedPresetIfNeeded(id: UUID, pointerY: CGFloat, rowHeight: CGFloat) -> Bool {
+        guard let currentIndex = settings.promptPresets.firstIndex(where: { $0.id == id }) else { return false }
+        let hysteresis = max(6, rowHeight * 0.15)
+
+        if currentIndex > 0 {
+            let previousPreset = settings.promptPresets[currentIndex - 1]
+            if let previousFrame = rowFrames[previousPreset.id], pointerY < previousFrame.midY - hysteresis {
+                withAnimation(.easeInOut(duration: 0.16)) {
+                    settings.movePromptPreset(id: id, before: previousPreset.id)
+                }
+                return true
+            }
+        }
+
+        guard currentIndex + 1 < settings.promptPresets.count else { return false }
+        let nextPreset = settings.promptPresets[currentIndex + 1]
+        guard let nextFrame = rowFrames[nextPreset.id], pointerY > nextFrame.midY + hysteresis else { return false }
+        withAnimation(.easeInOut(duration: 0.16)) {
+            // Moving the next item before the dragged item performs the adjacent downward swap.
+            settings.movePromptPreset(id: nextPreset.id, before: id)
+        }
+        return true
+    }
+
+    private func movePromptPreset(at index: Int, by offset: Int) {
+        let presets = settings.promptPresets
+        let destinationIndex = index + offset
+        guard presets.indices.contains(index), presets.indices.contains(destinationIndex) else { return }
+
+        withAnimation(.easeInOut(duration: 0.16)) {
+            if offset < 0 {
+                settings.movePromptPreset(id: presets[index].id, before: presets[destinationIndex].id)
+            } else {
+                settings.movePromptPreset(id: presets[destinationIndex].id, before: presets[index].id)
+            }
+        }
+    }
+
+    private func endDrag() {
+        draggedPresetID = nil
+        dragStartMidY = nil
+        dragOffset = 0
+    }
 }
 
 @MainActor
-private struct PromptPresetRow: View {
+private struct PromptPresetRow<ReorderGesture: Gesture>: View {
     let preset: PromptPreset
     @Bindable var settings: AppSettings
-    let onSetDefault: () -> Void
+    let position: Int
+    let totalCount: Int
+    let reorderGesture: ReorderGesture
+    var onMoveUp: (() -> Void)?
+    var onMoveDown: (() -> Void)?
     var onEdit: (() -> Void)?
     var onDelete: (() -> Void)?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "line.3.horizontal")
-                .foregroundStyle(.tertiary)
-                .padding(.top, 4)
-                .accessibilityHidden(true)
+        HStack(alignment: .center, spacing: 10) {
+            PromptPresetReorderHandle(
+                title: preset.title,
+                position: position,
+                totalCount: totalCount,
+                onMoveUp: onMoveUp,
+                onMoveDown: onMoveDown
+            )
+            .gesture(reorderGesture)
             VStack(alignment: .leading, spacing: 4) {
                 Text(preset.title)
                     .font(.system(size: 14, weight: .semibold))
@@ -869,9 +995,9 @@ private struct PromptPresetRow: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
-            VStack(alignment: .trailing, spacing: 7) {
+            HStack(spacing: 6) {
                 Toggle(
-                    L10n.string("settings.promptEnabled"),
+                    "",
                     isOn: Binding(
                         get: { preset.isEnabled },
                         set: { settings.setPromptPresetEnabled(id: preset.id, isEnabled: $0) }
@@ -879,9 +1005,8 @@ private struct PromptPresetRow: View {
                 )
                 .toggleStyle(.switch)
                 .controlSize(.small)
-                Button(L10n.string("settings.defaultInstruction"), action: onSetDefault)
-                    .buttonStyle(.borderless)
-                    .help(L10n.string("settings.defaultInstruction"))
+                .labelsHidden()
+                .accessibilityLabel(L10n.string("settings.promptEnabled") + " " + preset.title)
                 if let onEdit {
                     Button(action: onEdit) {
                         Image(systemName: "pencil")
@@ -903,23 +1028,46 @@ private struct PromptPresetRow: View {
     }
 }
 
-private struct PromptPresetDropDelegate: DropDelegate {
-    let destinationID: UUID
-    @Binding var draggedPresetID: UUID?
-    let onMove: (UUID, UUID) -> Void
+private struct PromptPresetReorderHandle: View {
+    let title: String
+    let position: Int
+    let totalCount: Int
+    var onMoveUp: (() -> Void)?
+    var onMoveDown: (() -> Void)?
 
-    func dropEntered(info: DropInfo) {
-        guard let draggedPresetID, draggedPresetID != destinationID else { return }
-        onMove(draggedPresetID, destinationID)
+    var body: some View {
+        if let onMoveUp, let onMoveDown {
+            handle
+                .accessibilityAction(named: Text(L10n.string("settings.moveUp")), onMoveUp)
+                .accessibilityAction(named: Text(L10n.string("settings.moveDown")), onMoveDown)
+        } else if let onMoveUp {
+            handle.accessibilityAction(named: Text(L10n.string("settings.moveUp")), onMoveUp)
+        } else if let onMoveDown {
+            handle.accessibilityAction(named: Text(L10n.string("settings.moveDown")), onMoveDown)
+        } else {
+            handle
+        }
     }
 
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        DropProposal(operation: .move)
+    private var handle: some View {
+        Image(systemName: "line.3.horizontal")
+            .foregroundStyle(.secondary)
+            .frame(width: 22, height: 28)
+            .contentShape(.rect)
+            .help(L10n.string("settings.reorderHint"))
+            .focusable()
+            .accessibilityLabel(L10n.string("settings.reorderPrompt", title))
+            .accessibilityValue(L10n.string("settings.promptPosition", position, totalCount))
+            .accessibilityHint(L10n.string("settings.reorderHint"))
+            .accessibilityRespondsToUserInteraction(true)
     }
+}
 
-    func performDrop(info: DropInfo) -> Bool {
-        draggedPresetID = nil
-        return true
+private struct PromptPresetRowFramePreferenceKey: PreferenceKey {
+    static let defaultValue: [UUID: CGRect] = [:]
+
+    static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
     }
 }
 
