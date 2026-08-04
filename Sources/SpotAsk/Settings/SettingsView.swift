@@ -786,6 +786,7 @@ private struct PromptPresetsSettingsPage: View {
     @State private var dragStartMidY: CGFloat?
     @State private var dragOffset: CGFloat = 0
     @State private var rowFrames: [UUID: CGRect] = [:]
+    @State private var dragSlots: PromptPresetDragSlots?
     @State private var stagedPromptPresets: [PromptPreset] = []
 
     private let promptListCoordinateSpace = "promptPresetList"
@@ -827,7 +828,12 @@ private struct PromptPresetsSettingsPage: View {
                     }
                 }
                 .coordinateSpace(name: promptListCoordinateSpace)
-                .onPreferenceChange(PromptPresetRowFramePreferenceKey.self) { rowFrames = $0 }
+                .onPreferenceChange(PromptPresetRowFramePreferenceKey.self) { updatedFrames in
+                    // Frames emitted while the list is being reordered belong
+                    // to an in-flight layout and must not affect this drag.
+                    guard draggedPresetID == nil else { return }
+                    rowFrames = updatedFrames
+                }
             }
 
             SettingsGroup(title: L10n.string("settings.customInstruction")) {
@@ -894,73 +900,62 @@ private struct PromptPresetsSettingsPage: View {
     }
 
     private func updateDrag(for presetID: UUID, translation: CGFloat) {
-        guard draggedPresetID == nil || draggedPresetID == presetID,
-              let rowFrame = rowFrames[presetID] else { return }
+        guard draggedPresetID == nil || draggedPresetID == presetID else { return }
 
         if draggedPresetID == nil {
-            draggedPresetID = presetID
-            dragStartMidY = rowFrame.midY
-            stagedPromptPresets = settings.promptPresets
+            guard let rowFrame = rowFrames[presetID] else { return }
+            let slots = PromptPresetDragSlots(rowFrames: rowFrames)
+            guard slots.frames.count == settings.promptPresets.count else { return }
+
+            withoutDragAnimation {
+                draggedPresetID = presetID
+                dragStartMidY = rowFrame.midY
+                dragSlots = slots
+                stagedPromptPresets = settings.promptPresets
+            }
         }
 
-        guard let dragStartMidY else { return }
+        guard let dragStartMidY,
+              let dragSlots,
+              let currentIndex = stagedPromptPresets.firstIndex(where: { $0.id == presetID }) else {
+            return
+        }
         let pointerY = dragStartMidY + translation
-        let targetIndex = targetIndex(for: pointerY, draggedPresetID: presetID, rowHeight: rowFrame.height)
-        let projectedRowFrame = frameForRow(at: targetIndex) ?? rowFrame
-        let constrainedPointerY = constrainedPointerY(pointerY, for: projectedRowFrame)
-        dragOffset = constrainedPointerY - projectedRowFrame.midY
-
-        guard let targetIndex,
-              let currentIndex = stagedPromptPresets.firstIndex(where: { $0.id == presetID }),
-              targetIndex != currentIndex else { return }
-
-        // The in-memory order can jump across every crossed row in one
-        // transaction. Persistent settings change only when the drag ends.
-        withAnimation(.easeInOut(duration: 0.16)) {
-            stagedPromptPresets = PromptPresetOrder.moving(
-                stagedPromptPresets,
-                id: presetID,
-                to: targetIndex
-            )
-        }
-    }
-
-    private func constrainedPointerY(_ pointerY: CGFloat, for rowFrame: CGRect) -> CGFloat {
-        guard let listMinY = rowFrames.values.map(\.minY).min(),
-              let listMaxY = rowFrames.values.map(\.maxY).max() else {
-            return pointerY
-        }
-
-        let minimumOffset = listMinY - rowFrame.minY
-        let maximumOffset = listMaxY - rowFrame.maxY
-        let offset = min(max(pointerY - rowFrame.midY, minimumOffset), maximumOffset)
-        return rowFrame.midY + offset
-    }
-
-    private func targetIndex(
-        for pointerY: CGFloat,
-        draggedPresetID: UUID,
-        rowHeight: CGFloat
-    ) -> Int? {
-        guard let currentIndex = stagedPromptPresets.firstIndex(where: { $0.id == draggedPresetID }) else {
-            return nil
-        }
-        let hysteresis = max(6, rowHeight * 0.15)
-        return PromptPresetOrder.targetIndex(
-            in: orderedRowFrames.map(\.midY),
+        let stagedIDs = stagedPromptPresets.map(\.id)
+        let draggedRowHeight = dragSlots.frame(for: presetID, in: stagedIDs)?.height ?? 0
+        let hysteresis = max(6, draggedRowHeight * 0.15)
+        guard let targetIndex = dragSlots.targetIndex(
+            in: stagedIDs,
             currentIndex: currentIndex,
             pointerY: pointerY,
             hysteresis: hysteresis
-        )
+        ) else {
+            return
+        }
+
+        let reorderedPresets = targetIndex == currentIndex
+            ? stagedPromptPresets
+            : PromptPresetOrder.moving(stagedPromptPresets, id: presetID, to: targetIndex)
+        guard let projectedFrame = dragSlots.frame(for: presetID, in: reorderedPresets.map(\.id)),
+              let offset = dragSlots.constrainedOffset(pointerY: pointerY, for: projectedFrame) else {
+            return
+        }
+
+        withoutDragAnimation {
+            dragOffset = offset
+            if targetIndex != currentIndex {
+                // The in-memory order can jump across every crossed row in
+                // one transaction. Persistent settings change only when the
+                // drag ends.
+                stagedPromptPresets = reorderedPresets
+            }
+        }
     }
 
-    private var orderedRowFrames: [CGRect] {
-        rowFrames.values.sorted { $0.midY < $1.midY }
-    }
-
-    private func frameForRow(at index: Int?) -> CGRect? {
-        guard let index, orderedRowFrames.indices.contains(index) else { return nil }
-        return orderedRowFrames[index]
+    private func withoutDragAnimation(_ changes: () -> Void) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction, changes)
     }
 
     private func movePromptPreset(at index: Int, by offset: Int) {
@@ -978,13 +973,23 @@ private struct PromptPresetsSettingsPage: View {
     }
 
     private func endDrag() {
-        if draggedPresetID != nil {
-            settings.commitPromptPresetOrder(stagedPromptPresets.map(\.id))
+        withoutDragAnimation {
+            if draggedPresetID != nil {
+                if let dragSlots,
+                   let finalRowFrames = dragSlots.layoutFrames(in: stagedPromptPresets.map(\.id)) {
+                    // Preference updates were intentionally ignored during the
+                    // drag. Seed their final values so a new drag can begin
+                    // before SwiftUI publishes the settled geometry.
+                    rowFrames = finalRowFrames
+                }
+                settings.commitPromptPresetOrder(stagedPromptPresets.map(\.id))
+            }
+            draggedPresetID = nil
+            dragStartMidY = nil
+            dragOffset = 0
+            dragSlots = nil
+            stagedPromptPresets = []
         }
-        draggedPresetID = nil
-        dragStartMidY = nil
-        dragOffset = 0
-        stagedPromptPresets = []
     }
 }
 

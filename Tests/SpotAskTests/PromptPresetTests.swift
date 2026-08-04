@@ -205,6 +205,126 @@ struct PromptPresetTests {
         )
     }
 
+    @Test("Frozen drag slots keep first and final targets clamped across a long drag")
+    func frozenDragSlotsClampTargetIndices() {
+        let slots = PromptPresetDragSlots(frames: [
+            CGRect(x: 0, y: 0, width: 300, height: 36),
+            CGRect(x: 0, y: 42, width: 300, height: 82),
+            CGRect(x: 0, y: 130, width: 300, height: 48),
+            CGRect(x: 0, y: 184, width: 300, height: 64)
+        ])
+
+        #expect(slots.targetIndex(currentIndex: 0, pointerY: 10_000, hysteresis: 6) == 3)
+        #expect(slots.targetIndex(currentIndex: 3, pointerY: -10_000, hysteresis: 6) == 0)
+    }
+
+    @Test("Frozen drag slots preserve hysteresis for uneven row heights")
+    func frozenDragSlotsPreserveHysteresisForUnevenRows() {
+        let slots = PromptPresetDragSlots(frames: [
+            CGRect(x: 0, y: 0, width: 300, height: 36),
+            CGRect(x: 0, y: 42, width: 300, height: 82),
+            CGRect(x: 0, y: 130, width: 300, height: 48)
+        ])
+        let hysteresis: CGFloat = 12
+        let firstSlot = try! #require(slots.frame(at: 0))
+
+        #expect(
+            slots.targetIndex(
+                currentIndex: 1,
+                pointerY: firstSlot.midY - hysteresis,
+                hysteresis: hysteresis
+            ) == 1
+        )
+        #expect(
+            slots.targetIndex(
+                currentIndex: 1,
+                pointerY: firstSlot.midY - hysteresis - 0.1,
+                hysteresis: hysteresis
+            ) == 0
+        )
+    }
+
+    @Test("Frozen target slot keeps a distant reordered card under the pointer")
+    func frozenDragSlotsKeepDistantReorderedCardUnderPointer() {
+        let ids = (0..<4).map { _ in UUID() }
+        let slots = PromptPresetDragSlots(rowFrames: [
+            ids[0]: CGRect(x: 0, y: 0, width: 300, height: 36),
+            ids[1]: CGRect(x: 0, y: 42, width: 300, height: 82),
+            ids[2]: CGRect(x: 0, y: 130, width: 300, height: 48),
+            ids[3]: CGRect(x: 0, y: 184, width: 300, height: 64)
+        ])
+        let targetIndex = try! #require(
+            slots.targetIndex(in: ids, currentIndex: 0, pointerY: 230, hysteresis: 6)
+        )
+        let reorderedIDs = [ids[1], ids[2], ids[3], ids[0]]
+        let targetSlot = try! #require(slots.frame(for: ids[0], in: reorderedIDs))
+        let offset = try! #require(slots.constrainedOffset(pointerY: 230, for: targetSlot))
+
+        #expect(targetIndex == 3)
+        #expect(targetSlot.midY + offset == 230)
+    }
+
+    @Test("Frozen drag slots recalculate the projected row for repeated crossings")
+    func frozenDragSlotsRecalculateProjectedRowForRepeatedCrossings() {
+        let ids = (0..<4).map { _ in UUID() }
+        let slots = PromptPresetDragSlots(rowFrames: [
+            ids[0]: CGRect(x: 0, y: 0, width: 300, height: 36),
+            ids[1]: CGRect(x: 0, y: 42, width: 300, height: 82),
+            ids[2]: CGRect(x: 0, y: 130, width: 300, height: 48),
+            ids[3]: CGRect(x: 0, y: 184, width: 300, height: 64)
+        ])
+        let afterFirstCrossing = [ids[1], ids[2], ids[3], ids[0]]
+        let targetIndex = try! #require(
+            slots.targetIndex(
+                in: afterFirstCrossing,
+                currentIndex: 3,
+                pointerY: 100,
+                hysteresis: 6
+            )
+        )
+        let afterSecondCrossing = [ids[1], ids[0], ids[2], ids[3]]
+        let projectedFrame = try! #require(slots.frame(for: ids[0], in: afterSecondCrossing))
+        let offset = try! #require(slots.constrainedOffset(pointerY: 100, for: projectedFrame))
+
+        #expect(targetIndex == 1)
+        #expect(projectedFrame.midY + offset == 100)
+    }
+
+    @Test("Frozen drag slots expose final row frames for an immediate next drag")
+    func frozenDragSlotsExposeFinalRowFramesAfterFirstToLastMove() {
+        let ids = (0..<4).map { _ in UUID() }
+        let slots = PromptPresetDragSlots(rowFrames: [
+            ids[0]: CGRect(x: 0, y: 0, width: 300, height: 36),
+            ids[1]: CGRect(x: 0, y: 42, width: 300, height: 82),
+            ids[2]: CGRect(x: 0, y: 130, width: 300, height: 48),
+            ids[3]: CGRect(x: 0, y: 184, width: 300, height: 64)
+        ])
+        let finalOrder = [ids[1], ids[2], ids[3], ids[0]]
+        let finalFrames = try! #require(slots.layoutFrames(in: finalOrder))
+        let framesInFinalOrder = finalOrder.compactMap { finalFrames[$0] }
+
+        #expect(framesInFinalOrder.count == finalOrder.count)
+        #expect(framesInFinalOrder.map(\.minY) == [0, 88, 142, 212])
+        #expect(framesInFinalOrder.map(\.height) == [82, 48, 64, 36])
+        #expect(finalFrames[ids[0]] == CGRect(x: 0, y: 212, width: 300, height: 36))
+    }
+
+    @Test("Frozen target slot clamps a card at the list edges")
+    func frozenDragSlotsClampCardOffsetAtListEdges() {
+        let slots = PromptPresetDragSlots(frames: [
+            CGRect(x: 0, y: 0, width: 300, height: 36),
+            CGRect(x: 0, y: 42, width: 300, height: 82),
+            CGRect(x: 0, y: 130, width: 300, height: 48)
+        ])
+        let firstSlot = try! #require(slots.frame(at: 0))
+        let finalSlot = try! #require(slots.frame(at: 2))
+        let upwardOffset = try! #require(slots.constrainedOffset(pointerY: -1_000, at: 0))
+        let downwardOffset = try! #require(slots.constrainedOffset(pointerY: 1_000, at: 2))
+
+        #expect(firstSlot.midY + upwardOffset == firstSlot.midY)
+        #expect(finalSlot.midY + downwardOffset == finalSlot.midY)
+    }
+
     @Test("Incomplete or duplicate staged prompt orders are rejected")
     func invalidCompletedPromptOrdersAreRejected() {
         let suiteName = "PromptPresetTests.\(UUID().uuidString)"

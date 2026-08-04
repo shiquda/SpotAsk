@@ -125,6 +125,116 @@ enum PromptPresetOrder {
     }
 }
 
+/// Immutable row slots captured when a prompt-preset drag begins. Keeping the
+/// geometry stable prevents a reordered row's transient layout frame from
+/// affecting the next drag event.
+struct PromptPresetDragSlots {
+    let frames: [CGRect]
+    private let framesByID: [UUID: CGRect]
+    private let rowSpacing: CGFloat
+
+    init(rowFrames: [UUID: CGRect]) {
+        frames = rowFrames.values.sorted { $0.midY < $1.midY }
+        framesByID = rowFrames
+        rowSpacing = Self.spacing(between: frames)
+    }
+
+    init(frames: [CGRect]) {
+        self.frames = frames.sorted { $0.midY < $1.midY }
+        framesByID = [:]
+        rowSpacing = Self.spacing(between: self.frames)
+    }
+
+    func frame(at index: Int) -> CGRect? {
+        guard frames.indices.contains(index) else { return nil }
+        return frames[index]
+    }
+
+    func targetIndex(
+        currentIndex: Int,
+        pointerY: CGFloat,
+        hysteresis: CGFloat
+    ) -> Int? {
+        PromptPresetOrder.targetIndex(
+            in: frames.map(\.midY),
+            currentIndex: currentIndex,
+            pointerY: pointerY,
+            hysteresis: hysteresis
+        )
+    }
+
+    func targetIndex(
+        in orderedIDs: [UUID],
+        currentIndex: Int,
+        pointerY: CGFloat,
+        hysteresis: CGFloat
+    ) -> Int? {
+        guard let framesByID = layoutFrames(in: orderedIDs) else { return nil }
+        return PromptPresetOrder.targetIndex(
+            in: orderedIDs.compactMap { framesByID[$0]?.midY },
+            currentIndex: currentIndex,
+            pointerY: pointerY,
+            hysteresis: hysteresis
+        )
+    }
+
+    func frame(for presetID: UUID, in orderedIDs: [UUID]) -> CGRect? {
+        layoutFrames(in: orderedIDs)?[presetID]
+    }
+
+    /// Returns the offset from a target slot that keeps the dragged card under
+    /// the pointer while constraining the full card to the captured list.
+    func constrainedOffset(pointerY: CGFloat, at targetIndex: Int) -> CGFloat? {
+        guard let targetFrame = frame(at: targetIndex) else {
+            return nil
+        }
+        return constrainedOffset(pointerY: pointerY, for: targetFrame)
+    }
+
+    func constrainedOffset(pointerY: CGFloat, for targetFrame: CGRect) -> CGFloat? {
+        guard
+              let listMinY = frames.map(\.minY).min(),
+              let listMaxY = frames.map(\.maxY).max() else {
+            return nil
+        }
+
+        let minimumOffset = listMinY - targetFrame.minY
+        let maximumOffset = listMaxY - targetFrame.maxY
+        return min(
+            max(pointerY - targetFrame.midY, minimumOffset),
+            maximumOffset
+        )
+    }
+
+    func layoutFrames(in orderedIDs: [UUID]) -> [UUID: CGRect]? {
+        guard orderedIDs.count == frames.count,
+              Set(orderedIDs).count == orderedIDs.count,
+              Set(orderedIDs) == Set(framesByID.keys),
+              let firstFrame = frames.first else {
+            return nil
+        }
+
+        var nextMinY = firstFrame.minY
+        var result: [UUID: CGRect] = [:]
+        for presetID in orderedIDs {
+            guard let sourceFrame = framesByID[presetID] else { return nil }
+            result[presetID] = CGRect(
+                x: sourceFrame.minX,
+                y: nextMinY,
+                width: sourceFrame.width,
+                height: sourceFrame.height
+            )
+            nextMinY += sourceFrame.height + rowSpacing
+        }
+        return result
+    }
+
+    private static func spacing(between frames: [CGRect]) -> CGFloat {
+        guard frames.count > 1 else { return 0 }
+        return max(0, frames[1].minY - frames[0].maxY)
+    }
+}
+
 enum HotKeyPreset: String, CaseIterable, Identifiable {
     case optionSpace
     case controlSpace
