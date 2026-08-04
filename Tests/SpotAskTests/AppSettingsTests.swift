@@ -97,6 +97,18 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertTrue(AppSettings(defaults: defaults).clearInputOnClose)
     }
 
+    func testNewConversationConfirmationDefaultsToOnAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        XCTAssertTrue(AppSettings(defaults: defaults).confirmBeforeStartingNewConversation)
+
+        let settings = AppSettings(defaults: defaults)
+        settings.confirmBeforeStartingNewConversation = false
+        XCTAssertFalse(AppSettings(defaults: defaults).confirmBeforeStartingNewConversation)
+    }
+
     func testPanelOriginPersistsAndClears() {
         let suite = "AppSettingsTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!

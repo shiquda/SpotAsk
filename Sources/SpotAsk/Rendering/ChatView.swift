@@ -1,6 +1,43 @@
 import AppKit
 import SwiftUI
 
+@MainActor
+private enum NewConversationConfirmation {
+    static func present(
+        settings: AppSettings,
+        window: NSWindow?,
+        onConfirm: @escaping () -> Void
+    ) {
+        let alert = NSAlert()
+        alert.messageText = L10n.string("chat.newConversationConfirmTitle")
+        alert.informativeText = L10n.string("chat.newConversationConfirmMessage")
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: L10n.string("chat.newConversation"))
+        alert.addButton(withTitle: L10n.string("settings.cancel"))
+
+        let skipFutureConfirmations = NSButton(
+            checkboxWithTitle: L10n.string("chat.newConversationDontAskAgain"),
+            target: nil,
+            action: nil
+        )
+        alert.accessoryView = skipFutureConfirmations
+
+        let handleResponse: (NSApplication.ModalResponse) -> Void = { response in
+            guard response == .alertFirstButtonReturn else { return }
+            if skipFutureConfirmations.state == .on {
+                settings.confirmBeforeStartingNewConversation = false
+            }
+            onConfirm()
+        }
+
+        if let window {
+            alert.beginSheetModal(for: window, completionHandler: handleResponse)
+        } else {
+            handleResponse(alert.runModal())
+        }
+    }
+}
+
 struct ChatView: View {
     @Bindable var viewModel: ChatViewModel
     let settings: AppSettings
@@ -13,7 +50,6 @@ struct ChatView: View {
     @State private var scrollFollowState = ScrollFollowState()
     @State private var didCopyLastAnswer = false
     @State private var inputHeight = ChatInputTextView.minHeight
-    @State private var showsNewConversationConfirmation = false
     @State private var reasoningToggle = ReasoningToggleStateStore()
     @State private var isPresetPopoverPresented = false
 
@@ -51,12 +87,6 @@ struct ChatView: View {
             if isPresented {
                 presentSettingsWindow()
             }
-        }
-        .alert(L10n.string("chat.newConversationConfirmTitle"), isPresented: $showsNewConversationConfirmation) {
-            Button(L10n.string("settings.cancel"), role: .cancel) {}
-            Button(L10n.string("chat.newConversation"), role: .destructive) { confirmNewConversation() }
-        } message: {
-            Text(L10n.string("chat.newConversationConfirmMessage"))
         }
         .onAppear {
             inputFocused = true
@@ -462,7 +492,15 @@ struct ChatView: View {
 
     private func newConversation() {
         guard viewModel.messages.isEmpty else {
-            showsNewConversationConfirmation = true
+            guard settings.confirmBeforeStartingNewConversation else {
+                confirmNewConversation()
+                return
+            }
+            NewConversationConfirmation.present(
+                settings: settings,
+                window: NSApp.keyWindow ?? NSApp.mainWindow,
+                onConfirm: confirmNewConversation
+            )
             return
         }
         confirmNewConversation()

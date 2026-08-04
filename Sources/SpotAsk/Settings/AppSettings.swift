@@ -116,6 +116,7 @@ final class AppSettings {
         static let contextLimit = "contextLimit"
         static let retainSession = "retainSession"
         static let clearInputOnClose = "clearInputOnClose"
+        static let confirmBeforeStartingNewConversation = "confirmBeforeStartingNewConversation"
         static let launchAtLogin = "launchAtLogin"
         static let appearance = "appearance"
         static let fontSize = "fontSize"
@@ -144,6 +145,9 @@ final class AppSettings {
     var contextLimit: Int { didSet { defaults.set(contextLimit, forKey: Key.contextLimit) } }
     var retainSession: Bool { didSet { defaults.set(retainSession, forKey: Key.retainSession) } }
     var clearInputOnClose: Bool { didSet { defaults.set(clearInputOnClose, forKey: Key.clearInputOnClose) } }
+    var confirmBeforeStartingNewConversation: Bool {
+        didSet { defaults.set(confirmBeforeStartingNewConversation, forKey: Key.confirmBeforeStartingNewConversation) }
+    }
     var launchAtLogin: Bool { didSet { defaults.set(launchAtLogin, forKey: Key.launchAtLogin) } }
     var appearance: AppearanceMode { didSet { defaults.set(appearance.rawValue, forKey: Key.appearance) } }
     var fontSize: FontSize { didSet { defaults.set(fontSize.rawValue, forKey: Key.fontSize) } }
@@ -201,6 +205,7 @@ final class AppSettings {
         contextLimit = defaults.object(forKey: Key.contextLimit) as? Int ?? 20
         retainSession = defaults.bool(forKey: Key.retainSession)
         clearInputOnClose = defaults.object(forKey: Key.clearInputOnClose) as? Bool ?? false
+        confirmBeforeStartingNewConversation = defaults.object(forKey: Key.confirmBeforeStartingNewConversation) as? Bool ?? true
         launchAtLogin = defaults.bool(forKey: Key.launchAtLogin)
         appearance = AppearanceMode(rawValue: defaults.string(forKey: Key.appearance) ?? "system") ?? .system
         fontSize = FontSize(rawValue: defaults.string(forKey: Key.fontSize) ?? "standard") ?? .standard

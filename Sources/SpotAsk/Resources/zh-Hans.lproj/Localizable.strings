@@ -21,6 +21,7 @@
 "chat.newConversation" = "开始新对话";
 "chat.newConversationConfirmMessage" = "当前对话内容将被清除。";
 "chat.newConversationConfirmTitle" = "开始新对话？";
+"chat.newConversationDontAskAgain" = "下次不再提醒";
 "chat.questionCopied" = "问题已复制";
 "chat.reasoning" = "思考过程";
 "chat.reasoningExpand" = "展开思考过程";
@@ -142,6 +143,7 @@
 "settings.clearAccessKey" = "清除密钥";
 "settings.clearAllLocalData" = "清除所有本地数据";
 "settings.clearInputOnClose" = "关闭窗口时清空输入框";
+"settings.confirmBeforeStartingNewConversation" = "开始新对话前确认";
 "settings.connection" = "连接";
 "settings.customInstruction" = "自定义指令";
 "settings.customPromptEmpty" = "还没有自定义提示词。";

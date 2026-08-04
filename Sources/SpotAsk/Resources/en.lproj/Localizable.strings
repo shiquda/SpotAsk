@@ -21,6 +21,7 @@
 "chat.newConversation" = "New conversation";
 "chat.newConversationConfirmMessage" = "The current conversation will be cleared.";
 "chat.newConversationConfirmTitle" = "Start a new conversation?";
+"chat.newConversationDontAskAgain" = "Don't ask again";
 "chat.questionCopied" = "Question copied";
 "chat.reasoning" = "Thinking";
 "chat.reasoningExpand" = "Show thinking";
@@ -142,6 +143,7 @@
 "settings.clearAccessKey" = "Clear Access Key";
 "settings.clearAllLocalData" = "Clear All Local Data";
 "settings.clearInputOnClose" = "Clear input when closing the window";
+"settings.confirmBeforeStartingNewConversation" = "Confirm before starting a new conversation";
 "settings.connection" = "Connection";
 "settings.customInstruction" = "Custom Instructions";
 "settings.customPromptEmpty" = "You have not created any custom prompts yet.";
