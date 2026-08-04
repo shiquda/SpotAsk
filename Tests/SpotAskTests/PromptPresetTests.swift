@@ -123,7 +123,7 @@ struct PromptPresetTests {
         #expect(recorder.requests[1].messages.first?.content == settings.systemPrompt)
     }
 
-    @Test("Messages without a preset label remain readable")
+    @Test("Messages without a preset label or icon remain readable")
     func legacyMessageDecoding() throws {
         let id = UUID()
         let date = Date(timeIntervalSince1970: 1_700_000_000)
@@ -135,7 +135,16 @@ struct PromptPresetTests {
 
         #expect(message.id == id)
         #expect(message.appliedPresetTitle == nil)
+        #expect(message.appliedPresetSymbolName == nil)
+        #expect(message.appliedPresetIcon == "sparkles")
         #expect(message.reasoningContent == nil)
+    }
+
+    @Test("Prompt presets have stable message icons")
+    func promptPresetSymbolNames() {
+        #expect(PromptPreset.builtIn[0].symbolName == "globe")
+        #expect(PromptPreset.builtIn[1].symbolName == "lightbulb")
+        #expect(PromptPreset(title: "Custom", instruction: "Do it").symbolName == "sparkles")
     }
 
     private func waitForIdle(_ viewModel: ChatViewModel) async {

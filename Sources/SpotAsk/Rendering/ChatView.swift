@@ -467,7 +467,7 @@ struct ChatView: View {
             if let preset = viewModel.selectedPromptPreset {
                 HStack {
                     Spacer(minLength: 0)
-                    SelectedPresetBadge(title: preset.title, icon: PresetIcon.symbol(for: preset.id)) {
+                    SelectedPresetBadge(title: preset.title, icon: preset.symbolName) {
                         viewModel.selectedPromptPreset = nil
                         inputFocused = true
                     }
@@ -844,23 +844,6 @@ private enum PresetPlaceholder {
     }
 }
 
-// MARK: - Preset semantic icons
-
-/// SF Symbol per built-in preset, keyed by its stable UUID (the same identity
-/// used for the placeholder copy). Falls back to the brand sparkle for any
-/// preset without a specific mapping. No third-party icons or assets.
-private enum PresetIcon {
-    static func symbol(for id: UUID) -> String {
-        switch id.uuidString.uppercased() {
-        case "EF8CF35C-386A-4389-A137-C207E4DB11FD": return "globe"
-        case "1C85A324-65B3-4EBD-B2C4-0C6B072E284A": return "pencil.and.scribble"
-        case "5D03D444-EC3D-4F5D-9FB1-91EA5BD4E5B2": return "text.alignleft"
-        case "BF43F694-E4AE-4B5B-9AE9-B4D6D4A4F248": return "lightbulb"
-        default: return "sparkles"
-        }
-    }
-}
-
 // MARK: - Brand mark
 
 /// The 18×18 accent square with a white sparkle, paired with the wordmark.
@@ -957,7 +940,7 @@ private struct PresetStripView: View {
                 ForEach(presets) { preset in
                     ChipView(
                         title: preset.title,
-                        icon: PresetIcon.symbol(for: preset.id),
+                        icon: preset.symbolName,
                         isSelected: selection?.id == preset.id,
                         shortcut: showsShortcutHints ? shortcutForPreset(preset) : nil
                     ) {
@@ -1106,7 +1089,7 @@ private struct PresetPopoverContent: View {
             ForEach(presets) { preset in
                 PopoverRow(
                     title: preset.title,
-                    icon: PresetIcon.symbol(for: preset.id),
+                    icon: preset.symbolName,
                     isSelected: selection?.id == preset.id,
                     shortcut: showsShortcutHints ? shortcutForPreset(preset) : nil
                 ) {
@@ -1355,7 +1338,7 @@ private struct UserMessageContentView: View {
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.tertiary)
                 if let presetTitle = message.appliedPresetTitle {
-                    Label(L10n.string("chat.usedPrompt", presetTitle), systemImage: "sparkles")
+                    Label(L10n.string("chat.usedPrompt", presetTitle), systemImage: message.appliedPresetIcon)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .accessibilityLabel(L10n.string("chat.usedPrompt", presetTitle))

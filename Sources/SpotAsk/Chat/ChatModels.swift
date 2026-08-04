@@ -22,6 +22,9 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
     let createdAt: Date
     var state: MessageState
     let appliedPresetTitle: String?
+    /// SF Symbol captured when the one-shot prompt was sent. Existing
+    /// sessions without this field continue to use the stable fallback.
+    let appliedPresetSymbolName: String?
 
     init(
         id: UUID = UUID(),
@@ -30,7 +33,8 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         reasoningContent: String? = nil,
         createdAt: Date = .now,
         state: MessageState = .complete,
-        appliedPresetTitle: String? = nil
+        appliedPresetTitle: String? = nil,
+        appliedPresetSymbolName: String? = nil
     ) {
         self.id = id
         self.role = role
@@ -39,6 +43,7 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         self.createdAt = createdAt
         self.state = state
         self.appliedPresetTitle = appliedPresetTitle
+        self.appliedPresetSymbolName = appliedPresetSymbolName
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -49,6 +54,7 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         case createdAt
         case state
         case appliedPresetTitle
+        case appliedPresetSymbolName
     }
 
     init(from decoder: Decoder) throws {
@@ -60,6 +66,7 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         state = try container.decode(MessageState.self, forKey: .state)
         appliedPresetTitle = try container.decodeIfPresent(String.self, forKey: .appliedPresetTitle)
+        appliedPresetSymbolName = try container.decodeIfPresent(String.self, forKey: .appliedPresetSymbolName)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -71,6 +78,11 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(state, forKey: .state)
         try container.encodeIfPresent(appliedPresetTitle, forKey: .appliedPresetTitle)
+        try container.encodeIfPresent(appliedPresetSymbolName, forKey: .appliedPresetSymbolName)
+    }
+
+    var appliedPresetIcon: String {
+        appliedPresetSymbolName ?? "sparkles"
     }
 }
 

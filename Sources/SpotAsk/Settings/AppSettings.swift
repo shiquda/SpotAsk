@@ -72,6 +72,18 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
         )
         ]
     }
+
+    /// The visual identity used when this prompt is applied. Custom prompts
+    /// deliberately share the stable default symbol.
+    var symbolName: String {
+        switch id.uuidString.uppercased() {
+        case "EF8CF35C-386A-4389-A137-C207E4DB11FD": "globe"
+        case "1C85A324-65B3-4EBD-B2C4-0C6B072E284A": "pencil.and.scribble"
+        case "5D03D444-EC3D-4F5D-9FB1-91EA5BD4E5B2": "text.alignleft"
+        case "BF43F694-E4AE-4B5B-9AE9-B4D6D4A4F248": "lightbulb"
+        default: "sparkles"
+        }
+    }
 }
 
 enum HotKeyPreset: String, CaseIterable, Identifiable {

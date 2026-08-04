@@ -59,7 +59,8 @@ final class ChatViewModel {
             ChatMessage(
                 role: .user,
                 content: text,
-                appliedPresetTitle: promptPreset?.title
+                appliedPresetTitle: promptPreset?.title,
+                appliedPresetSymbolName: promptPreset?.symbolName
             )
         )
         beginRequest(using: promptPreset)
@@ -225,7 +226,8 @@ final class ChatViewModel {
                     content: message.content,
                     createdAt: message.createdAt,
                     state: message.state,
-                    appliedPresetTitle: message.appliedPresetTitle
+                    appliedPresetTitle: message.appliedPresetTitle,
+                    appliedPresetSymbolName: message.appliedPresetSymbolName
                 )
             }
         let maximum = settings.contextLimit == 0 ? Int.max : settings.contextLimit

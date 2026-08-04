@@ -128,6 +128,38 @@ final class ChatViewModelTests: XCTestCase {
         XCTAssertEqual(try store.load(), [message])
     }
 
+    func testSessionStorePersistsAppliedPromptIconSnapshot() throws {
+        let bundleIdentifier = "SpotAskTests.\(UUID().uuidString)"
+        let store = SessionStore(bundleIdentifier: bundleIdentifier)
+        defer { try? store.clear() }
+        let message = ChatMessage(
+            role: .user,
+            content: "question",
+            appliedPresetTitle: "Translate",
+            appliedPresetSymbolName: "globe"
+        )
+
+        try store.save([message])
+
+        XCTAssertEqual(try store.load(), [message])
+    }
+
+    func testSendSnapshotsAppliedPromptIcon() async {
+        let recorder = RequestRecorder()
+        let preset = PromptPreset.builtIn[0]
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("answer")]])
+        viewModel.selectedPromptPreset = preset
+        viewModel.input = "question"
+
+        viewModel.send()
+        await waitForIdle(viewModel)
+
+        let question = viewModel.messages.first { $0.role == .user }
+        XCTAssertEqual(question?.appliedPresetTitle, preset.title)
+        XCTAssertEqual(question?.appliedPresetSymbolName, "globe")
+        XCTAssertEqual(question?.appliedPresetIcon, "globe")
+    }
+
     // MARK: - Stale session choice
 
     func testStaleSessionOffersChoiceAndBlocksSendUntilResolved() async {
