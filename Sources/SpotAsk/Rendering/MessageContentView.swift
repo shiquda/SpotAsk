@@ -9,9 +9,10 @@ struct MessageContentView: View {
         VStack(alignment: .leading, spacing: 12) {
             if message.role == .assistant {
                 HStack {
-                    Text(L10n.string("chat.answer"))
-                        .font(.caption.weight(.semibold))
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.secondary)
+                        .accessibilityLabel(L10n.string("chat.model"))
                     Spacer()
                     Button {
                         Clipboard.copy(message.content)

@@ -1600,9 +1600,10 @@ private struct UserMessageContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack {
-                Text(L10n.string("chat.user"))
-                    .font(.caption.weight(.medium))
+                Image(systemName: "person.crop.circle.fill")
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.tertiary)
+                    .accessibilityLabel(L10n.string("chat.user"))
                 if let presetTitle = message.appliedPresetTitle {
                     Label(L10n.string("chat.usedPrompt", presetTitle), systemImage: message.appliedPresetIcon)
                         .font(.caption)

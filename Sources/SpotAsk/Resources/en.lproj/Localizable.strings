@@ -1,7 +1,7 @@
 "appearance.dark" = "Dark";
 "appearance.light" = "Light";
 "appearance.system" = "System";
-"chat.answer" = "Answer";
+"chat.model" = "Model";
 "chat.answerContent" = "Answer content";
 "chat.askAnything" = "What would you like to ask?";
 "chat.copyAnswer" = "Copy answer";

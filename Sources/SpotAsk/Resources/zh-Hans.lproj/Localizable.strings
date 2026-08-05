@@ -1,7 +1,7 @@
 "appearance.dark" = "深色";
 "appearance.light" = "浅色";
 "appearance.system" = "跟随系统";
-"chat.answer" = "回答";
+"chat.model" = "模型";
 "chat.answerContent" = "回答内容";
 "chat.askAnything" = "想问点什么？";
 "chat.copyAnswer" = "复制回答";
