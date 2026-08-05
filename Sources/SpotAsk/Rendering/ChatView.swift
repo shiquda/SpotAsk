@@ -147,6 +147,7 @@ struct ChatView: View {
     let commandCenter: SpotAskCommandCenter
 
     @FocusState private var inputFocused: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var scrollFollowState = ScrollFollowState()
     @State private var didCopyLastAnswer = false
     @State private var inputHeight = ChatInputTextView.minHeight
@@ -497,15 +498,15 @@ struct ChatView: View {
             .help(state.isExpanded ? L10n.string("chat.reasoningCollapse") : L10n.string("chat.reasoningExpand"))
             .accessibilityLabel(state.isExpanded ? L10n.string("chat.reasoningCollapse") : L10n.string("chat.reasoningExpand"))
             if state.isExpanded {
-                Text(reasoning)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .background(.quinary, in: RoundedRectangle(cornerRadius: 6))
+                ReasoningContentView(
+                    messageID: message.id,
+                    reasoning: reasoning,
+                    reduceMotion: reduceMotion
+                )
+                .transition(reduceMotion ? .identity : .opacity.combined(with: .move(edge: .top)))
             }
         }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: state.isExpanded)
     }
 
     private var composer: some View {
@@ -841,6 +842,82 @@ struct ChatView: View {
         DispatchQueue.main.async {
             guard scrollFollowState.followsLatest else { return }
             proxy.scrollTo("conversation-bottom", anchor: .bottom)
+        }
+    }
+
+    private static func isNearBottom(_ geometry: ScrollGeometry) -> Bool {
+        geometry.visibleRect.maxY >= geometry.contentSize.height - 12
+    }
+
+    private static func scrollFollowPhase(for phase: ScrollPhase) -> ScrollFollowState.Phase {
+        switch phase {
+        case .idle:
+            .idle
+        case .tracking, .interacting:
+            .userInteracting
+        case .decelerating:
+            .userDecelerating
+        case .animating:
+            .programmaticAnimating
+        }
+    }
+}
+
+/// A reasoning transcript owns its own follow preference, so reading earlier
+/// reasoning never changes the user's position in the conversation.
+private struct ReasoningContentView: View {
+    let messageID: UUID
+    let reasoning: String
+    let reduceMotion: Bool
+
+    @State private var scrollFollowState = ScrollFollowState()
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                Text(reasoning)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                Color.clear
+                    .frame(height: 1)
+                    .id(bottomAnchorID)
+            }
+            .frame(maxHeight: 240)
+            .background(.quinary, in: RoundedRectangle(cornerRadius: 6))
+            .onAppear {
+                scrollToBottom(using: proxy, animated: false)
+            }
+            .onScrollGeometryChange(for: Bool.self, of: Self.isNearBottom) { _, isNearBottom in
+                scrollFollowState.positionChanged(isNearBottom: isNearBottom)
+            }
+            .onScrollPhaseChange { _, newPhase, context in
+                scrollFollowState.positionChanged(isNearBottom: Self.isNearBottom(context.geometry))
+                scrollFollowState.phaseChanged(to: Self.scrollFollowPhase(for: newPhase))
+            }
+            .onChange(of: reasoning) { _, _ in
+                scrollToBottom(using: proxy, animated: !reduceMotion)
+            }
+        }
+    }
+
+    private var bottomAnchorID: String {
+        "reasoning-bottom-\(messageID.uuidString)"
+    }
+
+    private func scrollToBottom(using proxy: ScrollViewProxy, animated: Bool) {
+        guard scrollFollowState.followsLatest else { return }
+        DispatchQueue.main.async {
+            guard scrollFollowState.followsLatest else { return }
+            if animated {
+                withAnimation(.easeOut(duration: 0.15)) {
+                    proxy.scrollTo(bottomAnchorID, anchor: .bottom)
+                }
+            } else {
+                proxy.scrollTo(bottomAnchorID, anchor: .bottom)
+            }
         }
     }
 

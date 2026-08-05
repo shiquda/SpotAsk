@@ -44,26 +44,30 @@ final class ReasoningToggleStateTests: XCTestCase {
         XCTAssertFalse(store.state(for: message.id).isExpanded)
     }
 
-    func testReasoningOnlyTerminalStatesCollapse() {
+    func testTerminalStatesCollapsePreviouslyUserExpandedReasoning() {
         for terminalState in [MessageState.complete, .cancelled, .failed] {
             var message = assistant(reasoning: "Working", state: .streaming)
             var store = ReasoningToggleStateStore()
             store.reconcile(messages: [message])
+            store.toggleByUser(messageID: message.id)
+            store.toggleByUser(messageID: message.id)
             XCTAssertTrue(store.state(for: message.id).isExpanded)
 
             message.state = terminalState
             store.reconcile(messages: [message])
 
             XCTAssertFalse(store.state(for: message.id).isExpanded, "\(terminalState) should collapse reasoning")
+            XCTAssertTrue(store.state(for: message.id).isPinned)
         }
     }
 
-    func testUserPinnedStateWinsOverLaterAutomaticRules() {
+    func testTerminalStateCollapsesPreviouslyUserExpandedReasoning() {
         var message = assistant(reasoning: "Working", state: .streaming)
         var store = ReasoningToggleStateStore()
         store.reconcile(messages: [message])
         store.toggleByUser(messageID: message.id)
-        XCTAssertFalse(store.state(for: message.id).isExpanded)
+        store.toggleByUser(messageID: message.id)
+        XCTAssertTrue(store.state(for: message.id).isExpanded)
 
         message.content = "Answer"
         message.state = .complete

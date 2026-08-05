@@ -22,6 +22,13 @@ struct ReasoningToggleState: Equatable {
             return
         }
 
+        // Reaching any terminal state always closes reasoning, including when
+        // the user previously chose to keep it open.
+        if snapshot.isTerminal {
+            isExpanded = false
+            return
+        }
+
         guard !isPinned else { return }
 
         if !previousSnapshot.hasAnswer, snapshot.hasAnswer {
@@ -33,9 +40,6 @@ struct ReasoningToggleState: Equatable {
             isExpanded = true
         }
 
-        if snapshot.isTerminal, !snapshot.hasAnswer {
-            isExpanded = false
-        }
     }
 
     /// Manual expand / collapse gesture. Locks out all future automatisms.
