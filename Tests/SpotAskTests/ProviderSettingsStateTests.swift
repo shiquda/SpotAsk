@@ -3,11 +3,12 @@ import XCTest
 
 @MainActor
 final class ProviderSettingsStateTests: XCTestCase {
-    func testOpeningSettingsStateDoesNotAccessSecretStore() {
-        let keyStore = RecordingKeyStore()
-        _ = makeState(keyStore: keyStore)
+    func testSelectingProviderLoadsSavedKeyIntoKeyDraft() {
+        let keyStore = RecordingKeyStore(apiKey: "saved-key")
+        let state = makeState(keyStore: keyStore)
 
-        XCTAssertEqual(keyStore.readCount, 0)
+        XCTAssertEqual(keyStore.readCount, 1)
+        XCTAssertEqual(state.apiKeyDraft, "saved-key")
         XCTAssertEqual(keyStore.saveCount, 0)
         XCTAssertEqual(keyStore.deleteCount, 0)
     }
@@ -67,40 +68,37 @@ final class ProviderSettingsStateTests: XCTestCase {
         XCTAssertEqual(state.draftModelStreaming, model.isStreamingEnabled)
     }
 
-    func testSavingNewKeyTargetsSelectedProvider() throws {
+    func testPersistingKeyDraftTargetsSelectedProviderAndKeepsDraftVisible() throws {
         let keyStore = RecordingKeyStore()
         let state = makeState(keyStore: keyStore)
         state.apiKeyDraft = "  replacement-key  \n"
 
-        state.saveKey()
+        state.persistAPIKeyDraft()
 
         XCTAssertEqual(keyStore.savedKeys, ["replacement-key"])
         XCTAssertEqual(keyStore.savedProviderIDs.count, 1)
         XCTAssertEqual(keyStore.savedProviderIDs.first, state.selectedProviderID)
-        XCTAssertEqual(keyStore.readCount, 0)
-        XCTAssertEqual(state.apiKeyDraft, "")
+        XCTAssertEqual(state.apiKeyDraft, "  replacement-key  \n")
     }
 
-    func testSavingEmptyKeyShowsError() {
-        let keyStore = RecordingKeyStore()
-        let state = makeState(keyStore: keyStore)
-        state.apiKeyDraft = ""
-
-        state.saveKey()
-
-        XCTAssertTrue(state.statusIsError)
-        XCTAssertEqual(keyStore.saveCount, 0)
-    }
-
-    func testClearingKeyTargetsSelectedProvider() {
+    func testClearingKeyDraftDeletesSavedKey() {
         let keyStore = RecordingKeyStore()
         let state = makeState(keyStore: keyStore)
 
-        state.clearKey()
+        state.persistAPIKeyDraft()
 
         XCTAssertEqual(keyStore.deleteCount, 1)
         XCTAssertEqual(keyStore.deletedProviderIDs.first, state.selectedProviderID)
-        XCTAssertEqual(keyStore.readCount, 0)
+    }
+
+    func testClearingKeyDoesNotDeleteKeyWhenProviderIsNotSelected() {
+        let keyStore = RecordingKeyStore()
+        let state = makeState(keyStore: keyStore)
+        state.selectedProviderID = nil
+
+        state.persistAPIKeyDraft()
+
+        XCTAssertEqual(keyStore.deleteCount, 0)
     }
 
     func testClearingAllDataDeletesEveryCredentialSlot() {
@@ -641,6 +639,44 @@ final class ProviderSettingsStateTests: XCTestCase {
         }
     }
 
+    func testModelTestUsesRequestedModelNotTheFirstProviderModel() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let catalog = try XCTUnwrap(settings.providerRegistry.catalog)
+        let provider = try XCTUnwrap(catalog.providers.first)
+        let secondModel = try settings.providerRegistry.saveModel(
+            ModelConfiguration(
+                displayName: "Second",
+                upstreamModelID: "second-model",
+                providerID: provider.id,
+                isStreamingEnabled: true
+            )
+        )
+        let recordingFactory = RecordingProviderFactory()
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(apiKey: "saved-key"),
+            providerFactory: recordingFactory
+        )
+
+        state.testConnection(modelID: secondModel.id)
+
+        let expectation = XCTestExpectation(description: "model test completes")
+        Task {
+            var attempts = 0
+            while state.isTesting && attempts < 50 {
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                attempts += 1
+            }
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5.0)
+
+        XCTAssertEqual(recordingFactory.capturedTarget?.upstreamModelID, "second-model")
+        XCTAssertEqual(recordingFactory.capturedTarget?.providerID, provider.id)
+    }
+
     func testConnectionTestWithoutKeyShowsMissingAPIKeyError() throws {
         let (defaults, suiteName) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
@@ -669,6 +705,35 @@ final class ProviderSettingsStateTests: XCTestCase {
         XCTAssertTrue(state.statusIsError, "Should show error when no API key provided")
         XCTAssertTrue(state.status.contains("key") || state.status.contains("Key") || state.status.contains("密钥"),
                       "Error message should indicate missing key, got: \(state.status)")
+    }
+
+    func testModelTestErrorShowsServerDetail() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let catalog = try XCTUnwrap(settings.providerRegistry.catalog)
+        let model = try XCTUnwrap(catalog.models.first)
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(apiKey: "saved-key"),
+            providerFactory: FailingProviderFactory(error: .unauthorized(message: "Invalid API key provided"))
+        )
+
+        state.testConnection(modelID: model.id)
+
+        let expectation = XCTestExpectation(description: "model test completes")
+        Task {
+            var attempts = 0
+            while state.isTesting && attempts < 50 {
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                attempts += 1
+            }
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5.0)
+
+        XCTAssertTrue(state.statusIsError)
+        XCTAssertTrue(state.status.contains("Invalid API key provided"))
     }
 
     func testRefreshModelsShowsLoadingThenAddsDiscoveredModelsWithoutChangingDraft() async throws {
@@ -1010,5 +1075,34 @@ private final class RecordingProviderFactory: ChatProviderFactory {
     func makeProvider(for target: ProviderTargetSnapshot) throws -> any ChatProvider {
         capturedTarget = target
         return NoopProvider()
+    }
+}
+
+@MainActor
+private struct FailingProviderFactory: ChatProviderFactory {
+    let error: ChatError
+
+    func makeProvider() throws -> any ChatProvider {
+        FailingProvider(error: error)
+    }
+
+    func makeTargetSnapshot() throws -> ProviderTargetSnapshot {
+        ProviderTargetSnapshot.testValue()
+    }
+
+    func makeProvider(for target: ProviderTargetSnapshot) throws -> any ChatProvider {
+        FailingProvider(error: error)
+    }
+}
+
+private struct FailingProvider: ChatProvider {
+    let error: ChatError
+
+    func stream(request: ChatRequest) -> AsyncThrowingStream<ChatStreamEvent, Error> {
+        AsyncThrowingStream { $0.finish(throwing: error) }
+    }
+
+    func testConnection() async throws {
+        throw error
     }
 }

@@ -48,6 +48,8 @@ enum InAppShortcutOperation: String, CaseIterable, Codable, Hashable, Identifiab
     case showSettings
     case newConversation
     case sendOrCancel
+    case zoomIn
+    case zoomOut
 
     var id: String { rawValue }
 }
@@ -147,7 +149,20 @@ struct InAppShortcutConfiguration: Codable, Equatable, Sendable {
     }
 
     func target(for shortcut: InAppShortcut, presets: [PromptPreset]) -> InAppShortcutTarget? {
-        resolvedAssignments(for: presets).first(where: { $0.shortcut == shortcut })?.target
+        let assignments = resolvedAssignments(for: presets)
+        if let exact = assignments.first(where: { $0.shortcut == shortcut }) {
+            return exact.target
+        }
+        // The plus key is physically Command+Shift+= on macOS. Treat it as an
+        // alias for the default Command+= zoom shortcut unless a user has
+        // explicitly assigned Command+Shift+= to another action.
+        if shortcut == .commandShift("="),
+           assignments.contains(where: {
+               $0.target == .operation(.zoomIn) && $0.shortcut == .command("=")
+           }) {
+            return .operation(.zoomIn)
+        }
+        return nil
     }
 
     func resolvedAssignments(for presets: [PromptPreset]) -> [InAppShortcutAssignment] {
@@ -236,7 +251,9 @@ struct InAppShortcutConfiguration: Codable, Equatable, Sendable {
             (.regenerateOrRetry, .command("r")),
             (.copyAnswer, .commandShift("c")),
             (.showSettings, .command(",")),
-            (.newConversation, .command("n"))
+            (.newConversation, .command("n")),
+            (.zoomIn, .command("=")),
+            (.zoomOut, .command("-"))
         ]
         let operationAssignments = operations.map {
             InAppShortcutAssignment(target: .operation($0.0), shortcut: $0.1)

@@ -143,6 +143,40 @@ enum FontSize: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum InterfaceZoomLevel: String, CaseIterable, Identifiable {
+    case compact
+    case standard
+    case comfortable
+    case large
+
+    var id: String { rawValue }
+
+    var dynamicTypeSize: DynamicTypeSize {
+        switch self {
+        case .compact: .small
+        case .standard: .large
+        case .comfortable: .xLarge
+        case .large: .xxLarge
+        }
+    }
+
+    var displayScale: CGFloat {
+        switch self {
+        case .compact: 0.9
+        case .standard: 1
+        case .comfortable: 1.15
+        case .large: 1.3
+        }
+    }
+
+    static func adjusted(from current: InterfaceZoomLevel, by delta: Int) -> InterfaceZoomLevel {
+        let levels = allCases
+        let currentIndex = levels.firstIndex(of: current) ?? 1
+        let targetIndex = min(max(currentIndex + delta, 0), levels.count - 1)
+        return levels[targetIndex]
+    }
+}
+
 enum AppLanguage: String, CaseIterable, Identifiable {
     case system
     case simplifiedChinese = "zh-Hans"
@@ -182,6 +216,7 @@ final class AppSettings {
         static let launchAtLogin = "launchAtLogin"
         static let appearance = "appearance"
         static let fontSize = "fontSize"
+        static let interfaceZoomLevel = "interfaceZoomLevel"
         static let language = AppLanguage.defaultsKey
         static let hotKeyPreset = "hotKeyPreset"
         static let panelWidth = "panelWidth"
@@ -224,6 +259,9 @@ final class AppSettings {
         }
     }
     var fontSize: FontSize { didSet { defaults.set(fontSize.rawValue, forKey: Key.fontSize) } }
+    var interfaceZoomLevel: InterfaceZoomLevel {
+        didSet { defaults.set(interfaceZoomLevel.rawValue, forKey: Key.interfaceZoomLevel) }
+    }
     var language: AppLanguage {
         didSet {
             defaults.set(language.rawValue, forKey: Key.language)
@@ -299,6 +337,7 @@ final class AppSettings {
         launchAtLogin = defaults.bool(forKey: Key.launchAtLogin)
         appearance = AppearanceMode(rawValue: defaults.string(forKey: Key.appearance) ?? "system") ?? .system
         fontSize = FontSize(rawValue: defaults.string(forKey: Key.fontSize) ?? "standard") ?? .standard
+        interfaceZoomLevel = InterfaceZoomLevel(rawValue: defaults.string(forKey: Key.interfaceZoomLevel) ?? "standard") ?? .standard
         language = AppLanguage(rawValue: defaults.string(forKey: Key.language) ?? "system") ?? .system
         hotKeyPreset = HotKeyPreset(rawValue: defaults.string(forKey: Key.hotKeyPreset) ?? "optionSpace") ?? .optionSpace
         panelWidth = defaults.object(forKey: Key.panelWidth) as? Double ?? 720

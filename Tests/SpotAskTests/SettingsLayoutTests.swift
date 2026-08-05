@@ -5,6 +5,10 @@ import Testing
 
 @MainActor
 struct SettingsLayoutTests {
+    @Test func providerUseForChatActionUsesSelectionStyleIcon() {
+        #expect(ProviderSettingsIcon.useForChat == "checkmark.circle")
+    }
+
     @Test func providerPageScrollingRevealsBottomControls() throws {
         let fixture = makeWindow(section: .provider)
         defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }

@@ -4,6 +4,10 @@ import ServiceManagement
 import Foundation
 import SwiftUI
 
+enum ProviderSettingsIcon {
+    static let useForChat = "checkmark.circle"
+}
+
 enum SettingsSection: CaseIterable, Hashable, Identifiable {
     case provider
     case prompts
@@ -103,6 +107,11 @@ struct SettingsView: View {
         .frame(width: 860, height: 590)
         .background(Color(nsColor: .windowBackgroundColor))
         .preferredColorScheme(settings.appearance.colorScheme)
+        .environment(\.dynamicTypeSize, settings.interfaceZoomLevel.dynamicTypeSize)
+        .overlay(alignment: .topTrailing) {
+            StatusToastOverlay()
+                .padding(.top, 36)
+        }
     }
 }
 
@@ -407,7 +416,7 @@ private struct ProviderTreeRow: View {
                                 Button {
                                     onUseForChat(model.id)
                                 } label: {
-                                    Label(L10n.string("settings.useForChat"), systemImage: "checkmark.circle")
+                                    Label(L10n.string("settings.useForChat"), systemImage: ProviderSettingsIcon.useForChat)
                                 }
                             }
                             Divider()
@@ -502,6 +511,7 @@ private struct ProviderDetailForm: View {
     @Bindable var state: ProviderSettingsState
     let isNew: Bool
     var showsHeader = true
+    @State private var isKeyVisible = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -579,11 +589,6 @@ private struct ProviderDetailForm: View {
                                 state.cancelModelRefresh()
                             }
                         }
-                        if let status = state.modelRefreshStatusText {
-                            Text(status)
-                                .font(.caption)
-                                .foregroundStyle(state.modelRefreshStatusIsError ? .red : .green)
-                        }
                     }
                 }
             }
@@ -591,46 +596,38 @@ private struct ProviderDetailForm: View {
             if !isNew {
                 SettingsGroup(title: L10n.string("settings.accessKey")) {
                     SettingsFieldRow(label: L10n.string("settings.accessKey")) {
-                        SecureField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
-                            .textFieldStyle(.roundedBorder)
-                            .textContentType(.password)
+                        ZStack(alignment: .trailing) {
+                            Group {
+                                if isKeyVisible {
+                                    TextField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
+                                        .textFieldStyle(.roundedBorder)
+                                        .textContentType(.none)
+                                } else {
+                                    SecureField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
+                                        .textFieldStyle(.roundedBorder)
+                                        .textContentType(.password)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+
+                            Button {
+                                isKeyVisible.toggle()
+                            } label: {
+                                Image(systemName: isKeyVisible ? "eye.slash" : "eye")
+                                    .frame(width: 20, height: 20)
+                            }
+                            .buttonStyle(.borderless)
+                            .padding(.trailing, 6)
+                            .help(L10n.string(isKeyVisible ? "settings.hideAccessKey" : "settings.showAccessKey"))
+                            .accessibilityLabel(L10n.string(isKeyVisible ? "settings.hideAccessKey" : "settings.showAccessKey"))
+                        }
+                        .onChange(of: state.apiKeyDraft) { _, _ in
+                            state.persistAPIKeyDraft()
+                        }
                     }
                     Text(L10n.string("settings.accessKeyOnlyOnMac"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
-
-                    ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 10) {
-                            Button(L10n.string("settings.saveAccessKey")) { state.saveKey() }
-                                .buttonStyle(.borderedProminent)
-                                .keyboardShortcut("s")
-                            Button(L10n.string("settings.testConnection")) { state.testConnection() }
-                                .disabled(state.isTesting || !state.canTestConnection)
-                            Button(L10n.string("settings.clearAccessKey"), role: .destructive) { state.clearKey() }
-                            Spacer()
-                            if state.isTesting { ProgressView().controlSize(.small) }
-                            if !state.status.isEmpty {
-                                Text(state.status)
-                                    .font(.caption)
-                                    .foregroundStyle(state.statusIsError ? .red : .green)
-                            }
-                        }
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            Button(L10n.string("settings.saveAccessKey")) { state.saveKey() }
-                                .buttonStyle(.borderedProminent)
-                                .keyboardShortcut("s")
-                            Button(L10n.string("settings.testConnection")) { state.testConnection() }
-                                .disabled(state.isTesting || !state.canTestConnection)
-                            Button(L10n.string("settings.clearAccessKey"), role: .destructive) { state.clearKey() }
-                            if state.isTesting { ProgressView().controlSize(.small) }
-                            if !state.status.isEmpty {
-                                Text(state.status)
-                                    .font(.caption)
-                                    .foregroundStyle(state.statusIsError ? .red : .green)
-                            }
-                        }
-                    }
                 }
             }
 
@@ -730,21 +727,6 @@ private struct ModelDetailForm: View {
                         Text(L10n.string("settings.currentlyActiveModel"))
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
-                    }
-                } else if !isNew, let modelID = state.selectedModelID {
-                    HStack {
-                        Button {
-                            state.useModelForChat(modelID)
-                        } label: {
-                            Label(L10n.string("settings.useForChat"), systemImage: "checkmark.circle")
-                        }
-                        .buttonStyle(.bordered)
-                        .accessibilityLabel(L10n.string("settings.useForChat"))
-                        if !state.status.isEmpty {
-                            Text(state.status)
-                                .font(.caption)
-                                .foregroundStyle(state.statusIsError ? .red : .secondary)
-                        }
                     }
                 }
             }
@@ -1012,16 +994,36 @@ private struct ProviderModelRow: View {
         state.selectedModelID == model.id
     }
 
+    private var isTesting: Bool {
+        state.testingModelID == model.id
+    }
+
     var body: some View {
         HStack(spacing: 8) {
+            Group {
+                if isActive {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.cyan)
+                } else {
+                    Button {
+                        state.useModelForChat(model.id)
+                    } label: {
+                        Image(systemName: "circle")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary.opacity(0.5))
+                    }
+                    .buttonStyle(.plain)
+                    .help(L10n.string("settings.useForChat"))
+                    .accessibilityLabel(L10n.string("settings.useForChat") + " " + model.displayName)
+                }
+            }
+            .frame(width: 22, height: 22)
+
             Button {
                 state.selectModel(model.id)
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 12))
-                        .foregroundStyle(isActive ? Color.cyan : .secondary.opacity(0.5))
-
                     VStack(alignment: .leading, spacing: 1) {
                         HStack(spacing: 5) {
                             Text(model.displayName)
@@ -1058,42 +1060,53 @@ private struct ProviderModelRow: View {
             }
             .buttonStyle(.plain)
 
-            if !isActive {
-                Button {
-                    state.useModelForChat(model.id)
-                } label: {
-                    Image(systemName: "checkmark.circle")
-                }
-                .buttonStyle(.borderless)
-                .help(L10n.string("settings.useForChat"))
-                .accessibilityLabel(L10n.string("settings.useForChat") + " " + model.displayName)
-            }
-
-            Menu {
-                Button {
-                    state.selectModel(model.id)
-                } label: {
-                    Label(L10n.string("settings.editModel"), systemImage: "pencil")
-                }
-                Divider()
-                Button(role: .destructive) {
-                    state.requestDeleteModel(model.id)
-                } label: {
-                    Label(L10n.string("settings.delete"), systemImage: "trash")
-                }
+            Button {
+                state.testConnection(modelID: model.id)
             } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 24, height: 24)
+                Group {
+                    if isTesting {
+                        ProgressView()
+                            .controlSize(.mini)
+                    } else {
+                        Image(systemName: "bolt.fill")
+                    }
+                }
+                .frame(width: 22, height: 22)
             }
-            .menuStyle(.borderlessButton)
-            .help(L10n.string("settings.modelActions", model.displayName))
-            .accessibilityLabel(L10n.string("settings.modelActions", model.displayName))
+            .buttonStyle(.borderless)
+            .disabled(state.isTesting)
+            .help(L10n.string("settings.testModel"))
+            .accessibilityLabel(L10n.string("settings.testModel") + " " + model.displayName)
+
+            Button {
+                state.selectModel(model.id)
+            } label: {
+                Image(systemName: "pencil")
+                    .frame(width: 22, height: 22)
+            }
+            .buttonStyle(.borderless)
+            .help(L10n.string("settings.editModel"))
+            .accessibilityLabel(L10n.string("settings.editModel") + " " + model.displayName)
+
+            Button(role: .destructive) {
+                state.requestDeleteModel(model.id)
+            } label: {
+                Image(systemName: "trash")
+                    .frame(width: 22, height: 22)
+            }
+            .buttonStyle(.borderless)
+            .help(L10n.string("settings.delete"))
+            .accessibilityLabel(L10n.string("settings.delete") + " " + model.displayName)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
-        .background(isEditing ? Color.primary.opacity(0.07) : .clear, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .background(isEditing ? Brand.accent.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .overlay {
+            if isEditing {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .strokeBorder(Brand.accent.opacity(0.45), lineWidth: 1)
+            }
+        }
     }
 }
 
@@ -1344,7 +1357,6 @@ private struct PromptPresetEditor: View {
 
 private struct ShortcutSettingsPage: View {
     @Bindable var settings: AppSettings
-    @State private var feedback: String?
 
     private let operations = InAppShortcutOperation.allCases
 
@@ -1356,23 +1368,12 @@ private struct ShortcutSettingsPage: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            if let feedback {
-                Text(feedback)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-            }
-
             SettingsGroup(title: L10n.string("settings.shortcutActions")) {
                 ForEach(operations) { operation in
                     ShortcutSettingsRow(
                         title: operation.title,
                         target: .operation(operation),
-                        settings: settings,
-                        feedback: $feedback
+                        settings: settings
                     )
                     if operation != operations.last { Divider() }
                 }
@@ -1383,8 +1384,7 @@ private struct ShortcutSettingsPage: View {
                     ShortcutSettingsRow(
                         title: preset.title,
                         target: .promptPreset(preset.id),
-                        settings: settings,
-                        feedback: $feedback
+                        settings: settings
                     )
                     if preset.id != settings.enabledPromptPresets.last?.id { Divider() }
                 }
@@ -1394,7 +1394,7 @@ private struct ShortcutSettingsPage: View {
                 Spacer()
                 Button {
                     settings.resetAllShortcuts()
-                    feedback = L10n.string("settings.shortcutsRestored")
+                    StatusToastCenter.shared.show(L10n.string("settings.shortcutsRestored"))
                 } label: {
                     Label(L10n.string("settings.resetAllShortcuts"), systemImage: "arrow.counterclockwise")
                 }
@@ -1408,7 +1408,6 @@ private struct ShortcutSettingsRow: View {
     let title: String
     let target: InAppShortcutTarget
     @Bindable var settings: AppSettings
-    @Binding var feedback: String?
 
     var body: some View {
         HStack(spacing: 10) {
@@ -1420,14 +1419,14 @@ private struct ShortcutSettingsRow: View {
             ShortcutRecorder(
                 shortcut: settings.shortcut(for: target),
                 onRecord: assign,
-                onInvalid: { feedback = L10n.string("settings.shortcutInvalid") }
+                onInvalid: { show(L10n.string("settings.shortcutInvalid"), isError: true) }
             )
             .frame(width: 176, height: 28)
             .accessibilityLabel(title)
 
             Button {
                 guard settings.removeShortcut(for: target) == nil else { return }
-                feedback = L10n.string("settings.shortcutCleared")
+                show(L10n.string("settings.shortcutCleared"))
             } label: {
                 Image(systemName: "xmark")
             }
@@ -1438,7 +1437,7 @@ private struct ShortcutSettingsRow: View {
 
             Button {
                 guard settings.resetShortcut(for: target) == nil else { return }
-                feedback = L10n.string("settings.shortcutRestored")
+                show(L10n.string("settings.shortcutRestored"))
             } label: {
                 Image(systemName: "arrow.counterclockwise")
             }
@@ -1451,14 +1450,18 @@ private struct ShortcutSettingsRow: View {
     private func assign(_ shortcut: InAppShortcut) {
         switch settings.assignShortcut(shortcut, to: target) {
         case nil:
-            feedback = L10n.string("settings.shortcutSaved")
+            show(L10n.string("settings.shortcutSaved"))
         case .unsupportedShortcut:
-            feedback = L10n.string("settings.shortcutInvalid")
+            show(L10n.string("settings.shortcutInvalid"), isError: true)
         case let .duplicateShortcut(existingTarget):
-            feedback = L10n.string("settings.shortcutDuplicate", targetTitle(existingTarget))
+            show(L10n.string("settings.shortcutDuplicate", targetTitle(existingTarget)), isError: true)
         case .unavailableTarget:
-            feedback = L10n.string("settings.shortcutUnavailable")
+            show(L10n.string("settings.shortcutUnavailable"), isError: true)
         }
+    }
+
+    private func show(_ message: String, isError: Bool = false) {
+        StatusToastCenter.shared.show(message, isError: isError)
     }
 
     private func targetTitle(_ target: InAppShortcutTarget) -> String {
@@ -1481,6 +1484,8 @@ private extension InAppShortcutOperation {
         case .showSettings: L10n.string("shortcut.showSettings")
         case .newConversation: L10n.string("shortcut.newConversation")
         case .sendOrCancel: L10n.string("shortcut.sendOrCancel")
+        case .zoomIn: L10n.string("shortcut.zoomIn")
+        case .zoomOut: L10n.string("shortcut.zoomOut")
         }
     }
 }
@@ -1499,7 +1504,7 @@ private struct ShortcutRecorder: NSViewRepresentable {
     }
 
     func updateNSView(_ field: ShortcutRecorderField, context: Context) {
-        field.stringValue = InAppShortcutDisplay.text(for: shortcut)
+        field.update(shortcut: shortcut)
         field.onRecord = onRecord
         field.onInvalid = onInvalid
     }
@@ -1510,6 +1515,8 @@ private final class ShortcutRecorderField: NSTextField {
     var onInvalid: (() -> Void)?
     private var monitor: Any?
     private var windowObservers: [NSObjectProtocol] = []
+    private var displayedShortcut: InAppShortcut?
+    private var isCapturing = false
 
     override var acceptsFirstResponder: Bool { true }
 
@@ -1521,6 +1528,9 @@ private final class ShortcutRecorderField: NSTextField {
         font = .systemFont(ofSize: 12, weight: .medium)
         focusRingType = .default
         lineBreakMode = .byTruncatingMiddle
+        wantsLayer = true
+        layer?.cornerRadius = 5
+        updateRecordingAppearance()
     }
 
     required init?(coder: NSCoder) {
@@ -1535,7 +1545,14 @@ private final class ShortcutRecorderField: NSTextField {
     }
 
     override func mouseDown(with event: NSEvent) {
-        window?.makeFirstResponder(self)
+        startCapturing()
+    }
+
+    func update(shortcut: InAppShortcut?) {
+        displayedShortcut = shortcut
+        if !isCapturing {
+            stringValue = InAppShortcutDisplay.text(for: shortcut)
+        }
     }
 
     override func viewDidMoveToWindow() {
@@ -1559,7 +1576,7 @@ private final class ShortcutRecorderField: NSTextField {
                 queue: .main
             ) { [weak self] _ in
                 Task { @MainActor [weak self] in
-                    self?.removeMonitor()
+                    self?.stopCapturing()
                 }
             },
             NotificationCenter.default.addObserver(
@@ -1576,16 +1593,10 @@ private final class ShortcutRecorderField: NSTextField {
     }
 
     private func installMonitorIfNeeded() {
-        guard monitor == nil, window?.isKeyWindow == true else { return }
-        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self,
-                  ShortcutRecorderCaptureEligibility.shouldCapture(
-                      isRecorderWindowKey: self.window?.isKeyWindow == true,
-                      isActiveWindowRecorderWindow: NSApp.keyWindow === self.window,
-                      isRecorderFirstResponder: self.window?.firstResponder === self
-                  ) else { return event }
-            self.keyDown(with: event)
-            return nil
+        guard monitor == nil, isCapturing, window?.isKeyWindow == true else { return }
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { [weak self] event in
+            guard let self, self.isCapturing, self.window?.isKeyWindow == true else { return event }
+            return self.handleCaptureEvent(event)
         }
     }
 
@@ -1596,6 +1607,37 @@ private final class ShortcutRecorderField: NSTextField {
         }
     }
 
+    override func resignFirstResponder() -> Bool {
+        let result = super.resignFirstResponder()
+        stopCapturing()
+        return result
+    }
+
+    private func startCapturing() {
+        isCapturing = true
+        stringValue = L10n.string("settings.shortcutRecording")
+        updateRecordingAppearance()
+        window?.makeFirstResponder(self)
+        installMonitorIfNeeded()
+    }
+
+    private func stopCapturing() {
+        guard isCapturing else { return }
+        isCapturing = false
+        removeMonitor()
+        stringValue = InAppShortcutDisplay.text(for: displayedShortcut)
+        updateRecordingAppearance()
+    }
+
+    private func updateRecordingAppearance() {
+        guard let layer else { return }
+        layer.cornerRadius = 5
+        layer.borderWidth = isCapturing ? 1.5 : 1
+        layer.borderColor = isCapturing
+            ? NSColor.controlAccentColor.cgColor
+            : NSColor.clear.cgColor
+    }
+
     private func removeWindowObservers() {
         for observer in windowObservers {
             NotificationCenter.default.removeObserver(observer)
@@ -1604,43 +1646,56 @@ private final class ShortcutRecorderField: NSTextField {
     }
 
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 {
-            window?.makeFirstResponder(nil)
+        guard isCapturing else {
+            super.keyDown(with: event)
             return
         }
-        guard let shortcut = shortcut(from: event) else {
-            onInvalid?()
-            NSSound.beep()
-            return
-        }
-        onRecord?(shortcut)
+        _ = handleCaptureEvent(event)
     }
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        keyDown(with: event)
+        guard isCapturing else {
+            return super.performKeyEquivalent(with: event)
+        }
+        _ = handleCaptureEvent(event)
         return true
     }
 
-    private func shortcut(from event: NSEvent) -> InAppShortcut? {
+    private func handleCaptureEvent(_ event: NSEvent) -> NSEvent? {
+        if event.type == .flagsChanged {
+            return nil
+        }
+        if ShortcutRecorderEventParser.isCancelKey(event) {
+            stopCapturing()
+            return nil
+        }
+        guard let shortcut = ShortcutRecorderEventParser.shortcut(from: event) else {
+            onInvalid?()
+            NSSound.beep()
+            return nil
+        }
+        stopCapturing()
+        onRecord?(shortcut)
+        return nil
+    }
+}
+
+enum ShortcutRecorderEventParser {
+    static func shortcut(from event: NSEvent) -> InAppShortcut? {
+        guard event.type == .keyDown else { return nil }
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         var shortcutModifiers: InAppShortcutModifiers = []
         if modifiers.contains(.command) { shortcutModifiers.insert(.command) }
         if modifiers.contains(.shift) { shortcutModifiers.insert(.shift) }
         if modifiers.contains(.option) { shortcutModifiers.insert(.option) }
         if modifiers.contains(.control) { shortcutModifiers.insert(.control) }
-        guard let key = event.charactersIgnoringModifiers?.lowercased() else { return nil }
+        guard let key = event.charactersIgnoringModifiers?.lowercased(), !key.isEmpty else { return nil }
         let shortcut = InAppShortcut(key: key, modifiers: shortcutModifiers)
         return shortcut.isSupported ? shortcut : nil
     }
-}
 
-enum ShortcutRecorderCaptureEligibility {
-    static func shouldCapture(
-        isRecorderWindowKey: Bool,
-        isActiveWindowRecorderWindow: Bool,
-        isRecorderFirstResponder: Bool
-    ) -> Bool {
-        isRecorderWindowKey && isActiveWindowRecorderWindow && isRecorderFirstResponder
+    static func isCancelKey(_ event: NSEvent) -> Bool {
+        event.type == .keyDown && event.keyCode == 53
     }
 }
 
@@ -2009,9 +2064,15 @@ final class ProviderSettingsState {
 
     var status = ""
     var statusIsError = false
-    var isTesting = false
+    var testingModelID: UUID?
     var providerFieldError: String?
-    var modelRefreshStatus: ModelRefreshStatus = .idle
+    var modelRefreshStatus: ModelRefreshStatus = .idle {
+        didSet { notifyModelRefreshStatus() }
+    }
+
+    var isTesting: Bool {
+        testingModelID != nil
+    }
 
     // MARK: Delete confirmation
 
@@ -2132,7 +2193,7 @@ final class ProviderSettingsState {
         draftModelUpstreamID = ""
         draftModelStreaming = true
 
-        apiKeyDraft = ""
+        apiKeyDraft = (try? keyStore.readAPIKey(for: id)) ?? ""
         status = ""
         statusIsError = false
         providerFieldError = validateProviderAddress(provider.address)
@@ -2215,12 +2276,12 @@ final class ProviderSettingsState {
         status = ""
         statusIsError = false
         providerFieldError = nil
-        apiKeyDraft = ""
 
         // Restore draft from current selection without re-triggering selection
         if let pid = selectedProviderID,
            let catalog = settings.providerRegistry.catalog,
            let provider = catalog.providers.first(where: { $0.id == pid }) {
+            apiKeyDraft = (try? keyStore.readAPIKey(for: pid)) ?? ""
             draftProviderName = provider.name
             draftProviderAddress = provider.address
             draftProviderAddressMode = provider.addressMode
@@ -2238,6 +2299,7 @@ final class ProviderSettingsState {
             draftProviderAddress = ""
             draftProviderAddressMode = .baseURL
             draftProviderTimeout = 60
+            apiKeyDraft = ""
         } else {
             selectedProviderID = nil
             selectedModelID = nil
@@ -2248,6 +2310,7 @@ final class ProviderSettingsState {
             draftModelDisplayName = ""
             draftModelUpstreamID = ""
             draftModelStreaming = true
+            apiKeyDraft = ""
         }
     }
 
@@ -2424,54 +2487,55 @@ final class ProviderSettingsState {
 
     // MARK: Access key
 
-    func saveKey() {
+    func persistAPIKeyDraft() {
         guard let providerID = selectedProviderID else { return }
         let key = apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !key.isEmpty else {
-            setStatus(L10n.string("settings.keyEmpty"), isError: true)
-            return
-        }
         do {
-            try keyStore.saveAPIKey(key, for: providerID)
-            apiKeyDraft = ""
-            setStatus(L10n.string("settings.saveKeySuccess"), isError: false)
+            if key.isEmpty {
+                try keyStore.deleteAPIKey(for: providerID)
+            } else {
+                try keyStore.saveAPIKey(key, for: providerID)
+            }
         } catch {
             setStatus(L10n.string("settings.saveKeyFailure"), isError: true)
         }
     }
 
-    func clearKey() {
-        guard let providerID = selectedProviderID else { return }
-        do {
-            try keyStore.deleteAPIKey(for: providerID)
-            apiKeyDraft = ""
-            setStatus(L10n.string("settings.clearKeySuccess"), isError: false)
-        } catch {
-            setStatus(L10n.string("settings.clearKeyFailure"), isError: true)
+    func testConnection(modelID: UUID? = nil) {
+        guard !isTesting else { return }
+        guard let catalog = settings.providerRegistry.catalog else { return }
+
+        let providerID: UUID
+        let model: ModelConfiguration
+        if let modelID {
+            guard let matchedModel = catalog.models.first(where: { $0.id == modelID }),
+                  catalog.providers.contains(where: { $0.id == matchedModel.providerID }) else { return }
+            providerID = matchedModel.providerID
+            model = matchedModel
+        } else {
+            guard let selectedProviderID else { return }
+            guard let matchedModel = catalog.models.first(where: { $0.providerID == selectedProviderID }) else { return }
+            providerID = selectedProviderID
+            model = matchedModel
         }
-    }
+        guard let provider = catalog.providers.first(where: { $0.id == providerID }) else { return }
 
-    func testConnection() {
-        guard let providerID = selectedProviderID,
-              let catalog = settings.providerRegistry.catalog,
-              let model = catalog.models.first(where: { $0.providerID == providerID }) else { return }
+        let isDraftProvider = selectedProviderID == providerID
+        let address = (isDraftProvider ? draftProviderAddress : provider.address)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let mode = isDraftProvider ? draftProviderAddressMode : provider.addressMode
+        let timeout = isDraftProvider ? draftProviderTimeout : provider.timeout
 
-        isTesting = true
+        testingModelID = model.id
         status = ""
         statusIsError = false
 
         Task {
             do {
-                let address = draftProviderAddress.trimmingCharacters(in: .whitespacesAndNewlines)
-                let mode = draftProviderAddressMode
-                let timeout = draftProviderTimeout
-
-                // Save draft key if provided, then read back the stored key
-                let draftKey = apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !draftKey.isEmpty {
-                    try keyStore.saveAPIKey(draftKey, for: providerID)
-                    apiKeyDraft = ""
-                }
+                if isDraftProvider { persistAPIKeyDraft() }
+                let draftKey = isDraftProvider
+                    ? apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                    : ""
                 let storedKey = try keyStore.readAPIKey(for: providerID)
 
                 // Require an API key before constructing the target
@@ -2498,11 +2562,12 @@ final class ProviderSettingsState {
                 try await chatProvider.testConnection()
                 setStatus(L10n.string("settings.modelConnectionSuccess"), isError: false)
             } catch let error as ChatError {
-                setStatus(error.localizedDescription, isError: true)
+                setStatus(error.localizedDescription ?? String(describing: error), isError: true)
             } catch {
-                setStatus(L10n.string("settings.testFailure"), isError: true)
+                let message = (error as? LocalizedError)?.errorDescription ?? String(describing: error)
+                setStatus(message, isError: true)
             }
-            isTesting = false
+            testingModelID = nil
         }
     }
 
@@ -2617,5 +2682,13 @@ final class ProviderSettingsState {
     private func setStatus(_ value: String, isError: Bool) {
         status = value
         statusIsError = isError
+        StatusToastCenter.shared.show(value, isError: isError)
+    }
+
+    private func notifyModelRefreshStatus() {
+        guard modelRefreshStatus != .idle,
+              modelRefreshStatus != .loading,
+              let text = modelRefreshStatusText else { return }
+        StatusToastCenter.shared.show(text, isError: modelRefreshStatusIsError)
     }
 }

@@ -230,6 +230,25 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(AppSettings(defaults: defaults).language, .english)
     }
 
+    func testInterfaceZoomDefaultsToStandardAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        XCTAssertEqual(AppSettings(defaults: defaults).interfaceZoomLevel, .standard)
+
+        let settings = AppSettings(defaults: defaults)
+        settings.interfaceZoomLevel = .comfortable
+        XCTAssertEqual(AppSettings(defaults: defaults).interfaceZoomLevel, .comfortable)
+    }
+
+    func testInterfaceZoomAdjustmentClampsToAvailableLevels() {
+        XCTAssertEqual(InterfaceZoomLevel.adjusted(from: .compact, by: -1), .compact)
+        XCTAssertEqual(InterfaceZoomLevel.adjusted(from: .standard, by: -1), .compact)
+        XCTAssertEqual(InterfaceZoomLevel.adjusted(from: .standard, by: 1), .comfortable)
+        XCTAssertEqual(InterfaceZoomLevel.adjusted(from: .large, by: 1), .large)
+    }
+
     func testLocalizationUsesExplicitLanguageSelection() {
         XCTAssertEqual(L10n.string("settings.title", language: .english), "Settings")
         XCTAssertEqual(L10n.string("settings.title", language: .simplifiedChinese), "设置")

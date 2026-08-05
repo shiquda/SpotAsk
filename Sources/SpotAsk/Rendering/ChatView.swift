@@ -72,21 +72,13 @@ func chatEscapeAction(
     return .dismissWindow
 }
 
-/// Decides when a sent question needs an initially compact presentation.
-/// The original message content is always retained and rendered when expanded.
-enum UserMessageDisplayPolicy {
-    static let characterThreshold = 500
-    static let explicitLineThreshold = 8
-    static let collapsedLineLimit = 8
-
-    static func shouldCollapse(_ content: String) -> Bool {
-        collapsedPreview(for: content) != nil
-    }
-
-    /// Returns only the text needed for the compact view. Scanning stops as
-    /// soon as either collapse threshold is reached, avoiding work proportional
-    /// to an arbitrarily long saved question.
-    static func collapsedPreview(for content: String) -> String? {
+/// Shared bounded preview scan used by the user and assistant display policies.
+enum LongTextDisplayPolicy {
+    static func collapsedPreview(
+        _ content: String,
+        characterThreshold: Int,
+        explicitLineThreshold: Int
+    ) -> String? {
         var characterCount = 0
         var explicitLineCount = 1
         var lastContentEnd = content.startIndex
@@ -115,9 +107,52 @@ enum UserMessageDisplayPolicy {
     }
 }
 
-/// View-owned expansion state for user messages. Keeping it above lazy rows
+/// Decides when a sent question needs an initially compact presentation.
+/// The original message content is always retained and rendered when expanded.
+enum UserMessageDisplayPolicy {
+    static let characterThreshold = 500
+    static let explicitLineThreshold = 8
+    static let collapsedLineLimit = 8
+
+    static func shouldCollapse(_ content: String) -> Bool {
+        collapsedPreview(for: content) != nil
+    }
+
+    /// Returns only the text needed for the compact view. Scanning stops as
+    /// soon as either collapse threshold is reached, avoiding work proportional
+    /// to an arbitrarily long saved question.
+    static func collapsedPreview(for content: String) -> String? {
+        LongTextDisplayPolicy.collapsedPreview(
+            content,
+            characterThreshold: characterThreshold,
+            explicitLineThreshold: explicitLineThreshold
+        )
+    }
+}
+
+/// Long assistant answers use a plain compact preview instead of running the
+/// full Markdown renderer until the user asks to expand them.
+enum AssistantMessageDisplayPolicy {
+    static let characterThreshold = 4_000
+    static let explicitLineThreshold = 120
+    static let collapsedLineLimit = 12
+
+    static func shouldCollapse(_ content: String) -> Bool {
+        collapsedPreview(for: content) != nil
+    }
+
+    static func collapsedPreview(for content: String) -> String? {
+        LongTextDisplayPolicy.collapsedPreview(
+            content,
+            characterThreshold: characterThreshold,
+            explicitLineThreshold: explicitLineThreshold
+        )
+    }
+}
+
+/// View-owned expansion state for long messages. Keeping it above lazy rows
 /// preserves a user's choice while a row is temporarily recycled off-screen.
-struct UserMessageExpansionState: Equatable {
+struct MessageExpansionState: Equatable {
     private(set) var expandedMessageIDs: Set<UUID> = []
 
     mutating func reconcile(messages: [ChatMessage]) {
@@ -138,6 +173,8 @@ struct UserMessageExpansionState: Equatable {
     }
 }
 
+typealias UserMessageExpansionState = MessageExpansionState
+
 struct ChatView: View {
     @Bindable var viewModel: ChatViewModel
     let settings: AppSettings
@@ -152,6 +189,7 @@ struct ChatView: View {
     @State private var inputHeight = ChatInputTextView.minHeight
     @State private var reasoningToggle = ReasoningToggleStateStore()
     @State private var userMessageExpansionState = UserMessageExpansionState()
+    @State private var assistantMessageExpansionState = MessageExpansionState()
     @State private var isPresetPopoverPresented = false
     @State private var showsShortcutHints = false
     @State private var shortcutDispatcher: InAppShortcutDispatcher?
@@ -205,6 +243,7 @@ struct ChatView: View {
             commandCenter.setActionConsumer(handleCommandAction)
             reasoningToggle.reconcile(messages: viewModel.messages)
             userMessageExpansionState.reconcile(messages: viewModel.messages)
+            assistantMessageExpansionState.reconcile(messages: viewModel.messages)
             installShortcutDispatcher()
         }
         .onDisappear {
@@ -221,11 +260,17 @@ struct ChatView: View {
         }
         .onExitCommand(perform: handleEscape)
         .font(contentFont)
+        .environment(\.dynamicTypeSize, settings.interfaceZoomLevel.dynamicTypeSize)
         .preferredColorScheme(colorScheme)
+        .overlay(alignment: .topTrailing) {
+            StatusToastOverlay()
+                .padding(.top, 36)
+        }
         .environment(\.locale, settings.language.locale)
         .onChange(of: viewModel.messages) { _, messages in
             reasoningToggle.reconcile(messages: messages)
             userMessageExpansionState.reconcile(messages: messages)
+            assistantMessageExpansionState.reconcile(messages: messages)
         }
         .onChange(of: settings.promptPresets) { _, _ in
             synchronizeSelectedPromptPreset()
@@ -444,7 +489,11 @@ struct ChatView: View {
                             : nil,
                         regenerateShortcut: viewModel.canRegenerate && message.id == viewModel.lastAssistantMessage?.id
                             ? shortcutHint(for: .operation(.regenerateOrRetry))
-                            : nil
+                            : nil,
+                        isExpanded: assistantMessageExpansionState.isExpanded(messageID: message.id),
+                        onToggleExpansion: {
+                            assistantMessageExpansionState.toggle(messageID: message.id)
+                        }
                     )
                 }
                 if message.state == .failed {
@@ -593,11 +642,13 @@ struct ChatView: View {
     }
 
     private var contentFont: Font {
+        let baseSize: CGFloat
         switch settings.fontSize {
-        case .small: .callout
-        case .standard: .body
-        case .large: .system(size: 16)
+        case .small: baseSize = 13
+        case .standard: baseSize = 14.5
+        case .large: baseSize = 17
         }
+        return .system(size: baseSize * settings.interfaceZoomLevel.displayScale)
     }
 
     private func primaryAction() {
@@ -667,8 +718,21 @@ struct ChatView: View {
                 guard isGenerating || viewModel.canSend else { return false }
                 primaryAction()
                 return true
+            case .zoomIn:
+                adjustZoom(by: 1)
+                return true
+            case .zoomOut:
+                adjustZoom(by: -1)
+                return true
             }
         }
+    }
+
+    private func adjustZoom(by delta: Int) {
+        let current = settings.interfaceZoomLevel
+        let next = InterfaceZoomLevel.adjusted(from: current, by: delta)
+        guard next != current else { return }
+        settings.interfaceZoomLevel = next
     }
 
     private func shortcutHint(for target: InAppShortcutTarget) -> InAppShortcut? {

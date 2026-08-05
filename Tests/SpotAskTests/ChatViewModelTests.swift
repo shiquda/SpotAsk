@@ -69,7 +69,7 @@ final class ChatViewModelTests: XCTestCase {
 
     func testRetryDoesNotDuplicateUserMessage() async {
         let recorder = RequestRecorder()
-        let viewModel = makeViewModel(recorder: recorder, scripts: [[.failure(.rateLimited)], [.answer("recovered")]])
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.failure(.rateLimited(message: nil))], [.answer("recovered")]])
 
         viewModel.input = "retry me"
         viewModel.send()

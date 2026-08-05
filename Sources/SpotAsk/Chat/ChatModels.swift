@@ -141,8 +141,8 @@ enum ChatError: LocalizedError, Equatable, Sendable {
     case invalidConfiguration
     case invalidURL
     case missingAPIKey
-    case unauthorized
-    case rateLimited
+    case unauthorized(message: String?)
+    case rateLimited(message: String?)
     case serverError(status: Int, message: String?)
     case invalidResponse
     case decodingFailed
@@ -155,9 +155,9 @@ enum ChatError: LocalizedError, Equatable, Sendable {
         case .invalidConfiguration: L10n.string("error.invalidConfiguration")
         case .invalidURL: L10n.string("error.invalidURL")
         case .missingAPIKey: L10n.string("error.missingAPIKey")
-        case .unauthorized: L10n.string("error.unauthorized")
-        case .rateLimited: L10n.string("error.rateLimited")
-        case let .serverError(status, _): L10n.string("error.serverError", status)
+        case let .unauthorized(message): Self.message(L10n.string("error.unauthorized"), detail: message)
+        case let .rateLimited(message): Self.message(L10n.string("error.rateLimited"), detail: message)
+        case let .serverError(status, message): Self.message(L10n.string("error.serverError", status), detail: message)
         case .invalidResponse: L10n.string("error.invalidResponse")
         case .decodingFailed: L10n.string("error.decodingFailed")
         case .networkUnavailable: L10n.string("error.networkUnavailable")
@@ -167,7 +167,16 @@ enum ChatError: LocalizedError, Equatable, Sendable {
     }
 
     var detail: String? {
-        if case let .serverError(_, message) = self { return message }
-        return nil
+        switch self {
+        case let .unauthorized(message), let .rateLimited(message), let .serverError(_, message):
+            message
+        default:
+            nil
+        }
+    }
+
+    private static func message(_ base: String, detail: String?) -> String {
+        guard let detail, !detail.isEmpty else { return base }
+        return "\(base)\n\(detail)"
     }
 }

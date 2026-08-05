@@ -37,7 +37,9 @@
 "chat.startNewQuestion" = "Start New Question";
 "chat.stop" = "Stop generating";
 "chat.collapseQuestion" = "Collapse question";
+"chat.collapseAnswer" = "Collapse answer";
 "chat.stopped" = "Generation stopped";
+"chat.expandAnswer" = "Show full answer";
 "chat.usePrompt" = "Use for this question: %@";
 "chat.user" = "You";
 "chat.usedPrompt" = "Used prompt: %@";
@@ -127,6 +129,8 @@
 "preset.translate.instruction" = "Translate the content provided by the user accurately. Preserve the original formatting, tone, and proper nouns; output only the translation.";
 "preset.translate.title" = "Translate";
 "settings.accessKey" = "Access Key";
+"settings.showAccessKey" = "Show access key";
+"settings.hideAccessKey" = "Hide access key";
 "settings.accessKeyOnlyOnMac" = "Your access key is stored only on this Mac.";
 "settings.accessKeyPlaceholder" = "Enter an access key to save or update";
 "settings.appearance" = "Appearance";
@@ -160,6 +164,7 @@
 "settings.shortcutDuplicate" = "That key combination is already used by %@.";
 "settings.shortcutUnavailable" = "This item is no longer available.";
 "settings.shortcutSaved" = "Shortcut saved.";
+"settings.shortcutRecording" = "Listening for shortcut...";
 "settings.shortcutCleared" = "Shortcut cleared.";
 "settings.shortcutRestored" = "Default shortcut restored.";
 "settings.shortcutsRestored" = "All default shortcuts restored.";
@@ -173,6 +178,9 @@
 "shortcut.showSettings" = "Open settings";
 "shortcut.newConversation" = "New conversation";
 "shortcut.sendOrCancel" = "Send or stop";
+"shortcut.zoomIn" = "Zoom in";
+"shortcut.zoomOut" = "Zoom out";
+"status.dismiss" = "Dismiss";
 "settings.customPromptsDescription" = "Create prompts for tasks you do often.";
 "settings.delete" = "Delete";
 "settings.edit" = "Edit";
@@ -221,6 +229,7 @@
 "settings.seconds" = "%lld seconds";
 "settings.streaming" = "Show answers as they arrive";
 "settings.testConnection" = "Test Connection";
+"settings.testModel" = "Test model";
 "settings.testFailure" = "Connection failed";
 "settings.title" = "Settings";
 "settings.windowOnTop" = "Keep window on top";

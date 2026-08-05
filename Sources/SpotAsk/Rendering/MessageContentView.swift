@@ -8,10 +8,69 @@ struct MessageContentView: View {
     let onCopy: () -> Void
     let copyShortcut: InAppShortcut?
     let regenerateShortcut: InAppShortcut?
+    let isExpanded: Bool
+    let onToggleExpansion: () -> Void
+    private let collapsedPreview: String?
+
+    init(
+        message: ChatMessage,
+        canRegenerate: Bool,
+        onRegenerate: @escaping () -> Void,
+        isCopied: Bool,
+        onCopy: @escaping () -> Void,
+        copyShortcut: InAppShortcut?,
+        regenerateShortcut: InAppShortcut?,
+        isExpanded: Bool = false,
+        onToggleExpansion: @escaping () -> Void = {}
+    ) {
+        self.message = message
+        self.canRegenerate = canRegenerate
+        self.onRegenerate = onRegenerate
+        self.isCopied = isCopied
+        self.onCopy = onCopy
+        self.copyShortcut = copyShortcut
+        self.regenerateShortcut = regenerateShortcut
+        self.isExpanded = isExpanded
+        self.onToggleExpansion = onToggleExpansion
+        collapsedPreview = message.state == .streaming
+            ? nil
+            : AssistantMessageDisplayPolicy.collapsedPreview(for: message.content)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            MarkdownTextView(content: message.content)
+            if let collapsedPreview, !isExpanded {
+                Text(collapsedPreview)
+                    .textSelection(.enabled)
+                    .lineSpacing(2)
+                    .lineLimit(AssistantMessageDisplayPolicy.collapsedLineLimit)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                MarkdownTextView(content: message.content)
+            }
+
+            if collapsedPreview != nil {
+                Button(action: onToggleExpansion) {
+                    Label(
+                        isExpanded
+                            ? L10n.string("chat.collapseAnswer")
+                            : L10n.string("chat.expandAnswer"),
+                        systemImage: isExpanded ? "chevron.up" : "chevron.down"
+                    )
+                    .font(.caption.weight(.medium))
+                }
+                .buttonStyle(.borderless)
+                .help(
+                    isExpanded
+                        ? L10n.string("chat.collapseAnswer")
+                        : L10n.string("chat.expandAnswer")
+                )
+                .accessibilityLabel(
+                    isExpanded
+                        ? L10n.string("chat.collapseAnswer")
+                        : L10n.string("chat.expandAnswer")
+                )
+            }
 
             if message.role == .assistant {
                 HStack(spacing: 4) {

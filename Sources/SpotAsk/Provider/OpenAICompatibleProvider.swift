@@ -109,8 +109,8 @@ struct OpenAICompatibleProvider: ChatProvider {
         guard let http = response as? HTTPURLResponse else { throw ChatError.invalidResponse }
         switch http.statusCode {
         case 200 ... 299: return
-        case 401, 403: throw ChatError.unauthorized
-        case 429: throw ChatError.rateLimited
+        case 401, 403: throw ChatError.unauthorized(message: apiMessage(from: data))
+        case 429: throw ChatError.rateLimited(message: apiMessage(from: data))
         default: throw ChatError.serverError(status: http.statusCode, message: apiMessage(from: data))
         }
     }
@@ -118,8 +118,8 @@ struct OpenAICompatibleProvider: ChatProvider {
     private func error(from response: HTTPURLResponse, bytes: URLSession.AsyncBytes) async throws -> ChatError {
         let data = try await collect(bytes)
         switch response.statusCode {
-        case 401, 403: return .unauthorized
-        case 429: return .rateLimited
+        case 401, 403: return .unauthorized(message: apiMessage(from: data))
+        case 429: return .rateLimited(message: apiMessage(from: data))
         default: return .serverError(status: response.statusCode, message: apiMessage(from: data))
         }
     }

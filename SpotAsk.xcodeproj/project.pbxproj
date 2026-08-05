@@ -44,6 +44,7 @@
 		00100000000000000000002A /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000037 /* SettingsWindowController.swift */; };
 		00100000000000000000002B /* InAppShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000038 /* InAppShortcut.swift */; };
 		00100000000000000000002C /* InAppShortcutDispatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000039 /* InAppShortcutDispatcher.swift */; };
+		00100000000000000000002D /* StatusToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003A /* StatusToast.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -89,6 +90,7 @@
 		002000000000000000000037 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Window/SettingsWindowController.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000038 /* InAppShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/InAppShortcut.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000039 /* InAppShortcutDispatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/InAppShortcutDispatcher.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000003A /* StatusToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/StatusToast.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -126,6 +128,7 @@
 				00200000000000000000000E /* CodeBlockView.swift */,
 				002000000000000000000010 /* MarkdownTextView.swift */,
 				002000000000000000000011 /* MessageContentView.swift */,
+				00200000000000000000003A /* StatusToast.swift */,
 				002000000000000000000035 /* ReasoningToggleState.swift */,
 				002000000000000000000012 /* ScrollPositionObserver.swift */,
 				002000000000000000000013 /* LocalAPIKeyStore.swift */,
@@ -262,6 +265,7 @@
 				001000000000000000000029,
 				00100000000000000000002B,
 				00100000000000000000002C,
+				00100000000000000000002D,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

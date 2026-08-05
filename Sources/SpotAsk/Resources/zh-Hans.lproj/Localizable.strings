@@ -37,7 +37,9 @@
 "chat.startNewQuestion" = "开始新问题";
 "chat.stop" = "停止生成";
 "chat.collapseQuestion" = "收起问题";
+"chat.collapseAnswer" = "收起回答";
 "chat.stopped" = "已停止生成";
+"chat.expandAnswer" = "展开完整回答";
 "chat.usePrompt" = "本次使用：%@";
 "chat.user" = "你";
 "chat.usedPrompt" = "已使用：%@";
@@ -127,6 +129,8 @@
 "preset.translate.instruction" = "请准确翻译用户提供的内容。保留原有格式、语气和专有名词；仅输出译文。";
 "preset.translate.title" = "翻译";
 "settings.accessKey" = "访问密钥";
+"settings.showAccessKey" = "显示访问密钥";
+"settings.hideAccessKey" = "隐藏访问密钥";
 "settings.accessKeyOnlyOnMac" = "访问密钥仅保存在这台 Mac 上。";
 "settings.accessKeyPlaceholder" = "输入密钥以保存或更新";
 "settings.appearance" = "外观";
@@ -160,6 +164,7 @@
 "settings.shortcutDuplicate" = "这个按键组合已用于“%@”。";
 "settings.shortcutUnavailable" = "此项目当前不可用。";
 "settings.shortcutSaved" = "快捷键已保存。";
+"settings.shortcutRecording" = "正在录制快捷键…";
 "settings.shortcutCleared" = "快捷键已清除。";
 "settings.shortcutRestored" = "已恢复默认快捷键。";
 "settings.shortcutsRestored" = "已恢复所有默认快捷键。";
@@ -173,6 +178,9 @@
 "shortcut.showSettings" = "打开设置";
 "shortcut.newConversation" = "开始新对话";
 "shortcut.sendOrCancel" = "发送或停止";
+"shortcut.zoomIn" = "放大界面";
+"shortcut.zoomOut" = "缩小界面";
+"status.dismiss" = "关闭";
 "settings.customPromptsDescription" = "新建适合自己常用任务的提示词。";
 "settings.delete" = "删除";
 "settings.edit" = "编辑";
@@ -221,6 +229,7 @@
 "settings.seconds" = "%lld 秒";
 "settings.streaming" = "实时显示回答";
 "settings.testConnection" = "测试连接";
+"settings.testModel" = "测试模型";
 "settings.testFailure" = "连接失败";
 "settings.title" = "设置";
 "settings.windowOnTop" = "窗口置顶";

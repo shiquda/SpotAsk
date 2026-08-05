@@ -8,6 +8,7 @@ struct MarkdownTextView: View {
         StructuredText(markdown: Self.markdownWithCopyableStandaloneCode(content))
             .textual.codeBlockStyle(CodeBlockView())
             .textual.structuredTextStyle(.gitHub)
+            .textual.textSelection(.enabled)
         .frame(maxWidth: .infinity, alignment: .leading)
         .multilineTextAlignment(.leading)
         .accessibilityLabel(L10n.string("chat.answerContent"))

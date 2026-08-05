@@ -16,9 +16,23 @@ struct InAppShortcutTests {
         #expect(fixture.settings.shortcut(for: .operation(.copyAnswer)) == .commandShift("c"))
         #expect(fixture.settings.shortcut(for: .operation(.showSettings)) == .command(","))
         #expect(fixture.settings.shortcut(for: .operation(.newConversation)) == .command("n"))
+        #expect(fixture.settings.shortcut(for: .operation(.zoomIn)) == .command("="))
+        #expect(fixture.settings.shortcut(for: .operation(.zoomOut)) == .command("-"))
+        #expect(fixture.settings.shortcutTarget(for: .commandShift("=")) == .operation(.zoomIn))
         #expect(fixture.settings.shortcut(for: .operation(.toggleWindowOnTop)) == nil)
         #expect(fixture.settings.shortcut(for: .operation(.sendOrCancel)) == nil)
         #expect(fixture.defaults.data(forKey: "inAppShortcutConfiguration") == nil)
+    }
+
+    @Test("Command plus maps to zoom unless Command+Shift+= is assigned elsewhere")
+    func commandPlusAliasRespectsExplicitAssignment() {
+        let fixture = makeSettings()
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+        let sendTarget = InAppShortcutTarget.operation(.sendOrCancel)
+
+        #expect(fixture.settings.shortcutTarget(for: .commandShift("=")) == .operation(.zoomIn))
+        #expect(fixture.settings.assignShortcut(.commandShift("="), to: sendTarget) == nil)
+        #expect(fixture.settings.shortcutTarget(for: .commandShift("=")) == sendTarget)
     }
 
     @Test("Built-in and custom prompt mappings follow their stable order")
@@ -203,35 +217,55 @@ struct InAppShortcutTests {
         #expect(InAppShortcutDisplay.labels(for: shortcut, includeCommand: false) == ["⇧", "⌥", "⌃", "K"])
     }
 
-    @Test("Recorder captures only in its active key window")
-    func recorderCaptureEligibilityRequiresActiveKeyWindow() {
-        #expect(ShortcutRecorderCaptureEligibility.shouldCapture(
-            isRecorderWindowKey: true,
-            isActiveWindowRecorderWindow: true,
-            isRecorderFirstResponder: true
+    @Test("Recorder parses supported combinations and rejects modifier-only events")
+    func recorderParsesSupportedCombinations() throws {
+        let commandShiftK = try #require(keyEvent(key: "K", keyCode: 40, modifiers: [.command, .shift]))
+        #expect(ShortcutRecorderEventParser.shortcut(from: commandShiftK) ==
+            InAppShortcut(key: "k", modifiers: [.command, .shift]))
+
+        let commandComma = try #require(keyEvent(key: ",", keyCode: 43, modifiers: [.command]))
+        #expect(ShortcutRecorderEventParser.shortcut(from: commandComma) == .command(","))
+
+        let plainK = try #require(keyEvent(key: "k", keyCode: 40, modifiers: []))
+        #expect(ShortcutRecorderEventParser.shortcut(from: plainK) == nil)
+
+        let commandOnly = try #require(NSEvent.keyEvent(
+            with: .flagsChanged,
+            location: .zero,
+            modifierFlags: [.command],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "",
+            charactersIgnoringModifiers: "",
+            isARepeat: false,
+            keyCode: 55
         ))
-        #expect(!ShortcutRecorderCaptureEligibility.shouldCapture(
-            isRecorderWindowKey: false,
-            isActiveWindowRecorderWindow: true,
-            isRecorderFirstResponder: true
-        ))
-        #expect(!ShortcutRecorderCaptureEligibility.shouldCapture(
-            isRecorderWindowKey: true,
-            isActiveWindowRecorderWindow: false,
-            isRecorderFirstResponder: true
-        ))
-        #expect(!ShortcutRecorderCaptureEligibility.shouldCapture(
-            isRecorderWindowKey: true,
-            isActiveWindowRecorderWindow: true,
-            isRecorderFirstResponder: false
-        ))
+        #expect(ShortcutRecorderEventParser.shortcut(from: commandOnly) == nil)
     }
 
-    private func keyEvent(key: String, keyCode: UInt16) -> NSEvent? {
+    @Test("Recorder treats Escape as cancel")
+    func recorderCancelsWithEscape() throws {
+        let escape = try #require(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "\u{1B}",
+            charactersIgnoringModifiers: "\u{1B}",
+            isARepeat: false,
+            keyCode: 53
+        ))
+        #expect(ShortcutRecorderEventParser.isCancelKey(escape))
+    }
+
+    private func keyEvent(key: String, keyCode: UInt16, modifiers: NSEvent.ModifierFlags = [.command]) -> NSEvent? {
         NSEvent.keyEvent(
             with: .keyDown,
             location: .zero,
-            modifierFlags: [.command],
+            modifierFlags: modifiers,
             timestamp: 0,
             windowNumber: 0,
             context: nil,
