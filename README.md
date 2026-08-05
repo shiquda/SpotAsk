@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  <img src="images/spotask-chat.png" width="640" alt="SpotAsk showing the chat composer and built-in prompt actions">
+  <img src="images/spotask-chat.png" width="640" alt="SpotAsk chat window in light and dark appearance">
 </p>
 
 ## What SpotAsk does
