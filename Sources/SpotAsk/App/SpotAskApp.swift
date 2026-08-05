@@ -95,6 +95,9 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
     private let chatViewModel: ChatViewModel
     private let panelController = SpotAskPanelController()
     private let globalHotKey = GlobalHotKey()
+    private let selectionHotKey = GlobalHotKey(identifier: 2)
+    private var selectionCoordinator: SelectionAssistantCoordinator?
+    private var selectionOverlay: SelectionOverlayController?
     private var statusBarController: StatusBarController?
     private var entryPresentationCoordinator: AppEntryPresentationCoordinator?
 
@@ -137,18 +140,24 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
                 onDismiss: { SpotAskCommandCenter.shared.close() }
             )
         }
+        let overlay = SelectionOverlayController()
+        selectionOverlay = overlay
+        selectionCoordinator = SelectionAssistantCoordinator(settings: settings, overlay: overlay)
         do {
             try registerGlobalHotKey()
         } catch {
             assertionFailure("Unable to register default global hot key: \(error)")
         }
+        registerSelectionHotKeyIfNeeded()
         NotificationCenter.default.addObserver(self, selector: #selector(reconfigureGlobalHotKey), name: .spotAskHotKeyChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(reconfigureSelectionHotKey), name: .spotAskSelectionAssistantChanged, object: nil)
         SpotAskShortcuts.updateAppShortcutParameters()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         NotificationCenter.default.removeObserver(self)
         globalHotKey.unregister()
+        selectionHotKey.unregister()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -165,6 +174,10 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    @objc private func reconfigureSelectionHotKey() {
+        registerSelectionHotKeyIfNeeded()
+    }
+
     private func registerGlobalHotKey() throws {
         let configuration: (keyCode: UInt32, modifiers: UInt32)
         switch settings.hotKeyPreset {
@@ -177,6 +190,14 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         }
         try globalHotKey.register(keyCode: configuration.keyCode, modifiers: configuration.modifiers) {
             Task { @MainActor in SpotAskCommandCenter.shared.toggle() }
+        }
+    }
+
+    private func registerSelectionHotKeyIfNeeded() {
+        selectionHotKey.unregister()
+        guard settings.selectionAssistantEnabled else { return }
+        try? selectionHotKey.register(keyCode: GlobalHotKey.defaultKeyCode, modifiers: UInt32(optionKey | shiftKey)) { [weak self] in
+            Task { @MainActor in self?.selectionCoordinator?.trigger() }
         }
     }
 }

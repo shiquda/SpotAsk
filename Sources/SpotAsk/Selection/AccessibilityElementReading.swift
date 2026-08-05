@@ -25,7 +25,7 @@ struct AccessibilityElementID: Hashable, @unchecked Sendable {
     }
 }
 
-enum AccessibilityValue: Equatable, Sendable {
+enum AccessibilityValue: Equatable, Hashable, Sendable {
     case string(String)
     case element(AccessibilityElementID)
     case range(SelectionCharacterRange)

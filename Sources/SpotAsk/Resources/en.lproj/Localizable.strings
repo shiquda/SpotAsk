@@ -323,3 +323,10 @@
 "settings.services" = "SERVICES";
 "settings.upstreamModelID" = "Model ID";
 "settings.useForChat" = "Use for Chat";
+"settings.selectionAssistant" = "Selection Assistant";
+"settings.selectionAssistantDescription" = "Select text in another app, then press the selection shortcut to translate, summarize, or ask SpotAsk about it.";
+"settings.selectionAssistantEnabled" = "Enable Selection Assistant";
+"settings.selectionAssistantMode" = "Trigger mode";
+"settings.selectionAssistantModeDirect" = "Run default action";
+"settings.selectionAssistantModeActionBar" = "Show quick actions";
+"settings.selectionAssistantDefaultAction" = "Default action";

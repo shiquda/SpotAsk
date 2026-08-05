@@ -323,3 +323,10 @@
 "settings.services" = "服务";
 "settings.upstreamModelID" = "模型 ID";
 "settings.useForChat" = "用于对话";
+"settings.selectionAssistant" = "划词助手";
+"settings.selectionAssistantDescription" = "在其他应用中选中文字后，按下划词快捷键即可翻译、总结或向 SpotAsk 提问。";
+"settings.selectionAssistantEnabled" = "启用划词助手";
+"settings.selectionAssistantMode" = "触发方式";
+"settings.selectionAssistantModeDirect" = "直接执行默认动作";
+"settings.selectionAssistantModeActionBar" = "显示快捷操作";
+"settings.selectionAssistantDefaultAction" = "默认动作";

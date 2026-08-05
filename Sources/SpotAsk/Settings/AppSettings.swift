@@ -6,6 +6,7 @@ import SwiftUI
 extension Notification.Name {
     static let spotAskMenuBarIconVisibilityChanged = Notification.Name("com.spotask.menu-bar-icon-visibility-changed")
     static let spotAskAppearanceChanged = Notification.Name("com.spotask.appearance-changed")
+    static let spotAskSelectionAssistantChanged = Notification.Name("com.spotask.selection-assistant-changed")
 }
 
 struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
@@ -102,6 +103,20 @@ enum HotKeyPreset: String, CaseIterable, Identifiable {
         case .commandShiftSpace: "Command + Shift + Space"
         }
     }
+}
+
+enum SelectionAssistantMode: String, CaseIterable, Identifiable, Codable, Sendable {
+    case direct
+    case actionBar
+
+    var id: String { rawValue }
+}
+
+enum SelectionHotKeyPreset: String, CaseIterable, Identifiable, Codable, Sendable {
+    case optionShiftSpace
+
+    var id: String { rawValue }
+    var title: String { "Option + Shift + Space" }
 }
 
 enum AppearanceMode: String, CaseIterable, Identifiable {
@@ -229,6 +244,10 @@ final class AppSettings {
         static let customPromptPresets = "customPromptPresets"
         static let promptPresetCatalog = "promptPresetCatalog"
         static let inAppShortcutConfiguration = "inAppShortcutConfiguration"
+        static let selectionAssistantEnabled = "selectionAssistantEnabled"
+        static let selectionAssistantMode = "selectionAssistantMode"
+        static let selectionHotKeyPreset = "selectionHotKeyPreset"
+        static let selectionDefaultPromptID = "selectionDefaultPromptID"
     }
 
     private let defaults: UserDefaults
@@ -273,6 +292,15 @@ final class AppSettings {
         }
     }
     var hotKeyPreset: HotKeyPreset { didSet { defaults.set(hotKeyPreset.rawValue, forKey: Key.hotKeyPreset) } }
+    var selectionAssistantEnabled: Bool { didSet { defaults.set(selectionAssistantEnabled, forKey: Key.selectionAssistantEnabled) } }
+    var selectionAssistantMode: SelectionAssistantMode { didSet { defaults.set(selectionAssistantMode.rawValue, forKey: Key.selectionAssistantMode) } }
+    var selectionHotKeyPreset: SelectionHotKeyPreset { didSet { defaults.set(selectionHotKeyPreset.rawValue, forKey: Key.selectionHotKeyPreset) } }
+    var selectionDefaultPromptID: UUID? {
+        didSet {
+            if let selectionDefaultPromptID { defaults.set(selectionDefaultPromptID.uuidString, forKey: Key.selectionDefaultPromptID) }
+            else { defaults.removeObject(forKey: Key.selectionDefaultPromptID) }
+        }
+    }
     var panelWidth: Double { didSet { defaults.set(panelWidth, forKey: Key.panelWidth) } }
     var panelHeight: Double { didSet { defaults.set(panelHeight, forKey: Key.panelHeight) } }
     var showsMenuBarIcon: Bool {
@@ -345,6 +373,10 @@ final class AppSettings {
         interfaceZoomLevel = InterfaceZoomLevel(rawValue: defaults.string(forKey: Key.interfaceZoomLevel) ?? "standard") ?? .standard
         language = AppLanguage(rawValue: defaults.string(forKey: Key.language) ?? "system") ?? .system
         hotKeyPreset = HotKeyPreset(rawValue: defaults.string(forKey: Key.hotKeyPreset) ?? "optionSpace") ?? .optionSpace
+        selectionAssistantEnabled = defaults.object(forKey: Key.selectionAssistantEnabled) as? Bool ?? false
+        selectionAssistantMode = SelectionAssistantMode(rawValue: defaults.string(forKey: Key.selectionAssistantMode) ?? "actionBar") ?? .actionBar
+        selectionHotKeyPreset = SelectionHotKeyPreset(rawValue: defaults.string(forKey: Key.selectionHotKeyPreset) ?? "optionShiftSpace") ?? .optionShiftSpace
+        selectionDefaultPromptID = UUID(uuidString: defaults.string(forKey: Key.selectionDefaultPromptID) ?? "") ?? PromptPreset.builtIn.first?.id
         panelWidth = defaults.object(forKey: Key.panelWidth) as? Double ?? 720
         panelHeight = defaults.object(forKey: Key.panelHeight) as? Double ?? 520
         showsMenuBarIcon = defaults.object(forKey: Key.showsMenuBarIcon) as? Bool ?? true
@@ -423,6 +455,11 @@ final class AppSettings {
 
     func enabledPromptPreset(id: UUID) -> PromptPreset? {
         promptPresetCatalog.first(where: { $0.id == id && $0.isEnabled })
+    }
+
+    func selectionPromptPreset() -> PromptPreset? {
+        if let selectionDefaultPromptID, let preset = enabledPromptPreset(id: selectionDefaultPromptID) { return preset }
+        return enabledPromptPresets.first
     }
 
     /// Resolves catalog entries to their current value and enabled state while

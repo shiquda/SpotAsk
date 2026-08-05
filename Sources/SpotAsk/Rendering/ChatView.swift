@@ -890,6 +890,8 @@ struct ChatView: View {
         case .focusInput:
             inputFocused = true
             viewModel.offerSessionChoiceIfNeeded()
+        case let .compose(question, promptPreset):
+            composeQuestion(question, promptPreset: promptPreset)
         case let .prepare(promptPreset):
             viewModel.selectedPromptPreset = settings.promptPresetAllowedForUse(promptPreset)
             inputFocused = true
@@ -921,6 +923,18 @@ struct ChatView: View {
         }
         viewModel.input = trimmed
         viewModel.send()
+        inputFocused = true
+    }
+
+    private func composeQuestion(_ question: String, promptPreset: PromptPreset?) {
+        let trimmed = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            inputFocused = true
+            return
+        }
+        viewModel.continueSession()
+        viewModel.selectedPromptPreset = promptPreset.flatMap(settings.promptPresetAllowedForUse)
+        viewModel.input = trimmed
         inputFocused = true
     }
 

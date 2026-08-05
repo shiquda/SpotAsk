@@ -11,10 +11,15 @@ final class GlobalHotKey {
     static let defaultModifiers = UInt32(optionKey)
 
     private static let signature: OSType = 0x5350_4153 // "SPAS"
+    private let identifier: UInt32
 
     private var eventHandler: EventHandlerRef?
     private var hotKey: EventHotKeyRef?
     private var action: (@Sendable () -> Void)?
+
+    init(identifier: UInt32 = 1) {
+        self.identifier = identifier
+    }
 
     deinit {
         unregister()
@@ -45,7 +50,7 @@ final class GlobalHotKey {
             throw GlobalHotKeyError.eventHandlerRegistrationFailed(handlerStatus)
         }
 
-        let identifier = EventHotKeyID(signature: Self.signature, id: 1)
+        let identifier = EventHotKeyID(signature: Self.signature, id: self.identifier)
         let registrationStatus = RegisterEventHotKey(
             keyCode,
             modifiers,

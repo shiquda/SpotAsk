@@ -12,6 +12,7 @@ enum ProviderSettingsIcon {
 enum SettingsSection: CaseIterable, Hashable, Identifiable {
     case provider
     case prompts
+    case selectionAssistant
     case shortcuts
     case general
     case appearance
@@ -23,6 +24,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         switch self {
         case .provider: L10n.string("settings.provider")
         case .prompts: L10n.string("settings.prompts")
+        case .selectionAssistant: L10n.string("settings.selectionAssistant")
         case .shortcuts: L10n.string("settings.shortcuts")
         case .general: L10n.string("settings.general")
         case .appearance: L10n.string("settings.appearance")
@@ -34,6 +36,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         switch self {
         case .provider: "network"
         case .prompts: "text.badge.plus"
+        case .selectionAssistant: "text.viewfinder"
         case .shortcuts: "command"
         case .general: "gearshape.fill"
         case .appearance: "circle.lefthalf.filled"
@@ -45,6 +48,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         switch self {
         case .provider: .cyan
         case .prompts: .mint
+        case .selectionAssistant: .teal
         case .shortcuts: .orange
         case .general: .gray
         case .appearance: .indigo
@@ -91,6 +95,8 @@ struct SettingsView: View {
                     ScrollView {
                         PromptPresetsSettingsPage(settings: settings)
                     }
+                case .selectionAssistant:
+                    SelectionAssistantSettingsPage(settings: settings)
                 case .shortcuts:
                     ScrollView {
                         ShortcutSettingsPage(settings: settings)
@@ -116,6 +122,41 @@ struct SettingsView: View {
         .overlay(alignment: .topTrailing) {
             StatusToastOverlay()
                 .padding(.top, 36)
+        }
+    }
+}
+
+private struct SelectionAssistantSettingsPage: View {
+    let settings: AppSettings
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            SettingsPageHeader(section: .selectionAssistant, settings: settings)
+            SettingsCallout(L10n.string("settings.selectionAssistantDescription"))
+            SettingsGroup(title: L10n.string("settings.selectionAssistant")) {
+                SettingsToggleRow(label: L10n.string("settings.selectionAssistantEnabled"), isOn: Bindable(settings).selectionAssistantEnabled)
+                    .onChange(of: settings.selectionAssistantEnabled) { _, _ in
+                        NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+                    }
+                SettingsFieldRow(label: L10n.string("settings.selectionAssistantMode")) {
+                    Picker(L10n.string("settings.selectionAssistantMode"), selection: Bindable(settings).selectionAssistantMode) {
+                        Text(L10n.string("settings.selectionAssistantModeDirect")).tag(SelectionAssistantMode.direct)
+                        Text(L10n.string("settings.selectionAssistantModeActionBar")).tag(SelectionAssistantMode.actionBar)
+                    }
+                    .labelsHidden()
+                }
+                if settings.selectionAssistantMode == .direct {
+                    SettingsFieldRow(label: L10n.string("settings.selectionAssistantDefaultAction")) {
+                        Picker(L10n.string("settings.selectionAssistantDefaultAction"), selection: Binding(
+                            get: { settings.selectionDefaultPromptID ?? settings.enabledPromptPresets.first?.id },
+                            set: { settings.selectionDefaultPromptID = $0 }
+                        )) {
+                            ForEach(settings.enabledPromptPresets) { preset in Text(preset.title).tag(Optional(preset.id)) }
+                        }
+                        .labelsHidden()
+                    }
+                }
+            }
         }
     }
 }

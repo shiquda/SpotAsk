@@ -2,6 +2,7 @@ import SwiftUI
 
 enum SpotAskCommandAction: Equatable {
     case focusInput
+    case compose(String, PromptPreset?)
     case prepare(PromptPreset)
     case newConversation
     case ask(String, PromptPreset?)
@@ -39,6 +40,15 @@ final class SpotAskCommandCenter {
 
     func open() {
         enqueue(.focusInput)
+    }
+
+    func compose(_ question: String, promptPreset: PromptPreset? = nil) {
+        let trimmedQuestion = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedQuestion.isEmpty else {
+            open()
+            return
+        }
+        enqueue(.compose(trimmedQuestion, promptPreset))
     }
 
     func prepare(promptPreset: PromptPreset) {

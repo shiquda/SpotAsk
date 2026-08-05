@@ -9,7 +9,7 @@ struct SelectedTextSnapshot: Equatable, Sendable {
     let anchor: SelectionAnchor
 }
 
-struct SelectionCharacterRange: Equatable, Sendable {
+struct SelectionCharacterRange: Equatable, Hashable, Sendable {
     let location: Int
     let length: Int
 
