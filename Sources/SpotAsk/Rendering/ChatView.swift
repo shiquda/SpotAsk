@@ -80,11 +80,38 @@ enum UserMessageDisplayPolicy {
     static let collapsedLineLimit = 8
 
     static func shouldCollapse(_ content: String) -> Bool {
-        content.count > characterThreshold || explicitLineCount(in: content) >= explicitLineThreshold
+        collapsedPreview(for: content) != nil
     }
 
-    static func explicitLineCount(in content: String) -> Int {
-        content.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline).count
+    /// Returns only the text needed for the compact view. Scanning stops as
+    /// soon as either collapse threshold is reached, avoiding work proportional
+    /// to an arbitrarily long saved question.
+    static func collapsedPreview(for content: String) -> String? {
+        var characterCount = 0
+        var explicitLineCount = 1
+        var lastContentEnd = content.startIndex
+
+        for index in content.indices {
+            if characterCount == characterThreshold {
+                return String(content[..<lastContentEnd])
+            }
+
+            let nextIndex = content.index(after: index)
+            characterCount += 1
+
+            if content[index].isNewline {
+                if explicitLineCount == explicitLineThreshold {
+                    return String(content[..<lastContentEnd])
+                }
+                explicitLineCount += 1
+            } else {
+                lastContentEnd = nextIndex
+            }
+        }
+
+        return explicitLineCount >= explicitLineThreshold
+            ? String(content[..<lastContentEnd])
+            : nil
     }
 }
 
@@ -1471,11 +1498,26 @@ private struct UserMessageContentView: View {
     let message: ChatMessage
     let isExpanded: Bool
     let onToggleExpansion: () -> Void
+    private let collapsedPreview: String?
 
     @State private var didCopy = false
 
+    init(message: ChatMessage, isExpanded: Bool, onToggleExpansion: @escaping () -> Void) {
+        self.message = message
+        self.isExpanded = isExpanded
+        self.onToggleExpansion = onToggleExpansion
+        collapsedPreview = UserMessageDisplayPolicy.collapsedPreview(for: message.content)
+    }
+
     private var isCollapsible: Bool {
-        UserMessageDisplayPolicy.shouldCollapse(message.content)
+        collapsedPreview != nil
+    }
+
+    private var displayedContent: String {
+        if let collapsedPreview, !isExpanded {
+            return collapsedPreview
+        }
+        return message.content
     }
 
     var body: some View {
@@ -1510,7 +1552,7 @@ private struct UserMessageContentView: View {
                 .accessibilityLabel(didCopy ? L10n.string("chat.questionCopied") : L10n.string("chat.copyQuestion"))
             }
 
-            Text(message.content)
+            Text(displayedContent)
                 .textSelection(.enabled)
                 .lineSpacing(2)
                 .lineLimit(isCollapsible && !isExpanded ? UserMessageDisplayPolicy.collapsedLineLimit : nil)
