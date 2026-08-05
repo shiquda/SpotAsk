@@ -522,7 +522,8 @@ struct ChatView: View {
                     text: $viewModel.input,
                     isFocused: $inputFocused,
                     height: $inputHeight,
-                    onSubmit: viewModel.send,
+                    isGenerating: isGenerating,
+                    onSubmit: { viewModel.send() },
                     onEscape: handleEscape,
                     onRecall: { viewModel.recallLastQuestion() }
                 )

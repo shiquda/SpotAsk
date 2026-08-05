@@ -12,7 +12,8 @@ struct ChatInputTextView: NSViewRepresentable {
     @Binding var text: String
     @FocusState.Binding var isFocused: Bool
     @Binding var height: CGFloat
-    let onSubmit: () -> Void
+    let isGenerating: Bool
+    let onSubmit: () -> Bool
     let onEscape: () -> Void
     /// Called when the up arrow is pressed in an empty input with no selection.
     /// Return true when a previous question was recalled.
@@ -25,7 +26,11 @@ struct ChatInputTextView: NSViewRepresentable {
     func makeNSView(context: Context) -> NSScrollView {
         let textView = ComposerTextView()
         textView.delegate = context.coordinator
-        textView.onSubmit = onSubmit
+        textView.onSubmit = { [weak coordinator = context.coordinator] textView in
+            MainActor.assumeIsolated {
+                coordinator?.submit(textView)
+            }
+        }
         textView.onEscape = onEscape
         textView.onRecall = onRecall
         textView.onLayoutPass = { [weak coordinator = context.coordinator] in
@@ -71,11 +76,19 @@ struct ChatInputTextView: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? ComposerTextView else { return }
         context.coordinator.parent = self
-        textView.onSubmit = onSubmit
+        textView.onSubmit = { [weak coordinator = context.coordinator] textView in
+            MainActor.assumeIsolated {
+                coordinator?.submit(textView)
+            }
+        }
         textView.onEscape = onEscape
         textView.onRecall = onRecall
 
-        if textView.string != text {
+        let editorOwnsDraft = ChatInputSynchronization.shouldPreserveFocusedDraft(
+            isGenerating: isGenerating,
+            isFirstResponder: scrollView.window?.firstResponder === textView
+        )
+        if textView.string != text && !editorOwnsDraft {
             let selectedRange = textView.selectedRange()
             textView.string = text
             textView.setSelectedRange(NSRange(location: min(selectedRange.location, (text as NSString).length), length: 0))
@@ -116,6 +129,15 @@ struct ChatInputTextView: NSViewRepresentable {
         }
 
         @MainActor
+        func submit(_ textView: NSTextView) {
+            guard parent.onSubmit() else { return }
+            if !textView.string.isEmpty {
+                textView.string = ""
+                updateHeight(of: textView)
+            }
+        }
+
+        @MainActor
         func applyInitialFocusOnce(in scrollView: NSScrollView) {
             guard needsInitialFocus,
                   let textView = scrollView.documentView as? ComposerTextView,
@@ -143,6 +165,12 @@ struct ChatInputTextView: NSViewRepresentable {
     }
 }
 
+enum ChatInputSynchronization {
+    static func shouldPreserveFocusedDraft(isGenerating: Bool, isFirstResponder: Bool) -> Bool {
+        isGenerating && isFirstResponder
+    }
+}
+
 private final class ComposerScrollView: NSScrollView {
     var onWindowChange: (() -> Void)?
 
@@ -153,7 +181,7 @@ private final class ComposerScrollView: NSScrollView {
 }
 
 private final class ComposerTextView: NSTextView {
-    var onSubmit: (() -> Void)?
+    var onSubmit: ((NSTextView) -> Void)?
     var onEscape: (() -> Void)?
     var onRecall: (() -> Bool)?
     var onLayoutPass: ((NSView) -> Void)?
@@ -168,7 +196,7 @@ private final class ComposerTextView: NSTextView {
         let isReturn = event.keyCode == 36 || event.keyCode == 76
 
         if isReturn, !modifiers.contains(.shift), !hasMarkedText() {
-            onSubmit?()
+            onSubmit?(self)
             return
         }
         if event.keyCode == 53, !hasMarkedText() {

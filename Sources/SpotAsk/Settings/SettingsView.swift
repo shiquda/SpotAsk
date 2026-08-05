@@ -407,7 +407,7 @@ private struct ProviderTreeRow: View {
                                 Button {
                                     onUseForChat(model.id)
                                 } label: {
-                                    Label(L10n.string("settings.useForChat"), systemImage: "bubble.left.and.bubble.right")
+                                    Label(L10n.string("settings.useForChat"), systemImage: "checkmark.circle")
                                 }
                             }
                             Divider()
@@ -736,7 +736,7 @@ private struct ModelDetailForm: View {
                         Button {
                             state.useModelForChat(modelID)
                         } label: {
-                            Label(L10n.string("settings.useForChat"), systemImage: "bubble.left.and.bubble.right")
+                            Label(L10n.string("settings.useForChat"), systemImage: "checkmark.circle")
                         }
                         .buttonStyle(.bordered)
                         .accessibilityLabel(L10n.string("settings.useForChat"))
@@ -1062,7 +1062,7 @@ private struct ProviderModelRow: View {
                 Button {
                     state.useModelForChat(model.id)
                 } label: {
-                    Image(systemName: "bubble.left.and.bubble.right")
+                    Image(systemName: "checkmark.circle")
                 }
                 .buttonStyle(.borderless)
                 .help(L10n.string("settings.useForChat"))

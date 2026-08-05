@@ -3,6 +3,12 @@ import XCTest
 
 @MainActor
 final class ChatViewModelTests: XCTestCase {
+    func testFocusedComposerPreservesDraftOnlyDuringGeneration() {
+        XCTAssertTrue(ChatInputSynchronization.shouldPreserveFocusedDraft(isGenerating: true, isFirstResponder: true))
+        XCTAssertFalse(ChatInputSynchronization.shouldPreserveFocusedDraft(isGenerating: true, isFirstResponder: false))
+        XCTAssertFalse(ChatInputSynchronization.shouldPreserveFocusedDraft(isGenerating: false, isFirstResponder: true))
+    }
+
     func testSendAndFollowUpIncludeConversationContext() async {
         let recorder = RequestRecorder()
         let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("first answer")], [.answer("second answer")]])

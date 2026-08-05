@@ -1,6 +1,95 @@
 import AppKit
 import SwiftUI
 
+enum SpotAskPanelFadeMetrics {
+    static let duration: TimeInterval = 0.15
+}
+
+@MainActor
+protocol SpotAskPanelFadeTarget: AnyObject, Sendable {
+    var isVisible: Bool { get }
+    var alphaValue: CGFloat { get set }
+    func makeKeyAndOrderFront(_ sender: Any?)
+    func orderOut(_ sender: Any?)
+    func animateAlpha(to value: CGFloat, duration: TimeInterval, completion: @escaping () -> Void)
+}
+
+@MainActor
+final class SpotAskPanelFadeCoordinator {
+    private enum Direction {
+        case showing
+        case hiding
+    }
+
+    private var currentAnimationToken = 0
+    private var direction: Direction?
+    private var animatedTarget: (any SpotAskPanelFadeTarget)?
+
+    var isHiding: Bool { direction == .hiding }
+
+    func show(_ target: any SpotAskPanelFadeTarget) {
+        if !target.isVisible {
+            target.alphaValue = 0
+        }
+        target.makeKeyAndOrderFront(nil)
+        beginAnimation(target, to: 1, direction: .showing)
+    }
+
+    func hide(_ target: any SpotAskPanelFadeTarget) {
+        guard target.isVisible else {
+            cancelCurrentAnimation()
+            target.alphaValue = 1
+            target.orderOut(nil)
+            return
+        }
+        beginAnimation(target, to: 0, direction: .hiding)
+    }
+
+    private func beginAnimation(
+        _ target: any SpotAskPanelFadeTarget,
+        to value: CGFloat,
+        direction: Direction
+    ) {
+        cancelCurrentAnimation()
+        let token = currentAnimationToken
+        self.direction = direction
+
+        if value == 0, target.alphaValue <= 0.001 {
+            finishHide(target)
+            return
+        }
+
+        if value == 1, target.alphaValue >= 0.999 {
+            self.direction = nil
+            return
+        }
+
+        animatedTarget = target
+        target.animateAlpha(to: value, duration: SpotAskPanelFadeMetrics.duration) { [weak self, weak target] in
+            guard let self, let target else { return }
+            guard self.currentAnimationToken == token else { return }
+            self.direction = nil
+            self.animatedTarget = nil
+            if value == 0 {
+                self.finishHide(target)
+            }
+        }
+    }
+
+    private func cancelCurrentAnimation() {
+        currentAnimationToken += 1
+        direction = nil
+        animatedTarget = nil
+    }
+
+    private func finishHide(_ target: any SpotAskPanelFadeTarget) {
+        direction = nil
+        animatedTarget = nil
+        target.orderOut(nil)
+        target.alphaValue = 1
+    }
+}
+
 extension Notification.Name {
     static let spotAskHotKeyChanged = Notification.Name("com.spotask.hot-key-changed")
     static let spotAskLanguageChanged = Notification.Name("com.spotask.language-changed")
@@ -22,6 +111,7 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
     private var panel: SpotAskPanel?
     private var contentBuilder: (() -> AnyView)?
     private var shouldCenterNormalizedInitialSize = false
+    private let fadeCoordinator = SpotAskPanelFadeCoordinator()
 
     init(settings: AppSettings = .shared) {
         self.settings = settings
@@ -56,7 +146,7 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
             restorePositionOrCenter(panel)
         }
         NSApp.activate(ignoringOtherApps: true)
-        panel.makeKeyAndOrderFront(nil)
+        fadeCoordinator.show(SpotAskPanelFadeTargetAdapter(panel: panel))
         DispatchQueue.main.async { [weak panel] in
             guard let panel, panel.isVisible else { return }
             NSApp.activate(ignoringOtherApps: true)
@@ -65,10 +155,15 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
     }
 
     func hide() {
-        panel?.orderOut(nil)
+        guard let panel else { return }
+        fadeCoordinator.hide(SpotAskPanelFadeTargetAdapter(panel: panel))
     }
 
     func toggle() {
+        if fadeCoordinator.isHiding {
+            show()
+            return
+        }
         guard let panel, panel.isVisible else {
             show()
             return
@@ -204,6 +299,40 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
 private final class SpotAskPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+}
+
+@MainActor
+private final class SpotAskPanelFadeTargetAdapter: SpotAskPanelFadeTarget {
+    private let panel: SpotAskPanel
+
+    init(panel: SpotAskPanel) {
+        self.panel = panel
+    }
+
+    var isVisible: Bool { panel.isVisible }
+
+    var alphaValue: CGFloat {
+        get { panel.alphaValue }
+        set { panel.alphaValue = newValue }
+    }
+
+    func makeKeyAndOrderFront(_ sender: Any?) {
+        panel.makeKeyAndOrderFront(sender)
+    }
+
+    func orderOut(_ sender: Any?) {
+        panel.orderOut(sender)
+    }
+
+    func animateAlpha(to value: CGFloat, duration: TimeInterval, completion: @escaping () -> Void) {
+        NSAnimationContext.runAnimationGroup(
+            { context in
+                context.duration = duration
+                panel.animator().alphaValue = value
+            },
+            completionHandler: { completion() }
+        )
+    }
 }
 
 private extension NSScreen {

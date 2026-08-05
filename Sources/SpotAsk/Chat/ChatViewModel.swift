@@ -49,8 +49,9 @@ final class ChatViewModel {
         return messages.contains { $0.role == .user }
     }
 
-    func send() {
-        guard canSend else { return }
+    @discardableResult
+    func send() -> Bool {
+        guard canSend else { return false }
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         let promptPreset = selectedPromptPreset
         selectedPromptPreset = nil
@@ -64,6 +65,7 @@ final class ChatViewModel {
             )
         )
         beginRequest(using: promptPreset)
+        return true
     }
 
     func cancel() {
