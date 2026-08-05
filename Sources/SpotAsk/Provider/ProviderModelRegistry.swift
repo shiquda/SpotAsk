@@ -130,6 +130,14 @@ final class ProviderModelRegistry {
         }
     }
 
+    func replaceCatalog(with catalog: ProviderModelCatalog) throws {
+        let normalized = try Self.normalized(catalog: catalog)
+        try Self.persist(normalized, to: defaults)
+        self.catalog = normalized
+        loadError = nil
+        onCatalogChange?()
+    }
+
     func replaceDiscoveredModels(for providerID: UUID, upstreamModelIDs: [String]) throws {
         let normalizedIDs = Set(
             upstreamModelIDs

@@ -213,6 +213,7 @@ final class AppSettings {
         static let clearInputOnClose = "clearInputOnClose"
         static let confirmBeforeStartingNewConversation = "confirmBeforeStartingNewConversation"
         static let escapeStartsNewConversation = "escapeStartsNewConversation"
+        static let defaultExpandReasoning = "defaultExpandReasoning"
         static let launchAtLogin = "launchAtLogin"
         static let appearance = "appearance"
         static let fontSize = "fontSize"
@@ -250,6 +251,9 @@ final class AppSettings {
     }
     var escapeStartsNewConversation: Bool {
         didSet { defaults.set(escapeStartsNewConversation, forKey: Key.escapeStartsNewConversation) }
+    }
+    var defaultExpandReasoning: Bool {
+        didSet { defaults.set(defaultExpandReasoning, forKey: Key.defaultExpandReasoning) }
     }
     var launchAtLogin: Bool { didSet { defaults.set(launchAtLogin, forKey: Key.launchAtLogin) } }
     var appearance: AppearanceMode {
@@ -334,6 +338,7 @@ final class AppSettings {
         clearInputOnClose = defaults.object(forKey: Key.clearInputOnClose) as? Bool ?? false
         confirmBeforeStartingNewConversation = defaults.object(forKey: Key.confirmBeforeStartingNewConversation) as? Bool ?? true
         escapeStartsNewConversation = defaults.object(forKey: Key.escapeStartsNewConversation) as? Bool ?? false
+        defaultExpandReasoning = defaults.object(forKey: Key.defaultExpandReasoning) as? Bool ?? false
         launchAtLogin = defaults.bool(forKey: Key.launchAtLogin)
         appearance = AppearanceMode(rawValue: defaults.string(forKey: Key.appearance) ?? "system") ?? .system
         fontSize = FontSize(rawValue: defaults.string(forKey: Key.fontSize) ?? "standard") ?? .standard
@@ -462,6 +467,91 @@ final class AppSettings {
     func resetAllShortcuts() {
         inAppShortcutConfiguration.resetAll()
         saveInAppShortcutConfiguration()
+    }
+
+    func makeConfigurationBackup(
+        includeAccessKeys: Bool = false,
+        keyStore: (any APIKeyStoring)? = nil
+    ) throws -> SpotAskConfigBackup {
+        guard let providerCatalog = providerRegistry.catalog else {
+            throw SpotAskConfigBackupError.catalogUnavailable
+        }
+        var backup = SpotAskConfigBackup(
+            general: .init(
+                systemPrompt: systemPrompt,
+                contextLimit: contextLimit,
+                retainSession: retainSession,
+                clearInputOnClose: clearInputOnClose,
+                confirmBeforeStartingNewConversation: confirmBeforeStartingNewConversation,
+                escapeStartsNewConversation: escapeStartsNewConversation,
+                defaultExpandReasoning: defaultExpandReasoning,
+                launchAtLogin: launchAtLogin,
+                appearance: appearance.rawValue,
+                fontSize: fontSize.rawValue,
+                interfaceZoomLevel: interfaceZoomLevel.rawValue,
+                language: language.rawValue,
+                hotKeyPreset: hotKeyPreset.rawValue,
+                keepWindowOnTop: keepWindowOnTop,
+                showsMenuBarIcon: showsMenuBarIcon
+            ),
+            promptPresetCatalog: promptPresetCatalog,
+            shortcutConfiguration: inAppShortcutConfiguration,
+            providerCatalog: providerCatalog
+        )
+        if includeAccessKeys {
+            guard let keyStore else {
+                throw SpotAskConfigBackupError.keyStoreUnavailable
+            }
+            var apiKeys: [String: String] = [:]
+            for provider in providerCatalog.providers {
+                if let key = try keyStore.readAPIKey(for: provider.id), !key.isEmpty {
+                    apiKeys[provider.id.uuidString] = key
+                }
+            }
+            backup.apiKeys = apiKeys
+        }
+        return backup
+    }
+
+    func applyConfigurationBackup(
+        _ backup: SpotAskConfigBackup,
+        keyStore: (any APIKeyStoring)? = nil
+    ) throws {
+        guard backup.schemaVersion == SpotAskConfigBackup.currentSchemaVersion else {
+            throw SpotAskConfigBackupError.unsupportedSchemaVersion(backup.schemaVersion)
+        }
+
+        let general = backup.general
+        systemPrompt = general.systemPrompt
+        contextLimit = general.contextLimit
+        retainSession = general.retainSession
+        clearInputOnClose = general.clearInputOnClose
+        confirmBeforeStartingNewConversation = general.confirmBeforeStartingNewConversation
+        escapeStartsNewConversation = general.escapeStartsNewConversation
+        defaultExpandReasoning = general.defaultExpandReasoning
+        launchAtLogin = general.launchAtLogin
+        appearance = AppearanceMode(rawValue: general.appearance) ?? .system
+        fontSize = FontSize(rawValue: general.fontSize) ?? .standard
+        interfaceZoomLevel = InterfaceZoomLevel(rawValue: general.interfaceZoomLevel) ?? .standard
+        language = AppLanguage(rawValue: general.language) ?? .system
+        hotKeyPreset = HotKeyPreset(rawValue: general.hotKeyPreset) ?? .optionSpace
+        keepWindowOnTop = general.keepWindowOnTop
+        showsMenuBarIcon = general.showsMenuBarIcon
+
+        promptPresetCatalog = Self.normalizedPromptPresetCatalog(backup.promptPresetCatalog)
+        inAppShortcutConfiguration = backup.shortcutConfiguration
+        saveInAppShortcutConfiguration()
+        cleanUpShortcutAssignments()
+
+        try providerRegistry.replaceCatalog(with: backup.providerCatalog)
+        if let apiKeys = backup.apiKeys, let keyStore {
+            let providerIDs = Set(providerRegistry.catalog?.providers.map(\.id) ?? [])
+            for (rawID, key) in apiKeys {
+                guard let providerID = UUID(uuidString: rawID),
+                      providerIDs.contains(providerID) else { continue }
+                try keyStore.saveAPIKey(key, for: providerID)
+            }
+        }
     }
 
     private func saveCustomPromptPresets() {

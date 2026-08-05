@@ -76,7 +76,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         let rootView = SettingsView(
             settings: settings,
             keyStore: keyStore,
-            providerFactory: providerFactory
+            providerFactory: providerFactory,
+            settingsWindowProvider: { [weak self] in self?.window }
         )
         let hostingView = NSHostingView(rootView: rootView)
 

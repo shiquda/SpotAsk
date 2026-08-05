@@ -90,6 +90,40 @@ final class ReasoningToggleStateTests: XCTestCase {
         XCTAssertNil(store.states[removed.id])
     }
 
+    func testDefaultExpandedKeepsHistoricalReasoningExpanded() {
+        let message = assistant(reasoning: "Earlier work", state: .complete)
+        var store = ReasoningToggleStateStore()
+
+        store.reconcile(messages: [message], prefersExpanded: true)
+
+        XCTAssertTrue(store.state(for: message.id).isExpanded)
+    }
+
+    func testDefaultExpandedKeepsReasoningOpenAfterCompletion() {
+        var message = assistant(reasoning: "Working", state: .streaming)
+        var store = ReasoningToggleStateStore()
+        store.reconcile(messages: [message], prefersExpanded: true)
+
+        message.content = "Final answer"
+        message.state = .complete
+        store.reconcile(messages: [message], prefersExpanded: true)
+
+        XCTAssertTrue(store.state(for: message.id).isExpanded)
+    }
+
+    func testDefaultExpandedDoesNotOverrideManualCollapse() {
+        var message = assistant(reasoning: "Working", state: .streaming)
+        var store = ReasoningToggleStateStore()
+        store.reconcile(messages: [message], prefersExpanded: true)
+        store.toggleByUser(messageID: message.id)
+
+        message.state = .complete
+        store.reconcile(messages: [message], prefersExpanded: true)
+
+        XCTAssertFalse(store.state(for: message.id).isExpanded)
+        XCTAssertTrue(store.state(for: message.id).isPinned)
+    }
+
     private func assistant(
         content: String = "",
         reasoning: String? = nil,

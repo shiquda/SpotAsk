@@ -45,6 +45,7 @@
 		00100000000000000000002B /* InAppShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000038 /* InAppShortcut.swift */; };
 		00100000000000000000002C /* InAppShortcutDispatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000039 /* InAppShortcutDispatcher.swift */; };
 		00100000000000000000002D /* StatusToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003A /* StatusToast.swift */; };
+		00100000000000000000002E /* ConfigBackup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003B /* ConfigBackup.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -91,6 +92,7 @@
 		002000000000000000000038 /* InAppShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/InAppShortcut.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000039 /* InAppShortcutDispatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/InAppShortcutDispatcher.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000003A /* StatusToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/StatusToast.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000003B /* ConfigBackup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/ConfigBackup.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -133,6 +135,7 @@
 				002000000000000000000012 /* ScrollPositionObserver.swift */,
 				002000000000000000000013 /* LocalAPIKeyStore.swift */,
 				002000000000000000000014 /* AppSettings.swift */,
+				00200000000000000000003B /* ConfigBackup.swift */,
 				002000000000000000000038 /* InAppShortcut.swift */,
 				002000000000000000000015 /* SettingsView.swift */,
 				002000000000000000000031 /* AppUpdateChecker.swift */,
@@ -266,6 +269,7 @@
 				00100000000000000000002B,
 				00100000000000000000002C,
 				00100000000000000000002D,
+				00100000000000000000002E,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -320,14 +324,14 @@
 				CODE_SIGN_ENTITLEMENTS = Config/SpotAsk.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 9JQA7UT66M;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 16;
 				ENABLE_APP_SANDBOX = YES;
 				EXTRACT_APP_INTENTS_METADATA = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 0.1.3;
+				MARKETING_VERSION = 0.1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.spotask.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -342,14 +346,14 @@
 				CODE_SIGN_ENTITLEMENTS = Config/SpotAsk.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 9JQA7UT66M;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 16;
 				ENABLE_APP_SANDBOX = YES;
 				EXTRACT_APP_INTENTS_METADATA = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 0.1.3;
+				MARKETING_VERSION = 0.1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.spotask.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

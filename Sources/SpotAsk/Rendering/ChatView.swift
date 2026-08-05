@@ -241,7 +241,7 @@ struct ChatView: View {
             inputFocused = true
             viewModel.offerSessionChoiceIfNeeded()
             commandCenter.setActionConsumer(handleCommandAction)
-            reasoningToggle.reconcile(messages: viewModel.messages)
+            reasoningToggle.reconcile(messages: viewModel.messages, prefersExpanded: settings.defaultExpandReasoning)
             userMessageExpansionState.reconcile(messages: viewModel.messages)
             assistantMessageExpansionState.reconcile(messages: viewModel.messages)
             installShortcutDispatcher()
@@ -268,7 +268,7 @@ struct ChatView: View {
         }
         .environment(\.locale, settings.language.locale)
         .onChange(of: viewModel.messages) { _, messages in
-            reasoningToggle.reconcile(messages: messages)
+            reasoningToggle.reconcile(messages: messages, prefersExpanded: settings.defaultExpandReasoning)
             userMessageExpansionState.reconcile(messages: messages)
             assistantMessageExpansionState.reconcile(messages: messages)
         }
@@ -524,19 +524,21 @@ struct ChatView: View {
             Button {
                 reasoningToggle.toggleByUser(messageID: message.id)
             } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: state.isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.caption.weight(.medium))
-                        .frame(width: 14, height: 14)
-                    Text(L10n.string("chat.reasoning"))
-                        .font(.caption.weight(.medium))
-                    if message.state == .streaming {
-                        ProgressView()
-                            .controlSize(.mini)
-                            .scaleEffect(0.7)
+                TimelineView(.periodic(from: .now, by: 0.1)) { context in
+                    HStack(spacing: 5) {
+                        Image(systemName: state.isExpanded ? "chevron.down" : "chevron.right")
+                            .font(.caption.weight(.medium))
+                            .frame(width: 14, height: 14)
+                        Text(reasoningHeaderText(for: message, at: context.date))
+                            .font(.caption.weight(.medium))
+                        if message.state == .streaming {
+                            ProgressView()
+                                .controlSize(.mini)
+                                .scaleEffect(0.7)
+                        }
                     }
+                    .foregroundStyle(.secondary)
                 }
-                .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
             .help(state.isExpanded ? L10n.string("chat.reasoningCollapse") : L10n.string("chat.reasoningExpand"))
@@ -551,6 +553,21 @@ struct ChatView: View {
             }
         }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: state.isExpanded)
+    }
+
+    private func reasoningHeaderText(for message: ChatMessage, at now: Date) -> String {
+        if message.state == .streaming {
+            let elapsed = max(0, now.timeIntervalSince(message.createdAt))
+            return L10n.string("chat.reasoningStreaming", Self.elapsedSecondsText(elapsed))
+        }
+        if let duration = message.responseDuration {
+            return L10n.string("chat.reasoningCompleted", Self.elapsedSecondsText(duration))
+        }
+        return L10n.string("chat.reasoning")
+    }
+
+    private static func elapsedSecondsText(_ interval: TimeInterval) -> String {
+        String(format: "%.1f", interval)
     }
 
     private var composer: some View {

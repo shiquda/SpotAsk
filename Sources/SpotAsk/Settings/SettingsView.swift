@@ -3,6 +3,7 @@ import Observation
 import ServiceManagement
 import Foundation
 import SwiftUI
+import UniformTypeIdentifiers
 
 enum ProviderSettingsIcon {
     static let useForChat = "checkmark.circle"
@@ -55,6 +56,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
 struct SettingsView: View {
     let settings: AppSettings
 
+    private let settingsWindowProvider: (() -> NSWindow?)?
     @State private var selectedSection: SettingsSection = .provider
     @State private var providerState: ProviderSettingsState
     @State private var updateState = AppUpdateState()
@@ -63,14 +65,17 @@ struct SettingsView: View {
         settings: AppSettings,
         keyStore: any APIKeyStoring,
         providerFactory: any ChatProviderFactory,
-        initialSection: SettingsSection = .provider
+        initialSection: SettingsSection = .provider,
+        settingsWindowProvider: (() -> NSWindow?)? = nil
     ) {
         self.settings = settings
+        self.settingsWindowProvider = settingsWindowProvider
         _selectedSection = State(initialValue: initialSection)
         _providerState = State(initialValue: ProviderSettingsState(
             settings: settings,
             keyStore: keyStore,
-            providerFactory: providerFactory
+            providerFactory: providerFactory,
+            settingsWindowProvider: settingsWindowProvider
         ))
     }
 
@@ -1742,6 +1747,7 @@ private struct GeneralSettingsPage: View {
                 SettingsToggleRow(label: L10n.string("settings.clearInputOnClose"), isOn: Bindable(settings).clearInputOnClose)
                 SettingsToggleRow(label: L10n.string("settings.confirmBeforeStartingNewConversation"), isOn: Bindable(settings).confirmBeforeStartingNewConversation)
                 SettingsToggleRow(label: L10n.string("settings.escapeStartsNewConversation"), isOn: Bindable(settings).escapeStartsNewConversation)
+                SettingsToggleRow(label: L10n.string("settings.defaultExpandReasoning"), isOn: Bindable(settings).defaultExpandReasoning)
                 SettingsToggleRow(
                     label: L10n.string("settings.windowOnTop"),
                     isOn: Binding(
@@ -1767,6 +1773,22 @@ private struct GeneralSettingsPage: View {
                     .foregroundStyle(.secondary)
                 Button(L10n.string("settings.clearAllLocalData"), role: .destructive) {
                     providerState.clearAllLocalData()
+                }
+            }
+
+            SettingsGroup(title: L10n.string("settings.configuration")) {
+                Text(L10n.string("settings.configurationDescription"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                HStack(spacing: 10) {
+                    Button(L10n.string("settings.exportConfiguration")) {
+                        providerState.exportConfiguration()
+                    }
+                    .buttonStyle(.bordered)
+                    Button(L10n.string("settings.importConfiguration")) {
+                        providerState.importConfiguration()
+                    }
+                    .buttonStyle(.bordered)
                 }
             }
         }
@@ -2024,6 +2046,7 @@ final class ProviderSettingsState {
     let settings: AppSettings
     private let keyStore: any APIKeyStoring
     private let providerFactory: any ChatProviderFactory
+    private let settingsWindowProvider: (() -> NSWindow?)?
     private let modelDiscovery: any ProviderModelDiscovering
     private var modelRefreshTask: Task<Void, Never>?
     private var modelRefreshGeneration = 0
@@ -2158,11 +2181,13 @@ final class ProviderSettingsState {
         settings: AppSettings,
         keyStore: any APIKeyStoring,
         providerFactory: any ChatProviderFactory,
+        settingsWindowProvider: (() -> NSWindow?)? = nil,
         modelDiscovery: any ProviderModelDiscovering = OpenAICompatibleModelDiscovery()
     ) {
         self.settings = settings
         self.keyStore = keyStore
         self.providerFactory = providerFactory
+        self.settingsWindowProvider = settingsWindowProvider
         self.modelDiscovery = modelDiscovery
         self.activeModelID = settings.providerRegistry.catalog?.selectedModelID
 
@@ -2663,6 +2688,82 @@ final class ProviderSettingsState {
 
     private func syncActiveModelID() {
         activeModelID = settings.providerRegistry.catalog?.selectedModelID
+    }
+
+    // MARK: Configuration backup
+
+    func exportConfiguration(presentingWindow: NSWindow? = nil) {
+        NSApp.activate(ignoringOtherApps: true)
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.json]
+        panel.nameFieldStringValue = "SpotAsk-Config.json"
+        let includeKeysCheckbox = NSButton(
+            checkboxWithTitle: L10n.string("settings.exportIncludeKeys"),
+            target: nil,
+            action: nil
+        )
+        includeKeysCheckbox.state = .off
+        includeKeysCheckbox.sizeToFit()
+        panel.accessoryView = includeKeysCheckbox
+        let handleResponse: (NSApplication.ModalResponse) -> Void = { [weak self] response in
+            guard let self else { return }
+            guard response == .OK, let url = panel.url else { return }
+            do {
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                let data = try encoder.encode(
+                    self.settings.makeConfigurationBackup(
+                        includeAccessKeys: includeKeysCheckbox.state == .on,
+                        keyStore: self.keyStore
+                    )
+                )
+                try data.write(to: url, options: .atomic)
+                self.setStatus(L10n.string("settings.configExported"), isError: false)
+            } catch {
+                self.setStatus(
+                    "\(L10n.string("settings.configExportFailed"))\n\(error.localizedDescription)",
+                    isError: true
+                )
+            }
+        }
+        if let window = presentingWindow ?? settingsWindowProvider?() ?? NSApp.keyWindow ?? NSApp.mainWindow {
+            panel.beginSheetModal(for: window, completionHandler: handleResponse)
+        } else {
+            handleResponse(panel.runModal())
+        }
+    }
+
+    func importConfiguration(presentingWindow: NSWindow? = nil) {
+        NSApp.activate(ignoringOtherApps: true)
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        let handleResponse: (NSApplication.ModalResponse) -> Void = { [weak self] response in
+            guard let self else { return }
+            guard response == .OK, let url = panel.url else { return }
+            do {
+                let data = try Data(contentsOf: url)
+                let backup = try JSONDecoder().decode(SpotAskConfigBackup.self, from: data)
+                try self.settings.applyConfigurationBackup(backup, keyStore: self.keyStore)
+                self.selectedProviderID = nil
+                self.selectedModelID = nil
+                self.syncActiveModelID()
+                if let firstProvider = self.settings.providerRegistry.catalog?.providers.first {
+                    self.selectProvider(firstProvider.id)
+                }
+                self.setStatus(L10n.string("settings.configImported"), isError: false)
+            } catch {
+                self.setStatus(
+                    "\(L10n.string("settings.configImportFailed"))\n\(error.localizedDescription)",
+                    isError: true
+                )
+            }
+        }
+        if let window = presentingWindow ?? settingsWindowProvider?() ?? NSApp.keyWindow ?? NSApp.mainWindow {
+            panel.beginSheetModal(for: window, completionHandler: handleResponse)
+        } else {
+            handleResponse(panel.runModal())
+        }
     }
 
     // MARK: Global data clear

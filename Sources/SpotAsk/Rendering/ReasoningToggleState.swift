@@ -8,31 +8,40 @@ struct ReasoningToggleState: Equatable {
     private var previousSnapshot: Snapshot?
 
     /// Reconciles the latest complete message snapshot. On first observation,
-    /// only a live reasoning-only response is expanded; restored history stays
-    /// collapsed. Later snapshots detect content transitions regardless of how
-    /// many fields changed in the same render pass.
-    mutating func reconcile(message: ChatMessage) {
+    /// a live reasoning-only response is expanded; restored history follows
+    /// `prefersExpanded`. Later snapshots detect content transitions regardless
+    /// of how many fields changed in the same render pass.
+    mutating func reconcile(message: ChatMessage, prefersExpanded: Bool = false) {
         let snapshot = Snapshot(message: message)
         defer { previousSnapshot = snapshot }
 
         guard let previousSnapshot else {
             if snapshot.isStreaming, snapshot.hasReasoning, !snapshot.hasAnswer {
                 isExpanded = true
+            } else if prefersExpanded, snapshot.hasReasoning {
+                isExpanded = true
             }
             return
         }
 
-        // Reaching any terminal state always closes reasoning, including when
-        // the user previously chose to keep it open.
+        // Reaching any terminal state closes reasoning unless the user asked
+        // for thinking to stay expanded by default. A manual pin still wins.
         if snapshot.isTerminal {
-            isExpanded = false
+            guard prefersExpanded, snapshot.hasReasoning else {
+                isExpanded = false
+                return
+            }
+            if isPinned { return }
+            isExpanded = true
             return
         }
 
         guard !isPinned else { return }
 
         if !previousSnapshot.hasAnswer, snapshot.hasAnswer {
-            isExpanded = false
+            if !prefersExpanded {
+                isExpanded = false
+            }
         } else if !previousSnapshot.hasReasoning,
                   snapshot.hasReasoning,
                   snapshot.isStreaming,
@@ -71,14 +80,14 @@ struct ReasoningToggleState: Equatable {
 struct ReasoningToggleStateStore: Equatable {
     private(set) var states: [UUID: ReasoningToggleState] = [:]
 
-    mutating func reconcile(messages: [ChatMessage]) {
+    mutating func reconcile(messages: [ChatMessage], prefersExpanded: Bool = false) {
         let assistantMessages = messages.filter { $0.role == .assistant }
         let currentIDs = Set(assistantMessages.map(\.id))
         states = states.filter { currentIDs.contains($0.key) }
 
         for message in assistantMessages {
             var state = states[message.id] ?? ReasoningToggleState()
-            state.reconcile(message: message)
+            state.reconcile(message: message, prefersExpanded: prefersExpanded)
             states[message.id] = state
         }
     }
