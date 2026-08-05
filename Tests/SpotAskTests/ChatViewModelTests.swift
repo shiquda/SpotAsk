@@ -121,11 +121,30 @@ final class ChatViewModelTests: XCTestCase {
         let bundleIdentifier = "SpotAskTests.\(UUID().uuidString)"
         let store = SessionStore(bundleIdentifier: bundleIdentifier)
         defer { try? store.clear() }
-        let message = ChatMessage(role: .assistant, content: "answer", reasoningContent: "reasoning")
+        let message = ChatMessage(
+            role: .assistant,
+            content: "answer",
+            reasoningContent: "reasoning",
+            modelDisplayName: "GPT-5 mini",
+            completedAt: .now
+        )
 
         try store.save([message])
 
         XCTAssertEqual(try store.load(), [message])
+    }
+
+    func testCompletedAnswerCapturesModelNameAndDuration() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("answer")]])
+
+        viewModel.input = "question"
+        viewModel.send()
+        await waitForIdle(viewModel)
+
+        XCTAssertEqual(viewModel.lastAssistantMessage?.modelDisplayName, "GPT-5 mini")
+        XCTAssertNotNil(viewModel.lastAssistantMessage?.completedAt)
+        XCTAssertNotNil(viewModel.lastAssistantMessage?.responseDuration)
     }
 
     func testSessionStorePersistsAppliedPromptIconSnapshot() throws {
@@ -364,6 +383,7 @@ final class ChatViewModelTests: XCTestCase {
             providerID: originalProvider.id,
             endpoint: URL(string: "https://original.example/v1/chat/completions")!,
             apiKey: "old-key",
+            displayName: originalModel.displayName,
             upstreamModelID: originalModel.upstreamModelID,
             isStreamingEnabled: true,
             timeout: 60

@@ -21,6 +21,10 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
     var reasoningContent: String?
     let createdAt: Date
     var state: MessageState
+    /// The user-facing model name selected when this answer was requested.
+    var modelDisplayName: String?
+    /// Kept so completed answers can show their actual request duration.
+    var completedAt: Date?
     let appliedPresetTitle: String?
     /// SF Symbol captured when the one-shot prompt was sent. Existing
     /// sessions without this field continue to use the stable fallback.
@@ -33,6 +37,8 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         reasoningContent: String? = nil,
         createdAt: Date = .now,
         state: MessageState = .complete,
+        modelDisplayName: String? = nil,
+        completedAt: Date? = nil,
         appliedPresetTitle: String? = nil,
         appliedPresetSymbolName: String? = nil
     ) {
@@ -42,6 +48,8 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         self.reasoningContent = reasoningContent
         self.createdAt = createdAt
         self.state = state
+        self.modelDisplayName = modelDisplayName
+        self.completedAt = completedAt
         self.appliedPresetTitle = appliedPresetTitle
         self.appliedPresetSymbolName = appliedPresetSymbolName
     }
@@ -53,6 +61,8 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         case reasoningContent
         case createdAt
         case state
+        case modelDisplayName
+        case completedAt
         case appliedPresetTitle
         case appliedPresetSymbolName
     }
@@ -65,6 +75,8 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         reasoningContent = try container.decodeIfPresent(String.self, forKey: .reasoningContent)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         state = try container.decode(MessageState.self, forKey: .state)
+        modelDisplayName = try container.decodeIfPresent(String.self, forKey: .modelDisplayName)
+        completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
         appliedPresetTitle = try container.decodeIfPresent(String.self, forKey: .appliedPresetTitle)
         appliedPresetSymbolName = try container.decodeIfPresent(String.self, forKey: .appliedPresetSymbolName)
     }
@@ -77,12 +89,19 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         try container.encodeIfPresent(reasoningContent, forKey: .reasoningContent)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(state, forKey: .state)
+        try container.encodeIfPresent(modelDisplayName, forKey: .modelDisplayName)
+        try container.encodeIfPresent(completedAt, forKey: .completedAt)
         try container.encodeIfPresent(appliedPresetTitle, forKey: .appliedPresetTitle)
         try container.encodeIfPresent(appliedPresetSymbolName, forKey: .appliedPresetSymbolName)
     }
 
     var appliedPresetIcon: String {
         appliedPresetSymbolName ?? "sparkles"
+    }
+
+    var responseDuration: TimeInterval? {
+        guard let completedAt else { return nil }
+        return max(0, completedAt.timeIntervalSince(createdAt))
     }
 }
 

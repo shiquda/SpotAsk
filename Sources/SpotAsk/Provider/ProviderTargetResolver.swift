@@ -5,6 +5,7 @@ struct ProviderTargetSnapshot: Equatable, Sendable {
     let providerID: UUID
     let endpoint: URL
     let apiKey: String
+    let displayName: String
     let upstreamModelID: String
     let isStreamingEnabled: Bool
     let timeout: TimeInterval
@@ -36,6 +37,7 @@ struct ProviderTargetResolver: ProviderTargetResolving {
             providerID: provider.id,
             endpoint: try URLNormalizer.endpoint(from: provider.address, useFullEndpoint: provider.addressMode.usesFullEndpoint),
             apiKey: apiKey,
+            displayName: model.displayName,
             upstreamModelID: model.upstreamModelID,
             isStreamingEnabled: model.isStreamingEnabled,
             timeout: provider.timeout

@@ -167,6 +167,9 @@ final class ChatViewModel {
         let target: ProviderTargetSnapshot
         do {
             target = try providerFactory.makeTargetSnapshot()
+            if let assistantIndex = messages.firstIndex(where: { $0.id == assistantID }) {
+                messages[assistantIndex].modelDisplayName = target.displayName
+            }
         } catch let receivedError as ChatError {
             finishAfterError(receivedError, assistantID: assistantID)
             return
@@ -288,6 +291,9 @@ final class ChatViewModel {
     private func completeAssistant(with id: UUID, state: MessageState) {
         guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
         messages[index].state = state
+        if state == .complete {
+            messages[index].completedAt = .now
+        }
     }
 
     private func finishAfterError(_ receivedError: ChatError, assistantID: UUID) {

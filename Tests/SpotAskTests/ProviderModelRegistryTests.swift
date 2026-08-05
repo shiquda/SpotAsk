@@ -220,6 +220,7 @@ final class ProviderModelRegistryTests: XCTestCase {
 
         XCTAssertEqual(target.providerID, secondProvider.id)
         XCTAssertEqual(target.modelID, secondModel.id)
+        XCTAssertEqual(target.displayName, "Second")
         XCTAssertEqual(target.upstreamModelID, "second-upstream")
         XCTAssertEqual(target.apiKey, "selected-provider-key")
         XCTAssertEqual(target.endpoint.absoluteString, "https://second.example/v1/chat/completions")

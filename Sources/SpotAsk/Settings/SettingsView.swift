@@ -2489,6 +2489,7 @@ final class ProviderSettingsState {
                     providerID: providerID,
                     endpoint: endpoint,
                     apiKey: apiKey,
+                    displayName: model.displayName,
                     upstreamModelID: model.upstreamModelID,
                     isStreamingEnabled: model.isStreamingEnabled,
                     timeout: timeout

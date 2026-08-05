@@ -149,7 +149,6 @@ struct ChatView: View {
     @FocusState private var inputFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var scrollFollowState = ScrollFollowState()
-    @State private var didCopyLastAnswer = false
     @State private var inputHeight = ChatInputTextView.minHeight
     @State private var reasoningToggle = ReasoningToggleStateStore()
     @State private var userMessageExpansionState = UserMessageExpansionState()
@@ -157,6 +156,8 @@ struct ChatView: View {
     @State private var showsShortcutHints = false
     @State private var shortcutDispatcher: InAppShortcutDispatcher?
     @State private var chatWindowReference = ChatWindowReference()
+    @State private var copiedMessageID: UUID?
+    @State private var copyFeedbackToken = UUID()
 
     /// Owns the standalone settings window. Created lazily on first use and
     /// reused thereafter so repeated opens never stack duplicate windows.
@@ -248,28 +249,6 @@ struct ChatView: View {
                     .accessibilityLabel(L10n.string("chat.generating"))
             }
             Spacer()
-            if viewModel.canRegenerate {
-                HeaderIconButton(action: { viewModel.regenerate() }) {
-                    Image(systemName: "arrow.clockwise")
-                }
-                .help(L10n.string("chat.regenerate"))
-                .accessibilityLabel(L10n.string("chat.regenerate"))
-                .overlay(alignment: .bottomTrailing) {
-                    ShortcutKeycap(shortcut: shortcutHint(for: .operation(.regenerateOrRetry)))
-                        .offset(x: 5, y: 5)
-                }
-            }
-            if let answer = viewModel.lastAssistantMessage, !answer.content.isEmpty {
-                HeaderIconButton(action: { copyLastAnswer(answer.content) }) {
-                    Image(systemName: didCopyLastAnswer ? "checkmark" : "doc.on.doc")
-                }
-                .help(didCopyLastAnswer ? L10n.string("chat.copied") : L10n.string("chat.copyLastAnswer"))
-                .accessibilityLabel(didCopyLastAnswer ? L10n.string("chat.copied") : L10n.string("chat.copyLastAnswer"))
-                .overlay(alignment: .bottomTrailing) {
-                    ShortcutKeycap(shortcut: shortcutHint(for: .operation(.copyAnswer)))
-                        .offset(x: 5, y: 5)
-                }
-            }
             HeaderIconButton(action: { SpotAskCommandCenter.shared.toggleWindowOnTop() }) {
                 Image(systemName: settings.keepWindowOnTop ? "pin.fill" : "pin")
             }
@@ -431,10 +410,14 @@ struct ChatView: View {
         case .system:
             EmptyView()
         case .user:
+            let canRetry = canRetry(userMessage: message)
             UserMessageContentView(
                 message: message,
                 isExpanded: userMessageExpansionState.isExpanded(messageID: message.id),
-                onToggleExpansion: { userMessageExpansionState.toggle(messageID: message.id) }
+                onToggleExpansion: { userMessageExpansionState.toggle(messageID: message.id) },
+                canRetry: canRetry,
+                onRetry: viewModel.retry,
+                retryShortcut: canRetry ? shortcutHint(for: .operation(.regenerateOrRetry)) : nil
             )
         case .assistant:
             VStack(alignment: .leading, spacing: 8) {
@@ -450,7 +433,19 @@ struct ChatView: View {
                     }
                     .accessibilityLabel(L10n.string("chat.generatingAnswer"))
                 } else {
-                    MessageContentView(message: message)
+                    MessageContentView(
+                        message: message,
+                        canRegenerate: viewModel.canRegenerate && message.id == viewModel.lastAssistantMessage?.id,
+                        onRegenerate: viewModel.regenerate,
+                        isCopied: copiedMessageID == message.id,
+                        onCopy: { copyMessage(message) },
+                        copyShortcut: message.id == viewModel.lastAssistantMessage?.id
+                            ? shortcutHint(for: .operation(.copyAnswer))
+                            : nil,
+                        regenerateShortcut: viewModel.canRegenerate && message.id == viewModel.lastAssistantMessage?.id
+                            ? shortcutHint(for: .operation(.regenerateOrRetry))
+                            : nil
+                    )
                 }
                 if message.state == .failed {
                     HStack(spacing: 8) {
@@ -656,7 +651,7 @@ struct ChatView: View {
                 return false
             case .copyAnswer:
                 guard let answer = viewModel.lastAssistantMessage, !answer.content.isEmpty else { return false }
-                copyLastAnswer(answer.content)
+                copyMessage(answer)
                 return true
             case .toggleWindowOnTop:
                 SpotAskCommandCenter.shared.toggleWindowOnTop()
@@ -681,6 +676,26 @@ struct ChatView: View {
 
     private func shortcutHint(for preset: PromptPreset) -> InAppShortcut? {
         shortcutHint(for: .promptPreset(preset.id))
+    }
+
+    private func canRetry(userMessage: ChatMessage) -> Bool {
+        guard viewModel.generationState == .failed,
+              viewModel.messages.last?.role == .assistant,
+              viewModel.messages.last?.state == .failed,
+              let lastUserMessage = viewModel.messages.last(where: { $0.role == .user }) else { return false }
+        return userMessage.id == lastUserMessage.id
+    }
+
+    private func copyMessage(_ message: ChatMessage) {
+        Clipboard.copy(message.content)
+        copiedMessageID = message.id
+        let token = UUID()
+        copyFeedbackToken = token
+        Task {
+            try? await Task.sleep(for: .milliseconds(1_500))
+            guard !Task.isCancelled, copyFeedbackToken == token else { return }
+            copiedMessageID = nil
+        }
     }
 
     /// Entry point for every settings request (header gear, command center).
@@ -786,16 +801,6 @@ struct ChatView: View {
     private func dismiss() {
         if settings.clearInputOnClose { viewModel.input = "" }
         onDismiss()
-    }
-
-    private func copyLastAnswer(_ content: String) {
-        Clipboard.copy(content)
-        didCopyLastAnswer = true
-        Task {
-            try? await Task.sleep(for: .milliseconds(1_500))
-            guard !Task.isCancelled else { return }
-            didCopyLastAnswer = false
-        }
     }
 
     private func handleCommandAction(_ action: SpotAskCommandAction) {
@@ -963,7 +968,7 @@ private struct HeaderMaterial: View {
 /// The six SpotAsk brand tokens from the redesign contract. Hover and glow
 /// variants are derived with `darker` / `opacity` (the oklch-relative
 /// adjustments of the prototype), never with a new hard-coded color.
-private enum Brand {
+enum Brand {
     static let bg = dynamic(light: 0xFFFFFF, dark: 0x17191D)
     static let surface = dynamic(light: 0xF7F8FA, dark: 0x22252B)
     static let fg = dynamic(light: 0x111111, dark: 0xF4F5F7)
@@ -1129,7 +1134,7 @@ private struct HeaderIconButton<Label: View>: View {
     }
 }
 
-private struct ShortcutKeycap: View {
+struct ShortcutKeycap: View {
     let shortcut: InAppShortcut?
 
     var body: some View {
@@ -1576,13 +1581,26 @@ private struct UserMessageContentView: View {
     let isExpanded: Bool
     let onToggleExpansion: () -> Void
     private let collapsedPreview: String?
+    let canRetry: Bool
+    let onRetry: () -> Void
+    let retryShortcut: InAppShortcut?
 
     @State private var didCopy = false
 
-    init(message: ChatMessage, isExpanded: Bool, onToggleExpansion: @escaping () -> Void) {
+    init(
+        message: ChatMessage,
+        isExpanded: Bool,
+        onToggleExpansion: @escaping () -> Void,
+        canRetry: Bool,
+        onRetry: @escaping () -> Void,
+        retryShortcut: InAppShortcut?
+    ) {
         self.message = message
         self.isExpanded = isExpanded
         self.onToggleExpansion = onToggleExpansion
+        self.canRetry = canRetry
+        self.onRetry = onRetry
+        self.retryShortcut = retryShortcut
         collapsedPreview = UserMessageDisplayPolicy.collapsedPreview(for: message.content)
     }
 
@@ -1610,24 +1628,6 @@ private struct UserMessageContentView: View {
                         .foregroundStyle(.secondary)
                         .accessibilityLabel(L10n.string("chat.usedPrompt", presetTitle))
                 }
-                Spacer()
-                Button {
-                    Clipboard.copy(message.content)
-                    didCopy = true
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(1_500))
-                        guard !Task.isCancelled else { return }
-                        didCopy = false
-                    }
-                } label: {
-                    Image(systemName: didCopy ? "checkmark" : "doc.on.doc")
-                        .frame(width: 16, height: 16)
-                }
-                .buttonStyle(.borderless)
-                .frame(width: 28, height: 28)
-                .contentShape(Rectangle())
-                .help(didCopy ? L10n.string("chat.copied") : L10n.string("chat.copyQuestion"))
-                .accessibilityLabel(didCopy ? L10n.string("chat.questionCopied") : L10n.string("chat.copyQuestion"))
             }
 
             Text(displayedContent)
@@ -1653,6 +1653,37 @@ private struct UserMessageContentView: View {
                 .help(isExpanded ? L10n.string("chat.collapseQuestion") : L10n.string("chat.showFullQuestion"))
                 .accessibilityLabel(isExpanded ? L10n.string("chat.collapseQuestion") : L10n.string("chat.showFullQuestion"))
             }
+
+            HStack(spacing: 4) {
+                MessageToolbarIconButton {
+                    Clipboard.copy(message.content)
+                    didCopy = true
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(1_500))
+                        guard !Task.isCancelled else { return }
+                        didCopy = false
+                    }
+                } label: {
+                    Image(systemName: didCopy ? "checkmark" : "doc.on.doc")
+                }
+                .help(didCopy ? L10n.string("chat.copied") : L10n.string("chat.copyQuestion"))
+                .accessibilityLabel(didCopy ? L10n.string("chat.questionCopied") : L10n.string("chat.copyQuestion"))
+
+                if canRetry {
+                    MessageToolbarIconButton(action: onRetry) {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .help(L10n.string("chat.retry"))
+                    .accessibilityLabel(L10n.string("chat.retryFailedRequest"))
+                    .overlay(alignment: .bottomTrailing) {
+                        ShortcutKeycap(shortcut: retryShortcut)
+                            .offset(x: 4, y: 4)
+                    }
+                }
+
+                Spacer(minLength: 8)
+            }
+            .controlSize(.small)
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(L10n.string("chat.user"))
