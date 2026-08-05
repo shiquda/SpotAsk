@@ -152,8 +152,9 @@ struct InAppShortcutConfiguration: Codable, Equatable, Sendable {
 
     func resolvedAssignments(for presets: [PromptPreset]) -> [InAppShortcutAssignment] {
         let defaults = Self.defaultAssignments(for: presets)
+        let available = Self.availableTargets(for: presets)
         var assignments = defaults.filter { !disabledTargets.contains($0.target) }
-        for override in overrides {
+        for override in overrides where available.contains(override.target) {
             assignments.removeAll { $0.target == override.target }
             assignments.append(override)
         }

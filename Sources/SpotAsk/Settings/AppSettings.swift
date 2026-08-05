@@ -499,7 +499,9 @@ final class AppSettings {
     }
 
     private func cleanUpShortcutAssignments() {
-        guard inAppShortcutConfiguration.cleanUp(for: enabledPromptPresets) else { return }
+        // Disabled presets remain in the catalog so their user-selected
+        // shortcuts can become available again when the preset is re-enabled.
+        guard inAppShortcutConfiguration.cleanUp(for: promptPresetCatalog) else { return }
         saveInAppShortcutConfiguration()
     }
 
