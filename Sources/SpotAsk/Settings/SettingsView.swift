@@ -172,21 +172,7 @@ private struct ProviderSettingsPage: View {
             SettingsPageHeader(section: .provider, settings: settings)
             SettingsCallout(L10n.string("settings.providerDescription"))
 
-            HStack(alignment: .top, spacing: 0) {
-                ProviderModelTree(state: state, settings: settings)
-                    .frame(width: 200)
-
-                Divider()
-
-                ProviderModelDetail(state: state, settings: settings)
-                    .frame(maxWidth: .infinity)
-            }
-            .frame(maxHeight: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(Color.primary.opacity(0.12), lineWidth: 0.5)
-            )
+            ProviderSettingsList(state: state)
         }
         .alert(L10n.string("settings.deleteProviderTitle"), isPresented: Binding(
             get: { state.pendingDeleteProviderID != nil },
@@ -515,22 +501,25 @@ private struct EmptySelectionView: View {
 private struct ProviderDetailForm: View {
     @Bindable var state: ProviderSettingsState
     let isNew: Bool
+    var showsHeader = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            HStack {
-                Text(isNew ? L10n.string("settings.newProvider") : L10n.string("settings.editProvider"))
-                    .font(.system(size: 17, weight: .semibold))
-                Spacer()
-                if !isNew {
-                    Button(role: .destructive) {
-                        if let id = state.selectedProviderID {
-                            state.requestDeleteProvider(id)
+            if showsHeader {
+                HStack {
+                    Text(isNew ? L10n.string("settings.newProvider") : L10n.string("settings.editProvider"))
+                        .font(.system(size: 17, weight: .semibold))
+                    Spacer()
+                    if !isNew {
+                        Button(role: .destructive) {
+                            if let id = state.selectedProviderID {
+                                state.requestDeleteProvider(id)
+                            }
+                        } label: {
+                            Label(L10n.string("settings.delete"), systemImage: "trash")
                         }
-                    } label: {
-                        Label(L10n.string("settings.delete"), systemImage: "trash")
+                        .buttonStyle(.borderless)
                     }
-                    .buttonStyle(.borderless)
                 }
             }
 
@@ -671,6 +660,7 @@ private struct ProviderDetailForm: View {
 private struct ModelDetailForm: View {
     @Bindable var state: ProviderSettingsState
     let isNew: Bool
+    var showsHeader = true
 
     private var parentProviderName: String {
         guard let catalog = state.settings.providerRegistry.catalog,
@@ -683,19 +673,21 @@ private struct ModelDetailForm: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            HStack {
-                Text(isNew ? L10n.string("settings.newModel") : L10n.string("settings.editModel"))
-                    .font(.system(size: 17, weight: .semibold))
-                Spacer()
-                if !isNew {
-                    Button(role: .destructive) {
-                        if let id = state.selectedModelID {
-                            state.requestDeleteModel(id)
+            if showsHeader {
+                HStack {
+                    Text(isNew ? L10n.string("settings.newModel") : L10n.string("settings.editModel"))
+                        .font(.system(size: 17, weight: .semibold))
+                    Spacer()
+                    if !isNew {
+                        Button(role: .destructive) {
+                            if let id = state.selectedModelID {
+                                state.requestDeleteModel(id)
+                            }
+                        } label: {
+                            Label(L10n.string("settings.delete"), systemImage: "trash")
                         }
-                    } label: {
-                        Label(L10n.string("settings.delete"), systemImage: "trash")
+                        .buttonStyle(.borderless)
                     }
-                    .buttonStyle(.borderless)
                 }
             }
 
@@ -774,6 +766,334 @@ private struct ModelDetailForm: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - Provider Settings List
+
+private struct ProviderSettingsList: View {
+    @Bindable var state: ProviderSettingsState
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                if state.isCreatingProvider {
+                    NewProviderCard(state: state)
+                }
+
+                if state.providers.isEmpty, !state.isCreatingProvider {
+                    Text(L10n.string("settings.noServices"))
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 36)
+                } else {
+                    ForEach(state.providers) { provider in
+                        ProviderCard(
+                            state: state,
+                            provider: provider,
+                            models: state.modelsForProvider(provider.id)
+                        )
+                    }
+                }
+
+                Button {
+                    state.startNewProvider()
+                } label: {
+                    Label(L10n.string("settings.addProvider"), systemImage: "plus")
+                }
+                .buttonStyle(.bordered)
+                .padding(.top, 2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.bottom, 12)
+        }
+    }
+}
+
+private struct NewProviderCard: View {
+    @Bindable var state: ProviderSettingsState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Label(L10n.string("settings.newProvider"), systemImage: "server.rack")
+                    .font(.system(size: 15, weight: .semibold))
+                Spacer()
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+
+            Divider()
+
+            ProviderDetailForm(state: state, isNew: true, showsHeader: false)
+                .padding(16)
+        }
+        .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+        )
+    }
+}
+
+private struct ProviderCard: View {
+    @Bindable var state: ProviderSettingsState
+    let provider: ProviderConfiguration
+    let models: [ModelConfiguration]
+
+    private var isEditingProvider: Bool {
+        state.selectedProviderID == provider.id
+    }
+
+    private var isEditingModel: Bool {
+        if state.isCreatingModel, state.newModelParentProviderID == provider.id { return true }
+        if let model = state.selectedModel, model.providerID == provider.id { return true }
+        return false
+    }
+
+    private var isExpanded: Bool {
+        state.expandedProviderIDs.contains(provider.id) || isEditingProvider || isEditingModel
+    }
+
+    private var activeModel: ModelConfiguration? {
+        models.first { $0.id == state.activeModelID }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+
+            if isExpanded {
+                Divider()
+
+                VStack(alignment: .leading, spacing: 18) {
+                    if isEditingProvider {
+                        ProviderDetailForm(state: state, isNew: false, showsHeader: false)
+                    }
+
+                    modelsSection
+
+                    if isEditingModel {
+                        ModelDetailForm(state: state, isNew: state.isCreatingModel, showsHeader: false)
+                    }
+                }
+                .padding(16)
+            }
+        }
+        .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private var modelsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(L10n.string("settings.model"))
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+
+            ForEach(models) { model in
+                ProviderModelRow(state: state, model: model)
+            }
+
+            Button {
+                state.startNewModel(for: provider.id)
+            } label: {
+                Label(L10n.string("settings.addModel"), systemImage: "plus")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    private var header: some View {
+        HStack(spacing: 6) {
+            Button {
+                if isEditingProvider || isEditingModel {
+                    state.cancelEditing()
+                }
+                state.toggleProviderExpansion(provider.id)
+            } label: {
+                Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 20, height: 20)
+            }
+            .buttonStyle(.plain)
+            .help(isExpanded
+                ? L10n.string("settings.collapseProvider", provider.name)
+                : L10n.string("settings.expandProvider", provider.name))
+            .accessibilityLabel(isExpanded
+                ? L10n.string("settings.collapseProvider", provider.name)
+                : L10n.string("settings.expandProvider", provider.name))
+
+            Button {
+                state.selectProvider(provider.id)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "server.rack")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text(provider.name)
+                                .font(.system(size: 14, weight: .semibold))
+                                .lineLimit(1)
+                            if activeModel != nil {
+                                Text(L10n.string("settings.active"))
+                                    .font(.system(size: 9, weight: .medium))
+                                    .foregroundStyle(.cyan)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 1)
+                                    .background(Color.cyan.opacity(0.12), in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+                            }
+                        }
+
+                        Text(provider.address)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Menu {
+                Button {
+                    state.selectProvider(provider.id)
+                } label: {
+                    Label(L10n.string("settings.editProvider"), systemImage: "pencil")
+                }
+                Button {
+                    state.startNewModel(for: provider.id)
+                } label: {
+                    Label(L10n.string("settings.addModel"), systemImage: "plus")
+                }
+                Divider()
+                Button(role: .destructive) {
+                    state.requestDeleteProvider(provider.id)
+                } label: {
+                    Label(L10n.string("settings.delete"), systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+            }
+            .menuStyle(.borderlessButton)
+            .help(L10n.string("settings.providerActions", provider.name))
+            .accessibilityLabel(L10n.string("settings.providerActions", provider.name))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(isExpanded ? Color.primary.opacity(0.06) : .clear)
+    }
+}
+
+private struct ProviderModelRow: View {
+    @Bindable var state: ProviderSettingsState
+    let model: ModelConfiguration
+
+    private var isActive: Bool {
+        state.activeModelID == model.id
+    }
+
+    private var isEditing: Bool {
+        state.selectedModelID == model.id
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Button {
+                state.selectModel(model.id)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 12))
+                        .foregroundStyle(isActive ? Color.cyan : .secondary.opacity(0.5))
+
+                    VStack(alignment: .leading, spacing: 1) {
+                        HStack(spacing: 5) {
+                            Text(model.displayName)
+                                .font(.system(size: 13, weight: .medium))
+                                .lineLimit(1)
+                            if model.source == .discovered {
+                                Image(systemName: "arrow.down.circle")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.secondary)
+                                    .help(L10n.string("settings.discoveredModel"))
+                                    .accessibilityLabel(L10n.string("settings.discoveredModel"))
+                            }
+                        }
+
+                        Text(model.upstreamModelID)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+
+                    if isActive {
+                        Text(L10n.string("settings.active"))
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.cyan)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(Color.cyan.opacity(0.12), in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if !isActive {
+                Button {
+                    state.useModelForChat(model.id)
+                } label: {
+                    Image(systemName: "bubble.left.and.bubble.right")
+                }
+                .buttonStyle(.borderless)
+                .help(L10n.string("settings.useForChat"))
+                .accessibilityLabel(L10n.string("settings.useForChat") + " " + model.displayName)
+            }
+
+            Menu {
+                Button {
+                    state.selectModel(model.id)
+                } label: {
+                    Label(L10n.string("settings.editModel"), systemImage: "pencil")
+                }
+                Divider()
+                Button(role: .destructive) {
+                    state.requestDeleteModel(model.id)
+                } label: {
+                    Label(L10n.string("settings.delete"), systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24, height: 24)
+            }
+            .menuStyle(.borderlessButton)
+            .help(L10n.string("settings.modelActions", model.displayName))
+            .accessibilityLabel(L10n.string("settings.modelActions", model.displayName))
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(isEditing ? Color.primary.opacity(0.07) : .clear, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
     }
 }
 

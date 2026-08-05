@@ -5,7 +5,7 @@ import Testing
 
 @MainActor
 struct SettingsLayoutTests {
-    @Test func providerTreeAndDetailOwnScrollingAtCompactWindowSize() throws {
+    @Test func providerPageScrollingRevealsBottomControls() throws {
         let fixture = makeWindow(section: .provider)
         defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
 
@@ -16,43 +16,43 @@ struct SettingsLayoutTests {
                 scrollView.convert(scrollView.bounds, to: fixture.hostingView)
             )
         }
-
-        let pageScrollView = geometries.first { _, frame in
-            frame.width > 700 && frame.height > 500
-        }
+        let pageScrollView = try #require(
+            geometries.first { _, frame in
+                frame.width > 550 && frame.height > 400
+            },
+            "The Service page must keep one page-level scroll region"
+        )
         #expect(
-            pageScrollView == nil,
-            "The Service page must stay fixed while its tree and detail regions scroll independently"
+            fixture.hostingView.bounds.insetBy(dx: -1, dy: -1).contains(pageScrollView.1),
+            "The Service page scroll region must stay inside the Settings window"
         )
 
-        let treeScrollView = geometries.first { _, frame in
-            abs(frame.width - 200) < 1 && frame.minX >= 200
-        }
-        let detailScrollView = geometries.first { _, frame in
-            frame.minX > 400 && frame.width > 400 && frame.width < 500
-        }
-
-        let tree = try #require(treeScrollView)
-        let detail = try #require(detailScrollView)
-        let minimumWorkspaceHeight = fixture.hostingView.bounds.height * 0.5
-        #expect(tree.1.height >= minimumWorkspaceHeight, "The provider tree must retain at least half the Settings window height")
-        #expect(detail.1.height >= minimumWorkspaceHeight, "The provider detail must retain at least half the Settings window height")
-
-        let documentView = try #require(detail.0.documentView)
+        let documentView = try #require(pageScrollView.0.documentView)
         documentView.layoutSubtreeIfNeeded()
-        let scrollableHeight = documentView.bounds.height - detail.0.contentView.bounds.height
-        detail.0.contentView.scroll(to: NSPoint(x: 0, y: scrollableHeight))
-        detail.0.reflectScrolledClipView(detail.0.contentView)
+        let scrollableHeight = max(
+            0,
+            documentView.bounds.height - pageScrollView.0.contentView.bounds.height
+        )
+        pageScrollView.0.contentView.scroll(to: NSPoint(x: 0, y: scrollableHeight))
+        pageScrollView.0.reflectScrolledClipView(pageScrollView.0.contentView)
         #expect(
-            detail.0.contentView.documentVisibleRect.maxY >= documentView.bounds.maxY - 1,
-            "The detail scroll region must be able to reveal its bottom controls"
+            pageScrollView.0.contentView.documentVisibleRect.maxY >= documentView.bounds.maxY - 1,
+            "The Service page must reveal its bottom controls"
+        )
+        let secureFields = descendants(of: NSSecureTextField.self, in: fixture.hostingView)
+        #expect(
+            secureFields.contains { field in
+                let frame = field.convert(field.bounds, to: fixture.hostingView)
+                return fixture.hostingView.bounds.intersects(frame)
+            },
+            "Access key must be reachable after scrolling the Service page to its bottom"
         )
     }
 
     @Test func otherSettingsPagesKeepTheirExpectedScrollBehavior() throws {
-        let scrollingSections: Set<SettingsSection> = [.prompts, .shortcuts, .general]
+        let scrollingSections: Set<SettingsSection> = [.provider, .prompts, .shortcuts, .general]
 
-        for section in SettingsSection.allCases where section != .provider {
+        for section in SettingsSection.allCases {
             let fixture = makeWindow(section: section)
             defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
 
@@ -76,8 +76,9 @@ struct SettingsLayoutTests {
                 "The \(section) page must keep all chrome within the fixed Settings width: \(horizontalOverflow)"
             )
             if scrollingSections.contains(section) {
+                let minimumPageHeight: CGFloat = section == .provider ? 400 : 500
                 let pageScrollView = geometries.first { _, frame in
-                    frame.width >= 550 && frame.height >= 500
+                    frame.width >= 550 && frame.height >= minimumPageHeight
                 }
                 let page = try #require(
                     pageScrollView,
@@ -104,6 +105,25 @@ struct SettingsLayoutTests {
                             return windowBounds.intersects(frame)
                         },
                         "The Custom Instructions editor must be visible after scrolling Prompts to the bottom"
+                    )
+                }
+                if section == .provider {
+                    let documentView = try #require(page.0.documentView)
+                    documentView.layoutSubtreeIfNeeded()
+                    let scrollableHeight = max(
+                        0,
+                        documentView.bounds.height - page.0.contentView.bounds.height
+                    )
+                    page.0.contentView.scroll(to: NSPoint(x: 0, y: scrollableHeight))
+                    page.0.reflectScrolledClipView(page.0.contentView)
+
+                    let secureFields = descendants(of: NSSecureTextField.self, in: fixture.hostingView)
+                    #expect(
+                        secureFields.contains { field in
+                            let frame = field.convert(field.bounds, to: fixture.hostingView)
+                            return windowBounds.intersects(frame)
+                        },
+                        "Access key must be visible after scrolling the Service page to the bottom"
                     )
                 }
             } else {
@@ -150,19 +170,6 @@ struct SettingsLayoutTests {
             escaped.isEmpty,
             "Settings sidebar or Service chrome escaped the fixed 860pt width: \(escaped)"
         )
-
-        let detailScrollView = try #require(
-            descendants(of: NSScrollView.self, in: fixture.hostingView).first {
-                let frame = $0.convert($0.bounds, to: fixture.hostingView)
-                return frame.minX > 400 && frame.width > 300
-            },
-            "The Service detail must remain a distinct scroll region"
-        )
-        let detailFrame = detailScrollView.convert(detailScrollView.bounds, to: fixture.hostingView)
-        #expect(
-            hostingBounds.contains(detailFrame),
-            "The right-side Service detail, which contains the Delete action, escaped the fixed window: \(detailFrame)"
-        )
     }
 
     @Test func providerDetailControlsKeepOneContainedColumn() throws {
@@ -187,14 +194,6 @@ struct SettingsLayoutTests {
         let controls = [providerNameField, accessKeyField].map {
             $0.convert($0.bounds, to: fixture.hostingView)
         }
-        let detailScrollView = try #require(
-            descendants(of: NSScrollView.self, in: fixture.hostingView).first {
-                let frame = $0.convert($0.bounds, to: fixture.hostingView)
-                return frame.minX > 400 && frame.width > 300
-            },
-            "The Service detail must remain a distinct scroll region"
-        )
-        let detailFrame = detailScrollView.convert(detailScrollView.bounds, to: fixture.hostingView)
 
         let reference = try #require(controls.first)
         for frame in controls {
@@ -205,10 +204,6 @@ struct SettingsLayoutTests {
             #expect(
                 frame.width >= 300,
                 "Provider detail controls must retain an editable width: \(frame)"
-            )
-            #expect(
-                frame.minX >= detailFrame.minX && frame.maxX <= detailFrame.maxX,
-                "Provider detail control must remain in the Service detail column: \(frame)"
             )
             #expect(
                 frame.minX >= hostingBounds.minX && frame.maxX <= hostingBounds.maxX,
