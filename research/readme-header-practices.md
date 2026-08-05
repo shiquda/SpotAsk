@@ -73,7 +73,7 @@ GitHub 的官方状态徽章文档只定义了一个明确用途：显示某个�
 ### 已有证据
 
 - `Resources/AppIcon.icns` 是应用的稳定图标资源，`Resources/Info.plist` 将其声明为 `AppIcon`。README 不应直接把 macOS 专用 `.icns` 当作网页图片；应从同一资源导出一个已纳入仓库的 PNG。当前工作区已有候选 `images/spotask-icon.png`（1024x1024），提交前需确认它确实来自该应用图标并被 Git 跟踪。
-- `images/spotask-chat.png` 是浅色/深色斜线拼图（1526x1062），展示最新问答主界面；现有 README 已通过居中的 `<p align="center">` 包装，并给出描述性 `alt`。
+- `images/spotask-chat.png` 是英文界面在浅色/深色模式下的斜线拼图（1526x1062），展示最新问答主界面；现有 README 已通过居中的 `<p align="center">` 包装，并给出描述性 `alt`。
 - `Package.swift` 声明最低平台为 macOS 15；`.github/workflows/ci.yml` 对 arm64 和 x86_64 都运行 `swift test` 和 DMG 打包。
 - GitHub Actions API 显示 `CI` 工作流处于 active，最近一次 main 运行成功；工作流公开徽章地址为 `https://github.com/shiquda/SpotAsk/actions/workflows/ci.yml/badge.svg`。
 - GitHub Releases API 显示当前公开最新版本为 `v0.1.2`，有 arm64、x86_64 DMG 和 SHA256 校验文件；仓库许可证 API 和 `LICENSE` 均为 AGPL-3.0。

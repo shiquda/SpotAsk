@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  <img src="images/spotask-chat.png" width="640" alt="SpotAsk 浅色与深色模式下的问答主界面">
+  <img src="images/spotask-chat.png" width="640" alt="SpotAsk 英文界面在浅色与深色模式下的问答主界面">
 </p>
 
 ## 主要功能

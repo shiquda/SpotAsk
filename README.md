@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  <img src="images/spotask-chat.png" width="640" alt="SpotAsk chat window in light and dark appearance">
+  <img src="images/spotask-chat.png" width="640" alt="SpotAsk English chat window in light and dark appearance">
 </p>
 
 ## What SpotAsk does
