@@ -35,7 +35,7 @@ struct ChatInputTextView: NSViewRepresentable {
         textView.onRecall = onRecall
         textView.onLayoutPass = { [weak coordinator = context.coordinator] in
             guard let coordinator, let textView = $0 as? NSTextView else { return }
-            coordinator.updateHeight(of: textView)
+            coordinator.updateHeightIfNeeded(of: textView)
         }
         textView.string = text
         textView.font = .preferredFont(forTextStyle: .body)
@@ -92,7 +92,7 @@ struct ChatInputTextView: NSViewRepresentable {
             let selectedRange = textView.selectedRange()
             textView.string = text
             textView.setSelectedRange(NSRange(location: min(selectedRange.location, (text as NSString).length), length: 0))
-            context.coordinator.updateHeight(of: textView)
+            context.coordinator.updateHeightIfNeeded(of: textView)
         }
 
         if isFocused, scrollView.window?.firstResponder !== textView {
@@ -106,6 +106,8 @@ struct ChatInputTextView: NSViewRepresentable {
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: ChatInputTextView
         private var needsInitialFocus = true
+        private var lastMeasuredTextLength = 0
+        private var lastMeasuredWidth: CGFloat = 0
 
         init(parent: ChatInputTextView) {
             self.parent = parent
@@ -114,7 +116,7 @@ struct ChatInputTextView: NSViewRepresentable {
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
             parent.text = textView.string
-            updateHeight(of: textView)
+            updateHeightIfNeeded(of: textView)
         }
 
         func textDidBeginEditing(_ notification: Notification) {
@@ -133,7 +135,7 @@ struct ChatInputTextView: NSViewRepresentable {
             guard parent.onSubmit() else { return }
             if !textView.string.isEmpty {
                 textView.string = ""
-                updateHeight(of: textView)
+                updateHeightIfNeeded(of: textView)
             }
         }
 
@@ -151,6 +153,24 @@ struct ChatInputTextView: NSViewRepresentable {
         }
 
         /// Grows the editor with its content between one and six lines; beyond
+        /// that the enclosing scroll view takes over. Once the editor is at its
+        /// max height, further typing does not need another full TextKit
+        /// measurement unless the width or the text shrinks.
+        @MainActor
+        func updateHeightIfNeeded(of textView: NSTextView) {
+            guard let textContainer = textView.textContainer else { return }
+            let textLength = textView.string.count
+            let width = textContainer.size.width
+            let isAtMaxHeight = parent.height >= ChatInputTextView.maxHeight - 0.5
+            let onlyGrewAtMaxHeight = isAtMaxHeight && textLength > lastMeasuredTextLength
+            let widthUnchanged = abs(width - lastMeasuredWidth) < 0.5
+            if onlyGrewAtMaxHeight, widthUnchanged {
+                return
+            }
+            updateHeight(of: textView)
+        }
+
+        /// Grows the editor with its content between one and six lines; beyond
         /// that the enclosing scroll view takes over. Only writes back on a
         /// real change so layout never loops.
         @MainActor
@@ -158,6 +178,8 @@ struct ChatInputTextView: NSViewRepresentable {
             guard let layoutManager = textView.layoutManager, let textContainer = textView.textContainer else { return }
             layoutManager.ensureLayout(for: textContainer)
             let contentHeight = layoutManager.usedRect(for: textContainer).height + textView.textContainerInset.height * 2
+            lastMeasuredTextLength = textView.string.count
+            lastMeasuredWidth = textContainer.size.width
             let height = min(max(contentHeight, ChatInputTextView.minHeight), ChatInputTextView.maxHeight)
             guard abs(height - parent.height) > 0.5 else { return }
             parent.height = height

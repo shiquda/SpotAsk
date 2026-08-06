@@ -26,9 +26,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The summarize quick action uses a clearer icon.
 - Selection assistant settings collapse when the feature is off; Accessibility permission is requested only when enabling it.
 - Conversation roles are labeled with icons, the assistant's model name, and 你 for your own messages.
+- Streaming answer updates are isolated to the active message instead of rewriting the whole conversation array.
+- The conversation keeps the recent active tail non-lazy while older history remains lazily loaded.
+- Streaming answers render Markdown while generating; parsing happens off the main actor and is rate-limited instead of showing raw markup or re-laying out Textual blocks per token.
+- Scroll geometry callbacks only update follow state when the near-bottom value actually changes, and size-change anchoring is disabled while the user is scrolling.
 
 ### Fixed
 
+- Long answers streamed in the current window stay expanded after completion, and expanded assistant messages survive later conversation updates.
+- Chat and reasoning scrolling now coalesces rapid updates instead of queuing one scroll command per token flush.
+- The composer skips full TextKit measurement while it is already at its maximum height.
 - The selection assistant could not read selected text in some builds; reads now work reliably with Accessibility permission.
 - Selections made with text markers now resolve correctly.
 - The composer draft is preserved after closing the window, and the panel fade animation is restored.

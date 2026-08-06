@@ -47,7 +47,7 @@ final class UserMessageExpansionStateTests: XCTestCase {
         let message = userMessage(content: String(repeating: "a", count: 501))
         var state = UserMessageExpansionState()
 
-        state.reconcile(messages: [message])
+        state.reconcile(messages: [message], role: .user)
         XCTAssertFalse(state.isExpanded(messageID: message.id))
 
         state.toggle(messageID: message.id)
@@ -64,7 +64,7 @@ final class UserMessageExpansionStateTests: XCTestCase {
 
         state.toggle(messageID: retained.id)
         state.toggle(messageID: removed.id)
-        state.reconcile(messages: [retained])
+        state.reconcile(messages: [retained], role: .user)
 
         XCTAssertTrue(state.isExpanded(messageID: retained.id))
         XCTAssertFalse(state.isExpanded(messageID: removed.id))
@@ -75,7 +75,7 @@ final class UserMessageExpansionStateTests: XCTestCase {
         let message = userMessage(content: content)
         var state = UserMessageExpansionState()
 
-        state.reconcile(messages: [message])
+        state.reconcile(messages: [message], role: .user)
         state.toggle(messageID: message.id)
         state.toggle(messageID: message.id)
 
@@ -85,14 +85,59 @@ final class UserMessageExpansionStateTests: XCTestCase {
     func testRestoredMessageStartsCollapsedInNewExpansionState() {
         let message = userMessage(content: String(repeating: "a", count: 501))
         var previousState = UserMessageExpansionState()
-        previousState.reconcile(messages: [message])
+        previousState.reconcile(messages: [message], role: .user)
         previousState.toggle(messageID: message.id)
 
         var restoredState = UserMessageExpansionState()
-        restoredState.reconcile(messages: [message])
+        restoredState.reconcile(messages: [message], role: .user)
 
         XCTAssertTrue(previousState.isExpanded(messageID: message.id))
         XCTAssertFalse(restoredState.isExpanded(messageID: message.id))
+    }
+
+    func testAssistantExpansionSurvivesUnrelatedMessageUpdatesAndCompletion() {
+        var answer = ChatMessage(
+            role: .assistant,
+            content: String(repeating: "a", count: 4_001),
+            state: .streaming
+        )
+        var state = MessageExpansionState()
+
+        state.reconcile(messages: [answer], role: .assistant)
+        XCTAssertTrue(state.isExpanded(messageID: answer.id))
+
+        answer.state = .complete
+        state.reconcile(messages: [answer], role: .assistant)
+        XCTAssertTrue(state.isExpanded(messageID: answer.id))
+
+        let followUp = ChatMessage(role: .user, content: "Next question")
+        state.reconcile(messages: [answer, followUp], role: .assistant)
+        XCTAssertTrue(state.isExpanded(messageID: answer.id))
+    }
+
+    func testRestoredLongAssistantAnswerStartsCollapsed() {
+        let answer = ChatMessage(
+            role: .assistant,
+            content: String(repeating: "a", count: 4_001),
+            state: .complete
+        )
+        var state = MessageExpansionState()
+
+        state.reconcile(messages: [answer], role: .assistant)
+
+        XCTAssertFalse(state.isExpanded(messageID: answer.id))
+    }
+
+    func testAssistantReconcileDoesNotRemoveUserExpansion() {
+        let question = ChatMessage(role: .user, content: String(repeating: "q", count: 501))
+        let answer = ChatMessage(role: .assistant, content: "Answer")
+        var userState = UserMessageExpansionState()
+
+        userState.toggle(messageID: question.id)
+        userState.reconcile(messages: [question, answer], role: .user)
+
+        XCTAssertTrue(userState.isExpanded(messageID: question.id))
+        XCTAssertFalse(userState.isExpanded(messageID: answer.id))
     }
 
     private func userMessage(content: String) -> ChatMessage {

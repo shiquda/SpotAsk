@@ -15,6 +15,9 @@ final class ChatViewModel {
     var isSettingsPresented = false
     var selectedPromptPreset: PromptPreset?
     private(set) var isSessionChoicePending = false
+    private(set) var activeStreamingAssistantID: UUID?
+    private(set) var streamingContent = ""
+    private(set) var streamingReasoning: String?
 
     private let settings: AppSettings
     private let providerFactory: any ChatProviderFactory
@@ -33,7 +36,10 @@ final class ChatViewModel {
         if settings.retainSession { messages = (try? sessionStore.load()) ?? [] }
     }
 
-    var lastAssistantMessage: ChatMessage? { messages.last(where: { $0.role == .assistant }) }
+    var lastAssistantMessage: ChatMessage? {
+        guard let message = messages.last(where: { $0.role == .assistant }) else { return nil }
+        return liveMessage(message)
+    }
     var canSend: Bool {
         !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && generationState != .connecting
@@ -48,6 +54,26 @@ final class ChatViewModel {
               last.role == .assistant,
               last.state == .complete else { return false }
         return messages.contains { $0.role == .user }
+    }
+
+    /// Returns the row data the UI should render. While a message is actively
+    /// streaming, the high-frequency content lives outside `messages` so an
+    /// individual delta does not invalidate the whole conversation array.
+    func liveMessage(_ message: ChatMessage) -> ChatMessage {
+        guard message.state == .streaming, message.id == activeStreamingAssistantID else { return message }
+        return ChatMessage(
+            id: message.id,
+            role: message.role,
+            content: streamingContent,
+            reasoningContent: streamingReasoning ?? message.reasoningContent,
+            createdAt: message.createdAt,
+            state: message.state,
+            reasoningCompletedAt: message.reasoningCompletedAt,
+            modelDisplayName: message.modelDisplayName,
+            completedAt: message.completedAt,
+            appliedPresetTitle: message.appliedPresetTitle,
+            appliedPresetSymbolName: message.appliedPresetSymbolName
+        )
     }
 
     @discardableResult
@@ -75,6 +101,9 @@ final class ChatViewModel {
         streamTask?.cancel()
         flushTask?.cancel()
         flushPendingDeltas()
+        if let activeStreamingAssistantID {
+            commitStreamingContent(for: activeStreamingAssistantID)
+        }
         if let index = messages.lastIndex(where: { $0.role == .assistant && $0.state == .streaming }) {
             messages[index].state = .cancelled
         }
@@ -94,6 +123,9 @@ final class ChatViewModel {
         flushTask?.cancel()
         pendingAnswer = ""
         pendingReasoning = ""
+        activeStreamingAssistantID = nil
+        streamingContent = ""
+        streamingReasoning = nil
         messages.removeAll()
         input = ""
         error = nil
@@ -171,6 +203,9 @@ final class ChatViewModel {
         error = nil
         generationState = .connecting
         let assistantID = UUID()
+        activeStreamingAssistantID = assistantID
+        streamingContent = ""
+        streamingReasoning = nil
         if let selectionSnapshot {
             selectionSnapshotsByAssistantID[assistantID] = selectionSnapshot
         }
@@ -266,12 +301,14 @@ final class ChatViewModel {
     }
 
     private func appendAnswer(_ text: String, to assistantID: UUID) {
-        guard let index = messages.firstIndex(where: { $0.id == assistantID }) else { return }
-        if messages[index].reasoningContent?.isEmpty == false, messages[index].reasoningCompletedAt == nil {
+        guard activeStreamingAssistantID == assistantID else { return }
+        if let index = messages.firstIndex(where: { $0.id == assistantID }),
+           streamingReasoning?.isEmpty == false,
+           messages[index].reasoningCompletedAt == nil {
             messages[index].reasoningCompletedAt = .now
         }
-        if messages[index].content.isEmpty {
-            messages[index].content = text
+        if streamingContent.isEmpty {
+            streamingContent = text
             return
         }
         pendingAnswer += text
@@ -279,9 +316,9 @@ final class ChatViewModel {
     }
 
     private func appendReasoning(_ text: String, to assistantID: UUID) {
-        guard let index = messages.firstIndex(where: { $0.id == assistantID }) else { return }
-        if messages[index].reasoningContent == nil {
-            messages[index].reasoningContent = text
+        guard activeStreamingAssistantID == assistantID else { return }
+        if streamingReasoning == nil {
+            streamingReasoning = text
             return
         }
         pendingReasoning += text
@@ -299,20 +336,35 @@ final class ChatViewModel {
 
     private func flushPendingDeltas() {
         defer { flushTask = nil }
-        guard let index = messages.lastIndex(where: { $0.role == .assistant && $0.state == .streaming }) else {
+        guard activeStreamingAssistantID != nil else {
             pendingAnswer = ""
             pendingReasoning = ""
             return
         }
-        messages[index].content += pendingAnswer
+        streamingContent += pendingAnswer
         if !pendingReasoning.isEmpty {
-            messages[index].reasoningContent = (messages[index].reasoningContent ?? "") + pendingReasoning
+            streamingReasoning = (streamingReasoning ?? "") + pendingReasoning
         }
         pendingAnswer = ""
         pendingReasoning = ""
     }
 
+    private func commitStreamingContent(for id: UUID) {
+        guard activeStreamingAssistantID == id,
+              let index = messages.firstIndex(where: { $0.id == id }) else { return }
+        if !streamingContent.isEmpty {
+            messages[index].content = streamingContent
+        }
+        if let streamingReasoning, !streamingReasoning.isEmpty {
+            messages[index].reasoningContent = streamingReasoning
+        }
+        activeStreamingAssistantID = nil
+        streamingContent = ""
+        streamingReasoning = nil
+    }
+
     private func completeAssistant(with id: UUID, state: MessageState) {
+        commitStreamingContent(for: id)
         guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
         messages[index].state = state
         if state == .complete {

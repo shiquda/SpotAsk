@@ -15,7 +15,12 @@ struct ScrollFollowState: Equatable {
     private var isNearBottom = true
     private var isHandlingUserScroll = false
 
+    /// Read-only snapshot used by callers to avoid touching `@State` when a
+    /// scroll frame did not actually cross the near-bottom boundary.
+    var isNearBottomValue: Bool { isNearBottom }
+
     mutating func positionChanged(isNearBottom: Bool) {
+        guard self.isNearBottom != isNearBottom else { return }
         self.isNearBottom = isNearBottom
     }
 

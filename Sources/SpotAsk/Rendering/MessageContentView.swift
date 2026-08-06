@@ -45,7 +45,9 @@ struct MessageContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if let collapsedPreview, !isExpanded {
+            if message.state == .streaming {
+                StreamingMarkdownTextView(content: message.content)
+            } else if let collapsedPreview, !isExpanded {
                 Text(collapsedPreview)
                     .textSelection(.enabled)
                     .lineSpacing(2)

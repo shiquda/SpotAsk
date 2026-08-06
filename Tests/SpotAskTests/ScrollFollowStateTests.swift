@@ -67,4 +67,15 @@ final class ScrollFollowStateTests: XCTestCase {
 
         XCTAssertTrue(state.followsLatest)
     }
+
+    func testRepeatedNearBottomValueDoesNotChangeState() {
+        var state = ScrollFollowState()
+        state.positionChanged(isNearBottom: false)
+        let before = state
+
+        state.positionChanged(isNearBottom: false)
+
+        XCTAssertEqual(state, before)
+        XCTAssertEqual(state.isNearBottomValue, false)
+    }
 }

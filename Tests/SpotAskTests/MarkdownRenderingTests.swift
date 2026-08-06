@@ -71,4 +71,16 @@ final class MarkdownRenderingTests: XCTestCase {
 
         withExtendedLifetime(partialAnswer) {}
     }
+
+    func testStreamingMarkdownParserStripsBasicSyntax() throws {
+        let attributed = try XCTUnwrap(StreamingMarkdownParser.parse("**bold** `code`"))
+
+        XCTAssertEqual(String(attributed.characters), "bold code")
+    }
+
+    func testStreamingMarkdownParserAcceptsUnclosedCodeFence() throws {
+        let attributed = try XCTUnwrap(StreamingMarkdownParser.parse("```json\n{\"partial\": true}"))
+
+        XCTAssertTrue(String(attributed.characters).contains("partial"))
+    }
 }

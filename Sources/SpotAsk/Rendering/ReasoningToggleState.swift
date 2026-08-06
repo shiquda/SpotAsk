@@ -10,24 +10,26 @@ struct ReasoningToggleState: Equatable {
     /// Reconciles the latest message snapshot. With `prefersExpanded` enabled,
     /// reasoning opens only while it is still streaming and collapses as soon
     /// as the answer starts or the message becomes terminal. Without it,
-    /// reasoning never opens automatically; a manual pin still wins until the
-    /// message reaches a terminal state.
+    /// reasoning never opens automatically; a manual pin always wins over
+    /// automatic state changes.
     mutating func reconcile(message: ChatMessage, prefersExpanded: Bool = false) {
         let snapshot = Snapshot(message: message)
         defer { previousSnapshot = snapshot }
 
-        guard let previousSnapshot else {
+        guard previousSnapshot != nil else {
             isExpanded = snapshot.isStreaming && snapshot.hasReasoning && !snapshot.hasAnswer && prefersExpanded
             return
         }
 
-        // Reaching any terminal state always closes reasoning.
+        guard !isPinned else { return }
+
+        // Reaching any terminal state closes only automatic reasoning; a
+        // manual pin survives because collapsing it during a state transition
+        // would otherwise move the conversation under the user.
         if snapshot.isTerminal {
             isExpanded = false
             return
         }
-
-        guard !isPinned else { return }
 
         if snapshot.hasAnswer {
             isExpanded = false
@@ -75,6 +77,14 @@ struct ReasoningToggleStateStore: Equatable {
             state.reconcile(message: message, prefersExpanded: prefersExpanded)
             states[message.id] = state
         }
+    }
+
+    /// Reconciles only one live streaming message. This is the hot path for
+    /// token flushes, so it avoids rebuilding and scanning the full history.
+    mutating func reconcile(message: ChatMessage, prefersExpanded: Bool = false) {
+        var state = states[message.id] ?? ReasoningToggleState()
+        state.reconcile(message: message, prefersExpanded: prefersExpanded)
+        states[message.id] = state
     }
 
     func state(for messageID: UUID) -> ReasoningToggleState {

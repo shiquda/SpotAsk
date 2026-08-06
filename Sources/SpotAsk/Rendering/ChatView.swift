@@ -155,9 +155,19 @@ enum AssistantMessageDisplayPolicy {
 struct MessageExpansionState: Equatable {
     private(set) var expandedMessageIDs: Set<UUID> = []
 
-    mutating func reconcile(messages: [ChatMessage]) {
-        let currentUserMessageIDs = Set(messages.lazy.filter { $0.role == .user }.map(\.id))
-        expandedMessageIDs.formIntersection(currentUserMessageIDs)
+    mutating func reconcile(messages: [ChatMessage], role: ChatRole) {
+        let currentIDs = Set(messages.lazy.filter { $0.role == role }.map(\.id))
+        expandedMessageIDs.formIntersection(currentIDs)
+        // A message created in this window starts streaming before the user can
+        // choose an expansion state. Keep it full-height through completion so
+        // the terminal transition never collapses an answer the user just saw.
+        if role == .assistant {
+            expandedMessageIDs.formUnion(
+                messages.lazy
+                    .filter { $0.role == .assistant && $0.state == .streaming }
+                    .map(\.id)
+            )
+        }
     }
 
     func isExpanded(messageID: UUID) -> Bool {
@@ -187,6 +197,7 @@ struct ChatView: View {
     @FocusState private var inputFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var scrollFollowState = ScrollFollowState()
+    @State private var pendingScrollTask: Task<Void, Never>?
     @State private var inputHeight = ChatInputTextView.minHeight
     @State private var reasoningToggle = ReasoningToggleStateStore()
     @State private var userMessageExpansionState = UserMessageExpansionState()
@@ -246,11 +257,12 @@ struct ChatView: View {
             viewModel.offerSessionChoiceIfNeeded()
             commandCenter.setActionConsumer(handleCommandAction)
             reasoningToggle.reconcile(messages: viewModel.messages, prefersExpanded: settings.defaultExpandReasoning)
-            userMessageExpansionState.reconcile(messages: viewModel.messages)
-            assistantMessageExpansionState.reconcile(messages: viewModel.messages)
+            userMessageExpansionState.reconcile(messages: viewModel.messages, role: .user)
+            assistantMessageExpansionState.reconcile(messages: viewModel.messages, role: .assistant)
             installShortcutDispatcher()
         }
         .onDisappear {
+            pendingScrollTask?.cancel()
             shortcutDispatcher?.stop()
             shortcutDispatcher = nil
         }
@@ -273,8 +285,8 @@ struct ChatView: View {
         .environment(\.locale, settings.language.locale)
         .onChange(of: viewModel.messages) { _, messages in
             reasoningToggle.reconcile(messages: messages, prefersExpanded: settings.defaultExpandReasoning)
-            userMessageExpansionState.reconcile(messages: messages)
-            assistantMessageExpansionState.reconcile(messages: messages)
+            userMessageExpansionState.reconcile(messages: messages, role: .user)
+            assistantMessageExpansionState.reconcile(messages: messages, role: .assistant)
         }
         .onChange(of: settings.promptPresets) { _, _ in
             synchronizeSelectedPromptPreset()
@@ -369,8 +381,16 @@ struct ChatView: View {
                 }
                 ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 20) {
-                        ForEach(viewModel.messages) { message in
+                    VStack(alignment: .leading, spacing: 20) {
+                        if !historicalMessages.isEmpty {
+                            LazyVStack(alignment: .leading, spacing: 20) {
+                                ForEach(historicalMessages) { message in
+                                    messageRow(message)
+                                        .id(message.id)
+                                }
+                            }
+                        }
+                        ForEach(activeTailMessages) { message in
                             messageRow(message)
                                 .id(message.id)
                         }
@@ -383,6 +403,7 @@ struct ChatView: View {
                     .padding(.horizontal, 24)
                     .padding(.vertical, 20)
                 }
+                .defaultScrollAnchor(scrollFollowState.followsLatest ? .bottom : nil, for: .sizeChanges)
                 // Keep scrolled content clear of the header Material and the
                 // composer chrome as it passes beneath them at the edges.
                 .contentMargins(.top, 32, for: .scrollContent)
@@ -410,24 +431,33 @@ struct ChatView: View {
                     }
                 }
                 .onScrollGeometryChange(for: Bool.self, of: Self.isNearBottom) { _, isNearBottom in
-                    scrollFollowState.positionChanged(isNearBottom: isNearBottom)
+                    if scrollFollowState.isNearBottomValue != isNearBottom {
+                        scrollFollowState.positionChanged(isNearBottom: isNearBottom)
+                    }
                 }
                 .onScrollPhaseChange { _, newPhase, context in
-                    scrollFollowState.positionChanged(isNearBottom: Self.isNearBottom(context.geometry))
+                    let isNearBottom = Self.isNearBottom(context.geometry)
+                    if scrollFollowState.isNearBottomValue != isNearBottom {
+                        scrollFollowState.positionChanged(isNearBottom: isNearBottom)
+                    }
                     scrollFollowState.phaseChanged(to: Self.scrollFollowPhase(for: newPhase))
                 }
                 .onChange(of: viewModel.messages.last?.id) { _, _ in
                     scrollToBottom(using: proxy)
                 }
-                .onChange(of: viewModel.messages.last?.content) { _, _ in
-                    scrollToBottom(using: proxy)
-                }
-                .onChange(of: viewModel.messages.last?.reasoningContent) { _, _ in
-                    scrollToBottom(using: proxy)
-                }
                 }
             }
         }
+    }
+
+    private static let conversationTailCount = 3
+
+    private var historicalMessages: [ChatMessage] {
+        Array(viewModel.messages.prefix(max(0, viewModel.messages.count - Self.conversationTailCount)))
+    }
+
+    private var activeTailMessages: [ChatMessage] {
+        Array(viewModel.messages.suffix(Self.conversationTailCount))
     }
 
     private var sessionChoiceBanner: some View {
@@ -469,146 +499,42 @@ struct ChatView: View {
                 retryShortcut: canRetry ? shortcutHint(for: .operation(.regenerateOrRetry)) : nil
             )
         case .assistant:
-            VStack(alignment: .leading, spacing: 8) {
-                AssistantMessageHeader(modelDisplayName: message.modelDisplayName)
-
-                if let reasoning = message.reasoningContent, !reasoning.isEmpty {
-                    reasoningSection(message: message, reasoning: reasoning)
-                }
-                if message.content.isEmpty, message.state == .streaming {
-                    HStack(spacing: 8) {
-                        ProgressView().controlSize(.small)
-                        Text(L10n.string("chat.generating"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .accessibilityLabel(L10n.string("chat.generatingAnswer"))
-                } else {
-                    MessageContentView(
-                        message: message,
-                        canRegenerate: viewModel.canRegenerate && message.id == viewModel.lastAssistantMessage?.id,
-                        onRegenerate: viewModel.regenerate,
-                        isCopied: copiedMessageID == message.id,
-                        onCopy: { copyMessage(message) },
-                        canInsertSelection: message.state == .complete && (viewModel.selectionSnapshot(for: message.id)?.canReplaceSelection ?? false),
-                        onInsertSelection: { insertSelection(from: message) },
-                        copyShortcut: message.id == viewModel.lastAssistantMessage?.id
-                            ? shortcutHint(for: .operation(.copyAnswer))
-                            : nil,
-                        regenerateShortcut: viewModel.canRegenerate && message.id == viewModel.lastAssistantMessage?.id
-                            ? shortcutHint(for: .operation(.regenerateOrRetry))
-                            : nil,
-                        isExpanded: assistantMessageExpansionState.isExpanded(messageID: message.id),
-                        onToggleExpansion: {
-                            assistantMessageExpansionState.toggle(messageID: message.id)
-                        }
-                    )
-                }
-                if message.state == .failed {
-                    HStack(spacing: 8) {
-                        Text(viewModel.error?.localizedDescription ?? L10n.string("chat.requestFailed"))
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                        Button(L10n.string("chat.retry")) { viewModel.retry() }
-                            .accessibilityLabel(L10n.string("chat.retryFailedRequest"))
-                            .overlay(alignment: .bottomTrailing) {
-                                ShortcutKeycap(shortcut: shortcutHint(for: .operation(.regenerateOrRetry)))
-                                    .offset(x: 5, y: 4)
-                            }
-                    }
-                } else if message.state == .cancelled {
-                    Text(L10n.string("chat.stopped"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            AssistantMessageRow(
+                viewModel: viewModel,
+                message: message,
+                reasoningState: reasoningToggle.state(for: message.id),
+                reduceMotion: reduceMotion,
+                isLatestAssistant: message.id == viewModel.messages.last(where: { $0.role == .assistant })?.id,
+                canRegenerate: viewModel.canRegenerate,
+                onRegenerate: viewModel.regenerate,
+                isCopied: copiedMessageID == message.id,
+                onCopy: { copyMessage(message) },
+                canInsertSelection: message.state == .complete && (viewModel.selectionSnapshot(for: message.id)?.canReplaceSelection ?? false),
+                onInsertSelection: { insertSelection(from: message) },
+                copyShortcut: shortcutHint(for: .operation(.copyAnswer)),
+                regenerateShortcut: shortcutHint(for: .operation(.regenerateOrRetry)),
+                retryShortcut: shortcutHint(for: .operation(.regenerateOrRetry)),
+                errorDescription: viewModel.error?.localizedDescription,
+                onRetry: viewModel.retry,
+                isExpanded: assistantMessageExpansionState.isExpanded(messageID: message.id),
+                onToggleExpansion: {
+                    assistantMessageExpansionState.toggle(messageID: message.id)
+                },
+                onToggleReasoning: {
+                    reasoningToggle.toggleByUser(messageID: message.id)
+                },
+                onLiveMessageChanged: { reconcileReasoningAfterStreamingUpdate($0) }
+            )
         }
     }
 
-    private struct AssistantMessageHeader: View {
-        let modelDisplayName: String?
-
-        var body: some View {
-            HStack(spacing: 6) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Brand.accent, .cyan],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                    Image(systemName: "brain.head.profile")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
-                .frame(width: 18, height: 18)
-                .accessibilityLabel(L10n.string("chat.assistant"))
-
-                if let modelDisplayName {
-                    Text(modelDisplayName)
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
-                }
-            }
+    private func reconcileReasoningAfterStreamingUpdate(_ message: ChatMessage) {
+        guard message.state == .streaming, message.reasoningContent?.isEmpty == false else { return }
+        var updated = reasoningToggle
+        updated.reconcile(message: message, prefersExpanded: settings.defaultExpandReasoning)
+        if updated != reasoningToggle {
+            reasoningToggle = updated
         }
-    }
-
-    @ViewBuilder
-    private func reasoningSection(message: ChatMessage, reasoning: String) -> some View {
-        let state = reasoningToggle.state(for: message.id)
-        VStack(alignment: .leading, spacing: 4) {
-            Button {
-                reasoningToggle.toggleByUser(messageID: message.id)
-            } label: {
-                TimelineView(.periodic(from: .now, by: 0.1)) { context in
-                    HStack(spacing: 5) {
-                        Image(systemName: state.isExpanded ? "chevron.down" : "chevron.right")
-                            .font(.caption.weight(.medium))
-                            .frame(width: 14, height: 14)
-                        Text(reasoningHeaderText(for: message, at: context.date))
-                            .font(.caption.weight(.medium))
-                        if message.state == .streaming, message.reasoningCompletedAt == nil {
-                            ProgressView()
-                                .controlSize(.mini)
-                                .scaleEffect(0.7)
-                        }
-                    }
-                    .foregroundStyle(.secondary)
-                }
-            }
-            .buttonStyle(.plain)
-            .help(state.isExpanded ? L10n.string("chat.reasoningCollapse") : L10n.string("chat.reasoningExpand"))
-            .accessibilityLabel(state.isExpanded ? L10n.string("chat.reasoningCollapse") : L10n.string("chat.reasoningExpand"))
-            if state.isExpanded {
-                ReasoningContentView(
-                    messageID: message.id,
-                    reasoning: reasoning,
-                    reduceMotion: reduceMotion
-                )
-                .transition(reduceMotion ? .identity : .opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: state.isExpanded)
-    }
-
-    private func reasoningHeaderText(for message: ChatMessage, at now: Date) -> String {
-        if let duration = message.reasoningDuration {
-            return L10n.string("chat.reasoningCompleted", Self.elapsedSecondsText(duration))
-        }
-        if message.state == .streaming {
-            let elapsed = max(0, now.timeIntervalSince(message.createdAt))
-            return L10n.string("chat.reasoningStreaming", Self.elapsedSecondsText(elapsed))
-        }
-        if let duration = message.responseDuration {
-            return L10n.string("chat.reasoningCompleted", Self.elapsedSecondsText(duration))
-        }
-        return L10n.string("chat.reasoning")
-    }
-
-    private static func elapsedSecondsText(_ interval: TimeInterval) -> String {
-        String(format: "%.1f", interval)
     }
 
     private var composer: some View {
@@ -1012,9 +938,17 @@ struct ChatView: View {
 
     private func scrollToBottom(using proxy: ScrollViewProxy) {
         guard scrollFollowState.followsLatest else { return }
-        DispatchQueue.main.async {
+        pendingScrollTask?.cancel()
+        pendingScrollTask = Task { @MainActor in
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(16))
+
             guard scrollFollowState.followsLatest else { return }
-            proxy.scrollTo("conversation-bottom", anchor: .bottom)
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                proxy.scrollTo("conversation-bottom", anchor: .bottom)
+            }
         }
     }
 
@@ -1036,14 +970,177 @@ struct ChatView: View {
     }
 }
 
+/// Renders one assistant message. Keeping this in its own view means a token
+/// flush only invalidates the active answer row, not the whole conversation.
+private struct AssistantMessageRow: View {
+    let viewModel: ChatViewModel
+    let message: ChatMessage
+    let reasoningState: ReasoningToggleState
+    let reduceMotion: Bool
+    let isLatestAssistant: Bool
+    let canRegenerate: Bool
+    let onRegenerate: () -> Void
+    let isCopied: Bool
+    let onCopy: () -> Void
+    let canInsertSelection: Bool
+    let onInsertSelection: () -> Void
+    let copyShortcut: InAppShortcut?
+    let regenerateShortcut: InAppShortcut?
+    let retryShortcut: InAppShortcut?
+    let errorDescription: String?
+    let onRetry: () -> Void
+    let isExpanded: Bool
+    let onToggleExpansion: () -> Void
+    let onToggleReasoning: () -> Void
+    let onLiveMessageChanged: (ChatMessage) -> Void
+
+    var body: some View {
+        let displayedMessage = viewModel.liveMessage(message)
+        VStack(alignment: .leading, spacing: 8) {
+            AssistantMessageHeader(modelDisplayName: displayedMessage.modelDisplayName)
+
+            if let reasoning = displayedMessage.reasoningContent, !reasoning.isEmpty {
+                reasoningSection(message: displayedMessage, reasoning: reasoning)
+            }
+            if displayedMessage.content.isEmpty, displayedMessage.state == .streaming {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(L10n.string("chat.generating"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel(L10n.string("chat.generatingAnswer"))
+            } else {
+                MessageContentView(
+                    message: displayedMessage,
+                    canRegenerate: canRegenerate && isLatestAssistant,
+                    onRegenerate: onRegenerate,
+                    isCopied: isCopied,
+                    onCopy: onCopy,
+                    canInsertSelection: canInsertSelection,
+                    onInsertSelection: onInsertSelection,
+                    copyShortcut: isLatestAssistant ? copyShortcut : nil,
+                    regenerateShortcut: isLatestAssistant ? regenerateShortcut : nil,
+                    isExpanded: isExpanded,
+                    onToggleExpansion: onToggleExpansion
+                )
+            }
+            if displayedMessage.state == .failed {
+                HStack(spacing: 8) {
+                    Text(errorDescription ?? L10n.string("chat.requestFailed"))
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                    Button(L10n.string("chat.retry")) { onRetry() }
+                        .accessibilityLabel(L10n.string("chat.retryFailedRequest"))
+                        .overlay(alignment: .bottomTrailing) {
+                            ShortcutKeycap(shortcut: retryShortcut)
+                                .offset(x: 5, y: 4)
+                        }
+                }
+            } else if displayedMessage.state == .cancelled {
+                Text(L10n.string("chat.stopped"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .onChange(of: displayedMessage) { _, newValue in
+            onLiveMessageChanged(newValue)
+        }
+    }
+
+    @ViewBuilder
+    private func reasoningSection(message: ChatMessage, reasoning: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Button {
+                onToggleReasoning()
+            } label: {
+                TimelineView(.periodic(from: .now, by: 0.1)) { context in
+                    HStack(spacing: 5) {
+                        Image(systemName: reasoningState.isExpanded ? "chevron.down" : "chevron.right")
+                            .font(.caption.weight(.medium))
+                            .frame(width: 14, height: 14)
+                        Text(reasoningHeaderText(for: message, at: context.date))
+                            .font(.caption.weight(.medium))
+                        if message.state == .streaming, message.reasoningCompletedAt == nil {
+                            ProgressView()
+                                .controlSize(.mini)
+                                .scaleEffect(0.7)
+                        }
+                    }
+                    .foregroundStyle(.secondary)
+                }
+            }
+            .buttonStyle(.plain)
+            .help(reasoningState.isExpanded ? L10n.string("chat.reasoningCollapse") : L10n.string("chat.reasoningExpand"))
+            .accessibilityLabel(reasoningState.isExpanded ? L10n.string("chat.reasoningCollapse") : L10n.string("chat.reasoningExpand"))
+            if reasoningState.isExpanded {
+                ReasoningContentView(
+                    messageID: message.id,
+                    reasoning: reasoning
+                )
+                .transition(reduceMotion ? .identity : .opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: reasoningState.isExpanded)
+    }
+
+    private func reasoningHeaderText(for message: ChatMessage, at now: Date) -> String {
+        if let duration = message.reasoningDuration {
+            return L10n.string("chat.reasoningCompleted", Self.elapsedSecondsText(duration))
+        }
+        if message.state == .streaming {
+            let elapsed = max(0, now.timeIntervalSince(message.createdAt))
+            return L10n.string("chat.reasoningStreaming", Self.elapsedSecondsText(elapsed))
+        }
+        if let duration = message.responseDuration {
+            return L10n.string("chat.reasoningCompleted", Self.elapsedSecondsText(duration))
+        }
+        return L10n.string("chat.reasoning")
+    }
+
+    private static func elapsedSecondsText(_ interval: TimeInterval) -> String {
+        String(format: "%.1f", interval)
+    }
+}
+
+fileprivate struct AssistantMessageHeader: View {
+    let modelDisplayName: String?
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Brand.accent, .cyan],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                Image(systemName: "brain.head.profile")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            .frame(width: 18, height: 18)
+            .accessibilityLabel(L10n.string("chat.assistant"))
+
+            if let modelDisplayName {
+                Text(modelDisplayName)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
 /// A reasoning transcript owns its own follow preference, so reading earlier
 /// reasoning never changes the user's position in the conversation.
 private struct ReasoningContentView: View {
     let messageID: UUID
     let reasoning: String
-    let reduceMotion: Bool
 
     @State private var scrollFollowState = ScrollFollowState()
+    @State private var pendingScrollTask: Task<Void, Never>?
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -1058,20 +1155,29 @@ private struct ReasoningContentView: View {
                     .frame(height: 1)
                     .id(bottomAnchorID)
             }
-            .frame(maxHeight: 240)
+            .defaultScrollAnchor(scrollFollowState.followsLatest ? .bottom : nil, for: .sizeChanges)
+            .frame(height: 240)
             .background(.quinary, in: RoundedRectangle(cornerRadius: 6))
             .onAppear {
-                scrollToBottom(using: proxy, animated: false)
+                scrollToBottom(using: proxy)
             }
             .onScrollGeometryChange(for: Bool.self, of: Self.isNearBottom) { _, isNearBottom in
-                scrollFollowState.positionChanged(isNearBottom: isNearBottom)
+                if scrollFollowState.isNearBottomValue != isNearBottom {
+                    scrollFollowState.positionChanged(isNearBottom: isNearBottom)
+                }
             }
             .onScrollPhaseChange { _, newPhase, context in
-                scrollFollowState.positionChanged(isNearBottom: Self.isNearBottom(context.geometry))
+                let isNearBottom = Self.isNearBottom(context.geometry)
+                if scrollFollowState.isNearBottomValue != isNearBottom {
+                    scrollFollowState.positionChanged(isNearBottom: isNearBottom)
+                }
                 scrollFollowState.phaseChanged(to: Self.scrollFollowPhase(for: newPhase))
             }
             .onChange(of: reasoning) { _, _ in
-                scrollToBottom(using: proxy, animated: !reduceMotion)
+                scrollToBottom(using: proxy)
+            }
+            .onDisappear {
+                pendingScrollTask?.cancel()
             }
         }
     }
@@ -1080,17 +1186,15 @@ private struct ReasoningContentView: View {
         "reasoning-bottom-\(messageID.uuidString)"
     }
 
-    private func scrollToBottom(using proxy: ScrollViewProxy, animated: Bool) {
+    private func scrollToBottom(using proxy: ScrollViewProxy) {
         guard scrollFollowState.followsLatest else { return }
-        DispatchQueue.main.async {
+        pendingScrollTask?.cancel()
+        pendingScrollTask = Task { @MainActor in
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(16))
+
             guard scrollFollowState.followsLatest else { return }
-            if animated {
-                withAnimation(.easeOut(duration: 0.15)) {
-                    proxy.scrollTo(bottomAnchorID, anchor: .bottom)
-                }
-            } else {
-                proxy.scrollTo(bottomAnchorID, anchor: .bottom)
-            }
+            proxy.scrollTo(bottomAnchorID, anchor: .bottom)
         }
     }
 

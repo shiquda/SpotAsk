@@ -54,6 +54,43 @@ final class ChatViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.lastAssistantMessage?.state, .cancelled)
     }
 
+    func testStreamingDeltasDoNotRewriteMessagesArray() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.reasoning("partial reasoning"), .answer("partial"), .pending]])
+
+        viewModel.input = "question"
+        viewModel.send()
+        for _ in 0 ..< 100 {
+            if viewModel.lastAssistantMessage?.content == "partial" { break }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        XCTAssertEqual(viewModel.streamingContent, "partial")
+        XCTAssertEqual(viewModel.streamingReasoning, "partial reasoning")
+        XCTAssertEqual(viewModel.messages.last?.content, "")
+        XCTAssertNil(viewModel.messages.last?.reasoningContent)
+        XCTAssertEqual(viewModel.lastAssistantMessage?.content, "partial")
+
+        viewModel.cancel()
+
+        XCTAssertEqual(viewModel.messages.last?.content, "partial")
+        XCTAssertEqual(viewModel.messages.last?.reasoningContent, "partial reasoning")
+        XCTAssertNil(viewModel.activeStreamingAssistantID)
+    }
+
+    func testCompletedAnswerCommitsStreamingContentOnce() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("final answer")]])
+
+        viewModel.input = "question"
+        viewModel.send()
+        await waitForIdle(viewModel)
+
+        XCTAssertEqual(viewModel.messages.last?.content, "final answer")
+        XCTAssertEqual(viewModel.streamingContent, "")
+        XCTAssertNil(viewModel.activeStreamingAssistantID)
+    }
+
     func testFailurePreservesPartialReasoningAndAnswer() async {
         let recorder = RequestRecorder()
         let viewModel = makeViewModel(recorder: recorder, scripts: [[.reasoning("partial reasoning"), .answer("partial answer"), .failure(.timeout)]])
