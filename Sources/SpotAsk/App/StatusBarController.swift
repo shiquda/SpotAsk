@@ -35,12 +35,14 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     private let statusItem: NSStatusItem
     private let launchAtLoginItem: NSMenuItem
     private let keepWindowOnTopItem: NSMenuItem
+    private let quickQuestionModeItem: NSMenuItem
 
     init(settings: AppSettings) {
         self.settings = settings
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         launchAtLoginItem = NSMenuItem(title: L10n.string("menu.launchAtLogin"), action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
         keepWindowOnTopItem = NSMenuItem(title: L10n.string("menu.windowOnTop"), action: #selector(toggleWindowOnTop), keyEquivalent: "")
+        quickQuestionModeItem = NSMenuItem(title: L10n.string("menu.quickQuestionMode"), action: #selector(toggleQuickQuestionMode), keyEquivalent: "")
         super.init()
 
         if let button = statusItem.button {
@@ -59,10 +61,13 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         menu.addItem(withTitle: L10n.string("menu.open"), action: #selector(open), keyEquivalent: "")
         menu.addItem(withTitle: L10n.string("menu.newConversation"), action: #selector(newConversation), keyEquivalent: "")
         menu.addItem(.separator())
+        quickQuestionModeItem.state = settings.selectionAutoInvokeEnabled ? .on : .off
+        menu.addItem(quickQuestionModeItem)
         menu.addItem(withTitle: L10n.string("menu.settings"), action: #selector(showSettings), keyEquivalent: ",")
         launchAtLoginItem.state = settings.launchAtLogin ? .on : .off
         menu.addItem(launchAtLoginItem)
         keepWindowOnTopItem.state = settings.keepWindowOnTop ? .on : .off
+        quickQuestionModeItem.state = settings.selectionAutoInvokeEnabled ? .on : .off
         menu.addItem(keepWindowOnTopItem)
         menu.addItem(.separator())
         menu.addItem(withTitle: L10n.string("menu.quit"), action: #selector(quit), keyEquivalent: "q")
@@ -88,6 +93,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     @objc private func rebuildMenuForLanguageChange() {
         launchAtLoginItem.title = L10n.string("menu.launchAtLogin")
         keepWindowOnTopItem.title = L10n.string("menu.windowOnTop")
+        quickQuestionModeItem.title = L10n.string("menu.quickQuestionMode")
         rebuildMenu()
     }
 
@@ -104,6 +110,12 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
     @objc private func toggleWindowOnTop() {
         SpotAskCommandCenter.shared.toggleWindowOnTop()
+        rebuildMenu()
+    }
+
+    @objc private func toggleQuickQuestionMode() {
+        settings.selectionAutoInvokeEnabled.toggle()
+        NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
         rebuildMenu()
     }
 }

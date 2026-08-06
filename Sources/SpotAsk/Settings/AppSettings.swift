@@ -112,6 +112,18 @@ enum SelectionAssistantMode: String, CaseIterable, Identifiable, Codable, Sendab
     var id: String { rawValue }
 }
 
+enum SelectionAutoInvokeDelay {
+    static let minimum: Double = 0
+    static let maximum: Double = 3
+    static let step: Double = 0.05
+    static let defaultValue: Double = 0.8
+
+    static func normalized(_ value: Double) -> Double {
+        let clamped = min(max(value, minimum), maximum)
+        return (clamped / step).rounded() * step
+    }
+}
+
 enum SelectionHotKeyPreset: String, CaseIterable, Identifiable, Codable, Sendable {
     case optionShiftSpace
 
@@ -248,6 +260,9 @@ final class AppSettings {
         static let selectionAssistantMode = "selectionAssistantMode"
         static let selectionHotKeyPreset = "selectionHotKeyPreset"
         static let selectionDefaultPromptID = "selectionDefaultPromptID"
+        static let selectionAssistantToggleShortcut = "selectionAssistantToggleShortcut"
+        static let selectionAutoInvokeEnabled = "selectionAutoInvokeEnabled"
+        static let selectionAutoInvokeDelay = "selectionAutoInvokeDelay"
     }
 
     private let defaults: UserDefaults
@@ -299,6 +314,33 @@ final class AppSettings {
         didSet {
             if let selectionDefaultPromptID { defaults.set(selectionDefaultPromptID.uuidString, forKey: Key.selectionDefaultPromptID) }
             else { defaults.removeObject(forKey: Key.selectionDefaultPromptID) }
+        }
+    }
+    var selectionAssistantToggleShortcut: InAppShortcut? {
+        didSet {
+            if let selectionAssistantToggleShortcut,
+               let data = try? JSONEncoder().encode(selectionAssistantToggleShortcut) {
+                defaults.set(data, forKey: Key.selectionAssistantToggleShortcut)
+            } else {
+                defaults.removeObject(forKey: Key.selectionAssistantToggleShortcut)
+            }
+        }
+    }
+    /// Whether a cross-app selection automatically shows the quick actions after
+    /// `selectionAutoInvokeDelay` seconds. Defaults off so granting high-impact
+    /// accessibility access remains an explicit user decision.
+    var selectionAutoInvokeEnabled: Bool {
+        didSet { defaults.set(selectionAutoInvokeEnabled, forKey: Key.selectionAutoInvokeEnabled) }
+    }
+    /// Seconds between the selection settling and the quick actions appearing.
+    var selectionAutoInvokeDelay: Double {
+        didSet {
+            let normalized = SelectionAutoInvokeDelay.normalized(selectionAutoInvokeDelay)
+            if selectionAutoInvokeDelay != normalized {
+                selectionAutoInvokeDelay = normalized
+            } else {
+                defaults.set(selectionAutoInvokeDelay, forKey: Key.selectionAutoInvokeDelay)
+            }
         }
     }
     var panelWidth: Double { didSet { defaults.set(panelWidth, forKey: Key.panelWidth) } }
@@ -377,6 +419,11 @@ final class AppSettings {
         selectionAssistantMode = SelectionAssistantMode(rawValue: defaults.string(forKey: Key.selectionAssistantMode) ?? "actionBar") ?? .actionBar
         selectionHotKeyPreset = SelectionHotKeyPreset(rawValue: defaults.string(forKey: Key.selectionHotKeyPreset) ?? "optionShiftSpace") ?? .optionShiftSpace
         selectionDefaultPromptID = UUID(uuidString: defaults.string(forKey: Key.selectionDefaultPromptID) ?? "") ?? PromptPreset.builtIn.first?.id
+        selectionAssistantToggleShortcut = defaults.data(forKey: Key.selectionAssistantToggleShortcut).flatMap { try? JSONDecoder().decode(InAppShortcut.self, from: $0) }
+        selectionAutoInvokeEnabled = defaults.object(forKey: Key.selectionAutoInvokeEnabled) as? Bool ?? false
+        selectionAutoInvokeDelay = SelectionAutoInvokeDelay.normalized(
+            defaults.object(forKey: Key.selectionAutoInvokeDelay) as? Double ?? SelectionAutoInvokeDelay.defaultValue
+        )
         panelWidth = defaults.object(forKey: Key.panelWidth) as? Double ?? 720
         panelHeight = defaults.object(forKey: Key.panelHeight) as? Double ?? 520
         showsMenuBarIcon = defaults.object(forKey: Key.showsMenuBarIcon) as? Bool ?? true

@@ -6,6 +6,8 @@ struct MessageContentView: View {
     let onRegenerate: () -> Void
     let isCopied: Bool
     let onCopy: () -> Void
+    let canInsertSelection: Bool
+    let onInsertSelection: () -> Void
     let copyShortcut: InAppShortcut?
     let regenerateShortcut: InAppShortcut?
     let isExpanded: Bool
@@ -18,6 +20,8 @@ struct MessageContentView: View {
         onRegenerate: @escaping () -> Void,
         isCopied: Bool,
         onCopy: @escaping () -> Void,
+        canInsertSelection: Bool = false,
+        onInsertSelection: @escaping () -> Void = {},
         copyShortcut: InAppShortcut?,
         regenerateShortcut: InAppShortcut?,
         isExpanded: Bool = false,
@@ -28,6 +32,8 @@ struct MessageContentView: View {
         self.onRegenerate = onRegenerate
         self.isCopied = isCopied
         self.onCopy = onCopy
+        self.canInsertSelection = canInsertSelection
+        self.onInsertSelection = onInsertSelection
         self.copyShortcut = copyShortcut
         self.regenerateShortcut = regenerateShortcut
         self.isExpanded = isExpanded
@@ -87,6 +93,14 @@ struct MessageContentView: View {
                     .overlay(alignment: .bottomTrailing) {
                         ShortcutKeycap(shortcut: copyShortcut)
                             .offset(x: 4, y: 4)
+                    }
+
+                    if canInsertSelection {
+                        MessageToolbarIconButton(action: onInsertSelection) {
+                            Image(systemName: "arrow.down.doc")
+                        }
+                        .help(L10n.string("chat.insertSelection"))
+                        .accessibilityLabel(L10n.string("chat.insertSelection"))
                     }
 
                     if canRegenerate {

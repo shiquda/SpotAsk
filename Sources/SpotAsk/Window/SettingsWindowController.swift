@@ -30,6 +30,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let settings: AppSettings
     private let keyStore: any APIKeyStoring
     private let providerFactory: any ChatProviderFactory
+    private let accessibilityPermissionCoordinator: AccessibilityPermissionCoordinator
     private let onClose: () -> Void
 
     private var window: NSWindow?
@@ -38,11 +39,13 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         settings: AppSettings,
         keyStore: any APIKeyStoring,
         providerFactory: any ChatProviderFactory,
+        accessibilityPermissionCoordinator: AccessibilityPermissionCoordinator,
         onClose: @escaping () -> Void
     ) {
         self.settings = settings
         self.keyStore = keyStore
         self.providerFactory = providerFactory
+        self.accessibilityPermissionCoordinator = accessibilityPermissionCoordinator
         self.onClose = onClose
         super.init()
         NotificationCenter.default.addObserver(
@@ -60,6 +63,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     /// Shows the settings window, creating it on first use and bringing it to
     /// the front on every subsequent request.
     func show() {
+        accessibilityPermissionCoordinator.refresh()
         let window = makeWindowIfNeeded()
         applyCurrentAppearance()
         NSApp.activate(ignoringOtherApps: true)
@@ -77,6 +81,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             settings: settings,
             keyStore: keyStore,
             providerFactory: providerFactory,
+            accessibilityPermissionCoordinator: accessibilityPermissionCoordinator,
             settingsWindowProvider: { [weak self] in self?.window }
         )
         let hostingView = NSHostingView(rootView: rootView)

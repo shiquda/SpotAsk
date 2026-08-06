@@ -41,10 +41,13 @@ enum SelectionAnchorCoordinateConverter {
             return nil
         }
 
-        let scale = coordinateSpace.scaleFactor
-        let x = coordinateSpace.appKitFrame.minX + (rect.minX - coordinateSpace.displayBounds.minX) / scale
-        let height = rect.height / scale
-        let y = coordinateSpace.appKitFrame.maxY - (rect.minY - coordinateSpace.displayBounds.minY) / scale - height
-        return CGRect(x: x, y: y, width: rect.width / scale, height: height)
+        let x = coordinateSpace.appKitFrame.minX + rect.minX - coordinateSpace.displayBounds.minX
+        // Accessibility uses a top-left screen origin; AppKit windows use a bottom-left origin.
+        return CGRect(
+            x: x,
+            y: coordinateSpace.appKitFrame.maxY - (rect.minY - coordinateSpace.displayBounds.minY) - rect.height,
+            width: rect.width,
+            height: rect.height
+        )
     }
 }

@@ -24,6 +24,7 @@ final class ChatViewModel {
     private var pendingReasoning = ""
     private var flushTask: Task<Void, Never>?
     private var retryPromptPreset: PromptPreset?
+    private var selectionSnapshotsByAssistantID: [UUID: SelectedTextSnapshot] = [:]
 
     init(settings: AppSettings, providerFactory: any ChatProviderFactory, sessionStore: SessionStore) {
         self.settings = settings
@@ -50,7 +51,7 @@ final class ChatViewModel {
     }
 
     @discardableResult
-    func send() -> Bool {
+    func send(selectionSnapshot: SelectedTextSnapshot? = nil) -> Bool {
         guard canSend else { return false }
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         let promptPreset = selectedPromptPreset
@@ -64,7 +65,7 @@ final class ChatViewModel {
                 appliedPresetSymbolName: promptPreset?.symbolName
             )
         )
-        beginRequest(using: promptPreset)
+        beginRequest(using: promptPreset, selectionSnapshot: selectionSnapshot)
         return true
     }
 
@@ -98,6 +99,7 @@ final class ChatViewModel {
         generationState = .idle
         selectedPromptPreset = nil
         retryPromptPreset = nil
+        selectionSnapshotsByAssistantID.removeAll()
         isSessionChoicePending = false
         try? sessionStore.clear()
     }
@@ -149,6 +151,10 @@ final class ChatViewModel {
         newConversation()
     }
 
+    func selectionSnapshot(for assistantMessageID: UUID) -> SelectedTextSnapshot? {
+        selectionSnapshotsByAssistantID[assistantMessageID]
+    }
+
     /// Restored sessions only keep the prompt title, so look the instruction up
     /// by title; the in-memory preset wins while it is still around.
     private func promptPresetForLastUserMessage() -> PromptPreset? {
@@ -159,11 +165,14 @@ final class ChatViewModel {
         return settings.enabledPromptPresets.first { $0.title == title }
     }
 
-    private func beginRequest(using promptPreset: PromptPreset? = nil) {
+    private func beginRequest(using promptPreset: PromptPreset? = nil, selectionSnapshot: SelectedTextSnapshot? = nil) {
         guard messages.last?.role == .user else { return }
         error = nil
         generationState = .connecting
         let assistantID = UUID()
+        if let selectionSnapshot {
+            selectionSnapshotsByAssistantID[assistantID] = selectionSnapshot
+        }
         messages.append(ChatMessage(id: assistantID, role: .assistant, content: "", state: .streaming))
         retryPromptPreset = promptPreset
         let target: ProviderTargetSnapshot

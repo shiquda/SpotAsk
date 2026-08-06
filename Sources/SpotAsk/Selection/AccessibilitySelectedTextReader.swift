@@ -47,33 +47,30 @@ struct MacOSPointerLocationProvider: PointerLocationProviding {
 
 final class AccessibilitySelectedTextReader: SelectedTextReading, @unchecked Sendable {
     private static let candidateLimit = 6
-    private static let messagingTimeout: TimeInterval = 0.25
+    private static let messagingTimeout: TimeInterval = 1
+    private static let readAttempts = 2
+    private static let retryDelay: TimeInterval = 0.1
 
     private let permissionChecker: any AccessibilityPermissionChecking
     private let applicationProvider: any ForegroundSelectionApplicationProviding
     private let elementReader: any AccessibilityElementReading
     private let pointerLocationProvider: any PointerLocationProviding
-    private let screenProvider: any SelectionScreenProviding
-    private let queue: DispatchQueue
 
     init(
         permissionChecker: any AccessibilityPermissionChecking = MacOSAccessibilityPermissionChecker(),
         applicationProvider: any ForegroundSelectionApplicationProviding = MacOSForegroundSelectionApplicationProvider(),
         elementReader: any AccessibilityElementReading = MacOSAccessibilityElementAdapter(),
-        pointerLocationProvider: any PointerLocationProviding = MacOSPointerLocationProvider(),
-        screenProvider: any SelectionScreenProviding = MacOSSelectionScreenProvider()
+        pointerLocationProvider: any PointerLocationProviding = MacOSPointerLocationProvider()
     ) {
         self.permissionChecker = permissionChecker
         self.applicationProvider = applicationProvider
         self.elementReader = elementReader
         self.pointerLocationProvider = pointerLocationProvider
-        self.screenProvider = screenProvider
-        queue = DispatchQueue(label: "com.spotask.selection.accessibility", qos: .userInitiated)
     }
 
     func readSelection(promptForPermission: Bool) async throws -> SelectedTextSnapshot {
         try await withCheckedThrowingContinuation { continuation in
-            queue.async { [self] in
+            DispatchQueue.main.async { [self] in
                 continuation.resume(with: Result { try readSelectionSynchronously(promptForPermission: promptForPermission) })
             }
         }
@@ -87,30 +84,61 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, @unchecked Sen
               source.processIdentifier != applicationProvider.currentProcessIdentifier() else {
             throw SelectionReadingError.noExternalSelection
         }
+        SafeLogger.selectionReadStarted(sourceBundleIdentifier: source.bundleIdentifier)
 
-        do {
-            let systemWideElement = try elementReader.makeSystemWideElement()
-            try elementReader.setMessagingTimeout(Self.messagingTimeout, for: systemWideElement)
-            let focusedElement = try focusedElement(from: systemWideElement)
-            let candidates = try candidateChain(startingAt: focusedElement)
-            try preflightSensitiveFields(in: candidates)
-            guard let match = try selectedTextMatch(in: candidates) else {
-                throw SelectionReadingError.noSelection
+        for attempt in 0 ..< Self.readAttempts {
+            do {
+                let snapshot = try readSelection(from: source)
+                SafeLogger.selectionReadSucceeded(textLength: snapshot.text.count)
+                return snapshot
+            } catch where shouldRetry(error, attempt: attempt) {
+                Thread.sleep(forTimeInterval: Self.retryDelay)
+            } catch let error as SelectionReadingError {
+                SafeLogger.selectionReadFailed(error)
+                throw error
+            } catch {
+                let mappedError = mapAccessibilityError(error)
+                SafeLogger.selectionReadFailed(error)
+                throw mappedError
             }
-
-            let selectedRange = try selectedRange(for: match.element)
-            let anchor = anchor(for: match.element, selectedRange: selectedRange)
-            return SelectedTextSnapshot(
-                text: match.text,
-                source: source,
-                selectedRange: selectedRange,
-                anchor: anchor
-            )
-        } catch let error as SelectionReadingError {
-            throw error
-        } catch {
-            throw mapAccessibilityError(error)
         }
+
+        throw SelectionReadingError.applicationUnresponsive
+    }
+
+    private func readSelection(from source: SelectionSourceApplication) throws -> SelectedTextSnapshot {
+        let applicationElement = try elementReader.makeApplicationElement(processIdentifier: source.processIdentifier)
+        SafeLogger.selectionReadProgress("application-element-ready")
+        try elementReader.setMessagingTimeout(Self.messagingTimeout, for: applicationElement)
+        SafeLogger.selectionReadProgress("messaging-timeout-set")
+        let focusedElement = try focusedElement(from: applicationElement)
+        SafeLogger.selectionReadProgress("focused-element-ready")
+        let candidates = try candidateChain(startingAt: focusedElement)
+        try preflightSensitiveFields(in: candidates)
+        guard let match = try selectedTextMatch(in: candidates) else {
+            throw SelectionReadingError.noSelection
+        }
+
+        let selectedRange = try selectedRange(for: match.element)
+        let canReplaceSelection = selectedRange != nil && ((try? (elementReader as? any AccessibilityElementWriting)?
+            .isAttributeSettable(kAXSelectedTextAttribute as String, for: match.element)) ?? false)
+        let anchor = SelectionAnchor.pointer(pointerLocationProvider.location())
+        SafeLogger.selectionAnchorResolved("snapshot=\(formatted(anchor))")
+        return SelectedTextSnapshot(
+            text: match.text,
+            source: source,
+            selectedRange: selectedRange,
+            anchor: anchor,
+            canReplaceSelection: canReplaceSelection
+        )
+    }
+
+    private func shouldRetry(_ error: Error, attempt: Int) -> Bool {
+        guard attempt + 1 < Self.readAttempts,
+              case let .ax(axError) = error as? AccessibilityAdapterError else {
+            return false
+        }
+        return axError == .cannotComplete
     }
 
     private func focusedElement(from systemWideElement: AccessibilityElementID) throws -> AccessibilityElementID {
@@ -194,39 +222,20 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, @unchecked Sen
         }
     }
 
-    private func anchor(for element: AccessibilityElementID, selectedRange: SelectionCharacterRange?) -> SelectionAnchor {
-        if let selectedRange,
-           let value = try? elementReader.copyParameterizedAttribute(
-                kAXBoundsForRangeParameterizedAttribute as String,
-                parameter: .range(selectedRange),
-                from: element
-           ),
-           case let .rect(accessibilityRect) = value,
-           let appKitRect = SelectionAnchorCoordinateConverter.appKitRect(
-                fromAccessibilityRect: accessibilityRect,
-                coordinateSpaces: screenProvider.coordinateSpaces()
-           ) {
-            return .selectionRect(appKitRect)
-        }
-
-        if let elementRect = elementRect(for: element) {
-            return .elementRect(elementRect)
-        }
-        return .pointer(pointerLocationProvider.location())
+    private func formatted(_ point: CGPoint) -> String {
+        String(format: "(%.1f,%.1f)", point.x, point.y)
     }
 
-    private func elementRect(for element: AccessibilityElementID) -> CGRect? {
-        guard let positionValue = try? elementReader.copyAttribute(kAXPositionAttribute as String, from: element),
-              case let .point(position) = positionValue,
-              let sizeValue = try? elementReader.copyAttribute(kAXSizeAttribute as String, from: element),
-              case let .size(size) = sizeValue else {
-            return nil
+    private func formatted(_ rect: CGRect) -> String {
+        String(format: "(%.1f,%.1f,%.1f,%.1f)", rect.minX, rect.minY, rect.width, rect.height)
+    }
+
+    private func formatted(_ anchor: SelectionAnchor) -> String {
+        switch anchor {
+        case let .selectionRect(rect): "selection=\(formatted(rect))"
+        case let .elementRect(rect): "element=\(formatted(rect))"
+        case let .pointer(point): "pointer=\(formatted(point))"
         }
-        let accessibilityRect = CGRect(origin: position, size: size)
-        return SelectionAnchorCoordinateConverter.appKitRect(
-            fromAccessibilityRect: accessibilityRect,
-            coordinateSpaces: screenProvider.coordinateSpaces()
-        )
     }
 
     private func isAbsentAttribute(_ error: Error) -> Bool {

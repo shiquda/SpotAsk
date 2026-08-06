@@ -34,7 +34,9 @@ struct AccessibilitySelectedTextReaderTests {
         #expect(snapshot.text == "Line one\nLine two")
         #expect(snapshot.source == fixture.source)
         #expect(snapshot.selectedRange == .init(location: 5, length: 8))
-        #expect(snapshot.anchor == .selectionRect(CGRect(x: 100, y: 776, width: 120, height: 24)))
+        #expect(snapshot.anchor == .pointer(CGPoint(x: 30, y: 40)))
+        #expect(fixture.elementReader.calls.contains(.setMessagingTimeout(fixture.applicationElement)))
+        #expect(!fixture.elementReader.calls.contains(.setMessagingTimeout(fixture.focusedElement)))
     }
 
     @Test("The reader searches a bounded parent chain")
@@ -71,7 +73,7 @@ struct AccessibilitySelectedTextReaderTests {
 
         #expect(snapshot.text == "Parent selection")
         #expect(snapshot.selectedRange == .init(location: 0, length: 16))
-        #expect(snapshot.anchor == .elementRect(CGRect(x: 10, y: 950, width: 200, height: 40)))
+        #expect(snapshot.anchor == .pointer(CGPoint(x: 30, y: 40)))
     }
 
     @Test("A secure ancestor stops all selected text reads")
@@ -112,7 +114,7 @@ struct AccessibilitySelectedTextReaderTests {
         let snapshot = try await reader.readSelection(promptForPermission: false)
 
         #expect(snapshot.selectedRange == nil)
-        #expect(snapshot.anchor == .elementRect(CGRect(x: -400, y: 900, width: 120, height: 60)))
+        #expect(snapshot.anchor == .pointer(CGPoint(x: 30, y: 40)))
         #expect(!fixture.elementReader.calls.contains { call in
             if case let .parameterized(attribute, _, _) = call {
                 return attribute == fixture.boundsAttribute
@@ -135,13 +137,14 @@ struct AccessibilitySelectedTextReaderTests {
         elementFrameFixture.elementReader.set(.size(CGSize(width: 80, height: 50)), attribute: elementFrameFixture.sizeAttribute, element: elementFrameFixture.focusedElement)
 
         let elementFrameSnapshot = try await elementFrameFixture.makeReader().readSelection(promptForPermission: false)
-        #expect(elementFrameSnapshot.anchor == .elementRect(CGRect(x: 20, y: 920, width: 80, height: 50)))
+        #expect(elementFrameSnapshot.anchor == .pointer(CGPoint(x: 30, y: 40)))
 
         let pointerFixture = ReaderFixture(pointer: CGPoint(x: -55, y: 310))
         pointerFixture.configureFocusedSelection(text: "Text", range: .init(location: 0, length: 4))
         let pointerSnapshot = try await pointerFixture.makeReader().readSelection(promptForPermission: false)
         #expect(pointerSnapshot.anchor == .pointer(CGPoint(x: -55, y: 310)))
     }
+
 
     @Test(arguments: [
         (AccessibilityAXError.cannotComplete, SelectionReadingError.applicationUnresponsive),
@@ -160,7 +163,7 @@ struct AccessibilitySelectedTextReaderTests {
         }
     }
 
-    @Test("Concurrent reads are serialized before touching Accessibility")
+    @Test("Concurrent reads are serialized on the main execution context")
     func concurrentReadsUseOneAccessibilityExecutionContext() async throws {
         let fixture = ReaderFixture()
         fixture.configureFocusedSelection(text: "Text", range: .init(location: 0, length: 4))
@@ -177,8 +180,8 @@ struct AccessibilitySelectedTextReaderTests {
 
 @Suite("Selection anchor coordinate conversion")
 struct SelectionAnchorCoordinateConverterTests {
-    @Test("Conversion uses the matching display instead of a universal primary-screen flip")
-    func usesMatchingDisplayWithNegativeCoordinatesAndRetinaScale() {
+    @Test("Conversion keeps the matching display origin and converts vertical coordinates")
+    func usesMatchingDisplayWithNegativeCoordinates() {
         let main = SelectionScreenCoordinateSpace(
             displayBounds: CGRect(x: 0, y: 0, width: 2_000, height: 1_200),
             appKitFrame: CGRect(x: 0, y: 0, width: 1_000, height: 600),
@@ -208,10 +211,42 @@ struct SelectionAnchorCoordinateConverterTests {
             ) == nil
         )
     }
+
+    @Test("Retina display bounds are already expressed in points")
+    func retinaCoordinatesAreNotScaledTwice() {
+        let main = SelectionScreenCoordinateSpace(
+            displayBounds: CGRect(x: 0, y: 0, width: 1_512, height: 982),
+            appKitFrame: CGRect(x: 0, y: 0, width: 1_512, height: 982),
+            scaleFactor: 2
+        )
+
+        let converted = SelectionAnchorCoordinateConverter.appKitRect(
+            fromAccessibilityRect: CGRect(x: 100, y: 700, width: 120, height: 24),
+            coordinateSpaces: [main]
+        )
+
+        #expect(converted == CGRect(x: 100, y: 258, width: 120, height: 24))
+    }
+
+    @Test("Conversion does not depend on pointer location")
+    func conversionDoesNotRequirePointerLocation() {
+        let main = SelectionScreenCoordinateSpace(
+            displayBounds: CGRect(x: 0, y: 0, width: 1_512, height: 982),
+            appKitFrame: CGRect(x: 0, y: 0, width: 1_512, height: 982),
+            scaleFactor: 2
+        )
+
+        let converted = SelectionAnchorCoordinateConverter.appKitRect(
+            fromAccessibilityRect: CGRect(x: 100, y: 700, width: 120, height: 24),
+            coordinateSpaces: [main]
+        )
+
+        #expect(converted == CGRect(x: 100, y: 258, width: 120, height: 24))
+    }
 }
 
 private final class ReaderFixture: @unchecked Sendable {
-    let systemWideElement = AccessibilityElementID(rawValue: 100)
+    let applicationElement = AccessibilityElementID(rawValue: 100)
     let focusedElement = AccessibilityElementID(rawValue: 1)
     let source = SelectionSourceApplication(
         processIdentifier: 42,
@@ -222,15 +257,6 @@ private final class ReaderFixture: @unchecked Sendable {
     let permissionChecker: FakePermissionChecker
     let applicationProvider: FakeApplicationProvider
     let pointerLocationProvider: FakePointerLocationProvider
-    let screenProvider = FakeScreenProvider(
-        spaces: [
-            SelectionScreenCoordinateSpace(
-                displayBounds: CGRect(x: -500, y: 0, width: 1_500, height: 1_000),
-                appKitFrame: CGRect(x: -500, y: 0, width: 1_500, height: 1_000),
-                scaleFactor: 1
-            )
-        ]
-    )
 
     let focusedAttribute = kAXFocusedUIElementAttribute as String
     let parentAttribute = kAXParentAttribute as String
@@ -246,7 +272,7 @@ private final class ReaderFixture: @unchecked Sendable {
         permissionChecker = FakePermissionChecker(isTrusted: isTrusted)
         applicationProvider = FakeApplicationProvider(source: source, currentProcessIdentifier: 99)
         pointerLocationProvider = FakePointerLocationProvider(point: pointer)
-        elementReader.systemWideElement = systemWideElement
+        elementReader.applicationElement = applicationElement
     }
 
     func makeReader() -> AccessibilitySelectedTextReader {
@@ -254,13 +280,12 @@ private final class ReaderFixture: @unchecked Sendable {
             permissionChecker: permissionChecker,
             applicationProvider: applicationProvider,
             elementReader: elementReader,
-            pointerLocationProvider: pointerLocationProvider,
-            screenProvider: screenProvider
+            pointerLocationProvider: pointerLocationProvider
         )
     }
 
     func setFocusedElement(_ element: AccessibilityElementID) {
-        elementReader.set(.element(element), attribute: focusedAttribute, element: systemWideElement)
+        elementReader.set(.element(element), attribute: focusedAttribute, element: applicationElement)
     }
 
     func configureFocusedSelection(text: String, range: SelectionCharacterRange) {
@@ -323,7 +348,7 @@ private struct FakeScreenProvider: SelectionScreenProviding {
 
 private final class FakeAccessibilityElementReader: AccessibilityElementReading, @unchecked Sendable {
     enum Call: Equatable {
-        case makeSystemWideElement
+        case makeApplicationElement(pid_t)
         case setMessagingTimeout(AccessibilityElementID)
         case attribute(String, AccessibilityElementID)
         case parameterized(String, AccessibilityValue, AccessibilityElementID)
@@ -352,7 +377,7 @@ private final class FakeAccessibilityElementReader: AccessibilityElementReading,
     private(set) var maximumConcurrentCopies = 0
     private(set) var calls: [Call] = []
     var copyDelay: TimeInterval = 0
-    var systemWideElement = AccessibilityElementID(rawValue: 100)
+    var applicationElement = AccessibilityElementID(rawValue: 100)
 
     func set(_ value: AccessibilityValue, attribute: String, element: AccessibilityElementID) {
         lock.lock()
@@ -392,10 +417,10 @@ private final class FakeAccessibilityElementReader: AccessibilityElementReading,
         lock.unlock()
     }
 
-    func makeSystemWideElement() throws -> AccessibilityElementID {
+    func makeApplicationElement(processIdentifier: pid_t) throws -> AccessibilityElementID {
         lock.lock()
-        calls.append(.makeSystemWideElement)
-        let result = systemWideElement
+        calls.append(.makeApplicationElement(processIdentifier))
+        let result = applicationElement
         lock.unlock()
         return result
     }

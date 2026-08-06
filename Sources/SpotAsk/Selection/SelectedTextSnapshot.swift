@@ -7,6 +7,21 @@ struct SelectedTextSnapshot: Equatable, Sendable {
     let source: SelectionSourceApplication
     let selectedRange: SelectionCharacterRange?
     let anchor: SelectionAnchor
+    let canReplaceSelection: Bool
+
+    init(
+        text: String,
+        source: SelectionSourceApplication,
+        selectedRange: SelectionCharacterRange?,
+        anchor: SelectionAnchor,
+        canReplaceSelection: Bool = false
+    ) {
+        self.text = text
+        self.source = source
+        self.selectedRange = selectedRange
+        self.anchor = anchor
+        self.canReplaceSelection = canReplaceSelection
+    }
 }
 
 struct SelectionCharacterRange: Equatable, Hashable, Sendable {

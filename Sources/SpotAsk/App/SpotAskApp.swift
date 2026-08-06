@@ -93,11 +93,14 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
     private let providerFactory: any ChatProviderFactory
     private let sessionStore: SessionStore
     private let chatViewModel: ChatViewModel
+    private let accessibilityPermissionCoordinator: AccessibilityPermissionCoordinator
     private let panelController = SpotAskPanelController()
     private let globalHotKey = GlobalHotKey()
     private let selectionHotKey = GlobalHotKey(identifier: 2)
+    private let selectionAssistantToggleHotKey = GlobalHotKey(identifier: 3)
     private var selectionCoordinator: SelectionAssistantCoordinator?
     private var selectionOverlay: SelectionOverlayController?
+    private var selectionAutoInvokeMonitor: SelectionAutoInvokeMonitor?
     private var statusBarController: StatusBarController?
     private var entryPresentationCoordinator: AppEntryPresentationCoordinator?
 
@@ -113,6 +116,7 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         self.keyStore = keyStore
         self.providerFactory = OpenAICompatibleProviderFactory(settings: settings, keyStore: keyStore)
         self.sessionStore = SessionStore()
+        self.accessibilityPermissionCoordinator = AccessibilityPermissionCoordinator()
         self.chatViewModel = ChatViewModel(
             settings: settings,
             providerFactory: OpenAICompatibleProviderFactory(settings: settings, keyStore: keyStore),
@@ -137,12 +141,22 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
                 settings: self.settings,
                 keyStore: self.keyStore,
                 providerFactory: self.providerFactory,
+                accessibilityPermissionCoordinator: self.accessibilityPermissionCoordinator,
                 onDismiss: { SpotAskCommandCenter.shared.close() }
             )
         }
         let overlay = SelectionOverlayController()
         selectionOverlay = overlay
-        selectionCoordinator = SelectionAssistantCoordinator(settings: settings, overlay: overlay)
+        selectionCoordinator = SelectionAssistantCoordinator(
+            settings: settings,
+            permissionCoordinator: accessibilityPermissionCoordinator,
+            overlay: overlay
+        )
+        if let selectionCoordinator {
+            let monitor = SelectionAutoInvokeMonitor(coordinator: selectionCoordinator)
+            monitor.start()
+            selectionAutoInvokeMonitor = monitor
+        }
         do {
             try registerGlobalHotKey()
         } catch {
@@ -151,6 +165,7 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         registerSelectionHotKeyIfNeeded()
         NotificationCenter.default.addObserver(self, selector: #selector(reconfigureGlobalHotKey), name: .spotAskHotKeyChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(reconfigureSelectionHotKey), name: .spotAskSelectionAssistantChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(refreshAccessibilityPermission), name: NSApplication.didBecomeActiveNotification, object: nil)
         SpotAskShortcuts.updateAppShortcutParameters()
     }
 
@@ -158,6 +173,8 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.removeObserver(self)
         globalHotKey.unregister()
         selectionHotKey.unregister()
+        selectionAssistantToggleHotKey.unregister()
+        selectionAutoInvokeMonitor?.stop()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -178,6 +195,10 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         registerSelectionHotKeyIfNeeded()
     }
 
+    @objc private func refreshAccessibilityPermission() {
+        accessibilityPermissionCoordinator.refresh()
+    }
+
     private func registerGlobalHotKey() throws {
         let configuration: (keyCode: UInt32, modifiers: UInt32)
         switch settings.hotKeyPreset {
@@ -195,9 +216,33 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
 
     private func registerSelectionHotKeyIfNeeded() {
         selectionHotKey.unregister()
-        guard settings.selectionAssistantEnabled else { return }
-        try? selectionHotKey.register(keyCode: GlobalHotKey.defaultKeyCode, modifiers: UInt32(optionKey | shiftKey)) { [weak self] in
-            Task { @MainActor in self?.selectionCoordinator?.trigger() }
+        selectionAssistantToggleHotKey.unregister()
+        if settings.selectionAssistantEnabled {
+            do {
+                try selectionHotKey.register(keyCode: GlobalHotKey.defaultKeyCode, modifiers: UInt32(optionKey | shiftKey)) { [weak self] in
+                    SafeLogger.selectionHotKeyTriggered()
+                    Task { @MainActor in self?.selectionCoordinator?.trigger() }
+                }
+                SafeLogger.selectionHotKeyRegistered()
+            } catch {
+                SafeLogger.selectionHotKeyRegistrationFailed(error)
+            }
+        }
+        guard let shortcut = settings.selectionAssistantToggleShortcut,
+              let configuration = GlobalHotKey.configuration(for: shortcut) else { return }
+        do {
+            try selectionAssistantToggleHotKey.register(
+                keyCode: configuration.keyCode,
+                modifiers: configuration.modifiers
+            ) { [weak self] in
+                Task { @MainActor in
+                    guard let self else { return }
+                    self.settings.selectionAutoInvokeEnabled.toggle()
+                    NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+                }
+            }
+        } catch {
+            SafeLogger.selectionHotKeyRegistrationFailed(error)
         }
     }
 }

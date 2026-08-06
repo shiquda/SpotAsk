@@ -64,7 +64,7 @@ enum AccessibilityAdapterError: Error, Equatable, Sendable {
 }
 
 protocol AccessibilityElementReading: Sendable {
-    func makeSystemWideElement() throws -> AccessibilityElementID
+    func makeApplicationElement(processIdentifier: pid_t) throws -> AccessibilityElementID
     func setMessagingTimeout(_ timeout: TimeInterval, for element: AccessibilityElementID) throws
     func copyAttribute(_ attribute: String, from element: AccessibilityElementID) throws -> AccessibilityValue
     func copyParameterizedAttribute(
@@ -74,9 +74,14 @@ protocol AccessibilityElementReading: Sendable {
     ) throws -> AccessibilityValue
 }
 
-final class MacOSAccessibilityElementAdapter: AccessibilityElementReading, @unchecked Sendable {
-    func makeSystemWideElement() throws -> AccessibilityElementID {
-        AccessibilityElementID(nativeElement: AXUIElementCreateSystemWide())
+protocol AccessibilityElementWriting: Sendable {
+    func isAttributeSettable(_ attribute: String, for element: AccessibilityElementID) throws -> Bool
+    func setAttribute(_ attribute: String, value: AccessibilityValue, for element: AccessibilityElementID) throws
+}
+
+final class MacOSAccessibilityElementAdapter: AccessibilityElementReading, AccessibilityElementWriting, @unchecked Sendable {
+    func makeApplicationElement(processIdentifier: pid_t) throws -> AccessibilityElementID {
+        AccessibilityElementID(nativeElement: AXUIElementCreateApplication(processIdentifier))
     }
 
     func setMessagingTimeout(_ timeout: TimeInterval, for element: AccessibilityElementID) throws {
@@ -91,7 +96,12 @@ final class MacOSAccessibilityElementAdapter: AccessibilityElementReading, @unch
         guard let rawValue else {
             throw AccessibilityAdapterError.invalidValue
         }
-        return try decode(rawValue)
+        do {
+            return try decode(rawValue)
+        } catch {
+            SafeLogger.selectionValueDecodeFailed(attribute: attribute, typeIdentifier: CFGetTypeID(rawValue))
+            throw error
+        }
     }
 
     func copyParameterizedAttribute(
@@ -121,7 +131,36 @@ final class MacOSAccessibilityElementAdapter: AccessibilityElementReading, @unch
         guard let rawValue else {
             throw AccessibilityAdapterError.invalidValue
         }
-        return try decode(rawValue)
+        do {
+            return try decode(rawValue)
+        } catch {
+            SafeLogger.selectionValueDecodeFailed(attribute: attribute, typeIdentifier: CFGetTypeID(rawValue))
+            throw error
+        }
+    }
+
+    func isAttributeSettable(_ attribute: String, for element: AccessibilityElementID) throws -> Bool {
+        let nativeElement = try requireNativeElement(element)
+        var settable: DarwinBoolean = false
+        try check(AXUIElementIsAttributeSettable(nativeElement, attribute as CFString, &settable))
+        return settable.boolValue
+    }
+
+    func setAttribute(_ attribute: String, value: AccessibilityValue, for element: AccessibilityElementID) throws {
+        let nativeElement = try requireNativeElement(element)
+        let rawValue: CFTypeRef
+        switch value {
+        case let .string(string): rawValue = string as CFString
+        case let .range(range):
+            var cfRange = CFRange(location: range.location, length: range.length)
+            guard let axValue = AXValueCreate(.cfRange, &cfRange) else {
+                throw AccessibilityAdapterError.invalidValue
+            }
+            rawValue = axValue
+        default:
+            throw AccessibilityAdapterError.invalidValue
+        }
+        try check(AXUIElementSetAttributeValue(nativeElement, attribute as CFString, rawValue))
     }
 
     private func requireNativeElement(_ element: AccessibilityElementID) throws -> AXUIElement {
@@ -138,16 +177,7 @@ final class MacOSAccessibilityElementAdapter: AccessibilityElementReading, @unch
     }
 
     private func decode(_ value: CFTypeRef) throws -> AccessibilityValue {
-        if CFGetTypeID(value) == AXUIElementGetTypeID() {
-            return .element(AccessibilityElementID(nativeElement: value as! AXUIElement))
-        }
-        if let string = value as? String {
-            return .string(string)
-        }
-        guard CFGetTypeID(value) == AXValueGetTypeID() else {
-            throw AccessibilityAdapterError.invalidValue
-        }
-        return try decodeAXValue(value as! AXValue)
+        try AccessibilityValueDecoder.decode(value, decodeAXValue: decodeAXValue)
     }
 
     private func decodeAXValue(_ value: AXValue) throws -> AccessibilityValue {
@@ -179,5 +209,27 @@ final class MacOSAccessibilityElementAdapter: AccessibilityElementReading, @unch
         default:
             throw AccessibilityAdapterError.invalidValue
         }
+    }
+}
+
+enum AccessibilityValueDecoder {
+    static func decode(
+        _ value: CFTypeRef,
+        decodeAXValue: (AXValue) throws -> AccessibilityValue
+    ) throws -> AccessibilityValue {
+        if CFGetTypeID(value) == AXUIElementGetTypeID() {
+            return .element(AccessibilityElementID(nativeElement: value as! AXUIElement))
+        }
+        if let string = value as? String {
+            return .string(string)
+        }
+        if CFGetTypeID(value) == CFAttributedStringGetTypeID() {
+            let attributed = value as! CFAttributedString
+            return .string(CFAttributedStringGetString(attributed) as String)
+        }
+        guard CFGetTypeID(value) == AXValueGetTypeID() else {
+            throw AccessibilityAdapterError.invalidValue
+        }
+        return try decodeAXValue(value as! AXValue)
     }
 }
