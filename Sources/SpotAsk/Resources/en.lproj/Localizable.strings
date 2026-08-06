@@ -342,7 +342,7 @@
 "settings.selectionAssistantPermissionAllowed" = "Allowed";
 "settings.selectionAssistantPermissionNotAllowed" = "Not allowed";
 "settings.selectionAssistantPermissionDescription" = "Used to read text you select so you can translate, summarize, or ask about it quickly.";
-"settings.selectionAssistantPermissionAuthorize" = "Authorize and open System Settings";
+"settings.selectionAssistantPermissionAuthorize" = "Request Authorization";
 "settings.selectionAssistantPermissionRefresh" = "Refresh status";
 "selection.permissionOpenSettings" = "Open System Settings";
 "menu.quickQuestionMode" = "Quick Question Mode";

@@ -161,9 +161,11 @@ private struct SelectionAssistantSettingsPage: View {
                     if permissionCoordinator.status == .notAllowed {
                         Button(L10n.string("settings.selectionAssistantPermissionAuthorize")) {
                             permissionCoordinator.requestPermissionFromSettings()
-                            settingsOpener.openAccessibilitySettings()
                         }
                         .buttonStyle(.borderedProminent)
+                    }
+                    Button(L10n.string("selection.permissionOpenSettings")) {
+                        settingsOpener.openAccessibilitySettings()
                     }
                     Button(L10n.string("settings.selectionAssistantPermissionRefresh")) {
                         permissionCoordinator.refresh()

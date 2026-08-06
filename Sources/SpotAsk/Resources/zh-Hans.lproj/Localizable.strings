@@ -342,7 +342,7 @@
 "settings.selectionAssistantPermissionAllowed" = "已允许";
 "settings.selectionAssistantPermissionNotAllowed" = "未允许";
 "settings.selectionAssistantPermissionDescription" = "用于读取你主动选中的文字，便于快速翻译、总结或提问。";
-"settings.selectionAssistantPermissionAuthorize" = "授权并打开系统设置";
+"settings.selectionAssistantPermissionAuthorize" = "请求授权";
 "settings.selectionAssistantPermissionRefresh" = "刷新状态";
 "selection.permissionOpenSettings" = "打开系统设置";
 "menu.quickQuestionMode" = "快速提问模式";
