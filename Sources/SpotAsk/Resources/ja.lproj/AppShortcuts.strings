@@ -1,0 +1,10 @@
+"打开 ${applicationName}" = "${applicationName} を開く";
+"启动 ${applicationName}" = "${applicationName} を起動";
+"使用 ${applicationName} 提问" = "${applicationName} で質問";
+"让 ${applicationName} 回答" = "${applicationName} で AI に質問";
+"问 ${applicationName}" = "${applicationName} に質問";
+"使用 ${applicationName} 翻译" = "${applicationName} で翻訳";
+"使用 ${applicationName} 润色" = "${applicationName} で推敲";
+"使用 ${applicationName} 总结" = "${applicationName} で要約";
+"使用 ${applicationName} 解释" = "${applicationName} で説明";
+"在 ${applicationName} 开始新对话" = "${applicationName} で新しい会話を開始";

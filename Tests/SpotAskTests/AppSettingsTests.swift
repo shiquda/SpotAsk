@@ -27,6 +27,56 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertFalse(AppSettings(defaults: defaults).showsMenuBarIcon)
     }
 
+    func testSilentLaunchDefaultsToOffAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        XCTAssertFalse(AppSettings(defaults: defaults).silentLaunch)
+
+        let settings = AppSettings(defaults: defaults)
+        settings.silentLaunch = true
+        XCTAssertTrue(AppSettings(defaults: defaults).silentLaunch)
+    }
+
+    func testProxyDefaultsToOffAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let settings = AppSettings(defaults: defaults)
+        XCTAssertFalse(settings.proxyEnabled)
+        XCTAssertEqual(settings.proxyType, .http)
+        XCTAssertEqual(settings.proxyHost, "")
+        XCTAssertEqual(settings.proxyPort, 1080)
+        XCTAssertEqual(settings.proxyUsername, "")
+
+        settings.proxyEnabled = true
+        settings.proxyType = .socks5
+        settings.proxyHost = "127.0.0.1"
+        settings.proxyPort = 7890
+        settings.proxyUsername = "user"
+
+        let reloaded = AppSettings(defaults: defaults)
+        XCTAssertTrue(reloaded.proxyEnabled)
+        XCTAssertEqual(reloaded.proxyType, .socks5)
+        XCTAssertEqual(reloaded.proxyHost, "127.0.0.1")
+        XCTAssertEqual(reloaded.proxyPort, 7890)
+        XCTAssertEqual(reloaded.proxyUsername, "user")
+    }
+
+    func testDiagnosticsDefaultsToOffAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        XCTAssertFalse(AppSettings(defaults: defaults).diagnosticsEnabled)
+
+        let settings = AppSettings(defaults: defaults)
+        settings.diagnosticsEnabled = true
+        XCTAssertTrue(AppSettings(defaults: defaults).diagnosticsEnabled)
+    }
+
     func testChangingMenuBarIconPreferenceNotifiesTheRunningApplication() {
         let suite = "AppSettingsTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
@@ -273,6 +323,87 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(L10n.string("settings.title", language: .simplifiedChinese), "设置")
     }
 
+    func testLanguageOptionsUseTheirNativeNames() {
+        XCTAssertNil(AppLanguage.system.nativeName)
+        XCTAssertEqual(AppLanguage.simplifiedChinese.nativeName, "简体中文")
+        XCTAssertEqual(AppLanguage.english.nativeName, "English")
+        XCTAssertEqual(AppLanguage.spanish.nativeName, "Español")
+        XCTAssertEqual(AppLanguage.german.nativeName, "Deutsch")
+        XCTAssertEqual(AppLanguage.japanese.nativeName, "日本語")
+        XCTAssertEqual(AppLanguage.french.nativeName, "Français")
+        XCTAssertEqual(AppLanguage.portuguese.nativeName, "Português")
+        XCTAssertEqual(AppLanguage.russian.nativeName, "Русский")
+        XCTAssertEqual(AppLanguage.allCases.count, 9)
+    }
+
+    func testNewLanguagesContainEveryEnglishString() throws {
+        let englishKeys = try stringsKeys(in: .english)
+        let languages: [AppLanguage] = [.spanish, .german, .japanese, .french, .portuguese, .russian]
+
+        for language in languages {
+            let localizedKeys = try stringsKeys(in: language)
+            XCTAssertEqual(
+                localizedKeys,
+                englishKeys,
+                "\(language.rawValue) must contain every English localization key"
+            )
+        }
+    }
+
+    func testNewLanguagesResolveSettingsTitle() {
+        XCTAssertEqual(L10n.string("settings.title", language: .spanish), "Configuración")
+        XCTAssertEqual(L10n.string("settings.title", language: .german), "Einstellungen")
+        XCTAssertEqual(L10n.string("settings.title", language: .japanese), "設定")
+        XCTAssertEqual(L10n.string("settings.title", language: .french), "Réglages")
+        XCTAssertEqual(L10n.string("settings.title", language: .portuguese), "Configurações")
+        XCTAssertEqual(L10n.string("settings.title", language: .russian), "Настройки")
+    }
+
+    func testSilentLaunchStringsExistInEnglishAndSimplifiedChinese() {
+        let keys = ["settings.silentLaunch", "settings.silentLaunchDescription"]
+
+        for key in keys {
+            XCTAssertNotEqual(L10n.string(key, language: .english), key)
+            XCTAssertNotEqual(L10n.string(key, language: .simplifiedChinese), key)
+        }
+    }
+
+    func testBatchTwoStringsExistInEnglishAndSimplifiedChinese() {
+        let keys = [
+            "settings.providerFormat",
+            "settings.providerFormatOpenAI",
+            "settings.providerFormatAnthropic",
+            "settings.proxy",
+            "settings.proxyEnabled",
+            "settings.proxyType",
+            "settings.proxyTypeHTTP",
+            "settings.proxyTypeSOCKS5",
+            "settings.proxyHost",
+            "settings.proxyPort",
+            "settings.proxyUsername",
+            "settings.proxyPassword",
+            "settings.modelSelectionTitle",
+            "settings.modelSelectionDescription",
+            "settings.modelSelectionSelectAll",
+            "settings.modelSelectionAdd",
+            "settings.modelsAdded",
+            "settings.modelAddFailed",
+            "settings.diagnostics",
+            "settings.diagnosticsEnabled",
+            "settings.diagnosticsDescription",
+            "settings.diagnosticsExport",
+            "settings.diagnosticsClear",
+            "settings.diagnosticsExported",
+            "settings.diagnosticsExportFailed",
+            "settings.diagnosticsCleared"
+        ]
+
+        for key in keys {
+            XCTAssertNotEqual(L10n.string(key, language: .english), key)
+            XCTAssertNotEqual(L10n.string(key, language: .simplifiedChinese), key)
+        }
+    }
+
     func testModelRefreshStringsExistInEnglishAndSimplifiedChinese() {
         let keys = [
             "settings.availableModels",
@@ -315,5 +446,19 @@ final class AppSettingsTests: XCTestCase {
 
         XCTAssertEqual(bundle.bundleURL.lastPathComponent, "zh-hans.lproj")
         XCTAssertEqual(bundle.localizedString(forKey: "settings.title", value: nil, table: "Localizable"), "设置")
+    }
+
+    private func stringsKeys(in language: AppLanguage) throws -> Set<String> {
+        let bundle = L10n.localizedBundle(for: language)
+        let resourceURL = try XCTUnwrap(bundle.resourceURL)
+        let fileURL = resourceURL.appendingPathComponent("Localizable.strings")
+        let content = try String(contentsOf: fileURL, encoding: .utf8)
+        return Set(
+            content.split(separator: "\n").compactMap { line -> String? in
+                let parts = line.split(separator: "\"", maxSplits: 2, omittingEmptySubsequences: false)
+                guard parts.count >= 2 else { return nil }
+                return String(parts[1])
+            }
+        )
     }
 }

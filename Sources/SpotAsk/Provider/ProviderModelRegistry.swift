@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 enum ProviderModelRegistryError: Error, Equatable, Sendable {
     case catalogUnavailable
@@ -32,6 +33,7 @@ struct LegacyProviderConfiguration: Sendable {
 }
 
 @MainActor
+@Observable
 final class ProviderModelRegistry {
     static let defaultsKey = "providerModelCatalog"
     static let pendingLegacyAPIKeyMigrationProviderIDDefaultsKey = "providerModelCatalog.pendingLegacyAPIKeyMigrationProviderID"
@@ -287,7 +289,11 @@ final class ProviderModelRegistry {
         result.address = result.address.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !result.name.isEmpty else { throw ProviderModelRegistryError.invalidProviderName }
         guard !result.address.isEmpty else { throw ProviderModelRegistryError.invalidProviderAddress }
-        guard (try? URLNormalizer.endpoint(from: result.address, useFullEndpoint: result.addressMode.usesFullEndpoint)) != nil else {
+        guard (try? URLNormalizer.endpoint(
+            from: result.address,
+            useFullEndpoint: result.addressMode.usesFullEndpoint,
+            format: result.format
+        )) != nil else {
             throw ProviderModelRegistryError.invalidProviderAddress
         }
         guard result.timeout.isFinite, result.timeout > 0 else { throw ProviderModelRegistryError.invalidProviderTimeout }

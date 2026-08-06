@@ -71,6 +71,7 @@ final class ChatViewModel {
 
     func cancel() {
         guard generationState == .connecting || generationState == .streaming else { return }
+        DiagnosticLogStore.shared.record("chat-cancelled")
         streamTask?.cancel()
         flushTask?.cancel()
         flushPendingDeltas()
@@ -188,6 +189,11 @@ final class ChatViewModel {
             finishAfterError(.invalidConfiguration, assistantID: assistantID)
             return
         }
+        if let question = messages.last(where: { $0.role == .user })?.content {
+            DiagnosticLogStore.shared.record(
+                "chat-request model=\(target.upstreamModelID) question=\(DiagnosticLogStore.truncated(question))"
+            )
+        }
         let request = ChatRequest(
             model: target.upstreamModelID,
             messages: messagesForRequest(using: promptPreset),
@@ -210,6 +216,10 @@ final class ChatViewModel {
                 }
                 self.flushPendingDeltas()
                 self.completeAssistant(with: assistantID, state: .complete)
+                let answer = self.messages.first(where: { $0.id == assistantID })?.content ?? ""
+                DiagnosticLogStore.shared.record(
+                    "chat-completed model=\(target.upstreamModelID) answer=\(DiagnosticLogStore.truncated(answer))"
+                )
                 self.generationState = .idle
                 self.persistIfNeeded()
             } catch let receivedError as ChatError {
@@ -315,6 +325,7 @@ final class ChatViewModel {
 
     private func finishAfterError(_ receivedError: ChatError, assistantID: UUID) {
         flushPendingDeltas()
+        DiagnosticLogStore.shared.record("chat-failed error=\(receivedError.localizedDescription)")
         if receivedError == .cancelled {
             completeAssistant(with: assistantID, state: .cancelled)
             generationState = .cancelled

@@ -11,6 +11,12 @@ protocol LegacyAPIKeyMigrating: APIKeyStoring {
     func migrateLegacyAPIKey(to providerID: UUID) throws
 }
 
+/// Reserved credential slot for the global proxy password. Reuses the same
+/// local credential store so the password never lands in plain preference data.
+enum ProxyCredentialSlot {
+    static let providerID = UUID(uuidString: "A1B2C3D4-0000-4000-8000-00000000A10B")!
+}
+
 /// Stores API keys in Application Support while a stable Keychain signing
 /// identity is unavailable. Each Provider receives an independent key slot.
 final class LocalAPIKeyStore: LegacyAPIKeyMigrating, @unchecked Sendable {

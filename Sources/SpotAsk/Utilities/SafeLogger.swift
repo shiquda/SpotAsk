@@ -12,6 +12,7 @@ enum SafeLogger {
         components?.fragment = nil
         let sanitizedURL = components?.url?.absoluteString ?? ""
         logger.error("Request failed. status=\(status ?? 0, privacy: .public) url=\(sanitizedURL, privacy: .public)")
+        DiagnosticLogStore.shared.record("network-failure status=\(status ?? 0) url=\(sanitizedURL)")
     }
 
     static func selectionReadStarted(sourceBundleIdentifier: String?) {
@@ -67,5 +68,6 @@ enum SafeLogger {
 
     private static func recordSelectionEvent(_ event: String) {
         selectionDiagnosticsSink.record("\(Date().timeIntervalSince1970) \(event)")
+        DiagnosticLogStore.shared.record("selection \(event)")
     }
 }

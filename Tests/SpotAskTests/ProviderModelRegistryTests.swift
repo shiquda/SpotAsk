@@ -1,4 +1,5 @@
 import XCTest
+import Observation
 @testable import SpotAsk
 
 @MainActor
@@ -313,6 +314,37 @@ final class ProviderModelRegistryTests: XCTestCase {
         XCTAssertEqual(catalog.models.first?.source, .manual)
     }
 
+    func testLegacyProviderDecodesAsOpenAICompatibleFormat() throws {
+        let providerID = UUID()
+        let providerData = Data("""
+        {"id":"\(providerID.uuidString)","name":"Service","address":"https://example.com/v1","addressMode":"baseURL","timeout":30}
+        """.utf8)
+
+        let provider = try JSONDecoder().decode(ProviderConfiguration.self, from: providerData)
+
+        XCTAssertEqual(provider.format, .openAICompatible)
+    }
+
+    func testCatalogChangesTriggerObservation() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let registry = AppSettings(defaults: defaults).providerRegistry
+        let flag = ObservationFlag()
+
+        withObservationTracking {
+            _ = registry.catalog?.models.count
+        } onChange: {
+            flag.value = true
+        }
+
+        let provider = try XCTUnwrap(registry.catalog?.providers.first)
+        _ = try registry.saveModel(
+            ModelConfiguration(displayName: "Observed", upstreamModelID: "observed", providerID: provider.id, isStreamingEnabled: true)
+        )
+
+        XCTAssertTrue(flag.value, "Catalog mutations must invalidate views that read registry.catalog")
+    }
+
     func testReplacingDiscoveredModelsPreservesManualModelsAndOtherProviders() throws {
         let (defaults, suiteName) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
@@ -377,6 +409,10 @@ final class ProviderModelRegistryTests: XCTestCase {
         let suiteName = "ProviderModelRegistryTests.\(UUID().uuidString)"
         return (UserDefaults(suiteName: suiteName)!, suiteName)
     }
+}
+
+private final class ObservationFlag: @unchecked Sendable {
+    var value = false
 }
 
 private enum TestKeyStoreError: Error {

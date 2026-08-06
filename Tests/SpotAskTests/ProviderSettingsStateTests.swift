@@ -7,7 +7,11 @@ final class ProviderSettingsStateTests: XCTestCase {
         let keyStore = RecordingKeyStore(apiKey: "saved-key")
         let state = makeState(keyStore: keyStore)
 
-        XCTAssertEqual(keyStore.readCount, 1)
+        XCTAssertEqual(
+            keyStore.readCount,
+            2,
+            "State loads the provider key and the reserved proxy password slot"
+        )
         XCTAssertEqual(state.apiKeyDraft, "saved-key")
         XCTAssertEqual(keyStore.saveCount, 0)
         XCTAssertEqual(keyStore.deleteCount, 0)
@@ -89,6 +93,22 @@ final class ProviderSettingsStateTests: XCTestCase {
 
         XCTAssertEqual(keyStore.deleteCount, 1)
         XCTAssertEqual(keyStore.deletedProviderIDs.first, state.selectedProviderID)
+    }
+
+    func testProxyPasswordUsesTheReservedCredentialSlot() {
+        let keyStore = RecordingKeyStore()
+        let state = makeState(keyStore: keyStore)
+
+        state.proxyPasswordDraft = "proxy-secret"
+        state.persistProxyPasswordDraft()
+
+        XCTAssertEqual(keyStore.savedKeys, ["proxy-secret"])
+        XCTAssertEqual(keyStore.savedProviderIDs, [ProxyCredentialSlot.providerID])
+
+        state.proxyPasswordDraft = ""
+        state.persistProxyPasswordDraft()
+
+        XCTAssertEqual(keyStore.deletedProviderIDs, [ProxyCredentialSlot.providerID])
     }
 
     func testClearingKeyDoesNotDeleteKeyWhenProviderIsNotSelected() {
@@ -757,10 +777,20 @@ final class ProviderSettingsStateTests: XCTestCase {
         XCTAssertEqual(state.modelRefreshStatus, .success(1))
         XCTAssertEqual(state.draftProviderName, "Unsaved name")
         XCTAssertEqual(discovery.callCount, 1)
+        XCTAssertEqual(state.discoveredModelCandidates, ["service-model"])
+        XCTAssertTrue(state.isModelSelectionPresented)
+        XCTAssertNil(
+            settings.providerRegistry.catalog?.models.first(where: { $0.providerID == provider.id && $0.source == .discovered }),
+            "Discovery must wait for the user's explicit selection before touching the catalog"
+        )
+
+        state.applySelectedDiscoveredModels()
+
         XCTAssertEqual(
             settings.providerRegistry.catalog?.models.first(where: { $0.providerID == provider.id && $0.source == .discovered })?.upstreamModelID,
             "service-model"
         )
+        XCTAssertFalse(state.isModelSelectionPresented)
     }
 
     func testRefreshFailureLeavesCatalogUntouched() async throws {
@@ -912,7 +942,7 @@ final class ProviderSettingsStateTests: XCTestCase {
         XCTAssertFalse(state.isRefreshingModels)
     }
 
-    func testRefreshFallbackSynchronizesActiveModelMirror() async throws {
+    func testEmptyRefreshShowsNoSelectionAndKeepsModelsUntilApplied() async throws {
         let (defaults, suiteName) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let settings = AppSettings(defaults: defaults)
@@ -929,6 +959,29 @@ final class ProviderSettingsStateTests: XCTestCase {
 
         state.refreshModels()
         await waitForModelRefresh(state)
+
+        XCTAssertEqual(state.modelRefreshStatus, .success(0))
+        XCTAssertFalse(state.isModelSelectionPresented)
+        XCTAssertEqual(settings.providerRegistry.catalog?.selectedModelID, discovered.id)
+        XCTAssertEqual(state.activeModelID, settings.providerRegistry.catalog?.selectedModelID)
+    }
+
+    func testApplyingEmptySelectionFallsBackAndSynchronizesActiveModelMirror() async throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let provider = try XCTUnwrap(settings.providerRegistry.catalog?.providers.first)
+        try settings.providerRegistry.replaceDiscoveredModels(for: provider.id, upstreamModelIDs: ["temporary"])
+        let discovered = try XCTUnwrap(settings.providerRegistry.catalog?.models.first { $0.source == .discovered })
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(apiKey: "saved-key"),
+            providerFactory: NoopProviderFactory(),
+            modelDiscovery: StubModelDiscovery(result: .success([]))
+        )
+        state.useModelForChat(discovered.id)
+
+        state.applySelectedDiscoveredModels()
 
         XCTAssertNotEqual(settings.providerRegistry.catalog?.selectedModelID, discovered.id)
         XCTAssertEqual(state.activeModelID, settings.providerRegistry.catalog?.selectedModelID)

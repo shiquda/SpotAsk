@@ -156,6 +156,59 @@ struct SettingsLayoutTests {
         }
     }
 
+    @Test func toggleAndPickerControlsShareTheControlColumn() throws {
+        let fixture = makeWindow(section: .general)
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+
+        let switches = descendants(of: NSSwitch.self, in: fixture.hostingView)
+        let popups = descendants(of: NSPopUpButton.self, in: fixture.hostingView)
+        let reference = try #require(switches.first)
+        let referenceFrame = reference.convert(reference.bounds, to: fixture.hostingView)
+
+        #expect(!popups.isEmpty)
+        for popup in popups {
+            let frame = popup.convert(popup.bounds, to: fixture.hostingView)
+            #expect(
+                abs(frame.minX - referenceFrame.minX) < 1,
+                "Toggle and picker controls must share the same control column: \(frame) vs \(referenceFrame)"
+            )
+        }
+    }
+
+    @Test func segmentedControlsShareTheControlColumn() throws {
+        let providerFixture = makeWindow(section: .provider)
+        defer { providerFixture.defaults.removePersistentDomain(forName: providerFixture.suiteName) }
+
+        let providerNameField = try #require(
+            descendants(of: NSTextField.self, in: providerFixture.hostingView).first {
+                $0.placeholderString == L10n.string("settings.providerNamePlaceholder")
+            }
+        )
+        let reference = providerNameField.convert(providerNameField.bounds, to: providerFixture.hostingView)
+        let segmentedControls = descendants(of: NSSegmentedControl.self, in: providerFixture.hostingView)
+        #expect(!segmentedControls.isEmpty)
+        for control in segmentedControls {
+            let frame = control.convert(control.bounds, to: providerFixture.hostingView)
+            #expect(
+                abs(frame.minX - reference.minX) < 1,
+                "Segmented controls must stay in the settings control column: \(frame) vs \(reference)"
+            )
+        }
+
+        let appearanceFixture = makeWindow(section: .appearance)
+        defer { appearanceFixture.defaults.removePersistentDomain(forName: appearanceFixture.suiteName) }
+        let appearanceSegmented = descendants(of: NSSegmentedControl.self, in: appearanceFixture.hostingView)
+        let appearanceReference = try #require(appearanceSegmented.first)
+        let appearanceReferenceFrame = appearanceReference.convert(appearanceReference.bounds, to: appearanceFixture.hostingView)
+        for control in appearanceSegmented {
+            let frame = control.convert(control.bounds, to: appearanceFixture.hostingView)
+            #expect(
+                abs(frame.minX - appearanceReferenceFrame.minX) < 1,
+                "Segmented controls on the Appearance page must share one control column: \(frame) vs \(appearanceReferenceFrame)"
+            )
+        }
+    }
+
     // MARK: - Horizontal bounds
 
     @Test func fixedSettingsWindowKeepsSidebarAndServiceChromeInsideBounds() throws {

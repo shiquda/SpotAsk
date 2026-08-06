@@ -97,6 +97,30 @@ final class ProviderModelDiscoveryTests: XCTestCase {
         XCTAssertEqual(transport.callCount, 0)
     }
 
+    func testAnthropicDiscoveryUsesMessagesAPIHeadersAndModelsEndpoint() async throws {
+        let transport = RecordingDiscoveryTransport(
+            result: .success((Data(#"{"data":[{"id":"claude-3"}]}"#.utf8), response(status: 200)))
+        )
+        let provider = ProviderConfiguration(
+            name: "Anthropic",
+            address: "https://api.anthropic.com",
+            addressMode: .baseURL,
+            timeout: 42,
+            format: .anthropic
+        )
+
+        let models = try await AnthropicModelDiscovery(transport: transport).models(for: provider, apiKey: " key ")
+
+        XCTAssertEqual(models, ["claude-3"])
+        let request = try XCTUnwrap(transport.request)
+        XCTAssertEqual(request.url?.absoluteString, "https://api.anthropic.com/v1/models")
+        XCTAssertEqual(request.httpMethod, "GET")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "x-api-key"), "key")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "anthropic-version"), "2023-06-01")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Accept"), "application/json")
+        XCTAssertEqual(request.timeoutInterval, 42)
+    }
+
     private func response(status: Int) -> HTTPURLResponse {
         HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: status, httpVersion: nil, headerFields: nil)!
     }

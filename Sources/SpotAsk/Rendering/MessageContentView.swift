@@ -45,6 +45,32 @@ struct MessageContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            if message.role == .assistant {
+                HStack(spacing: 6) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Brand.accent, .cyan],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        Image(systemName: "bot.fill")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(.white)
+                    }
+                    .frame(width: 18, height: 18)
+                    .accessibilityLabel(L10n.string("chat.assistant"))
+
+                    if let modelDisplayName = message.modelDisplayName {
+                        Text(modelDisplayName)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
             if let collapsedPreview, !isExpanded {
                 Text(collapsedPreview)
                     .textSelection(.enabled)

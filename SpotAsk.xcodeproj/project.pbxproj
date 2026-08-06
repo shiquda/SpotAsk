@@ -60,6 +60,8 @@
 		00100000000000000000003A /* ChatNetworking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000047 /* ChatNetworking.swift */; };
 		00100000000000000000003B /* SelectionDiagnosticsFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000048 /* SelectionDiagnosticsFormatting.swift */; };
 		00100000000000000000003C /* SelectionDiagnosticsSink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000049 /* SelectionDiagnosticsSink.swift */; };
+		00100000000000000000003D /* AnthropicProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000004A /* AnthropicProvider.swift */; };
+		00100000000000000000003E /* DiagnosticLogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000004B /* DiagnosticLogStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -121,6 +123,20 @@
 		002000000000000000000047 /* ChatNetworking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/ChatNetworking.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000048 /* SelectionDiagnosticsFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionDiagnosticsFormatting.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000049 /* SelectionDiagnosticsSink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Utilities/SelectionDiagnosticsSink.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000004A /* AnthropicProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/AnthropicProvider.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000004B /* DiagnosticLogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Utilities/DiagnosticLogStore.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000004C /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = Sources/SpotAsk/Resources/es.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
+		00200000000000000000004D /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = Sources/SpotAsk/Resources/de.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
+		00200000000000000000004E /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = Sources/SpotAsk/Resources/ja.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
+		00200000000000000000004F /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = Sources/SpotAsk/Resources/fr.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
+		002000000000000000000050 /* pt */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = pt; path = Sources/SpotAsk/Resources/pt.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
+		002000000000000000000051 /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = Sources/SpotAsk/Resources/ru.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
+		002000000000000000000052 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = Sources/SpotAsk/Resources/es.lproj/AppShortcuts.strings; sourceTree = SOURCE_ROOT; };
+		002000000000000000000053 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = Sources/SpotAsk/Resources/de.lproj/AppShortcuts.strings; sourceTree = SOURCE_ROOT; };
+		002000000000000000000054 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = Sources/SpotAsk/Resources/ja.lproj/AppShortcuts.strings; sourceTree = SOURCE_ROOT; };
+		002000000000000000000055 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = Sources/SpotAsk/Resources/fr.lproj/AppShortcuts.strings; sourceTree = SOURCE_ROOT; };
+		002000000000000000000056 /* pt */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = pt; path = Sources/SpotAsk/Resources/pt.lproj/AppShortcuts.strings; sourceTree = SOURCE_ROOT; };
+		002000000000000000000057 /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = Sources/SpotAsk/Resources/ru.lproj/AppShortcuts.strings; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -147,6 +163,7 @@
 				002000000000000000000008 /* SessionStore.swift */,
 				002000000000000000000009 /* ChatProvider.swift */,
 				00200000000000000000000A /* OpenAICompatibleProvider.swift */,
+				00200000000000000000004A /* AnthropicProvider.swift */,
 				002000000000000000000047 /* ChatNetworking.swift */,
 				002000000000000000000032 /* ProviderModelCatalog.swift */,
 				002000000000000000000033 /* ProviderModelRegistry.swift */,
@@ -172,6 +189,7 @@
 				002000000000000000000017 /* SafeLogger.swift */,
 				002000000000000000000049 /* SelectionDiagnosticsSink.swift */,
 				002000000000000000000018 /* URLNormalizer.swift */,
+				00200000000000000000004B /* DiagnosticLogStore.swift */,
 				002000000000000000000019 /* SpotAskPanelController.swift */,
 				002000000000000000000037 /* SettingsWindowController.swift */,
 				00200000000000000000003C /* AccessibilityElementReading.swift */,
@@ -217,6 +235,12 @@
 			children = (
 				002000000000000000000024 /* en */,
 				002000000000000000000025 /* zh-Hans */,
+				00200000000000000000004C /* es */,
+				00200000000000000000004D /* de */,
+				00200000000000000000004E /* ja */,
+				00200000000000000000004F /* fr */,
+				002000000000000000000050 /* pt */,
+				002000000000000000000051 /* ru */,
 			);
 			name = Localizable.strings;
 			sourceTree = "<group>";
@@ -226,6 +250,12 @@
 			children = (
 				002000000000000000000027 /* en */,
 				002000000000000000000028 /* zh-Hans */,
+				002000000000000000000052 /* es */,
+				002000000000000000000053 /* de */,
+				002000000000000000000054 /* ja */,
+				002000000000000000000055 /* fr */,
+				002000000000000000000056 /* pt */,
+				002000000000000000000057 /* ru */,
 			);
 			name = AppShortcuts.strings;
 			sourceTree = "<group>";
@@ -326,6 +356,8 @@
 				00100000000000000000003A,
 				00100000000000000000003B,
 				00100000000000000000003C,
+				00100000000000000000003D,
+				00100000000000000000003E,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

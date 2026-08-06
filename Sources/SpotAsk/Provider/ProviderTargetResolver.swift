@@ -9,6 +9,29 @@ struct ProviderTargetSnapshot: Equatable, Sendable {
     let upstreamModelID: String
     let isStreamingEnabled: Bool
     let timeout: TimeInterval
+    let format: ProviderFormat
+
+    init(
+        modelID: UUID,
+        providerID: UUID,
+        endpoint: URL,
+        apiKey: String,
+        displayName: String,
+        upstreamModelID: String,
+        isStreamingEnabled: Bool,
+        timeout: TimeInterval,
+        format: ProviderFormat = .openAICompatible
+    ) {
+        self.modelID = modelID
+        self.providerID = providerID
+        self.endpoint = endpoint
+        self.apiKey = apiKey
+        self.displayName = displayName
+        self.upstreamModelID = upstreamModelID
+        self.isStreamingEnabled = isStreamingEnabled
+        self.timeout = timeout
+        self.format = format
+    }
 }
 
 protocol ProviderTargetResolving: Sendable {
@@ -35,12 +58,17 @@ struct ProviderTargetResolver: ProviderTargetResolving {
         return ProviderTargetSnapshot(
             modelID: model.id,
             providerID: provider.id,
-            endpoint: try URLNormalizer.endpoint(from: provider.address, useFullEndpoint: provider.addressMode.usesFullEndpoint),
+            endpoint: try URLNormalizer.endpoint(
+                from: provider.address,
+                useFullEndpoint: provider.addressMode.usesFullEndpoint,
+                format: provider.format
+            ),
             apiKey: apiKey,
             displayName: model.displayName,
             upstreamModelID: model.upstreamModelID,
             isStreamingEnabled: model.isStreamingEnabled,
-            timeout: provider.timeout
+            timeout: provider.timeout,
+            format: provider.format
         )
     }
 }

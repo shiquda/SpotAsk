@@ -100,3 +100,80 @@ struct OpenAICompatibleModelDiscovery: ProviderModelDiscovering {
         }
     }
 }
+
+struct AnthropicModelDiscovery: ProviderModelDiscovering {
+    private struct Response: Decodable {
+        struct Model: Decodable {
+            let id: String
+        }
+
+        let data: [Model]
+    }
+
+    private let transport: any ProviderModelDiscoveryTransport
+
+    init(transport: any ProviderModelDiscoveryTransport = URLSessionProviderModelDiscoveryTransport()) {
+        self.transport = transport
+    }
+
+    func models(for provider: ProviderConfiguration, apiKey: String) async throws -> [String] {
+        guard provider.addressMode == .baseURL else {
+            throw ProviderModelDiscoveryError.unavailableForFullEndpoint
+        }
+        let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !key.isEmpty else { throw ProviderModelDiscoveryError.missingAPIKey }
+
+        var request = URLRequest(url: try URLNormalizer.modelsEndpoint(from: provider.address, format: .anthropic))
+        request.httpMethod = "GET"
+        request.timeoutInterval = provider.timeout
+        request.setValue(key, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        do {
+            let (responseData, response) = try await transport.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw ProviderModelDiscoveryError.invalidResponse
+            }
+            guard (200 ... 299).contains(httpResponse.statusCode) else {
+                throw ProviderModelDiscoveryError.unsuccessfulStatus(httpResponse.statusCode)
+            }
+            let decoded = try JSONDecoder().decode(Response.self, from: responseData)
+            return Set(
+                decoded.data
+                    .map(\.id)
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty }
+            ).sorted()
+        } catch is CancellationError {
+            throw ProviderModelDiscoveryError.cancelled
+        } catch let error as ProviderModelDiscoveryError {
+            throw error
+        } catch let error as URLError {
+            switch error.code {
+            case .cancelled: throw ProviderModelDiscoveryError.cancelled
+            case .timedOut: throw ProviderModelDiscoveryError.timeout
+            case .notConnectedToInternet, .networkConnectionLost, .cannotFindHost, .cannotConnectToHost:
+                throw ProviderModelDiscoveryError.networkUnavailable
+            default: throw ProviderModelDiscoveryError.invalidResponse
+            }
+        } catch {
+            throw ProviderModelDiscoveryError.invalidResponse
+        }
+    }
+}
+
+/// Routes model discovery to the wire format of the selected Service.
+struct ProviderModelDiscoveryRouter: ProviderModelDiscovering {
+    let urlSession: URLSession
+
+    func models(for provider: ProviderConfiguration, apiKey: String) async throws -> [String] {
+        let transport = URLSessionProviderModelDiscoveryTransport(urlSession: urlSession)
+        switch provider.format {
+        case .openAICompatible:
+            return try await OpenAICompatibleModelDiscovery(transport: transport).models(for: provider, apiKey: apiKey)
+        case .anthropic:
+            return try await AnthropicModelDiscovery(transport: transport).models(for: provider, apiKey: apiKey)
+        }
+    }
+}

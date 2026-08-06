@@ -7,6 +7,51 @@ enum ChatNetworking {
         configuration.connectionProxyDictionary = proxyConfiguration
         return URLSession(configuration: configuration)
     }
+
+    /// Builds the `connectionProxyDictionary` accepted by URLSession for the
+    /// two supported proxy kinds. Returns nil when the proxy is disabled or
+    /// its address is incomplete so callers fall back to direct networking.
+    static func proxyConfiguration(
+        type: ProxyType,
+        host: String,
+        port: Int,
+        username: String,
+        password: String
+    ) -> [String: Any]? {
+        let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedHost.isEmpty, (1 ... 65_535).contains(port) else { return nil }
+        let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        switch type {
+        case .http:
+            var configuration: [String: Any] = [
+                "HTTPEnable": 1,
+                "HTTPProxy": trimmedHost,
+                "HTTPPort": port,
+                "HTTPSEnable": 1,
+                "HTTPSProxy": trimmedHost,
+                "HTTPSPort": port
+            ]
+            if !trimmedUsername.isEmpty {
+                configuration["HTTPProxyUsername"] = trimmedUsername
+                configuration["HTTPProxyPassword"] = password
+                configuration["HTTPSProxyUsername"] = trimmedUsername
+                configuration["HTTPSProxyPassword"] = password
+            }
+            return configuration
+        case .socks5:
+            var configuration: [String: Any] = [
+                "SOCKSEnable": 1,
+                "SOCKSProxy": trimmedHost,
+                "SOCKSPort": port
+            ]
+            if !trimmedUsername.isEmpty {
+                configuration["SOCKSProxyUsername"] = trimmedUsername
+                configuration["SOCKSProxyPassword"] = password
+            }
+            return configuration
+        }
+    }
 }
 
 enum ChatHTTP {

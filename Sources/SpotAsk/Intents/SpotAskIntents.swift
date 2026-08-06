@@ -250,7 +250,7 @@ struct SpotAskShortcuts: AppShortcutsProvider {
             intent: ExplainWithSpotAskIntent(),
             phrases: ["使用 \(.applicationName) 解释"],
             shortTitle: "解释",
-            systemImageName: "lightbulb"
+            systemImageName: "doc.text.magnifyingglass"
         )
         AppShortcut(
             intent: SummarizeWithSpotAskIntent(),
@@ -268,7 +268,7 @@ struct SpotAskShortcuts: AppShortcutsProvider {
             intent: NewSpotAskConversationIntent(),
             phrases: ["在 \(.applicationName) 开始新对话"],
             shortTitle: "新对话",
-            systemImageName: "square.and.pencil"
+            systemImageName: "plus.bubble"
         )
     }
 }

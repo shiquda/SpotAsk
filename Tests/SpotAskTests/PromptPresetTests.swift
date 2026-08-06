@@ -150,8 +150,9 @@ struct PromptPresetTests {
 
     @Test("Prompt presets have stable message icons")
     func promptPresetSymbolNames() {
-        #expect(PromptPreset.builtIn[0].symbolName == "globe")
-        #expect(PromptPreset.builtIn[1].symbolName == "lightbulb")
+        #expect(PromptPreset.builtIn[0].symbolName == "character.bubble")
+        #expect(PromptPreset.builtIn[1].symbolName == "doc.text.magnifyingglass")
+        #expect(PromptPreset.builtIn[2].symbolName == "text.line.first.and.arrowtriangle.forward")
         #expect(PromptPreset(title: "Custom", instruction: "Do it").symbolName == "sparkles")
     }
 

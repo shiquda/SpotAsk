@@ -7,6 +7,13 @@ enum ProviderAddressMode: String, Codable, CaseIterable, Sendable {
     var usesFullEndpoint: Bool { self == .fullEndpoint }
 }
 
+/// Wire format used when talking to a Service. OpenAI-compatible keeps the
+/// chat-completions convention; Anthropic uses the official Messages API.
+enum ProviderFormat: String, Codable, CaseIterable, Sendable {
+    case openAICompatible
+    case anthropic
+}
+
 enum ModelConfigurationSource: String, Codable, Equatable, Sendable {
     case manual
     case discovered
@@ -18,19 +25,41 @@ struct ProviderConfiguration: Identifiable, Codable, Equatable, Sendable {
     var address: String
     var addressMode: ProviderAddressMode
     var timeout: TimeInterval
+    var format: ProviderFormat
 
     init(
         id: UUID = UUID(),
         name: String,
         address: String,
         addressMode: ProviderAddressMode,
-        timeout: TimeInterval
+        timeout: TimeInterval,
+        format: ProviderFormat = .openAICompatible
     ) {
         self.id = id
         self.name = name
         self.address = address
         self.addressMode = addressMode
         self.timeout = timeout
+        self.format = format
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case address
+        case addressMode
+        case timeout
+        case format
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        address = try container.decode(String.self, forKey: .address)
+        addressMode = try container.decode(ProviderAddressMode.self, forKey: .addressMode)
+        timeout = try container.decode(TimeInterval.self, forKey: .timeout)
+        format = try container.decodeIfPresent(ProviderFormat.self, forKey: .format) ?? .openAICompatible
     }
 }
 

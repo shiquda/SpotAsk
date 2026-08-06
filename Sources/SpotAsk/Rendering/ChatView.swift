@@ -317,7 +317,7 @@ struct ChatView: View {
                     .offset(x: 5, y: 5)
             }
             HeaderIconButton(action: { newConversation() }) {
-                Image(systemName: "square.and.pencil")
+                Image(systemName: "plus.bubble")
             }
             .help(L10n.string("chat.newConversation"))
             .accessibilityLabel(L10n.string("chat.newConversation"))
@@ -537,7 +537,7 @@ struct ChatView: View {
                             .frame(width: 14, height: 14)
                         Text(reasoningHeaderText(for: message, at: context.date))
                             .font(.caption.weight(.medium))
-                        if message.state == .streaming {
+                        if message.state == .streaming, message.reasoningCompletedAt == nil {
                             ProgressView()
                                 .controlSize(.mini)
                                 .scaleEffect(0.7)
@@ -598,7 +598,10 @@ struct ChatView: View {
                     isFocused: $inputFocused,
                     height: $inputHeight,
                     isGenerating: isGenerating,
-                    onSubmit: { viewModel.send() },
+                    onSubmit: {
+                        sendFromComposer()
+                        return true
+                    },
                     onEscape: handleEscape,
                     onRecall: { viewModel.recallLastQuestion() }
                 )
@@ -680,8 +683,14 @@ struct ChatView: View {
     private func primaryAction() {
         if isGenerating { viewModel.cancel() }
         else {
-            synchronizeSelectedPromptPreset()
-            viewModel.send()
+            sendFromComposer()
+        }
+    }
+
+    private func sendFromComposer() {
+        synchronizeSelectedPromptPreset()
+        if viewModel.send() {
+            scrollFollowState.resumeFollowing()
         }
     }
 
@@ -852,7 +861,7 @@ struct ChatView: View {
         inputFocused = true
         guard !viewModel.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               viewModel.canSend else { return }
-        viewModel.send()
+        sendFromComposer()
     }
 
     private func synchronizeSelectedPromptPreset() {
@@ -1745,10 +1754,21 @@ private struct UserMessageContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack {
-                Image(systemName: "person.crop.circle.fill")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.tertiary)
-                    .accessibilityLabel(L10n.string("chat.user"))
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [.cyan, .blue],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+                .frame(width: 18, height: 18)
+                .accessibilityLabel(L10n.string("chat.user"))
                 if let presetTitle = message.appliedPresetTitle {
                     Label(L10n.string("chat.usedPrompt", presetTitle), systemImage: message.appliedPresetIcon)
                         .font(.caption)

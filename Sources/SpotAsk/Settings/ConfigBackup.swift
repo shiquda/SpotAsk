@@ -77,6 +77,11 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
         var hotKeyPreset: String
         var keepWindowOnTop: Bool
         var showsMenuBarIcon: Bool
+        var proxyEnabled: Bool?
+        var proxyType: String?
+        var proxyHost: String?
+        var proxyPort: Int?
+        var proxyUsername: String?
     }
 
     private enum CodingKeys: String, CodingKey {

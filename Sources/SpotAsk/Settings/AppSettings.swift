@@ -81,10 +81,10 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
     /// deliberately share the stable default symbol.
     var symbolName: String {
         switch id.uuidString.uppercased() {
-        case "EF8CF35C-386A-4389-A137-C207E4DB11FD": "globe"
+        case "EF8CF35C-386A-4389-A137-C207E4DB11FD": "character.bubble"
         case "1C85A324-65B3-4EBD-B2C4-0C6B072E284A": "pencil.and.scribble"
-        case "5D03D444-EC3D-4F5D-9FB1-91EA5BD4E5B2": "text.alignleft"
-        case "BF43F694-E4AE-4B5B-9AE9-B4D6D4A4F248": "lightbulb"
+        case "5D03D444-EC3D-4F5D-9FB1-91EA5BD4E5B2": "text.line.first.and.arrowtriangle.forward"
+        case "BF43F694-E4AE-4B5B-9AE9-B4D6D4A4F248": "doc.text.magnifyingglass"
         default: "sparkles"
         }
     }
@@ -208,10 +208,32 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     case system
     case simplifiedChinese = "zh-Hans"
     case english = "en"
+    case spanish = "es"
+    case german = "de"
+    case japanese = "ja"
+    case french = "fr"
+    case portuguese = "pt"
+    case russian = "ru"
 
     static let defaultsKey = "appLanguage"
 
     var id: String { rawValue }
+
+    /// The language's name written in that language, so the language picker
+    /// reads the same regardless of the current UI language.
+    var nativeName: String? {
+        switch self {
+        case .system: nil
+        case .simplifiedChinese: "简体中文"
+        case .english: "English"
+        case .spanish: "Español"
+        case .german: "Deutsch"
+        case .japanese: "日本語"
+        case .french: "Français"
+        case .portuguese: "Português"
+        case .russian: "Русский"
+        }
+    }
 
     var locale: Locale {
         guard self != .system else { return .current }
@@ -220,6 +242,20 @@ enum AppLanguage: String, CaseIterable, Identifiable {
 
     static var current: AppLanguage {
         AppLanguage(rawValue: UserDefaults.standard.string(forKey: defaultsKey) ?? "") ?? .system
+    }
+}
+
+enum ProxyType: String, CaseIterable, Identifiable, Codable, Sendable {
+    case http
+    case socks5
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .http: L10n.string("settings.proxyTypeHTTP")
+        case .socks5: L10n.string("settings.proxyTypeSOCKS5")
+        }
     }
 }
 
@@ -242,6 +278,13 @@ final class AppSettings {
         static let escapeStartsNewConversation = "escapeStartsNewConversation"
         static let defaultExpandReasoning = "defaultExpandReasoning"
         static let launchAtLogin = "launchAtLogin"
+        static let silentLaunch = "silentLaunch"
+        static let proxyEnabled = "proxyEnabled"
+        static let proxyType = "proxyType"
+        static let proxyHost = "proxyHost"
+        static let proxyPort = "proxyPort"
+        static let proxyUsername = "proxyUsername"
+        static let diagnosticsEnabled = "diagnosticsEnabled"
         static let appearance = "appearance"
         static let fontSize = "fontSize"
         static let interfaceZoomLevel = "interfaceZoomLevel"
@@ -290,6 +333,18 @@ final class AppSettings {
         didSet { defaults.set(defaultExpandReasoning, forKey: Key.defaultExpandReasoning) }
     }
     var launchAtLogin: Bool { didSet { defaults.set(launchAtLogin, forKey: Key.launchAtLogin) } }
+    var silentLaunch: Bool { didSet { defaults.set(silentLaunch, forKey: Key.silentLaunch) } }
+    var proxyEnabled: Bool { didSet { defaults.set(proxyEnabled, forKey: Key.proxyEnabled) } }
+    var proxyType: ProxyType { didSet { defaults.set(proxyType.rawValue, forKey: Key.proxyType) } }
+    var proxyHost: String { didSet { defaults.set(proxyHost, forKey: Key.proxyHost) } }
+    var proxyPort: Int { didSet { defaults.set(proxyPort, forKey: Key.proxyPort) } }
+    var proxyUsername: String { didSet { defaults.set(proxyUsername, forKey: Key.proxyUsername) } }
+    var diagnosticsEnabled: Bool {
+        didSet {
+            defaults.set(diagnosticsEnabled, forKey: Key.diagnosticsEnabled)
+            DiagnosticLogStore.shared.setEnabled(diagnosticsEnabled)
+        }
+    }
     var appearance: AppearanceMode {
         didSet {
             defaults.set(appearance.rawValue, forKey: Key.appearance)
@@ -410,6 +465,13 @@ final class AppSettings {
         escapeStartsNewConversation = defaults.object(forKey: Key.escapeStartsNewConversation) as? Bool ?? false
         defaultExpandReasoning = defaults.object(forKey: Key.defaultExpandReasoning) as? Bool ?? false
         launchAtLogin = defaults.bool(forKey: Key.launchAtLogin)
+        silentLaunch = defaults.object(forKey: Key.silentLaunch) as? Bool ?? false
+        proxyEnabled = defaults.object(forKey: Key.proxyEnabled) as? Bool ?? false
+        proxyType = ProxyType(rawValue: defaults.string(forKey: Key.proxyType) ?? "") ?? .http
+        proxyHost = defaults.string(forKey: Key.proxyHost) ?? ""
+        proxyPort = defaults.object(forKey: Key.proxyPort) as? Int ?? 1080
+        proxyUsername = defaults.string(forKey: Key.proxyUsername) ?? ""
+        diagnosticsEnabled = defaults.object(forKey: Key.diagnosticsEnabled) as? Bool ?? false
         appearance = AppearanceMode(rawValue: defaults.string(forKey: Key.appearance) ?? "system") ?? .system
         fontSize = FontSize(rawValue: defaults.string(forKey: Key.fontSize) ?? "standard") ?? .standard
         interfaceZoomLevel = InterfaceZoomLevel(rawValue: defaults.string(forKey: Key.interfaceZoomLevel) ?? "standard") ?? .standard
@@ -443,6 +505,7 @@ final class AppSettings {
         providerRegistryStorage.setCatalogChangeHandler { [weak self] in
             self?.applyCatalogProjection()
         }
+        DiagnosticLogStore.shared.setEnabled(diagnosticsEnabled)
         applyCatalogProjection()
         savePromptPresetCatalog()
         saveCustomPromptPresets()
@@ -576,7 +639,12 @@ final class AppSettings {
                 language: language.rawValue,
                 hotKeyPreset: hotKeyPreset.rawValue,
                 keepWindowOnTop: keepWindowOnTop,
-                showsMenuBarIcon: showsMenuBarIcon
+                showsMenuBarIcon: showsMenuBarIcon,
+                proxyEnabled: proxyEnabled,
+                proxyType: proxyType.rawValue,
+                proxyHost: proxyHost,
+                proxyPort: proxyPort,
+                proxyUsername: proxyUsername
             ),
             promptPresetCatalog: promptPresetCatalog,
             shortcutConfiguration: inAppShortcutConfiguration,
@@ -591,6 +659,10 @@ final class AppSettings {
                 if let key = try keyStore.readAPIKey(for: provider.id), !key.isEmpty {
                     apiKeys[provider.id.uuidString] = key
                 }
+            }
+            if let proxyPassword = try keyStore.readAPIKey(for: ProxyCredentialSlot.providerID),
+               !proxyPassword.isEmpty {
+                apiKeys[ProxyCredentialSlot.providerID.uuidString] = proxyPassword
             }
             backup.apiKeys = apiKeys
         }
@@ -621,6 +693,11 @@ final class AppSettings {
         hotKeyPreset = HotKeyPreset(rawValue: general.hotKeyPreset) ?? .optionSpace
         keepWindowOnTop = general.keepWindowOnTop
         showsMenuBarIcon = general.showsMenuBarIcon
+        if let proxyEnabled = general.proxyEnabled { self.proxyEnabled = proxyEnabled }
+        if let proxyType = general.proxyType, let type = ProxyType(rawValue: proxyType) { self.proxyType = type }
+        if let proxyHost = general.proxyHost { self.proxyHost = proxyHost }
+        if let proxyPort = general.proxyPort { self.proxyPort = proxyPort }
+        if let proxyUsername = general.proxyUsername { self.proxyUsername = proxyUsername }
 
         promptPresetCatalog = Self.normalizedPromptPresetCatalog(backup.promptPresetCatalog)
         inAppShortcutConfiguration = backup.shortcutConfiguration
@@ -632,7 +709,7 @@ final class AppSettings {
             let providerIDs = Set(providerRegistry.catalog?.providers.map(\.id) ?? [])
             for (rawID, key) in apiKeys {
                 guard let providerID = UUID(uuidString: rawID),
-                      providerIDs.contains(providerID) else { continue }
+                      providerID == ProxyCredentialSlot.providerID || providerIDs.contains(providerID) else { continue }
                 try keyStore.saveAPIKey(key, for: providerID)
             }
         }

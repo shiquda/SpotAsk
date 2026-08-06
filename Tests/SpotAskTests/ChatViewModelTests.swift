@@ -192,7 +192,7 @@ final class ChatViewModelTests: XCTestCase {
             role: .user,
             content: "question",
             appliedPresetTitle: "Translate",
-            appliedPresetSymbolName: "globe"
+            appliedPresetSymbolName: "character.bubble"
         )
 
         try store.save([message])
@@ -212,8 +212,8 @@ final class ChatViewModelTests: XCTestCase {
 
         let question = viewModel.messages.first { $0.role == .user }
         XCTAssertEqual(question?.appliedPresetTitle, preset.title)
-        XCTAssertEqual(question?.appliedPresetSymbolName, "globe")
-        XCTAssertEqual(question?.appliedPresetIcon, "globe")
+        XCTAssertEqual(question?.appliedPresetSymbolName, "character.bubble")
+        XCTAssertEqual(question?.appliedPresetIcon, "character.bubble")
     }
 
     // MARK: - Stale session choice

@@ -61,6 +61,39 @@ final class URLNormalizerTests: XCTestCase {
         XCTAssertEqual(endpoint.absoluteString, "http://localhost:8080/v1/chat/completions")
     }
 
+    func testAnthropicBaseURLBecomesMessagesEndpoint() throws {
+        XCTAssertEqual(
+            try URLNormalizer.endpoint(from: "https://api.anthropic.com", useFullEndpoint: false, format: .anthropic).absoluteString,
+            "https://api.anthropic.com/v1/messages"
+        )
+        XCTAssertEqual(
+            try URLNormalizer.endpoint(from: "https://api.anthropic.com/v1", useFullEndpoint: false, format: .anthropic).absoluteString,
+            "https://api.anthropic.com/v1/messages"
+        )
+    }
+
+    func testAnthropicFullEndpointIsUsedAsIs() throws {
+        XCTAssertEqual(
+            try URLNormalizer.endpoint(
+                from: "https://api.anthropic.com/v1/messages",
+                useFullEndpoint: true,
+                format: .anthropic
+            ).absoluteString,
+            "https://api.anthropic.com/v1/messages"
+        )
+    }
+
+    func testAnthropicModelsEndpointKeepsV1Prefix() throws {
+        XCTAssertEqual(
+            try URLNormalizer.modelsEndpoint(from: "https://api.anthropic.com", format: .anthropic).absoluteString,
+            "https://api.anthropic.com/v1/models"
+        )
+        XCTAssertEqual(
+            try URLNormalizer.modelsEndpoint(from: "https://api.anthropic.com/v1/", format: .anthropic).absoluteString,
+            "https://api.anthropic.com/v1/models"
+        )
+    }
+
     func testRejectsMissingSchemeAndHost() throws {
         for rawValue in ["api.example.com/v1", "https:///v1", ""] {
             XCTAssertThrowsError(try URLNormalizer.endpoint(from: rawValue, useFullEndpoint: false))

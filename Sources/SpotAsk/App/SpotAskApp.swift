@@ -169,6 +169,11 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.addObserver(self, selector: #selector(reconfigureSelectionHotKey), name: .spotAskSelectionAssistantChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(refreshAccessibilityPermission), name: NSApplication.didBecomeActiveNotification, object: nil)
         SpotAskShortcuts.updateAppShortcutParameters()
+        DiagnosticLogStore.shared.setEnabled(settings.diagnosticsEnabled)
+        DiagnosticLogStore.shared.record("app-launch")
+        if !settings.silentLaunch {
+            SpotAskCommandCenter.shared.open()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -323,6 +323,66 @@ private struct ProviderSettingsPage: View {
         } message: {
             Text(L10n.string("settings.deleteModelMessage"))
         }
+        .sheet(isPresented: $state.isModelSelectionPresented) {
+            DiscoveredModelSelectionSheet(state: state)
+        }
+    }
+}
+
+// MARK: - Discovered Model Selection
+
+private struct DiscoveredModelSelectionSheet: View {
+    @Bindable var state: ProviderSettingsState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(L10n.string("settings.modelSelectionTitle"))
+                .font(.title2.weight(.semibold))
+            Text(L10n.string("settings.modelSelectionDescription"))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(state.discoveredModelCandidates, id: \.self) { modelID in
+                        Toggle(isOn: Binding(
+                            get: { state.selectedDiscoveredModelIDs.contains(modelID) },
+                            set: { _ in state.toggleDiscoveredModel(modelID) }
+                        )) {
+                            Text(modelID)
+                                .font(.system(size: 13))
+                                .textSelection(.enabled)
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(minHeight: 180, maxHeight: 280)
+
+            HStack {
+                Button(L10n.string("settings.modelSelectionSelectAll")) {
+                    state.selectAllDiscoveredModels()
+                }
+                .buttonStyle(.bordered)
+
+                Spacer()
+
+                Button(L10n.string("settings.cancel")) {
+                    state.cancelModelSelection()
+                }
+                .keyboardShortcut(.cancelAction)
+
+                Button(L10n.string("settings.modelSelectionAdd")) {
+                    state.applySelectedDiscoveredModels()
+                }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+                .disabled(state.selectedDiscoveredModelIDs.isEmpty)
+            }
+        }
+        .padding(24)
+        .frame(width: 460, height: 380)
     }
 }
 
@@ -653,6 +713,21 @@ private struct ProviderDetailForm: View {
                         .textFieldStyle(.roundedBorder)
                         .onChange(of: state.draftProviderName) { _, _ in state.clearStatus() }
                 }
+                SettingsFieldRow(label: L10n.string("settings.providerFormat")) {
+                    HStack(spacing: 0) {
+                        Picker(L10n.string("settings.providerFormat"), selection: $state.draftProviderFormat) {
+                            Text(L10n.string("settings.providerFormatOpenAI")).tag(ProviderFormat.openAICompatible)
+                            Text(L10n.string("settings.providerFormatAnthropic")).tag(ProviderFormat.anthropic)
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        Spacer(minLength: 0)
+                    }
+                    .onChange(of: state.draftProviderFormat) { _, _ in
+                        state.validateProviderURL(state.draftProviderAddress)
+                        state.clearStatus()
+                    }
+                }
                 SettingsFieldRow(label: L10n.string("settings.serviceAddress")) {
                     TextField("https://api.example.com/v1", text: $state.draftProviderAddress)
                         .textFieldStyle(.roundedBorder)
@@ -664,12 +739,15 @@ private struct ProviderDetailForm: View {
                         .foregroundStyle(.red)
                 }
                 SettingsFieldRow(label: L10n.string("settings.addressMode")) {
-                    Picker(L10n.string("settings.addressMode"), selection: $state.draftProviderAddressMode) {
-                        Text(L10n.string("settings.addressModeBaseURL")).tag(ProviderAddressMode.baseURL)
-                        Text(L10n.string("settings.addressModeFullEndpoint")).tag(ProviderAddressMode.fullEndpoint)
+                    HStack(spacing: 0) {
+                        Picker(L10n.string("settings.addressMode"), selection: $state.draftProviderAddressMode) {
+                            Text(L10n.string("settings.addressModeBaseURL")).tag(ProviderAddressMode.baseURL)
+                            Text(L10n.string("settings.addressModeFullEndpoint")).tag(ProviderAddressMode.fullEndpoint)
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        Spacer(minLength: 0)
                     }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
                     .onChange(of: state.draftProviderAddressMode) { _, _ in
                         state.validateProviderURL(state.draftProviderAddress)
                     }
@@ -680,29 +758,6 @@ private struct ProviderDetailForm: View {
                             .labelsHidden()
                         Text(L10n.string("settings.seconds", Int(state.draftProviderTimeout)))
                             .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            if !isNew, state.selectedProviderSupportsModelRefresh {
-                SettingsGroup(title: L10n.string("settings.availableModels")) {
-                    Text(L10n.string("settings.modelRefreshDescription"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    HStack(spacing: 10) {
-                        Button {
-                            state.refreshModels()
-                        } label: {
-                            Label(L10n.string("settings.refreshModels"), systemImage: "arrow.clockwise")
-                        }
-                        .disabled(!state.canRefreshModels || state.isRefreshingModels)
-
-                        if state.isRefreshingModels {
-                            ProgressView().controlSize(.small)
-                            Button(L10n.string("settings.stopRefresh")) {
-                                state.cancelModelRefresh()
-                            }
-                        }
                     }
                 }
             }
@@ -742,6 +797,30 @@ private struct ProviderDetailForm: View {
                     Text(L10n.string("settings.accessKeyOnlyOnMac"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                }
+            }
+
+            if !isNew, state.selectedProviderSupportsModelRefresh {
+                SettingsGroup(title: L10n.string("settings.availableModels")) {
+                    Text(L10n.string("settings.modelRefreshDescription"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 10) {
+                        Button {
+                            state.refreshModels()
+                        } label: {
+                            Label(L10n.string("settings.refreshModels"), systemImage: "arrow.clockwise")
+                        }
+                        .disabled(!state.canRefreshModels || state.isRefreshingModels)
+
+                        if state.isRefreshingModels {
+                            ProgressView().controlSize(.small)
+                            Button(L10n.string("settings.stopRefresh")) {
+                                state.cancelModelRefresh()
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1870,7 +1949,7 @@ enum ShortcutRecorderEventParser {
 
 private struct GeneralSettingsPage: View {
     let settings: AppSettings
-    let providerState: ProviderSettingsState
+    @Bindable var providerState: ProviderSettingsState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
@@ -1881,8 +1960,9 @@ private struct GeneralSettingsPage: View {
                 SettingsFieldRow(label: L10n.string("settings.language")) {
                     Picker(L10n.string("settings.language"), selection: Bindable(settings).language) {
                         Text(L10n.string("language.system")).tag(AppLanguage.system)
-                        Text(L10n.string("language.simplifiedChinese")).tag(AppLanguage.simplifiedChinese)
-                        Text(L10n.string("language.english")).tag(AppLanguage.english)
+                        ForEach(AppLanguage.allCases.filter { $0 != .system }) { language in
+                            Text(language.nativeName ?? language.rawValue).tag(language)
+                        }
                     }
                     .labelsHidden()
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1904,6 +1984,10 @@ private struct GeneralSettingsPage: View {
                 }
                 SettingsToggleRow(label: L10n.string("settings.launchAtLogin"), isOn: Bindable(settings).launchAtLogin)
                     .onChange(of: settings.launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
+                SettingsToggleRow(label: L10n.string("settings.silentLaunch"), isOn: Bindable(settings).silentLaunch)
+                Text(L10n.string("settings.silentLaunchDescription"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 SettingsToggleRow(label: L10n.string("settings.showMenuBarIcon"), isOn: Bindable(settings).showsMenuBarIcon)
                 SettingsToggleRow(label: L10n.string("settings.restoreSession"), isOn: Bindable(settings).retainSession)
                 SettingsToggleRow(label: L10n.string("settings.clearInputOnClose"), isOn: Bindable(settings).clearInputOnClose)
@@ -1926,6 +2010,68 @@ private struct GeneralSettingsPage: View {
                     }
                     .labelsHidden()
                     .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+
+            SettingsGroup(title: L10n.string("settings.proxy")) {
+                SettingsToggleRow(label: L10n.string("settings.proxyEnabled"), isOn: Bindable(settings).proxyEnabled)
+                if settings.proxyEnabled {
+                    SettingsFieldRow(label: L10n.string("settings.proxyType")) {
+                        HStack(spacing: 0) {
+                            Picker(L10n.string("settings.proxyType"), selection: Bindable(settings).proxyType) {
+                                ForEach(ProxyType.allCases) { type in
+                                    Text(type.title).tag(type)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+                            Spacer(minLength: 0)
+                        }
+                    }
+                    SettingsFieldRow(label: L10n.string("settings.proxyHost")) {
+                        TextField(L10n.string("settings.proxyHostPlaceholder"), text: Bindable(settings).proxyHost)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    SettingsFieldRow(label: L10n.string("settings.proxyPort")) {
+                        TextField(
+                            "",
+                            value: Bindable(settings).proxyPort,
+                            format: .number
+                        )
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 120, alignment: .leading)
+                    }
+                    SettingsFieldRow(label: L10n.string("settings.proxyUsername")) {
+                        TextField(L10n.string("settings.proxyUsernamePlaceholder"), text: Bindable(settings).proxyUsername)
+                            .textFieldStyle(.roundedBorder)
+                            .textContentType(.username)
+                    }
+                    SettingsFieldRow(label: L10n.string("settings.proxyPassword")) {
+                        SecureField(L10n.string("settings.proxyPasswordPlaceholder"), text: $providerState.proxyPasswordDraft)
+                            .textFieldStyle(.roundedBorder)
+                            .textContentType(.password)
+                            .onChange(of: providerState.proxyPasswordDraft) { _, _ in
+                                providerState.persistProxyPasswordDraft()
+                            }
+                    }
+                }
+            }
+
+            SettingsGroup(title: L10n.string("settings.diagnostics")) {
+                SettingsToggleRow(label: L10n.string("settings.diagnosticsEnabled"), isOn: Bindable(settings).diagnosticsEnabled)
+                Text(L10n.string("settings.diagnosticsDescription"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if settings.diagnosticsEnabled {
+                    HStack(spacing: 10) {
+                        Button(L10n.string("settings.diagnosticsExport")) {
+                            providerState.exportDiagnostics()
+                        }
+                        .buttonStyle(.bordered)
+                        Button(L10n.string("settings.diagnosticsClear"), role: .destructive) {
+                            providerState.clearDiagnostics()
+                        }
+                    }
                 }
             }
 
@@ -1977,20 +2123,28 @@ private struct AppearanceSettingsPage: View {
             SettingsCallout(L10n.string("settings.readingDescription"))
             SettingsGroup(title: L10n.string("settings.reading")) {
                 SettingsFieldRow(label: L10n.string("settings.appearance")) {
-                    Picker(L10n.string("settings.appearance"), selection: Bindable(settings).appearance) {
-                        Text(L10n.string("appearance.system")).tag(AppearanceMode.system)
-                        Text(L10n.string("appearance.light")).tag(AppearanceMode.light)
-                        Text(L10n.string("appearance.dark")).tag(AppearanceMode.dark)
+                    HStack(spacing: 0) {
+                        Picker(L10n.string("settings.appearance"), selection: Bindable(settings).appearance) {
+                            Text(L10n.string("appearance.system")).tag(AppearanceMode.system)
+                            Text(L10n.string("appearance.light")).tag(AppearanceMode.light)
+                            Text(L10n.string("appearance.dark")).tag(AppearanceMode.dark)
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        Spacer(minLength: 0)
                     }
-                    .pickerStyle(.segmented)
                 }
                 SettingsFieldRow(label: L10n.string("settings.fontSize")) {
-                    Picker(L10n.string("settings.fontSize"), selection: Bindable(settings).fontSize) {
-                        Text(L10n.string("font.small")).tag(FontSize.small)
-                        Text(L10n.string("font.standard")).tag(FontSize.standard)
-                        Text(L10n.string("font.large")).tag(FontSize.large)
+                    HStack(spacing: 0) {
+                        Picker(L10n.string("settings.fontSize"), selection: Bindable(settings).fontSize) {
+                            Text(L10n.string("font.small")).tag(FontSize.small)
+                            Text(L10n.string("font.standard")).tag(FontSize.standard)
+                            Text(L10n.string("font.large")).tag(FontSize.large)
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        Spacer(minLength: 0)
                     }
-                    .pickerStyle(.segmented)
                 }
             }
         }
@@ -2224,6 +2378,7 @@ final class ProviderSettingsState {
     var draftProviderAddress = ""
     var draftProviderAddressMode: ProviderAddressMode = .baseURL
     var draftProviderTimeout: Double = 60
+    var draftProviderFormat: ProviderFormat = .openAICompatible
 
     // MARK: Model draft
 
@@ -2247,9 +2402,16 @@ final class ProviderSettingsState {
     var statusIsError = false
     var testingModelID: UUID?
     var providerFieldError: String?
+    var proxyPasswordDraft = ""
     var modelRefreshStatus: ModelRefreshStatus = .idle {
         didSet { notifyModelRefreshStatus() }
     }
+
+    // MARK: Discovered model selection
+
+    var discoveredModelCandidates: [String] = []
+    var selectedDiscoveredModelIDs: Set<String> = []
+    var isModelSelectionPresented = false
 
     var isTesting: Bool {
         testingModelID != nil
@@ -2295,7 +2457,11 @@ final class ProviderSettingsState {
         let address = draftProviderAddress.trimmingCharacters(in: .whitespacesAndNewlines)
         return !address.isEmpty
             && providerFieldError == nil
-            && (try? URLNormalizer.endpoint(from: address, useFullEndpoint: draftProviderAddressMode.usesFullEndpoint)) != nil
+            && (try? URLNormalizer.endpoint(
+                from: address,
+                useFullEndpoint: draftProviderAddressMode.usesFullEndpoint,
+                format: draftProviderFormat
+            )) != nil
     }
 
     var selectedProviderSupportsModelRefresh: Bool {
@@ -2340,13 +2506,18 @@ final class ProviderSettingsState {
         keyStore: any APIKeyStoring,
         providerFactory: any ChatProviderFactory,
         settingsWindowProvider: (() -> NSWindow?)? = nil,
-        modelDiscovery: any ProviderModelDiscovering = OpenAICompatibleModelDiscovery()
+        modelDiscovery: (any ProviderModelDiscovering)? = nil
     ) {
         self.settings = settings
         self.keyStore = keyStore
         self.providerFactory = providerFactory
         self.settingsWindowProvider = settingsWindowProvider
-        self.modelDiscovery = modelDiscovery
+        self.proxyPasswordDraft = (try? keyStore.readAPIKey(for: ProxyCredentialSlot.providerID)) ?? ""
+        self.modelDiscovery = modelDiscovery ?? ProviderModelDiscoveryRouter(
+            urlSession: ChatNetworking.urlSession(
+                proxyConfiguration: Self.makeProxyConfiguration(settings: settings, keyStore: keyStore)
+            )
+        )
         self.activeModelID = settings.providerRegistry.catalog?.selectedModelID
 
         // Auto-select first provider on init
@@ -2371,6 +2542,7 @@ final class ProviderSettingsState {
         draftProviderAddress = provider.address
         draftProviderAddressMode = provider.addressMode
         draftProviderTimeout = provider.timeout
+        draftProviderFormat = provider.format
 
         draftModelDisplayName = ""
         draftModelUpstreamID = ""
@@ -2401,6 +2573,7 @@ final class ProviderSettingsState {
         draftProviderAddress = ""
         draftProviderAddressMode = .baseURL
         draftProviderTimeout = 60
+        draftProviderFormat = .openAICompatible
 
         apiKeyDraft = ""
         status = ""
@@ -2429,6 +2602,7 @@ final class ProviderSettingsState {
         draftProviderAddress = ""
         draftProviderAddressMode = .baseURL
         draftProviderTimeout = 60
+        draftProviderFormat = .openAICompatible
         apiKeyDraft = ""
         status = ""
         statusIsError = false
@@ -2469,6 +2643,7 @@ final class ProviderSettingsState {
             draftProviderAddress = provider.address
             draftProviderAddressMode = provider.addressMode
             draftProviderTimeout = provider.timeout
+            draftProviderFormat = provider.format
             draftModelDisplayName = ""
             draftModelUpstreamID = ""
             draftModelStreaming = true
@@ -2482,6 +2657,7 @@ final class ProviderSettingsState {
             draftProviderAddress = ""
             draftProviderAddressMode = .baseURL
             draftProviderTimeout = 60
+            draftProviderFormat = .openAICompatible
             apiKeyDraft = ""
         } else {
             selectedProviderID = nil
@@ -2490,6 +2666,7 @@ final class ProviderSettingsState {
             draftProviderAddress = ""
             draftProviderAddressMode = .baseURL
             draftProviderTimeout = 60
+            draftProviderFormat = .openAICompatible
             draftModelDisplayName = ""
             draftModelUpstreamID = ""
             draftModelStreaming = true
@@ -2521,7 +2698,8 @@ final class ProviderSettingsState {
                 name: name,
                 address: address,
                 addressMode: draftProviderAddressMode,
-                timeout: draftProviderTimeout
+                timeout: draftProviderTimeout,
+                format: draftProviderFormat
             )
             let saved = try settings.providerRegistry.saveProvider(provider)
             isCreatingProvider = false
@@ -2684,6 +2862,18 @@ final class ProviderSettingsState {
         }
     }
 
+    func persistProxyPasswordDraft() {
+        do {
+            if proxyPasswordDraft.isEmpty {
+                try keyStore.deleteAPIKey(for: ProxyCredentialSlot.providerID)
+            } else {
+                try keyStore.saveAPIKey(proxyPasswordDraft, for: ProxyCredentialSlot.providerID)
+            }
+        } catch {
+            setStatus(L10n.string("settings.saveKeyFailure"), isError: true)
+        }
+    }
+
     func testConnection(modelID: UUID? = nil) {
         guard !isTesting else { return }
         guard let catalog = settings.providerRegistry.catalog else { return }
@@ -2729,7 +2919,8 @@ final class ProviderSettingsState {
 
                 let endpoint = try URLNormalizer.endpoint(
                     from: address,
-                    useFullEndpoint: mode.usesFullEndpoint
+                    useFullEndpoint: mode.usesFullEndpoint,
+                    format: isDraftProvider ? draftProviderFormat : provider.format
                 )
                 let target = ProviderTargetSnapshot(
                     modelID: model.id,
@@ -2739,7 +2930,8 @@ final class ProviderSettingsState {
                     displayName: model.displayName,
                     upstreamModelID: model.upstreamModelID,
                     isStreamingEnabled: model.isStreamingEnabled,
-                    timeout: timeout
+                    timeout: timeout,
+                    format: isDraftProvider ? draftProviderFormat : provider.format
                 )
                 let chatProvider = try providerFactory.makeProvider(for: target)
                 try await chatProvider.testConnection()
@@ -2769,8 +2961,7 @@ final class ProviderSettingsState {
         invalidateModelRefresh(status: .loading)
         let generation = modelRefreshGeneration
         let keyStore = keyStore
-        let modelDiscovery = modelDiscovery
-        let registry = settings.providerRegistry
+        let modelDiscovery = effectiveModelDiscovery
         modelRefreshTask = Task { [weak self] in
             do {
                 guard let apiKey = try keyStore.readAPIKey(for: providerID),
@@ -2780,12 +2971,15 @@ final class ProviderSettingsState {
                 let upstreamModelIDs = try await modelDiscovery.models(for: provider, apiKey: apiKey)
                 try Task.checkCancellation()
                 guard let self, self.modelRefreshGeneration == generation else { return }
-                try registry.replaceDiscoveredModels(for: providerID, upstreamModelIDs: upstreamModelIDs)
-                self.syncActiveModelID()
-                let discoveredModelCount = registry.catalog?.models.filter {
-                    $0.providerID == providerID && $0.source == .discovered
-                }.count ?? 0
-                self.modelRefreshStatus = .success(discoveredModelCount)
+                let normalizedIDs = Set(
+                    upstreamModelIDs
+                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                        .filter { !$0.isEmpty }
+                ).sorted()
+                self.discoveredModelCandidates = normalizedIDs
+                self.selectedDiscoveredModelIDs = Set(normalizedIDs)
+                self.isModelSelectionPresented = !normalizedIDs.isEmpty
+                self.modelRefreshStatus = .success(normalizedIDs.count)
             } catch let error as ProviderModelDiscoveryError {
                 guard let self, self.modelRefreshGeneration == generation else { return }
                 switch error {
@@ -2815,6 +3009,48 @@ final class ProviderSettingsState {
         invalidateModelRefresh(status: .cancelled)
     }
 
+    func toggleDiscoveredModel(_ upstreamModelID: String) {
+        if selectedDiscoveredModelIDs.contains(upstreamModelID) {
+            selectedDiscoveredModelIDs.remove(upstreamModelID)
+        } else {
+            selectedDiscoveredModelIDs.insert(upstreamModelID)
+        }
+    }
+
+    func selectAllDiscoveredModels() {
+        selectedDiscoveredModelIDs = Set(discoveredModelCandidates)
+    }
+
+    func deselectAllDiscoveredModels() {
+        selectedDiscoveredModelIDs.removeAll()
+    }
+
+    func applySelectedDiscoveredModels() {
+        guard let providerID = selectedProviderID else {
+            cancelModelSelection()
+            return
+        }
+        do {
+            try settings.providerRegistry.replaceDiscoveredModels(
+                for: providerID,
+                upstreamModelIDs: selectedDiscoveredModelIDs.sorted()
+            )
+            syncActiveModelID()
+            let addedCount = selectedDiscoveredModelIDs.count
+            cancelModelSelection()
+            setStatus(L10n.string("settings.modelsAdded", addedCount), isError: false)
+        } catch {
+            setStatus(L10n.string("settings.modelAddFailed"), isError: true)
+        }
+    }
+
+    func cancelModelSelection() {
+        isModelSelectionPresented = false
+        discoveredModelCandidates = []
+        selectedDiscoveredModelIDs.removeAll()
+        if case .success = modelRefreshStatus { modelRefreshStatus = .idle }
+    }
+
     // MARK: Validation
 
     func validateProviderURL(_ value: String) {
@@ -2825,11 +3061,39 @@ final class ProviderSettingsState {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         do {
-            _ = try URLNormalizer.endpoint(from: trimmed, useFullEndpoint: draftProviderAddressMode.usesFullEndpoint)
+            _ = try URLNormalizer.endpoint(
+                from: trimmed,
+                useFullEndpoint: draftProviderAddressMode.usesFullEndpoint,
+                format: draftProviderFormat
+            )
             return nil
         } catch {
             return L10n.string("settings.endpointInvalid")
         }
+    }
+
+    private static func makeProxyConfiguration(
+        settings: AppSettings,
+        keyStore: any APIKeyStoring
+    ) -> [String: Any]? {
+        guard settings.proxyEnabled else { return nil }
+        let password = (try? keyStore.readAPIKey(for: ProxyCredentialSlot.providerID)) ?? ""
+        return ChatNetworking.proxyConfiguration(
+            type: settings.proxyType,
+            host: settings.proxyHost,
+            port: settings.proxyPort,
+            username: settings.proxyUsername,
+            password: password
+        )
+    }
+
+    private var effectiveModelDiscovery: any ProviderModelDiscovering {
+        guard modelDiscovery is ProviderModelDiscoveryRouter else { return modelDiscovery }
+        return ProviderModelDiscoveryRouter(
+            urlSession: ChatNetworking.urlSession(
+                proxyConfiguration: Self.makeProxyConfiguration(settings: settings, keyStore: keyStore)
+            )
+        )
     }
 
     private func invalidateModelRefresh(status: ModelRefreshStatus = .idle) {
@@ -2934,6 +3198,35 @@ final class ProviderSettingsState {
         } catch {
             setStatus(L10n.string("settings.resetFailure"), isError: true)
         }
+    }
+
+    // MARK: Diagnostics
+
+    func exportDiagnostics(presentingWindow: NSWindow? = nil) {
+        NSApp.activate(ignoringOtherApps: true)
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.plainText]
+        panel.nameFieldStringValue = "SpotAsk-Diagnostics.txt"
+        let handleResponse: (NSApplication.ModalResponse) -> Void = { [weak self] response in
+            guard let self else { return }
+            guard response == .OK, let url = panel.url else { return }
+            do {
+                try DiagnosticLogStore.shared.exportedText().write(to: url, atomically: true, encoding: .utf8)
+                self.setStatus(L10n.string("settings.diagnosticsExported"), isError: false)
+            } catch {
+                self.setStatus(L10n.string("settings.diagnosticsExportFailed"), isError: true)
+            }
+        }
+        if let window = presentingWindow ?? settingsWindowProvider?() ?? NSApp.keyWindow ?? NSApp.mainWindow {
+            panel.beginSheetModal(for: window, completionHandler: handleResponse)
+        } else {
+            handleResponse(panel.runModal())
+        }
+    }
+
+    func clearDiagnostics() {
+        DiagnosticLogStore.shared.clear()
+        setStatus(L10n.string("settings.diagnosticsCleared"), isError: false)
     }
 
     // MARK: Private

@@ -1,0 +1,10 @@
+"打开 ${applicationName}" = "Открыть ${applicationName}";
+"启动 ${applicationName}" = "Запустить ${applicationName}";
+"使用 ${applicationName} 提问" = "Спросить с помощью ${applicationName}";
+"让 ${applicationName} 回答" = "Спросить ИИ с помощью ${applicationName}";
+"问 ${applicationName}" = "Спросить у ${applicationName}";
+"使用 ${applicationName} 翻译" = "Перевести с помощью ${applicationName}";
+"使用 ${applicationName} 润色" = "Отредактировать с помощью ${applicationName}";
+"使用 ${applicationName} 总结" = "Кратко изложить с помощью ${applicationName}";
+"使用 ${applicationName} 解释" = "Объяснить с помощью ${applicationName}";
+"在 ${applicationName} 开始新对话" = "Начать новый разговор в ${applicationName}";

@@ -15,6 +15,11 @@ final class ConfigBackupTests: XCTestCase {
         source.defaultExpandReasoning = true
         source.systemPrompt = "custom system prompt"
         source.contextLimit = 40
+        source.proxyEnabled = true
+        source.proxyType = .socks5
+        source.proxyHost = "proxy.example.com"
+        source.proxyPort = 7890
+        source.proxyUsername = "backup-user"
 
         let provider = ProviderConfiguration(
             name: "Test Service",
@@ -47,6 +52,11 @@ final class ConfigBackupTests: XCTestCase {
         XCTAssertTrue(destination.defaultExpandReasoning)
         XCTAssertEqual(destination.systemPrompt, "custom system prompt")
         XCTAssertEqual(destination.contextLimit, 40)
+        XCTAssertTrue(destination.proxyEnabled)
+        XCTAssertEqual(destination.proxyType, .socks5)
+        XCTAssertEqual(destination.proxyHost, "proxy.example.com")
+        XCTAssertEqual(destination.proxyPort, 7890)
+        XCTAssertEqual(destination.proxyUsername, "backup-user")
         XCTAssertEqual(destination.providerRegistry.catalog, catalog)
         XCTAssertEqual(destination.promptPresets.first(where: { $0.title == "My Preset" })?.instruction, "Do it")
     }
