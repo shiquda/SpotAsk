@@ -6,7 +6,7 @@ enum SpotAskPanelFadeMetrics {
 }
 
 @MainActor
-protocol SpotAskPanelFadeTarget: AnyObject, Sendable {
+protocol SpotAskPanelFadeTarget: AnyObject {
     var isVisible: Bool { get }
     var alphaValue: CGFloat { get set }
     func makeKeyAndOrderFront(_ sender: Any?)
@@ -325,13 +325,22 @@ private final class SpotAskPanelFadeTargetAdapter: SpotAskPanelFadeTarget {
     }
 
     func animateAlpha(to value: CGFloat, duration: TimeInterval, completion: @escaping () -> Void) {
+        let completion = SendableCompletion(handler: completion)
         NSAnimationContext.runAnimationGroup(
             { context in
                 context.duration = duration
                 panel.animator().alphaValue = value
             },
-            completionHandler: { completion() }
+            completionHandler: { completion.handler() }
         )
+    }
+}
+
+private final class SendableCompletion: @unchecked Sendable {
+    let handler: () -> Void
+
+    init(handler: @escaping () -> Void) {
+        self.handler = handler
     }
 }
 

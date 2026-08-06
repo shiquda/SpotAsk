@@ -31,7 +31,7 @@ protocol ProviderModelDiscoveryTransport: Sendable {
 struct URLSessionProviderModelDiscoveryTransport: ProviderModelDiscoveryTransport {
     let urlSession: URLSession
 
-    init(urlSession: URLSession = .shared) {
+    init(urlSession: URLSession = ChatNetworking.urlSession()) {
         self.urlSession = urlSession
     }
 

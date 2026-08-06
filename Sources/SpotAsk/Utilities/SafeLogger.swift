@@ -4,7 +4,7 @@ import OSLog
 enum SafeLogger {
     private static let logger = Logger(subsystem: "com.spotask.app", category: "network")
     private static let selectionLogger = Logger(subsystem: "com.spotask.app", category: "selection")
-    private static let selectionDiagnosticKey = "selectionDiagnostics"
+    nonisolated(unsafe) static var selectionDiagnosticsSink: any SelectionDiagnosticsSink = UserDefaultsSelectionDiagnosticsSink()
 
     static func networkFailure(status: Int? = nil, url: URL? = nil) {
         var components = url.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }
@@ -66,9 +66,6 @@ enum SafeLogger {
     }
 
     private static func recordSelectionEvent(_ event: String) {
-        let defaults = UserDefaults.standard
-        var events = defaults.stringArray(forKey: selectionDiagnosticKey) ?? []
-        events.append("\(Date().timeIntervalSince1970) \(event)")
-        defaults.set(Array(events.suffix(12)), forKey: selectionDiagnosticKey)
+        selectionDiagnosticsSink.record("\(Date().timeIntervalSince1970) \(event)")
     }
 }

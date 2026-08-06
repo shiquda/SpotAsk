@@ -46,7 +46,6 @@ struct MacOSPointerLocationProvider: PointerLocationProviding {
 }
 
 final class AccessibilitySelectedTextReader: SelectedTextReading, @unchecked Sendable {
-    private static let candidateLimit = 6
     private static let messagingTimeout: TimeInterval = 1
     private static let readAttempts = 2
     private static let retryDelay: TimeInterval = 0.1
@@ -111,19 +110,31 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, @unchecked Sen
         SafeLogger.selectionReadProgress("application-element-ready")
         try elementReader.setMessagingTimeout(Self.messagingTimeout, for: applicationElement)
         SafeLogger.selectionReadProgress("messaging-timeout-set")
-        let focusedElement = try focusedElement(from: applicationElement)
+        let focusedElement = try SelectionElementChain.focusedElement(
+            from: applicationElement,
+            reader: elementReader
+        )
         SafeLogger.selectionReadProgress("focused-element-ready")
-        let candidates = try candidateChain(startingAt: focusedElement)
-        try preflightSensitiveFields(in: candidates)
-        guard let match = try selectedTextMatch(in: candidates) else {
+        let candidates = try SelectionElementChain.chain(
+            startingAt: focusedElement,
+            reader: elementReader
+        )
+        try SelectionElementChain.preflightSensitiveFields(in: candidates, reader: elementReader)
+        guard let match = try SelectionElementChain.selectedTextMatch(
+            in: candidates,
+            reader: elementReader
+        ) else {
             throw SelectionReadingError.noSelection
         }
 
-        let selectedRange = try selectedRange(for: match.element)
+        let selectedRange = try SelectionElementChain.selectedRange(
+            for: match.element,
+            reader: elementReader
+        )
         let canReplaceSelection = selectedRange != nil && ((try? (elementReader as? any AccessibilityElementWriting)?
             .isAttributeSettable(kAXSelectedTextAttribute as String, for: match.element)) ?? false)
         let anchor = SelectionAnchor.pointer(pointerLocationProvider.location())
-        SafeLogger.selectionAnchorResolved("snapshot=\(formatted(anchor))")
+        SafeLogger.selectionAnchorResolved("snapshot=\(SelectionDiagnosticsFormatting.anchor(anchor))")
         return SelectedTextSnapshot(
             text: match.text,
             source: source,
@@ -139,100 +150,6 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, @unchecked Sen
             return false
         }
         return axError == .cannotComplete
-    }
-
-    private func focusedElement(from systemWideElement: AccessibilityElementID) throws -> AccessibilityElementID {
-        let value = try elementReader.copyAttribute(kAXFocusedUIElementAttribute as String, from: systemWideElement)
-        guard case let .element(element) = value else {
-            throw SelectionReadingError.noSelection
-        }
-        return element
-    }
-
-    private func candidateChain(startingAt focusedElement: AccessibilityElementID) throws -> [AccessibilityElementID] {
-        var candidates: [AccessibilityElementID] = []
-        var currentElement: AccessibilityElementID? = focusedElement
-        var visited: Set<AccessibilityElementID> = []
-
-        while let element = currentElement,
-              candidates.count < Self.candidateLimit,
-              visited.insert(element).inserted {
-            candidates.append(element)
-            currentElement = try parent(of: element)
-        }
-        return candidates
-    }
-
-    private func parent(of element: AccessibilityElementID) throws -> AccessibilityElementID? {
-        do {
-            let value = try elementReader.copyAttribute(kAXParentAttribute as String, from: element)
-            guard case let .element(parent) = value else { return nil }
-            return parent
-        } catch {
-            if isAbsentAttribute(error) { return nil }
-            throw error
-        }
-    }
-
-    private func preflightSensitiveFields(in candidates: [AccessibilityElementID]) throws {
-        for element in candidates {
-            _ = try optionalStringAttribute(kAXRoleAttribute as String, from: element)
-            let subrole = try optionalStringAttribute(kAXSubroleAttribute as String, from: element)
-            if subrole == kAXSecureTextFieldSubrole as String {
-                throw SelectionReadingError.sensitiveField
-            }
-        }
-    }
-
-    private func optionalStringAttribute(_ attribute: String, from element: AccessibilityElementID) throws -> String? {
-        do {
-            let value = try elementReader.copyAttribute(attribute, from: element)
-            guard case let .string(string) = value else { return nil }
-            return string
-        } catch {
-            if isAbsentAttribute(error) { return nil }
-            throw error
-        }
-    }
-
-    private func selectedTextMatch(in candidates: [AccessibilityElementID]) throws -> (element: AccessibilityElementID, text: String)? {
-        try SelectionElementChain.selectedTextMatch(in: candidates, reader: elementReader)
-    }
-
-    private func selectedRange(for element: AccessibilityElementID) throws -> SelectionCharacterRange? {
-        do {
-            let value = try elementReader.copyAttribute(kAXSelectedTextRangeAttribute as String, from: element)
-            guard case let .range(range) = value else { return nil }
-            return range.isNonEmpty ? range : nil
-        } catch {
-            if isAbsentAttribute(error) { return nil }
-            throw error
-        }
-    }
-
-    private func formatted(_ point: CGPoint) -> String {
-        String(format: "(%.1f,%.1f)", point.x, point.y)
-    }
-
-    private func formatted(_ rect: CGRect) -> String {
-        String(format: "(%.1f,%.1f,%.1f,%.1f)", rect.minX, rect.minY, rect.width, rect.height)
-    }
-
-    private func formatted(_ anchor: SelectionAnchor) -> String {
-        switch anchor {
-        case let .selectionRect(rect): "selection=\(formatted(rect))"
-        case let .elementRect(rect): "element=\(formatted(rect))"
-        case let .pointer(point): "pointer=\(formatted(point))"
-        }
-    }
-
-    private func isAbsentAttribute(_ error: Error) -> Bool {
-        guard case let .ax(axError) = error as? AccessibilityAdapterError else { return false }
-        return [
-            AccessibilityAXError.attributeUnsupported,
-            AccessibilityAXError.noValue,
-            AccessibilityAXError.parameterizedAttributeUnsupported
-        ].contains(axError)
     }
 
     private func mapAccessibilityError(_ error: Error) -> SelectionReadingError {

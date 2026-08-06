@@ -345,6 +345,12 @@
 "settings.selectionAssistantPermissionAuthorize" = "请求授权";
 "settings.selectionAssistantPermissionRefresh" = "刷新状态";
 "selection.permissionOpenSettings" = "打开系统设置";
+"selection.feedback.permissionDenied" = "需要允许 SpotAsk 读取你主动选中的文字。";
+"selection.feedback.noSelection" = "请先选中文字，再试一次。";
+"selection.feedback.unsupported" = "无法读取这个应用中的选中文字。";
+"selection.feedback.temporaryFailure" = "暂时无法读取选中的文字，请重试。";
+"selection.feedback.selectionChanged" = "选区已改变，请重新触发。";
+"selection.feedback.sensitiveField" = "无法处理安全输入区域中的内容。";
 "menu.quickQuestionMode" = "快速提问模式";
 "chat.insertSelection" = "替换选中文字";
 "chat.insertSelectionSucceeded" = "已替换选中的文字。";

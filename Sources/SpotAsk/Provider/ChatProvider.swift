@@ -42,7 +42,7 @@ struct OpenAICompatibleProviderFactory: ChatProviderFactory {
                 model: target.upstreamModelID,
                 timeout: target.timeout
             ),
-            urlSession: .shared
+            urlSession: ChatNetworking.urlSession()
         )
     }
 }

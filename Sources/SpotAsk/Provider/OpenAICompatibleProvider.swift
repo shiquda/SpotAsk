@@ -11,6 +11,10 @@ struct OpenAICompatibleProvider: ChatProvider {
     let configuration: Configuration
     let urlSession: URLSession
 
+    private var transport: HTTPChatTransport {
+        HTTPChatTransport(urlSession: urlSession)
+    }
+
     func stream(request: ChatRequest) -> AsyncThrowingStream<ChatStreamEvent, Error> {
         guard request.stream else { return nonStreaming(request: request) }
         return AsyncThrowingStream { continuation in
@@ -18,13 +22,9 @@ struct OpenAICompatibleProvider: ChatProvider {
                 do {
                     var urlRequest = try makeURLRequest(for: request)
                     urlRequest.setValue("text/event-stream", forHTTPHeaderField: "Accept")
-                    let (bytes, response) = try await urlSession.bytes(for: urlRequest)
-                    guard let httpResponse = response as? HTTPURLResponse else { throw ChatError.invalidResponse }
-                    guard (200 ... 299).contains(httpResponse.statusCode) else {
-                        throw try await error(from: httpResponse, bytes: bytes)
-                    }
+                    let (bytes, httpResponse) = try await transport.streamingResponse(for: urlRequest)
                     if !(httpResponse.value(forHTTPHeaderField: "Content-Type")?.lowercased().contains("text/event-stream") ?? false) {
-                        let data = try await collect(bytes)
+                        let data = try await ChatHTTP.collect(bytes)
                         let completion = try JSONDecoder().decode(NonStreamingResponse.self, from: data)
                         for event in completion.events { continuation.yield(event) }
                         continuation.yield(.completed)
@@ -51,7 +51,7 @@ struct OpenAICompatibleProvider: ChatProvider {
                 } catch let error as ChatError {
                     continuation.finish(throwing: error)
                 } catch let error as URLError {
-                    continuation.finish(throwing: mapURLError(error))
+                    continuation.finish(throwing: ChatHTTP.mapURLError(error))
                 } catch {
                     continuation.finish(throwing: error)
                 }
@@ -64,8 +64,7 @@ struct OpenAICompatibleProvider: ChatProvider {
         let request = ChatRequest(model: configuration.model, messages: [ChatMessage(role: .user, content: "ping")], stream: false)
         var urlRequest = try makeURLRequest(for: request)
         urlRequest.httpBody = try JSONEncoder().encode(OpenAIRequest(model: configuration.model, messages: [.init(role: "user", content: "ping")], stream: false, maxTokens: 1))
-        let (data, response) = try await urlSession.data(for: urlRequest)
-        try validate(response: response, data: data)
+        _ = try await transport.data(for: urlRequest)
     }
 
     private func nonStreaming(request: ChatRequest) -> AsyncThrowingStream<ChatStreamEvent, Error> {
@@ -74,8 +73,7 @@ struct OpenAICompatibleProvider: ChatProvider {
                 do {
                     var urlRequest = try makeURLRequest(for: request)
                     urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
-                    let (data, response) = try await urlSession.data(for: urlRequest)
-                    try validate(response: response, data: data)
+                    let data = try await transport.data(for: urlRequest)
                     let completion = try JSONDecoder().decode(NonStreamingResponse.self, from: data)
                     for event in completion.events { continuation.yield(event) }
                     continuation.yield(.completed)
@@ -85,7 +83,7 @@ struct OpenAICompatibleProvider: ChatProvider {
                 } catch let error as ChatError {
                     continuation.finish(throwing: error)
                 } catch let error as URLError {
-                    continuation.finish(throwing: mapURLError(error))
+                    continuation.finish(throwing: ChatHTTP.mapURLError(error))
                 } catch {
                     continuation.finish(throwing: ChatError.decodingFailed)
                 }
@@ -105,45 +103,6 @@ struct OpenAICompatibleProvider: ChatProvider {
         return urlRequest
     }
 
-    private func validate(response: URLResponse, data: Data = Data()) throws {
-        guard let http = response as? HTTPURLResponse else { throw ChatError.invalidResponse }
-        switch http.statusCode {
-        case 200 ... 299: return
-        case 401, 403: throw ChatError.unauthorized(message: apiMessage(from: data))
-        case 429: throw ChatError.rateLimited(message: apiMessage(from: data))
-        default: throw ChatError.serverError(status: http.statusCode, message: apiMessage(from: data))
-        }
-    }
-
-    private func error(from response: HTTPURLResponse, bytes: URLSession.AsyncBytes) async throws -> ChatError {
-        let data = try await collect(bytes)
-        switch response.statusCode {
-        case 401, 403: return .unauthorized(message: apiMessage(from: data))
-        case 429: return .rateLimited(message: apiMessage(from: data))
-        default: return .serverError(status: response.statusCode, message: apiMessage(from: data))
-        }
-    }
-
-    private func collect(_ bytes: URLSession.AsyncBytes) async throws -> Data {
-        var data = Data()
-        for try await byte in bytes {
-            if data.count < 65_536 { data.append(byte) }
-        }
-        return data
-    }
-
-    private func apiMessage(from data: Data) -> String? {
-        (try? JSONDecoder().decode(APIErrorEnvelope.self, from: data))?.error?.message
-    }
-
-    private func mapURLError(_ error: URLError) -> ChatError {
-        switch error.code {
-        case .timedOut: .timeout
-        case .cancelled: .cancelled
-        case .notConnectedToInternet, .networkConnectionLost, .cannotFindHost, .cannotConnectToHost: .networkUnavailable
-        default: .invalidResponse
-        }
-    }
 }
 
 struct NonStreamingResponse: Decodable {

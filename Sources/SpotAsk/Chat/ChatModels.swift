@@ -21,6 +21,9 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
     var reasoningContent: String?
     let createdAt: Date
     var state: MessageState
+    /// Timestamp when model reasoning stopped updating, before the answer began.
+    /// Kept separate from `completedAt` so the header can stop at the right point.
+    var reasoningCompletedAt: Date?
     /// The user-facing model name selected when this answer was requested.
     var modelDisplayName: String?
     /// Kept so completed answers can show their actual request duration.
@@ -37,6 +40,7 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         reasoningContent: String? = nil,
         createdAt: Date = .now,
         state: MessageState = .complete,
+        reasoningCompletedAt: Date? = nil,
         modelDisplayName: String? = nil,
         completedAt: Date? = nil,
         appliedPresetTitle: String? = nil,
@@ -48,51 +52,11 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         self.reasoningContent = reasoningContent
         self.createdAt = createdAt
         self.state = state
+        self.reasoningCompletedAt = reasoningCompletedAt
         self.modelDisplayName = modelDisplayName
         self.completedAt = completedAt
         self.appliedPresetTitle = appliedPresetTitle
         self.appliedPresetSymbolName = appliedPresetSymbolName
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case role
-        case content
-        case reasoningContent
-        case createdAt
-        case state
-        case modelDisplayName
-        case completedAt
-        case appliedPresetTitle
-        case appliedPresetSymbolName
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(UUID.self, forKey: .id)
-        role = try container.decode(ChatRole.self, forKey: .role)
-        content = try container.decode(String.self, forKey: .content)
-        reasoningContent = try container.decodeIfPresent(String.self, forKey: .reasoningContent)
-        createdAt = try container.decode(Date.self, forKey: .createdAt)
-        state = try container.decode(MessageState.self, forKey: .state)
-        modelDisplayName = try container.decodeIfPresent(String.self, forKey: .modelDisplayName)
-        completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
-        appliedPresetTitle = try container.decodeIfPresent(String.self, forKey: .appliedPresetTitle)
-        appliedPresetSymbolName = try container.decodeIfPresent(String.self, forKey: .appliedPresetSymbolName)
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(role, forKey: .role)
-        try container.encode(content, forKey: .content)
-        try container.encodeIfPresent(reasoningContent, forKey: .reasoningContent)
-        try container.encode(createdAt, forKey: .createdAt)
-        try container.encode(state, forKey: .state)
-        try container.encodeIfPresent(modelDisplayName, forKey: .modelDisplayName)
-        try container.encodeIfPresent(completedAt, forKey: .completedAt)
-        try container.encodeIfPresent(appliedPresetTitle, forKey: .appliedPresetTitle)
-        try container.encodeIfPresent(appliedPresetSymbolName, forKey: .appliedPresetSymbolName)
     }
 
     var appliedPresetIcon: String {
@@ -102,6 +66,11 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
     var responseDuration: TimeInterval? {
         guard let completedAt else { return nil }
         return max(0, completedAt.timeIntervalSince(createdAt))
+    }
+
+    var reasoningDuration: TimeInterval? {
+        guard let reasoningCompletedAt else { return nil }
+        return max(0, reasoningCompletedAt.timeIntervalSince(createdAt))
     }
 }
 

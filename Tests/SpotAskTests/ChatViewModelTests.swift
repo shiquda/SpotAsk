@@ -131,6 +131,7 @@ final class ChatViewModelTests: XCTestCase {
             role: .assistant,
             content: "answer",
             reasoningContent: "reasoning",
+            reasoningCompletedAt: .now.addingTimeInterval(-1),
             modelDisplayName: "GPT-5 mini",
             completedAt: .now
         )
@@ -138,6 +139,36 @@ final class ChatViewModelTests: XCTestCase {
         try store.save([message])
 
         XCTAssertEqual(try store.load(), [message])
+    }
+
+    func testReasoningTimestampStopsAtFirstAnswerDelta() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.reasoning("plan"), .answer("partial"), .pending]])
+
+        viewModel.input = "question"
+        viewModel.send()
+        for _ in 0 ..< 100 {
+            if viewModel.lastAssistantMessage?.content == "partial" { break }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        XCTAssertEqual(viewModel.lastAssistantMessage?.content, "partial")
+        XCTAssertNotNil(viewModel.lastAssistantMessage?.reasoningCompletedAt)
+        XCTAssertNotNil(viewModel.lastAssistantMessage?.reasoningDuration)
+        viewModel.cancel()
+        XCTAssertEqual(viewModel.lastAssistantMessage?.state, .cancelled)
+    }
+
+    func testReasoningTimestampStopsAtTerminalStateWithoutAnswer() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.reasoning("plan"), .failure(.timeout)]])
+
+        viewModel.input = "question"
+        viewModel.send()
+        await waitForState(viewModel, .failed)
+
+        XCTAssertNotNil(viewModel.lastAssistantMessage?.reasoningCompletedAt)
+        XCTAssertNotNil(viewModel.lastAssistantMessage?.reasoningDuration)
     }
 
     func testCompletedAnswerCapturesModelNameAndDuration() async {

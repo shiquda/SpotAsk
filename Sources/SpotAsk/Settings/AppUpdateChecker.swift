@@ -55,7 +55,7 @@ struct AppUpdateChecker: AppUpdateChecking {
 
     private let session: URLSession
 
-    init(session: URLSession = .shared) {
+    init(session: URLSession = ChatNetworking.urlSession()) {
         self.session = session
     }
 

@@ -1590,8 +1590,9 @@ private struct ShortcutSettingsRow: View {
             .accessibilityLabel(title)
 
             Button {
-                guard settings.removeShortcut(for: target) == nil else { return }
-                show(L10n.string("settings.shortcutCleared"))
+                if settings.removeShortcut(for: target) == nil {
+                    show(L10n.string("settings.shortcutCleared"))
+                }
             } label: {
                 Image(systemName: "xmark")
             }
@@ -1601,8 +1602,9 @@ private struct ShortcutSettingsRow: View {
             .accessibilityLabel(L10n.string("settings.clearShortcut") + " " + title)
 
             Button {
-                guard settings.resetShortcut(for: target) == nil else { return }
-                show(L10n.string("settings.shortcutRestored"))
+                if settings.resetShortcut(for: target) == nil {
+                    show(L10n.string("settings.shortcutRestored"))
+                }
             } label: {
                 Image(systemName: "arrow.counterclockwise")
             }
@@ -2136,7 +2138,7 @@ private struct SettingsGroup<Content: View>: View {
 /// for the fixed 134pt label column, and stacks the label above the control when
 /// it is not. The horizontal candidate demands at least 400pt so every row in a
 /// given column makes the same choice, keeping the Service editor visually uniform.
-private struct SettingsFieldRow<Content: View>: View {
+private struct SettingsLabeledRow<Content: View>: View {
     let label: String
     @ViewBuilder let content: Content
 
@@ -2172,28 +2174,24 @@ private struct SettingsToggleRow: View {
     let label: String
     @Binding var isOn: Bool
 
-    private var toggle: some View {
-        Toggle("", isOn: $isOn)
-            .toggleStyle(.switch)
-            .labelsHidden()
-            .accessibilityLabel(label)
+    var body: some View {
+        SettingsLabeledRow(label: label) {
+            Toggle("", isOn: $isOn)
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .accessibilityLabel(label)
+        }
     }
+}
+
+private struct SettingsFieldRow<Content: View>: View {
+    let label: String
+    @ViewBuilder let content: Content
 
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .center, spacing: 14) {
-                Text(label)
-                    .frame(width: 134, alignment: .leading)
-                toggle
-            }
-            .frame(minWidth: 400)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(label)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary)
-                toggle
-            }
+        SettingsLabeledRow(label: label) {
+            content
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
@@ -2747,7 +2745,7 @@ final class ProviderSettingsState {
                 try await chatProvider.testConnection()
                 setStatus(L10n.string("settings.modelConnectionSuccess"), isError: false)
             } catch let error as ChatError {
-                setStatus(error.localizedDescription ?? String(describing: error), isError: true)
+                setStatus(error.localizedDescription, isError: true)
             } catch {
                 let message = (error as? LocalizedError)?.errorDescription ?? String(describing: error)
                 setStatus(message, isError: true)

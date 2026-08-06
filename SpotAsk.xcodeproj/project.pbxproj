@@ -57,6 +57,9 @@
 		001000000000000000000037 /* AccessibilitySelectionReplacementWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000044 /* AccessibilitySelectionReplacementWriter.swift */; };
 		001000000000000000000038 /* SelectionAutoInvokeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000045 /* SelectionAutoInvokeMonitor.swift */; };
 		001000000000000000000039 /* SelectionElementChain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000046 /* SelectionElementChain.swift */; };
+		00100000000000000000003A /* ChatNetworking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000047 /* ChatNetworking.swift */; };
+		00100000000000000000003B /* SelectionDiagnosticsFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000048 /* SelectionDiagnosticsFormatting.swift */; };
+		00100000000000000000003C /* SelectionDiagnosticsSink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000049 /* SelectionDiagnosticsSink.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -115,6 +118,9 @@
 		002000000000000000000044 /* AccessibilitySelectionReplacementWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/AccessibilitySelectionReplacementWriter.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000045 /* SelectionAutoInvokeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionAutoInvokeMonitor.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000046 /* SelectionElementChain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionElementChain.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000047 /* ChatNetworking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/ChatNetworking.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000048 /* SelectionDiagnosticsFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionDiagnosticsFormatting.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000049 /* SelectionDiagnosticsSink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Utilities/SelectionDiagnosticsSink.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -141,6 +147,7 @@
 				002000000000000000000008 /* SessionStore.swift */,
 				002000000000000000000009 /* ChatProvider.swift */,
 				00200000000000000000000A /* OpenAICompatibleProvider.swift */,
+				002000000000000000000047 /* ChatNetworking.swift */,
 				002000000000000000000032 /* ProviderModelCatalog.swift */,
 				002000000000000000000033 /* ProviderModelRegistry.swift */,
 				002000000000000000000034 /* ProviderTargetResolver.swift */,
@@ -163,6 +170,7 @@
 				002000000000000000000031 /* AppUpdateChecker.swift */,
 				002000000000000000000016 /* Clipboard.swift */,
 				002000000000000000000017 /* SafeLogger.swift */,
+				002000000000000000000049 /* SelectionDiagnosticsSink.swift */,
 				002000000000000000000018 /* URLNormalizer.swift */,
 				002000000000000000000019 /* SpotAskPanelController.swift */,
 				002000000000000000000037 /* SettingsWindowController.swift */,
@@ -177,6 +185,7 @@
 				002000000000000000000044 /* AccessibilitySelectionReplacementWriter.swift */,
 				002000000000000000000045 /* SelectionAutoInvokeMonitor.swift */,
 				002000000000000000000046 /* SelectionElementChain.swift */,
+				002000000000000000000048 /* SelectionDiagnosticsFormatting.swift */,
 				002000000000000000000023 /* Localization.swift */,
 			);
 			name = Sources;
@@ -314,6 +323,9 @@
 				001000000000000000000037,
 				001000000000000000000038,
 				001000000000000000000039,
+				00100000000000000000003A,
+				00100000000000000000003B,
+				00100000000000000000003C,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

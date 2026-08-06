@@ -145,6 +145,7 @@ struct PromptPresetTests {
         #expect(message.appliedPresetSymbolName == nil)
         #expect(message.appliedPresetIcon == "sparkles")
         #expect(message.reasoningContent == nil)
+        #expect(message.reasoningCompletedAt == nil)
     }
 
     @Test("Prompt presets have stable message icons")

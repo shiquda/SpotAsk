@@ -345,6 +345,12 @@
 "settings.selectionAssistantPermissionAuthorize" = "Request Authorization";
 "settings.selectionAssistantPermissionRefresh" = "Refresh status";
 "selection.permissionOpenSettings" = "Open System Settings";
+"selection.feedback.permissionDenied" = "Allow SpotAsk to read text you select.";
+"selection.feedback.noSelection" = "Select text first, then try again.";
+"selection.feedback.unsupported" = "SpotAsk cannot read selected text in this app.";
+"selection.feedback.temporaryFailure" = "Could not read the selected text. Try again.";
+"selection.feedback.selectionChanged" = "The selection changed. Trigger it again.";
+"selection.feedback.sensitiveField" = "Content in a secure input area cannot be processed.";
 "menu.quickQuestionMode" = "Quick Question Mode";
 "chat.insertSelection" = "Replace selected text";
 "chat.insertSelectionSucceeded" = "Replaced the selected text.";

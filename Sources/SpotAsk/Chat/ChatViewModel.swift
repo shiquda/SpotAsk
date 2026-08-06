@@ -257,6 +257,9 @@ final class ChatViewModel {
 
     private func appendAnswer(_ text: String, to assistantID: UUID) {
         guard let index = messages.firstIndex(where: { $0.id == assistantID }) else { return }
+        if messages[index].reasoningContent?.isEmpty == false, messages[index].reasoningCompletedAt == nil {
+            messages[index].reasoningCompletedAt = .now
+        }
         if messages[index].content.isEmpty {
             messages[index].content = text
             return
@@ -304,6 +307,9 @@ final class ChatViewModel {
         messages[index].state = state
         if state == .complete {
             messages[index].completedAt = .now
+        }
+        if messages[index].reasoningContent?.isEmpty == false, messages[index].reasoningCompletedAt == nil {
+            messages[index].reasoningCompletedAt = messages[index].completedAt ?? .now
         }
     }
 

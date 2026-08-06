@@ -261,6 +261,13 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(InterfaceZoomLevel.adjusted(from: .large, by: 1), .large)
     }
 
+    func testSelectionAutoInvokeDelayNormalizedClampsAndRounds() {
+        XCTAssertEqual(SelectionAutoInvokeDelay.normalized(-1), 0)
+        XCTAssertEqual(SelectionAutoInvokeDelay.normalized(5), 3)
+        XCTAssertEqual(SelectionAutoInvokeDelay.normalized(0.83), 0.85, accuracy: 0.0001)
+        XCTAssertEqual(SelectionAutoInvokeDelay.normalized(SelectionAutoInvokeDelay.defaultValue), SelectionAutoInvokeDelay.defaultValue)
+    }
+
     func testLocalizationUsesExplicitLanguageSelection() {
         XCTAssertEqual(L10n.string("settings.title", language: .english), "Settings")
         XCTAssertEqual(L10n.string("settings.title", language: .simplifiedChinese), "设置")
@@ -279,6 +286,22 @@ final class AppSettingsTests: XCTestCase {
             "settings.stopRefresh",
             "settings.discoveredModel",
             "settings.discoveredModelHint"
+        ]
+
+        for key in keys {
+            XCTAssertNotEqual(L10n.string(key, language: .english), key)
+            XCTAssertNotEqual(L10n.string(key, language: .simplifiedChinese), key)
+        }
+    }
+
+    func testSelectionFeedbackStringsExistInEnglishAndSimplifiedChinese() {
+        let keys = [
+            "selection.feedback.permissionDenied",
+            "selection.feedback.noSelection",
+            "selection.feedback.unsupported",
+            "selection.feedback.temporaryFailure",
+            "selection.feedback.selectionChanged",
+            "selection.feedback.sensitiveField"
         ]
 
         for key in keys {

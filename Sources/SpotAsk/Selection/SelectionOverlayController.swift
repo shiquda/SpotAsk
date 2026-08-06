@@ -92,7 +92,7 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
         panel.contentView = content
         let origin = panelOrigin(for: anchor, size: size)
         SafeLogger.selectionOverlayPresented(
-            "anchor=\(formatted(anchor)) origin=\(formatted(origin)) size=\(formatted(size))"
+            "anchor=\(SelectionDiagnosticsFormatting.anchor(anchor)) origin=\(SelectionDiagnosticsFormatting.point(origin)) size=\(SelectionDiagnosticsFormatting.size(CGSize(width: size.width, height: size.height)))"
         )
         panel.setFrame(NSRect(origin: origin, size: size), display: true)
         panel.orderFrontRegardless()
@@ -186,25 +186,6 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
         return NSPoint(x: min(max(point.x, visible.minX + 8), visible.maxX - size.width - 8), y: min(max(point.y, visible.minY + 8), visible.maxY - size.height - 8))
     }
 
-    private func formatted(_ anchor: SelectionAnchor) -> String {
-        switch anchor {
-        case let .selectionRect(rect): "selection=\(formatted(rect))"
-        case let .elementRect(rect): "element=\(formatted(rect))"
-        case let .pointer(point): "pointer=\(formatted(point))"
-        }
-    }
-
-    private func formatted(_ rect: CGRect) -> String {
-        String(format: "(%.1f,%.1f,%.1f,%.1f)", rect.minX, rect.minY, rect.width, rect.height)
-    }
-
-    private func formatted(_ point: NSPoint) -> String {
-        String(format: "(%.1f,%.1f)", point.x, point.y)
-    }
-
-    private func formatted(_ size: NSSize) -> String {
-        String(format: "(%.1f,%.1f)", size.width, size.height)
-    }
 }
 
 private final class OverlayButtonTarget: NSObject {
@@ -222,12 +203,12 @@ private final class OverlayButtonTarget: NSObject {
 private extension SelectionFeedback {
     var title: String {
         switch self {
-        case .permissionDenied: "需要允许 SpotAsk 读取你主动选中的文字。"
-        case .noSelection: "请先选中文字，再试一次。"
-        case .unsupported: "无法读取这个应用中的选中文字。"
-        case .temporaryFailure: "暂时无法读取选中的文字，请重试。"
-        case .selectionChanged: "选区已改变，请重新触发。"
-        case .sensitiveField: "无法处理安全输入区域中的内容。"
+        case .permissionDenied: L10n.string("selection.feedback.permissionDenied")
+        case .noSelection: L10n.string("selection.feedback.noSelection")
+        case .unsupported: L10n.string("selection.feedback.unsupported")
+        case .temporaryFailure: L10n.string("selection.feedback.temporaryFailure")
+        case .selectionChanged: L10n.string("selection.feedback.selectionChanged")
+        case .sensitiveField: L10n.string("selection.feedback.sensitiveField")
         }
     }
 }

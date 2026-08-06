@@ -562,6 +562,9 @@ struct ChatView: View {
     }
 
     private func reasoningHeaderText(for message: ChatMessage, at now: Date) -> String {
+        if let duration = message.reasoningDuration {
+            return L10n.string("chat.reasoningCompleted", Self.elapsedSecondsText(duration))
+        }
         if message.state == .streaming {
             let elapsed = max(0, now.timeIntervalSince(message.createdAt))
             return L10n.string("chat.reasoningStreaming", Self.elapsedSecondsText(elapsed))
@@ -948,7 +951,9 @@ struct ChatView: View {
             return
         }
         viewModel.input = trimmed
-        viewModel.send(selectionSnapshot: selectionSnapshot)
+        if viewModel.send(selectionSnapshot: selectionSnapshot) {
+            scrollFollowState.resumeFollowing()
+        }
         inputFocused = true
     }
 

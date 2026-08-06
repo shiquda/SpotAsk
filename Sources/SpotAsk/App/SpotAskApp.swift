@@ -114,13 +114,15 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         }
         self.settings = settings
         self.keyStore = keyStore
-        self.providerFactory = OpenAICompatibleProviderFactory(settings: settings, keyStore: keyStore)
-        self.sessionStore = SessionStore()
+        let providerFactory = OpenAICompatibleProviderFactory(settings: settings, keyStore: keyStore)
+        let sessionStore = SessionStore()
+        self.providerFactory = providerFactory
+        self.sessionStore = sessionStore
         self.accessibilityPermissionCoordinator = AccessibilityPermissionCoordinator()
         self.chatViewModel = ChatViewModel(
             settings: settings,
-            providerFactory: OpenAICompatibleProviderFactory(settings: settings, keyStore: keyStore),
-            sessionStore: SessionStore()
+            providerFactory: providerFactory,
+            sessionStore: sessionStore
         )
         super.init()
     }
@@ -218,8 +220,12 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         selectionHotKey.unregister()
         selectionAssistantToggleHotKey.unregister()
         if settings.selectionAssistantEnabled {
+            let modifiers: UInt32
+            switch settings.selectionHotKeyPreset {
+            case .optionShiftSpace: modifiers = UInt32(optionKey | shiftKey)
+            }
             do {
-                try selectionHotKey.register(keyCode: GlobalHotKey.defaultKeyCode, modifiers: UInt32(optionKey | shiftKey)) { [weak self] in
+                try selectionHotKey.register(keyCode: GlobalHotKey.defaultKeyCode, modifiers: modifiers) { [weak self] in
                     SafeLogger.selectionHotKeyTriggered()
                     Task { @MainActor in self?.selectionCoordinator?.trigger() }
                 }
