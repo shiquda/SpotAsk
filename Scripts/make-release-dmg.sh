@@ -9,9 +9,11 @@ REQUIRE_DEVELOPER_ID=${SPOTASK_REQUIRE_DEVELOPER_ID:-0}
 REQUIRE_NOTARIZATION=${SPOTASK_REQUIRE_NOTARIZATION:-0}
 NOTARY_KEYCHAIN_PROFILE=${SPOTASK_NOTARY_KEYCHAIN_PROFILE:-}
 NOTARY_KEYCHAIN=${SPOTASK_NOTARY_KEYCHAIN:-}
+ENTITLEMENTS_PATH=${SPOTASK_ENTITLEMENTS_PATH:-"$ROOT_DIR/Config/SpotAsk.selection-assistant.entitlements"}
 
 usage() {
-    printf '%s\n' "Usage: $0 [--arch arm64|x86_64] [--output DIRECTORY] [--sign-identity IDENTITY] [--require-developer-id]"
+    printf '%s\n' "Usage: $0 [--arch arm64|x86_64] [--output DIRECTORY] [--sign-identity IDENTITY] [--entitlements PATH] [--require-developer-id]"
+    printf '%s\n' "The default entitlements are the non-sandboxed selection assistant configuration used by the local release build."
 }
 
 while [ "$#" -gt 0 ]; do
@@ -26,6 +28,10 @@ while [ "$#" -gt 0 ]; do
             ;;
         --sign-identity)
             SIGN_IDENTITY=${2:?"--sign-identity requires a value"}
+            shift 2
+            ;;
+        --entitlements)
+            ENTITLEMENTS_PATH=${2:?"--entitlements requires a value"}
             shift 2
             ;;
         --require-developer-id)
@@ -77,7 +83,7 @@ mkdir -p "$DIST_DIR"
 rm -rf "$STAGING_DIR" "$DMG_PATH"
 mkdir -p "$STAGING_DIR"
 
-set -- --arch "$ARCH" --output "$STAGING_DIR/SpotAsk.app" --sign-identity "$SIGN_IDENTITY"
+set -- --arch "$ARCH" --output "$STAGING_DIR/SpotAsk.app" --sign-identity "$SIGN_IDENTITY" --entitlements "$ENTITLEMENTS_PATH"
 if [ "$REQUIRE_DEVELOPER_ID" = 1 ]; then
     set -- "$@" --require-developer-id
 fi

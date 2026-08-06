@@ -21,6 +21,12 @@ jobs:
   publish:
     runs-on: macos-26
     environment: release
+    env:
+      SPOTASK_CODESIGN_IDENTITY: ${{ secrets.SPOTASK_CODESIGN_IDENTITY }}
+      SPOTASK_REQUIRE_DEVELOPER_ID: ${{ secrets.SPOTASK_REQUIRE_DEVELOPER_ID }}
+      SPOTASK_REQUIRE_NOTARIZATION: ${{ secrets.SPOTASK_REQUIRE_NOTARIZATION }}
+      SPOTASK_NOTARY_KEYCHAIN_PROFILE: ${{ secrets.SPOTASK_NOTARY_KEYCHAIN_PROFILE }}
+      SPOTASK_NOTARY_KEYCHAIN: ${{ secrets.SPOTASK_NOTARY_KEYCHAIN }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
