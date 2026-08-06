@@ -12,6 +12,7 @@ enum ProviderSettingsIcon {
 enum SettingsSection: CaseIterable, Hashable, Identifiable {
     case provider
     case prompts
+    case selectionAssistant
     case shortcuts
     case general
     case appearance
@@ -23,6 +24,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         switch self {
         case .provider: L10n.string("settings.provider")
         case .prompts: L10n.string("settings.prompts")
+        case .selectionAssistant: L10n.string("settings.selectionAssistant")
         case .shortcuts: L10n.string("settings.shortcuts")
         case .general: L10n.string("settings.general")
         case .appearance: L10n.string("settings.appearance")
@@ -34,6 +36,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         switch self {
         case .provider: "network"
         case .prompts: "text.badge.plus"
+        case .selectionAssistant: "text.viewfinder"
         case .shortcuts: "command"
         case .general: "gearshape.fill"
         case .appearance: "circle.lefthalf.filled"
@@ -45,6 +48,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         switch self {
         case .provider: .cyan
         case .prompts: .mint
+        case .selectionAssistant: .teal
         case .shortcuts: .orange
         case .general: .gray
         case .appearance: .indigo
@@ -55,6 +59,8 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
 
 struct SettingsView: View {
     let settings: AppSettings
+    let accessibilityPermissionCoordinator: AccessibilityPermissionCoordinator
+    private let accessibilitySettingsOpener: any AccessibilityPermissionSettingsOpening
 
     private let settingsWindowProvider: (() -> NSWindow?)?
     @State private var selectedSection: SettingsSection = .provider
@@ -65,10 +71,14 @@ struct SettingsView: View {
         settings: AppSettings,
         keyStore: any APIKeyStoring,
         providerFactory: any ChatProviderFactory,
+        accessibilityPermissionCoordinator: AccessibilityPermissionCoordinator = AccessibilityPermissionCoordinator(),
+        accessibilitySettingsOpener: any AccessibilityPermissionSettingsOpening = MacOSAccessibilityPermissionSettingsOpener(),
         initialSection: SettingsSection = .provider,
         settingsWindowProvider: (() -> NSWindow?)? = nil
     ) {
         self.settings = settings
+        self.accessibilityPermissionCoordinator = accessibilityPermissionCoordinator
+        self.accessibilitySettingsOpener = accessibilitySettingsOpener
         self.settingsWindowProvider = settingsWindowProvider
         _selectedSection = State(initialValue: initialSection)
         _providerState = State(initialValue: ProviderSettingsState(
@@ -91,6 +101,13 @@ struct SettingsView: View {
                     ScrollView {
                         PromptPresetsSettingsPage(settings: settings)
                     }
+                case .selectionAssistant:
+                    SelectionAssistantSettingsPage(
+                        settings: settings,
+                        permissionCoordinator: accessibilityPermissionCoordinator,
+                        settingsOpener: accessibilitySettingsOpener,
+                        onOpenShortcuts: { selectedSection = .shortcuts }
+                    )
                 case .shortcuts:
                     ScrollView {
                         ShortcutSettingsPage(settings: settings)
@@ -118,6 +135,96 @@ struct SettingsView: View {
                 .padding(.top, 36)
         }
     }
+}
+
+private struct SelectionAssistantSettingsPage: View {
+    let settings: AppSettings
+    let permissionCoordinator: AccessibilityPermissionCoordinator
+    let settingsOpener: any AccessibilityPermissionSettingsOpening
+    let onOpenShortcuts: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            SettingsPageHeader(section: .selectionAssistant, settings: settings)
+            SettingsCallout(L10n.string("settings.selectionAssistantDescription"))
+            SettingsGroup(title: L10n.string("settings.selectionAssistantPermission")) {
+                SettingsFieldRow(label: L10n.string("settings.selectionAssistantPermissionStatus")) {
+                    Text(permissionCoordinator.status == .allowed
+                         ? L10n.string("settings.selectionAssistantPermissionAllowed")
+                         : L10n.string("settings.selectionAssistantPermissionNotAllowed"))
+                    .foregroundStyle(permissionCoordinator.status == .allowed ? .green : .secondary)
+                }
+                Text(L10n.string("settings.selectionAssistantPermissionDescription"))
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                HStack(spacing: 10) {
+                    if permissionCoordinator.status == .notAllowed {
+                        Button(L10n.string("settings.selectionAssistantPermissionAuthorize")) {
+                            permissionCoordinator.requestPermissionFromSettings()
+                            settingsOpener.openAccessibilitySettings()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    Button(L10n.string("settings.selectionAssistantPermissionRefresh")) {
+                        permissionCoordinator.refresh()
+                    }
+                }
+            }
+            SettingsGroup(title: L10n.string("settings.selectionAssistant")) {
+                SettingsToggleRow(label: L10n.string("settings.selectionAssistantEnabled"), isOn: Bindable(settings).selectionAssistantEnabled)
+                    .onChange(of: settings.selectionAssistantEnabled) { _, _ in
+                        NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+                    }
+                SettingsFieldRow(label: L10n.string("settings.selectionAssistantMode")) {
+                    Picker(L10n.string("settings.selectionAssistantMode"), selection: Bindable(settings).selectionAssistantMode) {
+                        Text(L10n.string("settings.selectionAssistantModeDirect")).tag(SelectionAssistantMode.direct)
+                        Text(L10n.string("settings.selectionAssistantModeActionBar")).tag(SelectionAssistantMode.actionBar)
+                    }
+                    .labelsHidden()
+                }
+                if settings.selectionAssistantMode == .actionBar {
+                    SettingsToggleRow(label: L10n.string("settings.selectionAssistantAutoShow"), isOn: Bindable(settings).selectionAutoInvokeEnabled)
+                    if settings.selectionAutoInvokeEnabled {
+                        SettingsFieldRow(label: L10n.string("settings.selectionAssistantAutoShowDelay")) {
+                            HStack(spacing: 10) {
+                                Slider(
+                                    value: Bindable(settings).selectionAutoInvokeDelay,
+                                    in: SelectionAutoInvokeDelay.minimum...SelectionAutoInvokeDelay.maximum,
+                                    step: SelectionAutoInvokeDelay.step
+                                )
+                                .frame(width: 180)
+                                TextField(
+                                    "",
+                                    value: Bindable(settings).selectionAutoInvokeDelay,
+                                    format: .number.precision(.fractionLength(2))
+                                )
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 56)
+                                Text(L10n.string("settings.selectionAssistantAutoShowDelayUnit"))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+                Button(action: onOpenShortcuts) {
+                    Label(L10n.string("settings.selectionAssistantConfigureShortcut"), systemImage: "command")
+                }
+                .buttonStyle(.bordered)
+                if settings.selectionAssistantMode == .direct {
+                    SettingsFieldRow(label: L10n.string("settings.selectionAssistantDefaultAction")) {
+                        Picker(L10n.string("settings.selectionAssistantDefaultAction"), selection: Binding(
+                            get: { settings.selectionDefaultPromptID ?? settings.enabledPromptPresets.first?.id },
+                            set: { settings.selectionDefaultPromptID = $0 }
+                        )) {
+                            ForEach(settings.enabledPromptPresets) { preset in Text(preset.title).tag(Optional(preset.id)) }
+                        }
+                        .labelsHidden()
+                    }
+                }
+            }
+        }
+    }
+
 }
 
 private struct SettingsSidebar: View {
@@ -1374,6 +1481,8 @@ private struct ShortcutSettingsPage: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             SettingsGroup(title: L10n.string("settings.shortcutActions")) {
+                SelectionAssistantToggleShortcutRow(settings: settings)
+                Divider()
                 ForEach(operations) { operation in
                     ShortcutSettingsRow(
                         title: operation.title,
@@ -1405,6 +1514,55 @@ private struct ShortcutSettingsPage: View {
                 }
                 .buttonStyle(.bordered)
             }
+        }
+    }
+}
+
+private struct SelectionAssistantToggleShortcutRow: View {
+    @Bindable var settings: AppSettings
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(L10n.string("settings.selectionAssistantToggleShortcut"))
+                .font(.system(size: 14, weight: .medium))
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            ShortcutRecorder(
+                shortcut: settings.selectionAssistantToggleShortcut,
+                onRecord: { shortcut in
+                    settings.selectionAssistantToggleShortcut = shortcut
+                    NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+                    StatusToastCenter.shared.show(L10n.string("settings.shortcutSaved"))
+                },
+                onInvalid: { StatusToastCenter.shared.show(L10n.string("settings.shortcutInvalid"), isError: true) }
+            )
+            .frame(width: 176, height: 28)
+            .accessibilityLabel(L10n.string("settings.selectionAssistantToggleShortcut"))
+
+            Button {
+                settings.selectionAssistantToggleShortcut = nil
+                NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+                StatusToastCenter.shared.show(L10n.string("settings.shortcutCleared"))
+            } label: {
+                Image(systemName: "xmark")
+            }
+            .buttonStyle(.borderless)
+            .disabled(settings.selectionAssistantToggleShortcut == nil)
+            .help(L10n.string("settings.clearShortcut"))
+            .accessibilityLabel(L10n.string("settings.clearShortcut"))
+
+            Button {
+                settings.selectionAssistantToggleShortcut = nil
+                NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+                StatusToastCenter.shared.show(L10n.string("settings.shortcutResetToUnset"))
+            } label: {
+                Image(systemName: "arrow.counterclockwise")
+            }
+            .buttonStyle(.borderless)
+            .disabled(settings.selectionAssistantToggleShortcut == nil)
+            .help(L10n.string("settings.resetShortcutToUnset"))
+            .accessibilityLabel(L10n.string("settings.resetShortcutToUnset"))
         }
     }
 }

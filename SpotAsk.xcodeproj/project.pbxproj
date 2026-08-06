@@ -46,6 +46,17 @@
 		00100000000000000000002C /* InAppShortcutDispatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000039 /* InAppShortcutDispatcher.swift */; };
 		00100000000000000000002D /* StatusToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003A /* StatusToast.swift */; };
 		00100000000000000000002E /* ConfigBackup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003B /* ConfigBackup.swift */; };
+		00100000000000000000002F /* AccessibilityElementReading.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003C /* AccessibilityElementReading.swift */; };
+		001000000000000000000030 /* AccessibilitySelectedTextReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003D /* AccessibilitySelectedTextReader.swift */; };
+		001000000000000000000031 /* SelectedTextSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003E /* SelectedTextSnapshot.swift */; };
+		001000000000000000000032 /* SelectionAnchorCoordinates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003F /* SelectionAnchorCoordinates.swift */; };
+		001000000000000000000033 /* SelectionAssistantCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000040 /* SelectionAssistantCoordinator.swift */; };
+		001000000000000000000034 /* SelectionOverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000041 /* SelectionOverlayController.swift */; };
+		001000000000000000000035 /* SelectionActionBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000042 /* SelectionActionBarView.swift */; };
+		001000000000000000000036 /* AccessibilityPermissionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000043 /* AccessibilityPermissionCoordinator.swift */; };
+		001000000000000000000037 /* AccessibilitySelectionReplacementWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000044 /* AccessibilitySelectionReplacementWriter.swift */; };
+		001000000000000000000038 /* SelectionAutoInvokeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000045 /* SelectionAutoInvokeMonitor.swift */; };
+		001000000000000000000039 /* SelectionElementChain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000046 /* SelectionElementChain.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -93,6 +104,17 @@
 		002000000000000000000039 /* InAppShortcutDispatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/InAppShortcutDispatcher.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000003A /* StatusToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/StatusToast.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000003B /* ConfigBackup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/ConfigBackup.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000003C /* AccessibilityElementReading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/AccessibilityElementReading.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000003D /* AccessibilitySelectedTextReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/AccessibilitySelectedTextReader.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000003E /* SelectedTextSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectedTextSnapshot.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000003F /* SelectionAnchorCoordinates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionAnchorCoordinates.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000040 /* SelectionAssistantCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionAssistantCoordinator.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000041 /* SelectionOverlayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionOverlayController.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000042 /* SelectionActionBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionActionBarView.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000043 /* AccessibilityPermissionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/AccessibilityPermissionCoordinator.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000044 /* AccessibilitySelectionReplacementWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/AccessibilitySelectionReplacementWriter.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000045 /* SelectionAutoInvokeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionAutoInvokeMonitor.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000046 /* SelectionElementChain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionElementChain.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -144,6 +166,17 @@
 				002000000000000000000018 /* URLNormalizer.swift */,
 				002000000000000000000019 /* SpotAskPanelController.swift */,
 				002000000000000000000037 /* SettingsWindowController.swift */,
+				00200000000000000000003C /* AccessibilityElementReading.swift */,
+				00200000000000000000003D /* AccessibilitySelectedTextReader.swift */,
+				00200000000000000000003E /* SelectedTextSnapshot.swift */,
+				00200000000000000000003F /* SelectionAnchorCoordinates.swift */,
+				002000000000000000000040 /* SelectionAssistantCoordinator.swift */,
+				002000000000000000000041 /* SelectionOverlayController.swift */,
+				002000000000000000000042 /* SelectionActionBarView.swift */,
+				002000000000000000000043 /* AccessibilityPermissionCoordinator.swift */,
+				002000000000000000000044 /* AccessibilitySelectionReplacementWriter.swift */,
+				002000000000000000000045 /* SelectionAutoInvokeMonitor.swift */,
+				002000000000000000000046 /* SelectionElementChain.swift */,
 				002000000000000000000023 /* Localization.swift */,
 			);
 			name = Sources;
@@ -270,6 +303,17 @@
 				00100000000000000000002C,
 				00100000000000000000002D,
 				00100000000000000000002E,
+				00100000000000000000002F,
+				001000000000000000000030,
+				001000000000000000000031,
+				001000000000000000000032,
+				001000000000000000000033,
+				001000000000000000000034,
+				001000000000000000000035,
+				001000000000000000000036,
+				001000000000000000000037,
+				001000000000000000000038,
+				001000000000000000000039,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

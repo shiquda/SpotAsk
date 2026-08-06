@@ -6,9 +6,12 @@ ARCH=$(uname -m)
 OUTPUT_DIR="$ROOT_DIR/build/SpotAsk.app"
 SIGN_IDENTITY=${SPOTASK_CODESIGN_IDENTITY:--}
 REQUIRE_DEVELOPER_ID=${SPOTASK_REQUIRE_DEVELOPER_ID:-0}
+BUNDLE_IDENTIFIER=
+DISPLAY_NAME=
+ENTITLEMENTS_PATH="$ROOT_DIR/Config/SpotAsk.entitlements"
 
 usage() {
-    printf '%s\n' "Usage: $0 [--arch arm64|x86_64] [--output APP_PATH] [--sign-identity IDENTITY] [--require-developer-id]"
+    printf '%s\n' "Usage: $0 [--arch arm64|x86_64] [--output APP_PATH] [--bundle-identifier ID] [--display-name NAME] [--sign-identity IDENTITY] [--entitlements PATH] [--require-developer-id]"
 }
 
 while [ "$#" -gt 0 ]; do
@@ -21,8 +24,20 @@ while [ "$#" -gt 0 ]; do
             OUTPUT_DIR=${2:?"--output requires a value"}
             shift 2
             ;;
+        --bundle-identifier)
+            BUNDLE_IDENTIFIER=${2:?"--bundle-identifier requires a value"}
+            shift 2
+            ;;
+        --display-name)
+            DISPLAY_NAME=${2:?"--display-name requires a value"}
+            shift 2
+            ;;
         --sign-identity)
             SIGN_IDENTITY=${2:?"--sign-identity requires a value"}
+            shift 2
+            ;;
+        --entitlements)
+            ENTITLEMENTS_PATH=${2:?"--entitlements requires a value"}
             shift 2
             ;;
         --require-developer-id)
@@ -61,6 +76,16 @@ if [ "$REQUIRE_DEVELOPER_ID" = 1 ] && [ "$SIGN_IDENTITY" = - ]; then
     exit 1
 fi
 
+case "$ENTITLEMENTS_PATH" in
+    /*) ;;
+    *) ENTITLEMENTS_PATH="$ROOT_DIR/$ENTITLEMENTS_PATH" ;;
+esac
+
+if [ ! -f "$ENTITLEMENTS_PATH" ]; then
+    printf 'Entitlements file is missing: %s\n' "$ENTITLEMENTS_PATH" >&2
+    exit 1
+fi
+
 case "$OUTPUT_DIR" in
     /*) APP_DIR="$OUTPUT_DIR" ;;
     *) APP_DIR="$ROOT_DIR/$OUTPUT_DIR" ;;
@@ -87,15 +112,22 @@ fi
 
 rm -rf "$APP_DIR"
 ditto "$RELEASE_APP_DIR" "$APP_DIR"
+if [ -n "$BUNDLE_IDENTIFIER" ]; then
+    /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_IDENTIFIER" "$APP_DIR/Contents/Info.plist"
+fi
+if [ -n "$DISPLAY_NAME" ]; then
+    /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $DISPLAY_NAME" "$APP_DIR/Contents/Info.plist"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleName $DISPLAY_NAME" "$APP_DIR/Contents/Info.plist"
+fi
 if [ "$SIGN_IDENTITY" = - ]; then
-    codesign --force --sign - --entitlements "$ROOT_DIR/Config/SpotAsk.entitlements" "$APP_DIR"
+    codesign --force --sign - --entitlements "$ENTITLEMENTS_PATH" "$APP_DIR"
 else
     codesign \
         --force \
         --sign "$SIGN_IDENTITY" \
         --options runtime \
         --timestamp \
-        --entitlements "$ROOT_DIR/Config/SpotAsk.entitlements" \
+        --entitlements "$ENTITLEMENTS_PATH" \
         "$APP_DIR"
 fi
 

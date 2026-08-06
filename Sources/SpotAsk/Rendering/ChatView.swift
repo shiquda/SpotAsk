@@ -180,6 +180,7 @@ struct ChatView: View {
     let settings: AppSettings
     let keyStore: any APIKeyStoring
     let providerFactory: any ChatProviderFactory
+    let accessibilityPermissionCoordinator: AccessibilityPermissionCoordinator
     let onDismiss: () -> Void
     let commandCenter: SpotAskCommandCenter
 
@@ -196,6 +197,7 @@ struct ChatView: View {
     @State private var chatWindowReference = ChatWindowReference()
     @State private var copiedMessageID: UUID?
     @State private var copyFeedbackToken = UUID()
+    private let selectionReplacementWriter: any SelectionReplacementWriting = AccessibilitySelectionReplacementWriter()
 
     /// Owns the standalone settings window. Created lazily on first use and
     /// reused thereafter so repeated opens never stack duplicate windows.
@@ -206,6 +208,7 @@ struct ChatView: View {
         settings: AppSettings,
         keyStore: any APIKeyStoring,
         providerFactory: any ChatProviderFactory,
+        accessibilityPermissionCoordinator: AccessibilityPermissionCoordinator = AccessibilityPermissionCoordinator(),
         onDismiss: @escaping () -> Void = { NSApp.keyWindow?.orderOut(nil) },
         commandCenter: SpotAskCommandCenter = .shared
     ) {
@@ -213,6 +216,7 @@ struct ChatView: View {
         self.settings = settings
         self.keyStore = keyStore
         self.providerFactory = providerFactory
+        self.accessibilityPermissionCoordinator = accessibilityPermissionCoordinator
         self.onDismiss = onDismiss
         self.commandCenter = commandCenter
     }
@@ -484,6 +488,8 @@ struct ChatView: View {
                         onRegenerate: viewModel.regenerate,
                         isCopied: copiedMessageID == message.id,
                         onCopy: { copyMessage(message) },
+                        canInsertSelection: message.state == .complete && (viewModel.selectionSnapshot(for: message.id)?.canReplaceSelection ?? false),
+                        onInsertSelection: { insertSelection(from: message) },
                         copyShortcut: message.id == viewModel.lastAssistantMessage?.id
                             ? shortcutHint(for: .operation(.copyAnswer))
                             : nil,
@@ -780,6 +786,25 @@ struct ChatView: View {
         }
     }
 
+    private func insertSelection(from message: ChatMessage) {
+        guard let snapshot = viewModel.selectionSnapshot(for: message.id) else { return }
+        Task {
+            do {
+                try await selectionReplacementWriter.replaceSelection(in: snapshot, with: message.content)
+                StatusToastCenter.shared.show(L10n.string("chat.insertSelectionSucceeded"))
+            } catch let error as SelectionReplacementError {
+                let message: String
+                switch error {
+                case .selectionChanged: message = L10n.string("chat.insertSelectionChanged")
+                case .unavailable, .failed: message = L10n.string("chat.insertSelectionUnavailable")
+                }
+                StatusToastCenter.shared.show(message, isError: true)
+            } catch {
+                StatusToastCenter.shared.show(L10n.string("chat.insertSelectionUnavailable"), isError: true)
+            }
+        }
+    }
+
     /// Entry point for every settings request (header gear, command center).
     /// Sets the trigger boolean (the source of truth) and shows the window,
     /// bringing it to the front even if it is already open.
@@ -797,6 +822,7 @@ struct ChatView: View {
                 settings: settings,
                 keyStore: keyStore,
                 providerFactory: providerFactory,
+                accessibilityPermissionCoordinator: accessibilityPermissionCoordinator,
                 onClose: { viewModel.isSettingsPresented = false }
             )
         }
@@ -890,19 +916,21 @@ struct ChatView: View {
         case .focusInput:
             inputFocused = true
             viewModel.offerSessionChoiceIfNeeded()
+        case let .compose(question, promptPreset):
+            composeQuestion(question, promptPreset: promptPreset)
         case let .prepare(promptPreset):
             viewModel.selectedPromptPreset = settings.promptPresetAllowedForUse(promptPreset)
             inputFocused = true
         case .newConversation:
             newConversation()
-        case let .ask(question, promptPreset):
-            receiveQuestion(question, promptPreset: promptPreset)
+        case let .ask(question, promptPreset, selectionSnapshot):
+            receiveQuestion(question, promptPreset: promptPreset, selectionSnapshot: selectionSnapshot)
         case .showSettings:
             openSettings()
         }
     }
 
-    private func receiveQuestion(_ question: String, promptPreset: PromptPreset?) {
+    private func receiveQuestion(_ question: String, promptPreset: PromptPreset?, selectionSnapshot: SelectedTextSnapshot? = nil) {
         let trimmed = question.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             inputFocused = true
@@ -920,7 +948,19 @@ struct ChatView: View {
             return
         }
         viewModel.input = trimmed
-        viewModel.send()
+        viewModel.send(selectionSnapshot: selectionSnapshot)
+        inputFocused = true
+    }
+
+    private func composeQuestion(_ question: String, promptPreset: PromptPreset?) {
+        let trimmed = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            inputFocused = true
+            return
+        }
+        viewModel.continueSession()
+        viewModel.selectedPromptPreset = promptPreset.flatMap(settings.promptPresetAllowedForUse)
+        viewModel.input = trimmed
         inputFocused = true
     }
 
