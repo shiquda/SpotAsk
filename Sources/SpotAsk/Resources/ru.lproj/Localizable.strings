@@ -368,6 +368,7 @@
 "settings.selectionAssistantModeDirect" = "Выполнить действие по умолчанию";
 "settings.selectionAssistantModeActionBar" = "Показать быстрые действия";
 "settings.selectionAssistantAutoShow" = "Показывать быстрые действия после выделения";
+"settings.selectionAssistantActionLabels" = "Показывать подписи рядом со значками";
 "settings.selectionAssistantAutoShowDelay" = "Подождать";
 "settings.selectionAssistantAutoShowDelayUnit" = "с";
 "settings.selectionAssistantDefaultAction" = "Действие по умолчанию";

@@ -368,6 +368,7 @@
 "settings.selectionAssistantModeDirect" = "Ejecutar acción predeterminada";
 "settings.selectionAssistantModeActionBar" = "Mostrar acciones rápidas";
 "settings.selectionAssistantAutoShow" = "Mostrar acciones rápidas al seleccionar texto";
+"settings.selectionAssistantActionLabels" = "Mostrar etiquetas junto a los iconos";
 "settings.selectionAssistantAutoShowDelay" = "Esperar";
 "settings.selectionAssistantAutoShowDelayUnit" = "s";
 "settings.selectionAssistantDefaultAction" = "Acción predeterminada";

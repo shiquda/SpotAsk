@@ -368,6 +368,7 @@
 "settings.selectionAssistantModeDirect" = "直接执行默认动作";
 "settings.selectionAssistantModeActionBar" = "显示快捷操作";
 "settings.selectionAssistantAutoShow" = "选中文字后自动显示快捷操作";
+"settings.selectionAssistantActionLabels" = "在图标旁显示文字";
 "settings.selectionAssistantAutoShowDelay" = "等待时间";
 "settings.selectionAssistantAutoShowDelayUnit" = "秒";
 "settings.selectionAssistantDefaultAction" = "默认动作";

@@ -368,6 +368,7 @@
 "settings.selectionAssistantModeDirect" = "既定のアクションを実行";
 "settings.selectionAssistantModeActionBar" = "クイックアクションを表示";
 "settings.selectionAssistantAutoShow" = "テキスト選択後にクイックアクションを表示";
+"settings.selectionAssistantActionLabels" = "アイコンの横にラベルを表示";
 "settings.selectionAssistantAutoShowDelay" = "待機";
 "settings.selectionAssistantAutoShowDelayUnit" = "秒";
 "settings.selectionAssistantDefaultAction" = "既定のアクション";

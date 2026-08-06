@@ -5,6 +5,7 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
     private static let controlSize = NSSize(width: 28, height: 28)
     private static let contentInset: CGFloat = 4
     private static let controlSpacing: CGFloat = 2
+    private static let labelFontSize: CGFloat = 12
 
     private var panel: NSPanel?
     private var dismissWorkItem: DispatchWorkItem?
@@ -12,21 +13,37 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
     private var globalMouseMonitor: Any?
     private var localMouseMonitor: Any?
 
-    func showActions(snapshot: SelectedTextSnapshot, presets: [PromptPreset], onSelect: @escaping (PromptPreset) -> Void) {
-        let size = actionBarSize(for: presets.count)
+    func showActions(
+        snapshot: SelectedTextSnapshot,
+        presets: [PromptPreset],
+        showsLabels: Bool,
+        onSelect: @escaping (PromptPreset) -> Void
+    ) {
+        let size = actionBarSize(for: presets, showsLabels: showsLabels)
         let content = makeContainer(size: size)
-        buttonTargets = presets.enumerated().map { index, preset in
+        var cursorX = Self.contentInset
+        buttonTargets = presets.map { preset in
             let target = OverlayButtonTarget { onSelect(preset) }
+            let width = showsLabels ? Self.actionButtonWidth(for: preset.title) : Self.controlSize.width
             let button = NSButton(frame: NSRect(
-                x: Self.contentInset + CGFloat(index) * (Self.controlSize.width + Self.controlSpacing),
+                x: cursorX,
                 y: Self.contentInset,
-                width: Self.controlSize.width,
+                width: width,
                 height: Self.controlSize.height
             ))
+            cursorX += width + Self.controlSpacing
             if let image = NSImage(systemSymbolName: preset.symbolName, accessibilityDescription: preset.title) {
-                button.image = image.withSymbolConfiguration(.init(pointSize: 15, weight: .regular))
+                button.image = image.withSymbolConfiguration(.init(pointSize: showsLabels ? 13 : 15, weight: .regular))
             }
-            button.imagePosition = .imageOnly
+            if showsLabels {
+                button.title = preset.title
+                button.font = .systemFont(ofSize: Self.labelFontSize)
+                button.imagePosition = .imageLeading
+                button.imageHugsTitle = true
+                button.alignment = .left
+            } else {
+                button.imagePosition = .imageOnly
+            }
             button.isBordered = false
             button.contentTintColor = .labelColor
             button.toolTip = preset.title
@@ -126,13 +143,22 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
         return label
     }
 
-    private func actionBarSize(for presetCount: Int) -> NSSize {
-        let controlsWidth = CGFloat(presetCount) * Self.controlSize.width
-        let spacingWidth = CGFloat(max(0, presetCount - 1)) * Self.controlSpacing
+    private func actionBarSize(for presets: [PromptPreset], showsLabels: Bool) -> NSSize {
+        let widths = presets.map { showsLabels ? Self.actionButtonWidth(for: $0.title) : Self.controlSize.width }
+        let controlsWidth = widths.reduce(0, +)
+        let spacingWidth = CGFloat(max(0, widths.count - 1)) * Self.controlSpacing
         return NSSize(
             width: max(44, controlsWidth + spacingWidth + Self.contentInset * 2),
             height: Self.controlSize.height + Self.contentInset * 2
         )
+    }
+
+    private static func actionButtonWidth(for title: String) -> CGFloat {
+        let textWidth = (title as NSString).size(
+            withAttributes: [.font: NSFont.systemFont(ofSize: labelFontSize)]
+        ).width
+        // image + image-to-title gap + leading/trailing padding
+        return ceil(textWidth) + 13 + 4 + 10
     }
 
     private func makePanel(size: NSSize) -> NSPanel {

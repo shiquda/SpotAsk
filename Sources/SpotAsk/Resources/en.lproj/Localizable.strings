@@ -368,6 +368,7 @@
 "settings.selectionAssistantModeDirect" = "Run default action";
 "settings.selectionAssistantModeActionBar" = "Show quick actions";
 "settings.selectionAssistantAutoShow" = "Show quick actions after selecting text";
+"settings.selectionAssistantActionLabels" = "Show labels beside icons";
 "settings.selectionAssistantAutoShowDelay" = "Wait";
 "settings.selectionAssistantAutoShowDelayUnit" = "sec";
 "settings.selectionAssistantDefaultAction" = "Default action";

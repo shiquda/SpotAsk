@@ -76,7 +76,11 @@ final class SelectionAssistantCoordinator {
                     if let preset { commandCenter.ask(current.text, promptPreset: preset, selectionSnapshot: current) }
                     else { commandCenter.compose(current.text) }
                 } else {
-                    overlay.showActions(snapshot: current, presets: Array(settings.enabledPromptPresets.prefix(4))) { [weak self] preset in
+                    overlay.showActions(
+                        snapshot: current,
+                        presets: Array(settings.enabledPromptPresets.prefix(4)),
+                        showsLabels: settings.selectionActionBarShowsLabels
+                    ) { [weak self] preset in
                         self?.apply(preset: preset)
                     }
                 }
@@ -116,7 +120,12 @@ extension SelectionReadingError {
 
 @MainActor
 protocol SelectionOverlayControlling: AnyObject {
-    func showActions(snapshot: SelectedTextSnapshot, presets: [PromptPreset], onSelect: @escaping (PromptPreset) -> Void)
+    func showActions(
+        snapshot: SelectedTextSnapshot,
+        presets: [PromptPreset],
+        showsLabels: Bool,
+        onSelect: @escaping (PromptPreset) -> Void
+    )
     func showMessage(_ message: SelectionFeedback)
     func showPermissionDenied(openSettings: @escaping () -> Void)
     func hide()

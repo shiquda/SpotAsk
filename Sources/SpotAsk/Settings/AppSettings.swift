@@ -83,7 +83,7 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
         switch id.uuidString.uppercased() {
         case "EF8CF35C-386A-4389-A137-C207E4DB11FD": "character.bubble"
         case "1C85A324-65B3-4EBD-B2C4-0C6B072E284A": "pencil.and.scribble"
-        case "5D03D444-EC3D-4F5D-9FB1-91EA5BD4E5B2": "text.line.first.and.arrowtriangle.forward"
+        case "5D03D444-EC3D-4F5D-9FB1-91EA5BD4E5B2": "list.bullet.rectangle"
         case "BF43F694-E4AE-4B5B-9AE9-B4D6D4A4F248": "doc.text.magnifyingglass"
         default: "sparkles"
         }
@@ -307,6 +307,7 @@ final class AppSettings {
         static let selectionAssistantToggleShortcut = "selectionAssistantToggleShortcut"
         static let selectionAutoInvokeEnabled = "selectionAutoInvokeEnabled"
         static let selectionAutoInvokeDelay = "selectionAutoInvokeDelay"
+        static let selectionActionBarShowsLabels = "selectionActionBarShowsLabels"
     }
 
     private let defaults: UserDefaults
@@ -392,6 +393,7 @@ final class AppSettings {
             }
         }
     }
+    var selectionActionBarShowsLabels: Bool { didSet { defaults.set(selectionActionBarShowsLabels, forKey: Key.selectionActionBarShowsLabels) } }
     /// Whether a cross-app selection automatically shows the quick actions after
     /// `selectionAutoInvokeDelay` seconds. Defaults off so granting high-impact
     /// accessibility access remains an explicit user decision.
@@ -497,6 +499,7 @@ final class AppSettings {
         selectionDefaultPromptID = UUID(uuidString: defaults.string(forKey: Key.selectionDefaultPromptID) ?? "") ?? PromptPreset.builtIn.first?.id
         selectionAssistantToggleShortcut = defaults.data(forKey: Key.selectionAssistantToggleShortcut).flatMap { try? JSONDecoder().decode(InAppShortcut.self, from: $0) }
         selectionAutoInvokeEnabled = defaults.object(forKey: Key.selectionAutoInvokeEnabled) as? Bool ?? false
+        selectionActionBarShowsLabels = defaults.object(forKey: Key.selectionActionBarShowsLabels) as? Bool ?? true
         selectionAutoInvokeDelay = SelectionAutoInvokeDelay.normalized(
             defaults.object(forKey: Key.selectionAutoInvokeDelay) as? Double ?? SelectionAutoInvokeDelay.defaultValue
         )

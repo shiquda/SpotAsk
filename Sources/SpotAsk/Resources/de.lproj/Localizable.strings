@@ -368,6 +368,7 @@
 "settings.selectionAssistantModeDirect" = "Standardaktion ausführen";
 "settings.selectionAssistantModeActionBar" = "Schnellaktionen anzeigen";
 "settings.selectionAssistantAutoShow" = "Schnellaktionen nach Textauswahl anzeigen";
+"settings.selectionAssistantActionLabels" = "Beschriftungen neben Symbolen anzeigen";
 "settings.selectionAssistantAutoShowDelay" = "Warten";
 "settings.selectionAssistantAutoShowDelayUnit" = "s";
 "settings.selectionAssistantDefaultAction" = "Standardaktion";

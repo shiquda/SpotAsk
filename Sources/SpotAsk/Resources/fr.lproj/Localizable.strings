@@ -368,6 +368,7 @@
 "settings.selectionAssistantModeDirect" = "Exécuter l'action par défaut";
 "settings.selectionAssistantModeActionBar" = "Afficher les actions rapides";
 "settings.selectionAssistantAutoShow" = "Afficher les actions rapides après la sélection";
+"settings.selectionAssistantActionLabels" = "Afficher les libellés à côté des icônes";
 "settings.selectionAssistantAutoShowDelay" = "Attendre";
 "settings.selectionAssistantAutoShowDelayUnit" = "s";
 "settings.selectionAssistantDefaultAction" = "Action par défaut";

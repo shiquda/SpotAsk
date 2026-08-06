@@ -368,6 +368,7 @@
 "settings.selectionAssistantModeDirect" = "Executar ação padrão";
 "settings.selectionAssistantModeActionBar" = "Mostrar ações rápidas";
 "settings.selectionAssistantAutoShow" = "Mostrar ações rápidas após selecionar texto";
+"settings.selectionAssistantActionLabels" = "Mostrar rótulos ao lado dos ícones";
 "settings.selectionAssistantAutoShowDelay" = "Aguardar";
 "settings.selectionAssistantAutoShowDelayUnit" = "s";
 "settings.selectionAssistantDefaultAction" = "Ação padrão";

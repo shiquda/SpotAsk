@@ -144,7 +144,12 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
 
     var hasActionHandler: Bool { actionHandler != nil }
 
-    func showActions(snapshot: SelectedTextSnapshot, presets: [PromptPreset], onSelect: @escaping (PromptPreset) -> Void) {
+    func showActions(
+        snapshot: SelectedTextSnapshot,
+        presets: [PromptPreset],
+        showsLabels: Bool,
+        onSelect: @escaping (PromptPreset) -> Void
+    ) {
         self.presets = presets
         actionHandler = onSelect
     }
