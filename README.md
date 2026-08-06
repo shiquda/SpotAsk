@@ -5,7 +5,7 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  A focused AI chat companion that lives in your macOS menu bar. Connect a compatible service and ask from anywhere.
+  A native macOS menu-bar AI assistant. Quickly summon it with a hotkey to ask anything from anywhere, or select text in Safari, Notes, and other apps to translate, explain, summarize, or polish it — with your own AI service (BYOK).
 </p>
 
 <p align="center">
@@ -15,11 +15,11 @@
 </p>
 
 <p align="center">
-  macOS 15+ · Apple silicon and Intel · AGPL-3.0
+  Native macOS app · Privacy-first · macOS 15+ · Apple silicon and Intel · AGPL-3.0
 </p>
 
 <p align="center">
-  <a href="#download">Download</a> · <a href="#quick-start">Build from source</a> · <a href="README.zh-CN.md">简体中文</a>
+  <a href="#download">Download</a> · <a href="#quick-start">Build from source</a> · <a href="#development">Development</a> · <a href="README.zh-CN.md">简体中文</a>
 </p>
 
 <p align="center">
@@ -28,12 +28,15 @@
 
 ## What SpotAsk does
 
-- **Ask from anywhere** — press Option + Space to open a focused chat window, ready for a question.
-- **Use your own service** — connect a service compatible with the OpenAI Chat Completions API. You control the service address, model, and access key.
-- **See answers as they arrive** — stop a response, retry a failed request, or regenerate the latest answer.
-- **Copy what you need** — grab the full answer, or copy individual code blocks in one click.
-- **Automate common tasks** — built-in prompts for translate, explain, summarize, and polish. Create your own for repeated workflows.
-- **Work with Spotlight, Siri, and Shortcuts** — ask a question, start a new conversation, or run a prompt directly from macOS.
+- **Ask from anywhere** — press Option + Space (customizable) to open a focused chat window, ready for a question.
+- **Select text in other apps** — highlight text in Safari, Notes, or other macOS apps; translate, explain, summarize, polish, or run a custom prompt from the quick action bar that appears next to your selection.
+- **Use your own service (BYOK)** — bring your own key for any OpenAI-compatible or Anthropic service, discover available models, and route traffic through an optional proxy with credentials.
+- **See answers as they arrive** — streamed responses, thinking shown with elapsed time, and stop, retry, and regenerate controls.
+- **Copy what you need** — grab the full answer or individual code blocks in one click.
+- **Automate repeated tasks** — built-in prompts for translate, explain, summarize, and polish; create your own for repeated workflows.
+- **Customize shortcuts** — choose a global hotkey preset or record your own shortcuts for chat, the selection assistant, and common actions.
+- **8 interface languages** — English, 简体中文, Español, Deutsch, 日本語, Français, Português, Русский.
+- **Work with macOS** — ask a question, start a new conversation, or run a prompt from Spotlight, Siri, or Shortcuts.
 
 ## Download
 
@@ -52,12 +55,12 @@ You can also build SpotAsk from source.
 
 - macOS 15 or later
 - Xcode 16 or later
-- An account with a service that provides an OpenAI-compatible chat completions endpoint
+- A service account that provides an OpenAI-compatible or Anthropic chat API
 
 **Build and run**
 
 ```sh
-./scripts/make-app-bundle.sh
+./Scripts/make-app-bundle.sh
 open build/SpotAsk.app
 ```
 
@@ -79,9 +82,10 @@ Personal Team builds are intended for personal use and may need to be rebuilt pe
 
 Open Settings from the menu bar (or press Cmd + ,) and fill in:
 
-1. **Service address** — the full chat endpoint URL for your provider.
-2. **Model** — the model name your provider expects (for example, `gpt-5-mini`).
-3. **Access key** — your service credential, stored only on this Mac.
+1. **Provider** — select the service you want to use (OpenAI-compatible or Anthropic), or add a new one.
+2. **Service address** — the full chat endpoint URL for your provider.
+3. **Model** — the model name your provider expects (for example, `gpt-5-mini`).
+4. **Access key** — your service credential, stored only on this Mac.
 
 Use **Test Connection** to confirm the values work, then close Settings and start asking.
 
@@ -89,52 +93,32 @@ Use **Test Connection** to confirm the values work, then close Settings and star
 
 | Action | How |
 |---|---|
-| Open the chat window | Click the menu bar icon, or press **Option + Space** |
+| Open the chat window | Click the menu bar icon, or press your configured hotkey (default Option + Space) |
 | Send a question | Type your question and press Return |
 | Add a line break | Shift + Return |
 | Stop generating | Press Escape, or click Stop |
 | Copy an answer | Right-click the answer, or use the copy button |
 | Copy a code block | Click the copy icon on any code block |
+| Run a prompt on selected text | Select text in another app, then click an action in the quick action bar |
 | Start a new conversation | Choose New Conversation from the menu bar |
 | Use a prompt | With content in the input, select a prompt to send immediately. With an empty input, select one, enter your question, then press Return. |
+| Open Settings | Click the menu bar icon and choose Settings, or press Cmd + , |
 
 The window remembers its size and position across launches.
 
 ## Privacy
 
+Privacy-first by design: SpotAsk is a native macOS app, your access key stays on this Mac, and your selected text is sent only to the service you configure.
+
 Questions, custom instructions, and responses are sent to the service you configure. Review that provider's privacy and data-retention policies before handling sensitive information.
 
 Your access key and settings stay on this Mac. When conversation retention is enabled, recent conversations are stored locally as well.
 
-## For developers
+The selection assistant reads the text you select through the macOS Accessibility API. Permission is requested only when you enable the feature, and selected text is sent only to the service you configured.
 
-### Build and test
+## Development
 
-```sh
-# Run the test suite
-swift test
-
-# Build a release binary
-swift build -c release
-
-# Create an app bundle
-./scripts/make-app-bundle.sh
-open build/SpotAsk.app
-
-# Create an Apple silicon or Intel DMG
-./scripts/make-release-dmg.sh --arch arm64
-./scripts/make-release-dmg.sh --arch x86_64
-```
-
-### Project overview
-
-SpotAsk is a SwiftUI app that targets macOS 15 as a menu-bar accessory (`LSUIElement`). It uses [Textual](https://github.com/gonzalezreal/textual) to render rich-text responses.
-
-The entry point is `Sources/SpotAsk/App/SpotAskApp.swift`. Tests live under `Tests/SpotAskTests/`.
-
-### Distribution
-
-When preparing the app for distribution, configure the signing, permissions, and network access required by your delivery method.
+Build, test, packaging, localization, and release instructions live in [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## License
 
