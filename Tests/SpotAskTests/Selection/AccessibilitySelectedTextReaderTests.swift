@@ -76,6 +76,54 @@ struct AccessibilitySelectedTextReaderTests {
         #expect(snapshot.anchor == .pointer(CGPoint(x: 30, y: 40)))
     }
 
+    @Test("Web text marker selection is used when AXSelectedText is unavailable")
+    func webTextMarkerFallbackSelection() async throws {
+        let fixture = ReaderFixture()
+        fixture.setFocusedElement(fixture.focusedElement)
+        fixture.elementReader.set(
+            .textMarkerRange(fixture.markerRange),
+            attribute: fixture.selectedTextMarkerRangeAttribute,
+            element: fixture.focusedElement
+        )
+        fixture.elementReader.set(
+            .string("Browser selected paragraph"),
+            attribute: fixture.stringForTextMarkerRangeParameterizedAttribute,
+            element: fixture.focusedElement,
+            parameter: .textMarkerRange(fixture.markerRange)
+        )
+
+        let snapshot = try await fixture.makeReader().readSelection(promptForPermission: false)
+
+        #expect(snapshot.text == "Browser selected paragraph")
+        #expect(fixture.elementReader.calls.contains(.attribute(fixture.selectedTextMarkerRangeAttribute, fixture.focusedElement)))
+        #expect(fixture.elementReader.calls.contains(.parameterized(
+            fixture.stringForTextMarkerRangeParameterizedAttribute,
+            .textMarkerRange(fixture.markerRange),
+            fixture.focusedElement
+        )))
+    }
+
+    @Test("An empty web marker range does not report a false selection")
+    func emptyWebTextMarkerFallbackReturnsNoSelection() async {
+        let fixture = ReaderFixture()
+        fixture.setFocusedElement(fixture.focusedElement)
+        fixture.elementReader.set(
+            .textMarkerRange(fixture.emptyMarkerRange),
+            attribute: fixture.selectedTextMarkerRangeAttribute,
+            element: fixture.focusedElement
+        )
+        fixture.elementReader.set(
+            .string(""),
+            attribute: fixture.stringForTextMarkerRangeParameterizedAttribute,
+            element: fixture.focusedElement,
+            parameter: .textMarkerRange(fixture.emptyMarkerRange)
+        )
+
+        await #expect(throws: SelectionReadingError.noSelection) {
+            try await fixture.makeReader().readSelection(promptForPermission: false)
+        }
+    }
+
     @Test("A secure ancestor stops all selected text reads")
     func secureAncestorPreflightStopsBeforeTextAccess() async {
         let fixture = ReaderFixture()
@@ -264,9 +312,13 @@ private final class ReaderFixture: @unchecked Sendable {
     let subroleAttribute = kAXSubroleAttribute as String
     let selectedTextAttribute = kAXSelectedTextAttribute as String
     let selectedRangeAttribute = kAXSelectedTextRangeAttribute as String
+    let selectedTextMarkerRangeAttribute = kAXSelectedTextMarkerRangeAttribute as String
+    let stringForTextMarkerRangeParameterizedAttribute = kAXStringForTextMarkerRangeParameterizedAttribute as String
     let boundsAttribute = kAXBoundsForRangeParameterizedAttribute as String
     let positionAttribute = kAXPositionAttribute as String
     let sizeAttribute = kAXSizeAttribute as String
+    let markerRange = AccessibilityTextMarkerRange(startMarker: Data([0x01, 0x02]), endMarker: Data([0x03, 0x04]))
+    let emptyMarkerRange = AccessibilityTextMarkerRange(startMarker: Data(), endMarker: Data())
 
     init(isTrusted: Bool = true, pointer: CGPoint = CGPoint(x: 30, y: 40)) {
         permissionChecker = FakePermissionChecker(isTrusted: isTrusted)

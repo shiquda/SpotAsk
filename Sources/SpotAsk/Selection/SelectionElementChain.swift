@@ -58,18 +58,46 @@ enum SelectionElementChain {
         reader: any AccessibilityElementReading
     ) throws -> (element: AccessibilityElementID, text: String)? {
         for element in candidates {
-            do {
-                let value = try reader.copyAttribute(kAXSelectedTextAttribute as String, from: element)
-                guard case let .string(text) = value else { continue }
-                if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    return (element, text)
-                }
-            } catch {
-                if isAbsentAttribute(error) { continue }
-                throw error
+            if let text = try selectedText(from: element, reader: reader),
+               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return (element, text)
             }
         }
         return nil
+    }
+
+    private static func selectedText(
+        from element: AccessibilityElementID,
+        reader: any AccessibilityElementReading
+    ) throws -> String? {
+        do {
+            let value = try reader.copyAttribute(kAXSelectedTextAttribute as String, from: element)
+            if case let .string(text) = value, !text.isEmpty {
+                return text
+            }
+        } catch {
+            if !isAbsentAttribute(error) { throw error }
+        }
+
+        // Firefox-derived browsers expose web selections through text markers
+        // instead of the older AXSelectedText attribute.
+        do {
+            let markerValue = try reader.copyAttribute(
+                kAXSelectedTextMarkerRangeAttribute as String,
+                from: element
+            )
+            guard case let .textMarkerRange(markerRange) = markerValue else { return nil }
+            let stringValue = try reader.copyParameterizedAttribute(
+                kAXStringForTextMarkerRangeParameterizedAttribute as String,
+                parameter: .textMarkerRange(markerRange),
+                from: element
+            )
+            guard case let .string(text) = stringValue else { return nil }
+            return text
+        } catch {
+            if isAbsentAttribute(error) { return nil }
+            throw error
+        }
     }
 
     static func selectedRange(

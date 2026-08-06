@@ -29,9 +29,44 @@ enum AccessibilityValue: Equatable, Hashable, Sendable {
     case string(String)
     case element(AccessibilityElementID)
     case range(SelectionCharacterRange)
+    case textMarkerRange(AccessibilityTextMarkerRange)
     case point(CGPoint)
     case size(CGSize)
     case rect(CGRect)
+}
+
+struct AccessibilityTextMarkerRange: Equatable, Hashable, Sendable {
+    let startMarker: Data
+    let endMarker: Data
+
+    init(_ range: AXTextMarkerRange) {
+        startMarker = Self.markerData(AXTextMarkerRangeCopyStartMarker(range))
+        endMarker = Self.markerData(AXTextMarkerRangeCopyEndMarker(range))
+    }
+
+    init(startMarker: Data, endMarker: Data) {
+        self.startMarker = startMarker
+        self.endMarker = endMarker
+    }
+
+    func makeAXTextMarkerRange() -> AXTextMarkerRange {
+        let startBytes = [UInt8](startMarker)
+        let endBytes = [UInt8](endMarker)
+        return AXTextMarkerRangeCreateWithBytes(
+            kCFAllocatorDefault,
+            startBytes,
+            startMarker.count,
+            endBytes,
+            endMarker.count
+        )
+    }
+
+    private static func markerData(_ marker: AXTextMarker) -> Data {
+        let bytes = AXTextMarkerGetBytePtr(marker)
+        let length = AXTextMarkerGetLength(marker)
+        guard length > 0 else { return Data() }
+        return Data(bytes: bytes, count: length)
+    }
 }
 
 struct AccessibilityAXError: Equatable, Sendable {
@@ -110,12 +145,17 @@ final class MacOSAccessibilityElementAdapter: AccessibilityElementReading, Acces
         from element: AccessibilityElementID
     ) throws -> AccessibilityValue {
         let nativeElement = try requireNativeElement(element)
-        guard case let .range(range) = parameter else {
-            throw AccessibilityAdapterError.invalidValue
-        }
-
-        var cfRange = CFRange(location: range.location, length: range.length)
-        guard let parameterValue = AXValueCreate(.cfRange, &cfRange) else {
+        let parameterValue: CFTypeRef
+        switch parameter {
+        case let .range(range):
+            var cfRange = CFRange(location: range.location, length: range.length)
+            guard let value = AXValueCreate(.cfRange, &cfRange) else {
+                throw AccessibilityAdapterError.invalidValue
+            }
+            parameterValue = value
+        case let .textMarkerRange(range):
+            parameterValue = range.makeAXTextMarkerRange()
+        default:
             throw AccessibilityAdapterError.invalidValue
         }
 
@@ -219,6 +259,9 @@ enum AccessibilityValueDecoder {
     ) throws -> AccessibilityValue {
         if CFGetTypeID(value) == AXUIElementGetTypeID() {
             return .element(AccessibilityElementID(nativeElement: value as! AXUIElement))
+        }
+        if CFGetTypeID(value) == AXTextMarkerRangeGetTypeID() {
+            return .textMarkerRange(AccessibilityTextMarkerRange(value as! AXTextMarkerRange))
         }
         if let string = value as? String {
             return .string(string)

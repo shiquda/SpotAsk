@@ -196,19 +196,7 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, @unchecked Sen
     }
 
     private func selectedTextMatch(in candidates: [AccessibilityElementID]) throws -> (element: AccessibilityElementID, text: String)? {
-        for element in candidates {
-            do {
-                let value = try elementReader.copyAttribute(kAXSelectedTextAttribute as String, from: element)
-                guard case let .string(text) = value else { continue }
-                if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    return (element, text)
-                }
-            } catch {
-                if isAbsentAttribute(error) { continue }
-                throw error
-            }
-        }
-        return nil
+        try SelectionElementChain.selectedTextMatch(in: candidates, reader: elementReader)
     }
 
     private func selectedRange(for element: AccessibilityElementID) throws -> SelectionCharacterRange? {
