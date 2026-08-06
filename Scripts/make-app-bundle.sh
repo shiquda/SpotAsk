@@ -4,7 +4,7 @@ set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 ARCH=$(uname -m)
 OUTPUT_DIR="$ROOT_DIR/build/SpotAsk.app"
-SIGN_IDENTITY=${SPOTASK_CODESIGN_IDENTITY:--}
+SIGN_IDENTITY=${SPOTASK_CODESIGN_IDENTITY:-}
 REQUIRE_DEVELOPER_ID=${SPOTASK_REQUIRE_DEVELOPER_ID:-0}
 BUNDLE_IDENTIFIER=
 DISPLAY_NAME=
@@ -12,6 +12,7 @@ ENTITLEMENTS_PATH="$ROOT_DIR/Config/SpotAsk.entitlements"
 
 usage() {
     printf '%s\n' "Usage: $0 [--arch arm64|x86_64] [--output APP_PATH] [--bundle-identifier ID] [--display-name NAME] [--sign-identity IDENTITY] [--entitlements PATH] [--require-developer-id]"
+    printf '%s\n' "When --sign-identity is omitted, the first available code signing identity is used so Accessibility grants survive rebuilds."
 }
 
 while [ "$#" -gt 0 ]; do
@@ -71,9 +72,21 @@ case "$REQUIRE_DEVELOPER_ID" in
         ;;
 esac
 
-if [ "$REQUIRE_DEVELOPER_ID" = 1 ] && [ "$SIGN_IDENTITY" = - ]; then
+if [ "$REQUIRE_DEVELOPER_ID" = 1 ] && [ -z "$SIGN_IDENTITY" ]; then
     printf '%s\n' "A Developer ID Application signing identity is required" >&2
     exit 1
+fi
+
+if [ -z "$SIGN_IDENTITY" ]; then
+    SIGN_IDENTITY=$(security find-identity -p codesigning 2>/dev/null \
+        | sed -n 's/^[[:space:]]*[0-9][0-9]*)[[:space:]]*[0-9A-Fa-f]*[[:space:]]*"\(.*\)".*/\1/p' \
+        | head -n 1)
+    if [ -n "$SIGN_IDENTITY" ]; then
+        printf 'Using stable signing identity: %s\n' "$SIGN_IDENTITY" >&2
+    else
+        SIGN_IDENTITY=-
+        printf '%s\n' 'Warning: no code signing identity found; using ad-hoc signature. Accessibility permission will reset on every rebuild.' >&2
+    fi
 fi
 
 case "$ENTITLEMENTS_PATH" in
@@ -108,6 +121,14 @@ xcodebuild \
 if [ ! -x "$RELEASE_APP_DIR/Contents/MacOS/SpotAsk" ]; then
     printf 'Release app is missing from %s\n' "$RELEASE_APP_DIR" >&2
     exit 1
+fi
+
+OLD_REQUIREMENT=
+HAD_PREVIOUS_INSTALL=0
+if [ -d "$APP_DIR" ]; then
+    HAD_PREVIOUS_INSTALL=1
+    OLD_REQUIREMENT=$(codesign -d -r- "$APP_DIR" 2>/dev/null \
+        | sed -n 's/^designated => //p')
 fi
 
 rm -rf "$APP_DIR"
@@ -145,6 +166,21 @@ if [ ! -f "$APP_DIR/Contents/Resources/Metadata.appintents/extract.actionsdata" 
     exit 1
 fi
 codesign --verify --strict "$APP_DIR"
+
+NEW_REQUIREMENT=$(codesign -d -r- "$APP_DIR" 2>/dev/null \
+    | sed -n 's/^designated => //p')
+INSTALLED_BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_DIR/Contents/Info.plist" 2>/dev/null || true)
+if [ "$HAD_PREVIOUS_INSTALL" = 1 ] \
+    && [ "$OLD_REQUIREMENT" != "$NEW_REQUIREMENT" ] \
+    && [ -n "$INSTALLED_BUNDLE_ID" ]; then
+    LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+    "$LSREGISTER" -f "$APP_DIR" >/dev/null 2>&1 || true
+    if tccutil reset Accessibility "$INSTALLED_BUNDLE_ID" >/dev/null 2>&1; then
+        printf 'Reset stale Accessibility grant for %s due to signing identity change.\n' "$INSTALLED_BUNDLE_ID"
+    else
+        printf 'Warning: unable to reset stale Accessibility grant for %s; re-grant it manually after install.\n' "$INSTALLED_BUNDLE_ID" >&2
+    fi
+fi
 
 SIGNATURE_DETAILS=$(codesign -dv --verbose=4 "$APP_DIR" 2>&1)
 TEAM_ID=$(printf '%s\n' "$SIGNATURE_DETAILS" | sed -n 's/^TeamIdentifier=//p')
