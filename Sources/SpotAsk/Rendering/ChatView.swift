@@ -470,6 +470,8 @@ struct ChatView: View {
             )
         case .assistant:
             VStack(alignment: .leading, spacing: 8) {
+                AssistantMessageHeader(modelDisplayName: message.modelDisplayName)
+
                 if let reasoning = message.reasoningContent, !reasoning.isEmpty {
                     reasoningSection(message: message, reasoning: reasoning)
                 }
@@ -517,6 +519,36 @@ struct ChatView: View {
                 } else if message.state == .cancelled {
                     Text(L10n.string("chat.stopped"))
                         .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private struct AssistantMessageHeader: View {
+        let modelDisplayName: String?
+
+        var body: some View {
+            HStack(spacing: 6) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Brand.accent, .cyan],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    Image(systemName: "brain.head.profile")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+                .frame(width: 18, height: 18)
+                .accessibilityLabel(L10n.string("chat.assistant"))
+
+                if let modelDisplayName {
+                    Text(modelDisplayName)
+                        .font(.caption.weight(.medium))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -1769,6 +1801,11 @@ private struct UserMessageContentView: View {
                 }
                 .frame(width: 18, height: 18)
                 .accessibilityLabel(L10n.string("chat.user"))
+
+                Text(L10n.string("chat.user"))
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+
                 if let presetTitle = message.appliedPresetTitle {
                     Label(L10n.string("chat.usedPrompt", presetTitle), systemImage: message.appliedPresetIcon)
                         .font(.caption)

@@ -54,6 +54,7 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, @unchecked Sen
     private let applicationProvider: any ForegroundSelectionApplicationProviding
     private let elementReader: any AccessibilityElementReading
     private let pointerLocationProvider: any PointerLocationProviding
+    private let queue: DispatchQueue
 
     init(
         permissionChecker: any AccessibilityPermissionChecking = MacOSAccessibilityPermissionChecker(),
@@ -65,11 +66,12 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, @unchecked Sen
         self.applicationProvider = applicationProvider
         self.elementReader = elementReader
         self.pointerLocationProvider = pointerLocationProvider
+        queue = DispatchQueue(label: "com.spotask.selection.accessibility", qos: .userInitiated)
     }
 
     func readSelection(promptForPermission: Bool) async throws -> SelectedTextSnapshot {
         try await withCheckedThrowingContinuation { continuation in
-            DispatchQueue.main.async { [self] in
+            queue.async { [self] in
                 continuation.resume(with: Result { try readSelectionSynchronously(promptForPermission: promptForPermission) })
             }
         }
@@ -106,12 +108,12 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, @unchecked Sen
     }
 
     private func readSelection(from source: SelectionSourceApplication) throws -> SelectedTextSnapshot {
-        let applicationElement = try elementReader.makeApplicationElement(processIdentifier: source.processIdentifier)
-        SafeLogger.selectionReadProgress("application-element-ready")
-        try elementReader.setMessagingTimeout(Self.messagingTimeout, for: applicationElement)
+        let systemWideElement = try elementReader.makeSystemWideElement()
+        SafeLogger.selectionReadProgress("system-wide-element-ready")
+        try elementReader.setMessagingTimeout(Self.messagingTimeout, for: systemWideElement)
         SafeLogger.selectionReadProgress("messaging-timeout-set")
         let focusedElement = try SelectionElementChain.focusedElement(
-            from: applicationElement,
+            from: systemWideElement,
             reader: elementReader
         )
         SafeLogger.selectionReadProgress("focused-element-ready")

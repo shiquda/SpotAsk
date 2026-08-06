@@ -100,6 +100,7 @@ enum AccessibilityAdapterError: Error, Equatable, Sendable {
 
 protocol AccessibilityElementReading: Sendable {
     func makeApplicationElement(processIdentifier: pid_t) throws -> AccessibilityElementID
+    func makeSystemWideElement() throws -> AccessibilityElementID
     func setMessagingTimeout(_ timeout: TimeInterval, for element: AccessibilityElementID) throws
     func copyAttribute(_ attribute: String, from element: AccessibilityElementID) throws -> AccessibilityValue
     func copyParameterizedAttribute(
@@ -117,6 +118,10 @@ protocol AccessibilityElementWriting: Sendable {
 final class MacOSAccessibilityElementAdapter: AccessibilityElementReading, AccessibilityElementWriting, @unchecked Sendable {
     func makeApplicationElement(processIdentifier: pid_t) throws -> AccessibilityElementID {
         AccessibilityElementID(nativeElement: AXUIElementCreateApplication(processIdentifier))
+    }
+
+    func makeSystemWideElement() throws -> AccessibilityElementID {
+        AccessibilityElementID(nativeElement: AXUIElementCreateSystemWide())
     }
 
     func setMessagingTimeout(_ timeout: TimeInterval, for element: AccessibilityElementID) throws {

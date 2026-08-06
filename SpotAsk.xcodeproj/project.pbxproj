@@ -409,11 +409,11 @@
 		008000000000000000000003 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Config/SpotAsk.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Config/SpotAsk.selection-assistant.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 9JQA7UT66M;
 				CURRENT_PROJECT_VERSION = 16;
-				ENABLE_APP_SANDBOX = YES;
+				ENABLE_APP_SANDBOX = NO;
 				EXTRACT_APP_INTENTS_METADATA = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
@@ -431,11 +431,11 @@
 		008000000000000000000004 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Config/SpotAsk.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Config/SpotAsk.selection-assistant.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 9JQA7UT66M;
 				CURRENT_PROJECT_VERSION = 16;
-				ENABLE_APP_SANDBOX = YES;
+				ENABLE_APP_SANDBOX = NO;
 				EXTRACT_APP_INTENTS_METADATA = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Resources/Info.plist;

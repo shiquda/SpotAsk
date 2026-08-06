@@ -30,4 +30,12 @@ struct GlobalHotKeyTests {
         #expect(configuration?.keyCode == UInt32(kVK_ANSI_K))
         #expect(configuration?.modifiers == UInt32(cmdKey | shiftKey))
     }
+
+    @Test("Maps the space key to the historical Option+Space trigger")
+    func mapsSpaceShortcut() {
+        let configuration = GlobalHotKey.configuration(for: InAppShortcut(key: " ", modifiers: .option))
+
+        #expect(configuration?.keyCode == UInt32(kVK_Space))
+        #expect(configuration?.modifiers == UInt32(optionKey))
+    }
 }

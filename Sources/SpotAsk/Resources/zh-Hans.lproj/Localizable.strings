@@ -271,6 +271,9 @@
 "settings.proxyUsernamePlaceholder" = "可选";
 "settings.proxyPassword" = "密码";
 "settings.proxyPasswordPlaceholder" = "可选";
+"settings.testProxy" = "测试代理";
+"settings.proxyTestSuccess" = "代理连接正常。";
+"settings.proxyTestFailed" = "无法通过代理连接，请检查配置。";
 "settings.diagnostics" = "诊断";
 "settings.diagnosticsEnabled" = "记录诊断信息";
 "settings.diagnosticsDescription" = "在本地保存最近的请求与选中内容，便于排查问题。不会记录任何密钥或代理密码。";

@@ -333,6 +333,26 @@ final class ProviderSettingsStateTests: XCTestCase {
         XCTAssertTrue(state.expandedProviderIDs.contains(provider.id))
     }
 
+    func testCollapsingSelectedProviderClearsEditingSelection() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let provider = try XCTUnwrap(settings.providerRegistry.catalog?.providers.first)
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(),
+            providerFactory: NoopProviderFactory()
+        )
+        state.selectProvider(provider.id)
+        XCTAssertTrue(state.expandedProviderIDs.contains(provider.id))
+        XCTAssertEqual(state.selectedProviderID, provider.id)
+
+        state.collapseProvider(provider.id)
+
+        XCTAssertFalse(state.expandedProviderIDs.contains(provider.id))
+        XCTAssertNil(state.selectedProviderID)
+    }
+
     func testCancelEditingResetsToPreviousSelection() throws {
         let (defaults, suiteName) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }

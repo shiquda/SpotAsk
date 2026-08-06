@@ -65,6 +65,27 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(reloaded.proxyUsername, "user")
     }
 
+    func testGlobalShortcutPersistsAndFallsBackToNil() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        XCTAssertNil(AppSettings(defaults: defaults).globalShortcut)
+
+        let settings = AppSettings(defaults: defaults)
+        settings.globalShortcut = InAppShortcut(key: " ", modifiers: .option)
+        XCTAssertEqual(AppSettings(defaults: defaults).globalShortcut, InAppShortcut(key: " ", modifiers: .option))
+
+        settings.globalShortcut = nil
+        XCTAssertNil(AppSettings(defaults: defaults).globalShortcut)
+    }
+
+    func testGlobalShortcutAcceptsSpaceWithModifier() {
+        XCTAssertTrue(InAppShortcut(key: " ", modifiers: .option).isSupportedGlobalShortcut)
+        XCTAssertTrue(InAppShortcut(key: "k", modifiers: .control).isSupportedGlobalShortcut)
+        XCTAssertFalse(InAppShortcut(key: " ", modifiers: []).isSupportedGlobalShortcut)
+    }
+
     func testDiagnosticsDefaultsToOffAndPersists() {
         let suite = "AppSettingsTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
@@ -382,6 +403,9 @@ final class AppSettingsTests: XCTestCase {
             "settings.proxyPort",
             "settings.proxyUsername",
             "settings.proxyPassword",
+            "settings.testProxy",
+            "settings.proxyTestSuccess",
+            "settings.proxyTestFailed",
             "settings.modelSelectionTitle",
             "settings.modelSelectionDescription",
             "settings.modelSelectionSelectAll",

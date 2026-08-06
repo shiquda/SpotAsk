@@ -8,7 +8,7 @@ SIGN_IDENTITY=${SPOTASK_CODESIGN_IDENTITY:-}
 REQUIRE_DEVELOPER_ID=${SPOTASK_REQUIRE_DEVELOPER_ID:-0}
 BUNDLE_IDENTIFIER=
 DISPLAY_NAME=
-ENTITLEMENTS_PATH="$ROOT_DIR/Config/SpotAsk.entitlements"
+ENTITLEMENTS_PATH="$ROOT_DIR/Config/SpotAsk.selection-assistant.entitlements"
 
 usage() {
     printf '%s\n' "Usage: $0 [--arch arm64|x86_64] [--output APP_PATH] [--bundle-identifier ID] [--display-name NAME] [--sign-identity IDENTITY] [--entitlements PATH] [--require-developer-id]"
@@ -200,3 +200,47 @@ if [ "$REQUIRE_DEVELOPER_ID" = 1 ]; then
 fi
 
 printf 'Built Release bundle: %s (TeamIdentifier: %s)\n' "$APP_DIR" "${TEAM_ID:-not set}"
+
+migrate_unsandboxed_data() {
+    [ "${SPOTASK_SKIP_MIGRATION:-0}" = 1 ] && return 0
+
+    HOME_DIR=${HOME:-}
+    [ -n "$HOME_DIR" ] || { printf '%s\n' 'Warning: cannot resolve home directory; skipping data migration.' >&2; return 0; }
+
+    CONTAINER_PREFS="$HOME_DIR/Library/Containers/com.spotask.app/Data/Library/Preferences/com.spotask.app.plist"
+    DEST_PREFS="$HOME_DIR/Library/Preferences/com.spotask.app.plist"
+    CONTAINER_SUPPORT="$HOME_DIR/Library/Containers/com.spotask.app/Data/Library/Application Support/SpotAsk"
+    DEST_SUPPORT="$HOME_DIR/Library/Application Support/SpotAsk"
+    BACKUP_SUFFIX=".pre-unsandbox-$(date +%Y%m%d%H%M%S)"
+
+    if [ -f "$CONTAINER_PREFS" ]; then
+        if [ -f "$DEST_PREFS" ]; then
+            cp -p "$DEST_PREFS" "$DEST_PREFS$BACKUP_SUFFIX"
+            printf 'Backed up existing preferences to %s\n' "$DEST_PREFS$BACKUP_SUFFIX" >&2
+        fi
+        mkdir -p "$(dirname "$DEST_PREFS")"
+        cp "$CONTAINER_PREFS" "$DEST_PREFS"
+        chmod 600 "$DEST_PREFS"
+        printf 'Migrated preferences from sandbox container to %s\n' "$DEST_PREFS" >&2
+    fi
+
+    if [ -f "$CONTAINER_SUPPORT/credentials.json" ]; then
+        mkdir -p "$DEST_SUPPORT"
+        if [ -f "$DEST_SUPPORT/credentials.json" ]; then
+            cp -p "$DEST_SUPPORT/credentials.json" "$DEST_SUPPORT/credentials.json$BACKUP_SUFFIX"
+            printf 'Backed up existing credentials to %s\n' "$DEST_SUPPORT/credentials.json$BACKUP_SUFFIX" >&2
+        fi
+        cp "$CONTAINER_SUPPORT/credentials.json" "$DEST_SUPPORT/credentials.json"
+        chmod 600 "$DEST_SUPPORT/credentials.json"
+        printf 'Migrated credentials from sandbox container to %s\n' "$DEST_SUPPORT/credentials.json" >&2
+    fi
+
+    if [ ! -f "$DEST_SUPPORT/Diagnostics/diagnostics.json" ] && [ -f "$CONTAINER_SUPPORT/Diagnostics/diagnostics.json" ]; then
+        mkdir -p "$DEST_SUPPORT/Diagnostics"
+        cp "$CONTAINER_SUPPORT/Diagnostics/diagnostics.json" "$DEST_SUPPORT/Diagnostics/diagnostics.json"
+        chmod 600 "$DEST_SUPPORT/Diagnostics/diagnostics.json"
+        printf 'Migrated diagnostics from sandbox container to %s\n' "$DEST_SUPPORT/Diagnostics/diagnostics.json" >&2
+    fi
+}
+
+migrate_unsandboxed_data

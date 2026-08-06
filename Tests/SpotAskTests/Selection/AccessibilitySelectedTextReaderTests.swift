@@ -35,8 +35,24 @@ struct AccessibilitySelectedTextReaderTests {
         #expect(snapshot.source == fixture.source)
         #expect(snapshot.selectedRange == .init(location: 5, length: 8))
         #expect(snapshot.anchor == .pointer(CGPoint(x: 30, y: 40)))
-        #expect(fixture.elementReader.calls.contains(.setMessagingTimeout(fixture.applicationElement)))
+        #expect(fixture.elementReader.calls.contains(.setMessagingTimeout(fixture.systemWideElement)))
         #expect(!fixture.elementReader.calls.contains(.setMessagingTimeout(fixture.focusedElement)))
+    }
+
+    @Test("The focused element is resolved from the system-wide element, not the application element")
+    func focusedElementUsesSystemWideElement() async throws {
+        let fixture = ReaderFixture()
+        fixture.configureFocusedSelection(text: "Selected", range: .init(location: 0, length: 8))
+        let reader = fixture.makeReader()
+
+        let snapshot = try await reader.readSelection(promptForPermission: false)
+
+        #expect(snapshot.text == "Selected")
+        #expect(fixture.elementReader.calls.contains(.makeSystemWideElement))
+        #expect(!fixture.elementReader.calls.contains { call in
+            if case .makeApplicationElement = call { return true }
+            return false
+        })
     }
 
     @Test("The reader searches a bounded parent chain")
@@ -295,6 +311,7 @@ struct SelectionAnchorCoordinateConverterTests {
 
 private final class ReaderFixture: @unchecked Sendable {
     let applicationElement = AccessibilityElementID(rawValue: 100)
+    let systemWideElement = AccessibilityElementID(rawValue: 200)
     let focusedElement = AccessibilityElementID(rawValue: 1)
     let source = SelectionSourceApplication(
         processIdentifier: 42,
@@ -325,6 +342,7 @@ private final class ReaderFixture: @unchecked Sendable {
         applicationProvider = FakeApplicationProvider(source: source, currentProcessIdentifier: 99)
         pointerLocationProvider = FakePointerLocationProvider(point: pointer)
         elementReader.applicationElement = applicationElement
+        elementReader.systemWideElement = systemWideElement
     }
 
     func makeReader() -> AccessibilitySelectedTextReader {
@@ -337,7 +355,7 @@ private final class ReaderFixture: @unchecked Sendable {
     }
 
     func setFocusedElement(_ element: AccessibilityElementID) {
-        elementReader.set(.element(element), attribute: focusedAttribute, element: applicationElement)
+        elementReader.set(.element(element), attribute: focusedAttribute, element: systemWideElement)
     }
 
     func configureFocusedSelection(text: String, range: SelectionCharacterRange) {
@@ -401,6 +419,7 @@ private struct FakeScreenProvider: SelectionScreenProviding {
 private final class FakeAccessibilityElementReader: AccessibilityElementReading, @unchecked Sendable {
     enum Call: Equatable {
         case makeApplicationElement(pid_t)
+        case makeSystemWideElement
         case setMessagingTimeout(AccessibilityElementID)
         case attribute(String, AccessibilityElementID)
         case parameterized(String, AccessibilityValue, AccessibilityElementID)
@@ -430,6 +449,7 @@ private final class FakeAccessibilityElementReader: AccessibilityElementReading,
     private(set) var calls: [Call] = []
     var copyDelay: TimeInterval = 0
     var applicationElement = AccessibilityElementID(rawValue: 100)
+    var systemWideElement = AccessibilityElementID(rawValue: 200)
 
     func set(_ value: AccessibilityValue, attribute: String, element: AccessibilityElementID) {
         lock.lock()
@@ -473,6 +493,14 @@ private final class FakeAccessibilityElementReader: AccessibilityElementReading,
         lock.lock()
         calls.append(.makeApplicationElement(processIdentifier))
         let result = applicationElement
+        lock.unlock()
+        return result
+    }
+
+    func makeSystemWideElement() throws -> AccessibilityElementID {
+        lock.lock()
+        calls.append(.makeSystemWideElement)
+        let result = systemWideElement
         lock.unlock()
         return result
     }

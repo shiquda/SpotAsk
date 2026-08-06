@@ -271,6 +271,9 @@
 "settings.proxyUsernamePlaceholder" = "任意";
 "settings.proxyPassword" = "パスワード";
 "settings.proxyPasswordPlaceholder" = "任意";
+"settings.testProxy" = "プロキシをテスト";
+"settings.proxyTestSuccess" = "プロキシ接続は正常です。";
+"settings.proxyTestFailed" = "プロキシ経由で接続できませんでした。";
 "settings.diagnostics" = "診断";
 "settings.diagnosticsEnabled" = "診断情報を記録";
 "settings.diagnosticsDescription" = "問題の調査に役立つよう、最近のリクエストと選択内容の詳細をローカルに保存します。認証情報は記録されません。";

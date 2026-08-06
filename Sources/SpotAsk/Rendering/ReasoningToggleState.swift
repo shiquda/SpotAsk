@@ -7,48 +7,33 @@ struct ReasoningToggleState: Equatable {
     private(set) var isPinned = false
     private var previousSnapshot: Snapshot?
 
-    /// Reconciles the latest complete message snapshot. On first observation,
-    /// a live reasoning-only response is expanded; restored history follows
-    /// `prefersExpanded`. Later snapshots detect content transitions regardless
-    /// of how many fields changed in the same render pass.
+    /// Reconciles the latest message snapshot. With `prefersExpanded` enabled,
+    /// reasoning opens only while it is still streaming and collapses as soon
+    /// as the answer starts or the message becomes terminal. Without it,
+    /// reasoning never opens automatically; a manual pin still wins until the
+    /// message reaches a terminal state.
     mutating func reconcile(message: ChatMessage, prefersExpanded: Bool = false) {
         let snapshot = Snapshot(message: message)
         defer { previousSnapshot = snapshot }
 
         guard let previousSnapshot else {
-            if snapshot.isStreaming, snapshot.hasReasoning, !snapshot.hasAnswer {
-                isExpanded = true
-            } else if prefersExpanded, snapshot.hasReasoning {
-                isExpanded = true
-            }
+            isExpanded = snapshot.isStreaming && snapshot.hasReasoning && !snapshot.hasAnswer && prefersExpanded
             return
         }
 
-        // Reaching any terminal state closes reasoning unless the user asked
-        // for thinking to stay expanded by default. A manual pin still wins.
+        // Reaching any terminal state always closes reasoning.
         if snapshot.isTerminal {
-            guard prefersExpanded, snapshot.hasReasoning else {
-                isExpanded = false
-                return
-            }
-            if isPinned { return }
-            isExpanded = true
+            isExpanded = false
             return
         }
 
         guard !isPinned else { return }
 
-        if !previousSnapshot.hasAnswer, snapshot.hasAnswer {
-            if !prefersExpanded {
-                isExpanded = false
-            }
-        } else if !previousSnapshot.hasReasoning,
-                  snapshot.hasReasoning,
-                  snapshot.isStreaming,
-                  !snapshot.hasAnswer {
+        if snapshot.hasAnswer {
+            isExpanded = false
+        } else if snapshot.hasReasoning, snapshot.isStreaming, prefersExpanded {
             isExpanded = true
         }
-
     }
 
     /// Manual expand / collapse gesture. Locks out all future automatisms.

@@ -93,7 +93,8 @@ final class GlobalHotKey {
             "2": UInt32(kVK_ANSI_2), "3": UInt32(kVK_ANSI_3), "4": UInt32(kVK_ANSI_4), "5": UInt32(kVK_ANSI_5),
             "6": UInt32(kVK_ANSI_6), "7": UInt32(kVK_ANSI_7), "8": UInt32(kVK_ANSI_8), "9": UInt32(kVK_ANSI_9),
             ",": UInt32(kVK_ANSI_Comma), ".": UInt32(kVK_ANSI_Period), "/": UInt32(kVK_ANSI_Slash),
-            "-": UInt32(kVK_ANSI_Minus), "=": UInt32(kVK_ANSI_Equal)
+            "-": UInt32(kVK_ANSI_Minus), "=": UInt32(kVK_ANSI_Equal),
+            " ": UInt32(kVK_Space)
         ]
         guard let keyCode = keyCodes[shortcut.key] else { return nil }
         var modifiers: UInt32 = 0

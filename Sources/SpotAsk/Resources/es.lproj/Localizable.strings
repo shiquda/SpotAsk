@@ -271,6 +271,9 @@
 "settings.proxyUsernamePlaceholder" = "Opcional";
 "settings.proxyPassword" = "Contraseña";
 "settings.proxyPasswordPlaceholder" = "Opcional";
+"settings.testProxy" = "Probar proxy";
+"settings.proxyTestSuccess" = "La conexión del proxy funciona.";
+"settings.proxyTestFailed" = "No se pudo conectar a través del proxy.";
 "settings.diagnostics" = "Diagnóstico";
 "settings.diagnosticsEnabled" = "Registrar diagnóstico";
 "settings.diagnosticsDescription" = "Guarda en local los detalles de las solicitudes y selecciones recientes para ayudar a resolver problemas. Nunca se registran credenciales.";

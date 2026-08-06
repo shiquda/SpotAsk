@@ -290,6 +290,7 @@ final class AppSettings {
         static let interfaceZoomLevel = "interfaceZoomLevel"
         static let language = AppLanguage.defaultsKey
         static let hotKeyPreset = "hotKeyPreset"
+        static let globalShortcut = "globalShortcut"
         static let panelWidth = "panelWidth"
         static let panelHeight = "panelHeight"
         static let panelOriginX = "panelOriginX"
@@ -362,6 +363,16 @@ final class AppSettings {
         }
     }
     var hotKeyPreset: HotKeyPreset { didSet { defaults.set(hotKeyPreset.rawValue, forKey: Key.hotKeyPreset) } }
+    var globalShortcut: InAppShortcut? {
+        didSet {
+            if let globalShortcut,
+               let data = try? JSONEncoder().encode(globalShortcut) {
+                defaults.set(data, forKey: Key.globalShortcut)
+            } else {
+                defaults.removeObject(forKey: Key.globalShortcut)
+            }
+        }
+    }
     var selectionAssistantEnabled: Bool { didSet { defaults.set(selectionAssistantEnabled, forKey: Key.selectionAssistantEnabled) } }
     var selectionAssistantMode: SelectionAssistantMode { didSet { defaults.set(selectionAssistantMode.rawValue, forKey: Key.selectionAssistantMode) } }
     var selectionHotKeyPreset: SelectionHotKeyPreset { didSet { defaults.set(selectionHotKeyPreset.rawValue, forKey: Key.selectionHotKeyPreset) } }
@@ -477,6 +488,9 @@ final class AppSettings {
         interfaceZoomLevel = InterfaceZoomLevel(rawValue: defaults.string(forKey: Key.interfaceZoomLevel) ?? "standard") ?? .standard
         language = AppLanguage(rawValue: defaults.string(forKey: Key.language) ?? "system") ?? .system
         hotKeyPreset = HotKeyPreset(rawValue: defaults.string(forKey: Key.hotKeyPreset) ?? "optionSpace") ?? .optionSpace
+        globalShortcut = defaults.data(forKey: Key.globalShortcut).flatMap {
+            try? JSONDecoder().decode(InAppShortcut.self, from: $0)
+        }
         selectionAssistantEnabled = defaults.object(forKey: Key.selectionAssistantEnabled) as? Bool ?? false
         selectionAssistantMode = SelectionAssistantMode(rawValue: defaults.string(forKey: Key.selectionAssistantMode) ?? "actionBar") ?? .actionBar
         selectionHotKeyPreset = SelectionHotKeyPreset(rawValue: defaults.string(forKey: Key.selectionHotKeyPreset) ?? "optionShiftSpace") ?? .optionShiftSpace

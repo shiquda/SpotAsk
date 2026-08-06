@@ -11,24 +11,34 @@ final class ReasoningToggleStateTests: XCTestCase {
         XCTAssertFalse(store.state(for: message.id).isExpanded)
     }
 
-    func testInitialStreamingReasoningExpands() {
+    func testInitialStreamingReasoningExpandsOnlyWhenDefaultEnabled() {
+        let message = assistant(reasoning: "Working", state: .streaming)
+        var store = ReasoningToggleStateStore()
+
+        store.reconcile(messages: [message])
+        XCTAssertFalse(store.state(for: message.id).isExpanded)
+
+        store.reconcile(messages: [message], prefersExpanded: true)
+        XCTAssertTrue(store.state(for: message.id).isExpanded)
+    }
+
+    func testStreamingReasoningStaysCollapsedWhenDefaultDisabled() {
         let message = assistant(reasoning: "Working", state: .streaming)
         var store = ReasoningToggleStateStore()
 
         store.reconcile(messages: [message])
 
-        XCTAssertTrue(store.state(for: message.id).isExpanded)
+        XCTAssertFalse(store.state(for: message.id).isExpanded)
     }
 
-    func testAnswerAndCompletionInOneSnapshotCollapseReasoning() {
+    func testDefaultEnabledCollapsesReasoningWhenAnswerStarts() {
         var message = assistant(reasoning: "Working", state: .streaming)
         var store = ReasoningToggleStateStore()
-        store.reconcile(messages: [message])
+        store.reconcile(messages: [message], prefersExpanded: true)
         XCTAssertTrue(store.state(for: message.id).isExpanded)
 
-        message.content = "Final answer"
-        message.state = .complete
-        store.reconcile(messages: [message])
+        message.content = "Partial answer"
+        store.reconcile(messages: [message], prefersExpanded: true)
 
         XCTAssertFalse(store.state(for: message.id).isExpanded)
     }
@@ -48,7 +58,7 @@ final class ReasoningToggleStateTests: XCTestCase {
         for terminalState in [MessageState.complete, .cancelled, .failed] {
             var message = assistant(reasoning: "Working", state: .streaming)
             var store = ReasoningToggleStateStore()
-            store.reconcile(messages: [message])
+            store.reconcile(messages: [message], prefersExpanded: true)
             store.toggleByUser(messageID: message.id)
             store.toggleByUser(messageID: message.id)
             XCTAssertTrue(store.state(for: message.id).isExpanded)
@@ -64,7 +74,7 @@ final class ReasoningToggleStateTests: XCTestCase {
     func testTerminalStateCollapsesPreviouslyUserExpandedReasoning() {
         var message = assistant(reasoning: "Working", state: .streaming)
         var store = ReasoningToggleStateStore()
-        store.reconcile(messages: [message])
+        store.reconcile(messages: [message], prefersExpanded: true)
         store.toggleByUser(messageID: message.id)
         store.toggleByUser(messageID: message.id)
         XCTAssertTrue(store.state(for: message.id).isExpanded)
@@ -81,34 +91,35 @@ final class ReasoningToggleStateTests: XCTestCase {
         let retained = assistant(reasoning: "Retained", state: .streaming)
         let removed = assistant(reasoning: "Removed", state: .streaming)
         var store = ReasoningToggleStateStore()
-        store.reconcile(messages: [retained, removed])
+        store.reconcile(messages: [retained, removed], prefersExpanded: true)
 
-        store.reconcile(messages: [retained])
+        store.reconcile(messages: [retained], prefersExpanded: true)
 
         XCTAssertEqual(store.states.count, 1)
         XCTAssertTrue(store.states[retained.id]?.isExpanded == true)
         XCTAssertNil(store.states[removed.id])
     }
 
-    func testDefaultExpandedKeepsHistoricalReasoningExpanded() {
+    func testDefaultExpandedCollapsesHistoricalReasoning() {
         let message = assistant(reasoning: "Earlier work", state: .complete)
         var store = ReasoningToggleStateStore()
 
         store.reconcile(messages: [message], prefersExpanded: true)
 
-        XCTAssertTrue(store.state(for: message.id).isExpanded)
+        XCTAssertFalse(store.state(for: message.id).isExpanded)
     }
 
-    func testDefaultExpandedKeepsReasoningOpenAfterCompletion() {
+    func testDefaultExpandedCollapsesReasoningAfterCompletion() {
         var message = assistant(reasoning: "Working", state: .streaming)
         var store = ReasoningToggleStateStore()
         store.reconcile(messages: [message], prefersExpanded: true)
+        XCTAssertTrue(store.state(for: message.id).isExpanded)
 
         message.content = "Final answer"
         message.state = .complete
         store.reconcile(messages: [message], prefersExpanded: true)
 
-        XCTAssertTrue(store.state(for: message.id).isExpanded)
+        XCTAssertFalse(store.state(for: message.id).isExpanded)
     }
 
     func testDefaultExpandedDoesNotOverrideManualCollapse() {

@@ -72,7 +72,7 @@ private struct StatusToastCard: View {
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.primary)
                 .lineLimit(3)
-                .frame(maxWidth: 320, alignment: .leading)
+                .frame(maxWidth: 220, alignment: .leading)
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
                     .font(.system(size: 9, weight: .semibold))

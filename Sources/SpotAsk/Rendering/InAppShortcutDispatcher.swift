@@ -127,7 +127,7 @@ enum InAppShortcutDisplay {
         if shortcut.modifiers.contains(.shift) { labels.append("⇧") }
         if shortcut.modifiers.contains(.option) { labels.append("⌥") }
         if shortcut.modifiers.contains(.control) { labels.append("⌃") }
-        labels.append(shortcut.key.uppercased())
+        labels.append(shortcut.key == " " ? "Space" : shortcut.key.uppercased())
         return labels
     }
 }

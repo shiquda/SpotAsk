@@ -28,6 +28,12 @@ struct InAppShortcut: Codable, Hashable, Sendable {
               let scalar = key.unicodeScalars.first else { return false }
         return scalar.isASCII && (scalar.properties.isAlphabetic || scalar.properties.numericType != nil || ",./-=".unicodeScalars.contains(scalar))
     }
+
+    /// Global shortcuts additionally accept the Space key, matching the
+    /// app's historical Option+Space trigger.
+    var isSupportedGlobalShortcut: Bool {
+        isSupported || (key == " " && !modifiers.isEmpty)
+    }
 }
 
 struct InAppShortcutModifiers: OptionSet, Codable, Hashable, Sendable {

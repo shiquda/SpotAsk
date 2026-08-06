@@ -270,6 +270,9 @@
 "settings.proxyUsername" = "Имя пользователя";
 "settings.proxyUsernamePlaceholder" = "Необязательно";
 "settings.proxyPassword" = "Пароль";
+"settings.testProxy" = "Проверить прокси";
+"settings.proxyTestSuccess" = "Подключение через прокси работает.";
+"settings.proxyTestFailed" = "Не удалось подключиться через прокси.";
 "settings.proxyPasswordPlaceholder" = "Необязательно";
 "settings.diagnostics" = "Диагностика";
 "settings.diagnosticsEnabled" = "Записывать диагностику";

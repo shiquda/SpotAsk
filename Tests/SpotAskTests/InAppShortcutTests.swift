@@ -215,6 +215,7 @@ struct InAppShortcutTests {
         let shortcut = InAppShortcut(key: "k", modifiers: [.command, .shift, .option, .control])
         #expect(InAppShortcutDisplay.labels(for: shortcut) == ["⌘", "⇧", "⌥", "⌃", "K"])
         #expect(InAppShortcutDisplay.labels(for: shortcut, includeCommand: false) == ["⇧", "⌥", "⌃", "K"])
+        #expect(InAppShortcutDisplay.labels(for: InAppShortcut(key: " ", modifiers: .option)) == ["⌥", "Space"])
     }
 
     @Test("Recorder parses supported combinations and rejects modifier-only events")

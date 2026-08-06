@@ -147,80 +147,83 @@ private struct SelectionAssistantSettingsPage: View {
         VStack(alignment: .leading, spacing: 22) {
             SettingsPageHeader(section: .selectionAssistant, settings: settings)
             SettingsCallout(L10n.string("settings.selectionAssistantDescription"))
-            SettingsGroup(title: L10n.string("settings.selectionAssistantPermission")) {
-                SettingsFieldRow(label: L10n.string("settings.selectionAssistantPermissionStatus")) {
-                    Text(permissionCoordinator.status == .allowed
-                         ? L10n.string("settings.selectionAssistantPermissionAllowed")
-                         : L10n.string("settings.selectionAssistantPermissionNotAllowed"))
-                    .foregroundStyle(permissionCoordinator.status == .allowed ? .green : .secondary)
-                }
-                Text(L10n.string("settings.selectionAssistantPermissionDescription"))
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-                HStack(spacing: 10) {
-                    if permissionCoordinator.status == .notAllowed {
-                        Button(L10n.string("settings.selectionAssistantPermissionAuthorize")) {
-                            permissionCoordinator.requestPermissionFromSettings()
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    Button(L10n.string("selection.permissionOpenSettings")) {
-                        settingsOpener.openAccessibilitySettings()
-                    }
-                    Button(L10n.string("settings.selectionAssistantPermissionRefresh")) {
-                        permissionCoordinator.refresh()
-                    }
-                }
-            }
             SettingsGroup(title: L10n.string("settings.selectionAssistant")) {
                 SettingsToggleRow(label: L10n.string("settings.selectionAssistantEnabled"), isOn: Bindable(settings).selectionAssistantEnabled)
-                    .onChange(of: settings.selectionAssistantEnabled) { _, _ in
+                    .onChange(of: settings.selectionAssistantEnabled) { _, enabled in
                         NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+                        if enabled {
+                            permissionCoordinator.requestPermissionFromSettings()
+                        }
                     }
-                SettingsFieldRow(label: L10n.string("settings.selectionAssistantMode")) {
-                    Picker(L10n.string("settings.selectionAssistantMode"), selection: Bindable(settings).selectionAssistantMode) {
-                        Text(L10n.string("settings.selectionAssistantModeDirect")).tag(SelectionAssistantMode.direct)
-                        Text(L10n.string("settings.selectionAssistantModeActionBar")).tag(SelectionAssistantMode.actionBar)
+                if settings.selectionAssistantEnabled {
+                    SettingsFieldRow(label: L10n.string("settings.selectionAssistantPermissionStatus")) {
+                        Text(permissionCoordinator.status == .allowed
+                             ? L10n.string("settings.selectionAssistantPermissionAllowed")
+                             : L10n.string("settings.selectionAssistantPermissionNotAllowed"))
+                        .foregroundStyle(permissionCoordinator.status == .allowed ? .green : .secondary)
                     }
-                    .labelsHidden()
-                }
-                if settings.selectionAssistantMode == .actionBar {
-                    SettingsToggleRow(label: L10n.string("settings.selectionAssistantAutoShow"), isOn: Bindable(settings).selectionAutoInvokeEnabled)
-                    if settings.selectionAutoInvokeEnabled {
-                        SettingsFieldRow(label: L10n.string("settings.selectionAssistantAutoShowDelay")) {
-                            HStack(spacing: 10) {
-                                Slider(
-                                    value: Bindable(settings).selectionAutoInvokeDelay,
-                                    in: SelectionAutoInvokeDelay.minimum...SelectionAutoInvokeDelay.maximum,
-                                    step: SelectionAutoInvokeDelay.step
-                                )
-                                .frame(width: 180)
-                                TextField(
-                                    "",
-                                    value: Bindable(settings).selectionAutoInvokeDelay,
-                                    format: .number.precision(.fractionLength(2))
-                                )
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 56)
-                                Text(L10n.string("settings.selectionAssistantAutoShowDelayUnit"))
-                                    .foregroundStyle(.secondary)
+                    Text(L10n.string("settings.selectionAssistantPermissionDescription"))
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                    HStack(spacing: 10) {
+                        if permissionCoordinator.status == .notAllowed {
+                            Button(L10n.string("settings.selectionAssistantPermissionAuthorize")) {
+                                permissionCoordinator.requestPermissionFromSettings()
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                        Button(L10n.string("selection.permissionOpenSettings")) {
+                            settingsOpener.openAccessibilitySettings()
+                        }
+                        Button(L10n.string("settings.selectionAssistantPermissionRefresh")) {
+                            permissionCoordinator.refresh()
+                        }
+                    }
+                    SettingsFieldRow(label: L10n.string("settings.selectionAssistantMode")) {
+                        Picker(L10n.string("settings.selectionAssistantMode"), selection: Bindable(settings).selectionAssistantMode) {
+                            Text(L10n.string("settings.selectionAssistantModeDirect")).tag(SelectionAssistantMode.direct)
+                            Text(L10n.string("settings.selectionAssistantModeActionBar")).tag(SelectionAssistantMode.actionBar)
+                        }
+                        .labelsHidden()
+                    }
+                    if settings.selectionAssistantMode == .actionBar {
+                        SettingsToggleRow(label: L10n.string("settings.selectionAssistantAutoShow"), isOn: Bindable(settings).selectionAutoInvokeEnabled)
+                        if settings.selectionAutoInvokeEnabled {
+                            SettingsFieldRow(label: L10n.string("settings.selectionAssistantAutoShowDelay")) {
+                                HStack(spacing: 10) {
+                                    Slider(
+                                        value: Bindable(settings).selectionAutoInvokeDelay,
+                                        in: SelectionAutoInvokeDelay.minimum...SelectionAutoInvokeDelay.maximum,
+                                        step: SelectionAutoInvokeDelay.step
+                                    )
+                                    .frame(width: 180)
+                                    TextField(
+                                        "",
+                                        value: Bindable(settings).selectionAutoInvokeDelay,
+                                        format: .number.precision(.fractionLength(2))
+                                    )
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(width: 56)
+                                    Text(L10n.string("settings.selectionAssistantAutoShowDelayUnit"))
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
-                }
-                Button(action: onOpenShortcuts) {
-                    Label(L10n.string("settings.selectionAssistantConfigureShortcut"), systemImage: "command")
-                }
-                .buttonStyle(.bordered)
-                if settings.selectionAssistantMode == .direct {
-                    SettingsFieldRow(label: L10n.string("settings.selectionAssistantDefaultAction")) {
-                        Picker(L10n.string("settings.selectionAssistantDefaultAction"), selection: Binding(
-                            get: { settings.selectionDefaultPromptID ?? settings.enabledPromptPresets.first?.id },
-                            set: { settings.selectionDefaultPromptID = $0 }
-                        )) {
-                            ForEach(settings.enabledPromptPresets) { preset in Text(preset.title).tag(Optional(preset.id)) }
+                    Button(action: onOpenShortcuts) {
+                        Label(L10n.string("settings.selectionAssistantConfigureShortcut"), systemImage: "command")
+                    }
+                    .buttonStyle(.bordered)
+                    if settings.selectionAssistantMode == .direct {
+                        SettingsFieldRow(label: L10n.string("settings.selectionAssistantDefaultAction")) {
+                            Picker(L10n.string("settings.selectionAssistantDefaultAction"), selection: Binding(
+                                get: { settings.selectionDefaultPromptID ?? settings.enabledPromptPresets.first?.id },
+                                set: { settings.selectionDefaultPromptID = $0 }
+                            )) {
+                                ForEach(settings.enabledPromptPresets) { preset in Text(preset.title).tag(Optional(preset.id)) }
+                            }
+                            .labelsHidden()
                         }
-                        .labelsHidden()
                     }
                 }
             }
@@ -1088,10 +1091,11 @@ private struct ProviderCard: View {
     private var header: some View {
         HStack(spacing: 6) {
             Button {
-                if isEditingProvider || isEditingModel {
-                    state.cancelEditing()
+                if isExpanded {
+                    state.collapseProvider(provider.id)
+                } else {
+                    state.toggleProviderExpansion(provider.id)
                 }
-                state.toggleProviderExpansion(provider.id)
             } label: {
                 Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                     .font(.system(size: 11, weight: .semibold))
@@ -1740,12 +1744,14 @@ private struct ShortcutRecorder: NSViewRepresentable {
     let shortcut: InAppShortcut?
     let onRecord: (InAppShortcut) -> Void
     let onInvalid: () -> Void
+    var allowsSpace: Bool = false
 
     func makeNSView(context: Context) -> ShortcutRecorderField {
         let field = ShortcutRecorderField()
         field.setAccessibilityRole(.textField)
         field.onRecord = onRecord
         field.onInvalid = onInvalid
+        field.allowsSpace = allowsSpace
         return field
     }
 
@@ -1753,12 +1759,14 @@ private struct ShortcutRecorder: NSViewRepresentable {
         field.update(shortcut: shortcut)
         field.onRecord = onRecord
         field.onInvalid = onInvalid
+        field.allowsSpace = allowsSpace
     }
 }
 
 private final class ShortcutRecorderField: NSTextField {
     var onRecord: ((InAppShortcut) -> Void)?
     var onInvalid: (() -> Void)?
+    var allowsSpace = false
     private var monitor: Any?
     private var windowObservers: [NSObjectProtocol] = []
     private var displayedShortcut: InAppShortcut?
@@ -1915,7 +1923,7 @@ private final class ShortcutRecorderField: NSTextField {
             stopCapturing()
             return nil
         }
-        guard let shortcut = ShortcutRecorderEventParser.shortcut(from: event) else {
+        guard let shortcut = ShortcutRecorderEventParser.shortcut(from: event, allowsSpace: allowsSpace) else {
             onInvalid?()
             NSSound.beep()
             return nil
@@ -1927,7 +1935,7 @@ private final class ShortcutRecorderField: NSTextField {
 }
 
 enum ShortcutRecorderEventParser {
-    static func shortcut(from event: NSEvent) -> InAppShortcut? {
+    static func shortcut(from event: NSEvent, allowsSpace: Bool = false) -> InAppShortcut? {
         guard event.type == .keyDown else { return nil }
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         var shortcutModifiers: InAppShortcutModifiers = []
@@ -1937,7 +1945,7 @@ enum ShortcutRecorderEventParser {
         if modifiers.contains(.control) { shortcutModifiers.insert(.control) }
         guard let key = event.charactersIgnoringModifiers?.lowercased(), !key.isEmpty else { return nil }
         let shortcut = InAppShortcut(key: key, modifiers: shortcutModifiers)
-        return shortcut.isSupported ? shortcut : nil
+        return (shortcut.isSupported || (allowsSpace && shortcut.isSupportedGlobalShortcut)) ? shortcut : nil
     }
 
     static func isCancelKey(_ event: NSEvent) -> Bool {
@@ -1971,15 +1979,31 @@ private struct GeneralSettingsPage: View {
 
             SettingsGroup(title: L10n.string("settings.behavior")) {
                 SettingsFieldRow(label: L10n.string("settings.globalShortcut")) {
-                    Picker(L10n.string("settings.globalShortcut"), selection: Bindable(settings).hotKeyPreset) {
-                        ForEach(HotKeyPreset.allCases) { preset in
-                            Text(preset.title).tag(preset)
+                    HStack(spacing: 8) {
+                        ShortcutRecorder(
+                            shortcut: settings.globalShortcut ?? .init(key: " ", modifiers: .option),
+                            onRecord: { shortcut in
+                                settings.globalShortcut = shortcut
+                                NotificationCenter.default.post(name: .spotAskHotKeyChanged, object: nil)
+                                StatusToastCenter.shared.show(L10n.string("settings.shortcutSaved"))
+                            },
+                            onInvalid: {
+                                StatusToastCenter.shared.show(L10n.string("settings.shortcutInvalid"), isError: true)
+                            },
+                            allowsSpace: true
+                        )
+                        .frame(width: 176, height: 28)
+
+                        Button {
+                            settings.globalShortcut = nil
+                            NotificationCenter.default.post(name: .spotAskHotKeyChanged, object: nil)
+                            StatusToastCenter.shared.show(L10n.string("settings.shortcutRestored"))
+                        } label: {
+                            Image(systemName: "arrow.counterclockwise")
                         }
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .onChange(of: settings.hotKeyPreset) { _, _ in
-                        NotificationCenter.default.post(name: .spotAskHotKeyChanged, object: nil)
+                        .buttonStyle(.borderless)
+                        .help(L10n.string("settings.resetShortcut"))
+                        .accessibilityLabel(L10n.string("settings.resetShortcut"))
                     }
                 }
                 SettingsToggleRow(label: L10n.string("settings.launchAtLogin"), isOn: Bindable(settings).launchAtLogin)
@@ -2053,6 +2077,17 @@ private struct GeneralSettingsPage: View {
                             .onChange(of: providerState.proxyPasswordDraft) { _, _ in
                                 providerState.persistProxyPasswordDraft()
                             }
+                    }
+                    HStack(spacing: 10) {
+                        Button(L10n.string("settings.testProxy")) {
+                            providerState.testProxy()
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(providerState.isTestingProxy)
+
+                        if providerState.isTestingProxy {
+                            ProgressView().controlSize(.small)
+                        }
                     }
                 }
             }
@@ -2406,6 +2441,7 @@ final class ProviderSettingsState {
     var modelRefreshStatus: ModelRefreshStatus = .idle {
         didSet { notifyModelRefreshStatus() }
     }
+    var isTestingProxy = false
 
     // MARK: Discovered model selection
 
@@ -2587,6 +2623,28 @@ final class ProviderSettingsState {
         } else {
             expandedProviderIDs.insert(id)
         }
+    }
+
+    /// Collapses a Service even when it is the one being edited. Editing
+    /// selection must be cleared, otherwise the card stays expanded because
+    /// its detail form is considered part of the expanded content.
+    func collapseProvider(_ id: UUID) {
+        let ownsEditingSelection: Bool
+        if selectedProviderID == id {
+            ownsEditingSelection = true
+        } else if let selectedModelID,
+                  let catalog = settings.providerRegistry.catalog,
+                  catalog.models.first(where: { $0.id == selectedModelID })?.providerID == id {
+            ownsEditingSelection = true
+        } else {
+            ownsEditingSelection = false
+        }
+        if ownsEditingSelection {
+            selectedProviderID = nil
+            selectedModelID = nil
+        }
+        cancelEditing()
+        expandedProviderIDs.remove(id)
     }
 
     // MARK: Create
@@ -2871,6 +2929,46 @@ final class ProviderSettingsState {
             }
         } catch {
             setStatus(L10n.string("settings.saveKeyFailure"), isError: true)
+        }
+    }
+
+    func testProxy() {
+        guard !isTestingProxy else { return }
+        guard let catalog = settings.providerRegistry.catalog,
+              let selectedModel = catalog.models.first(where: { $0.id == catalog.selectedModelID }),
+              let provider = catalog.providers.first(where: { $0.id == selectedModel.providerID }) else {
+            setStatus(L10n.string("settings.proxyTestFailed"), isError: true)
+            return
+        }
+        isTestingProxy = true
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let configuration = Self.makeProxyConfiguration(settings: self.settings, keyStore: self.keyStore)
+                guard let configuration else {
+                    throw ChatError.invalidConfiguration
+                }
+                let session = ChatNetworking.urlSession(proxyConfiguration: configuration)
+                defer { session.invalidateAndCancel() }
+
+                var request = URLRequest(url: try URLNormalizer.modelsEndpoint(
+                    from: provider.address,
+                    format: provider.format
+                ))
+                request.httpMethod = "GET"
+                request.timeoutInterval = 15
+                let (_, response) = try await session.data(for: request)
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw ChatError.invalidResponse
+                }
+                // Any HTTP response means the request reached the service
+                // through the proxy; auth and 4xx/5xx still prove connectivity.
+                _ = httpResponse.statusCode
+                self.setStatus(L10n.string("settings.proxyTestSuccess"), isError: false)
+            } catch {
+                self.setStatus(L10n.string("settings.proxyTestFailed"), isError: true)
+            }
+            self.isTestingProxy = false
         }
     }
 

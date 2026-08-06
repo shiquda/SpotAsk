@@ -162,7 +162,7 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         do {
             try registerGlobalHotKey()
         } catch {
-            assertionFailure("Unable to register default global hot key: \(error)")
+            StatusToastCenter.shared.show(L10n.string("settings.shortcutInvalid"), isError: true)
         }
         registerSelectionHotKeyIfNeeded()
         NotificationCenter.default.addObserver(self, selector: #selector(reconfigureGlobalHotKey), name: .spotAskHotKeyChanged, object: nil)
@@ -194,7 +194,7 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         do {
             try registerGlobalHotKey()
         } catch {
-            assertionFailure("Unable to register global hot key: \(error)")
+            StatusToastCenter.shared.show(L10n.string("settings.shortcutInvalid"), isError: true)
         }
     }
 
@@ -207,6 +207,14 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func registerGlobalHotKey() throws {
+        if let globalShortcut = settings.globalShortcut,
+           let configuration = GlobalHotKey.configuration(for: globalShortcut) {
+            try globalHotKey.register(keyCode: configuration.keyCode, modifiers: configuration.modifiers) {
+                Task { @MainActor in SpotAskCommandCenter.shared.toggle() }
+            }
+            return
+        }
+
         let configuration: (keyCode: UInt32, modifiers: UInt32)
         switch settings.hotKeyPreset {
         case .optionSpace:
