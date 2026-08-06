@@ -38,6 +38,25 @@
 - **8 interface languages** — English, 简体中文, Español, Deutsch, 日本語, Français, Português, Русский.
 - **Work with macOS** — ask a question, start a new conversation, or run a prompt from Spotlight, Siri, or Shortcuts.
 
+## Typical use cases
+
+SpotAsk is built around two everyday flows. Watch how each one works before you start:
+
+<table>
+  <tr>
+    <td width="50%" align="center"><strong>Quick chat</strong></td>
+    <td width="50%" align="center"><strong>Ask about selected text</strong></td>
+  </tr>
+  <tr>
+    <td width="50%" align="center"><img src="images/spotask-hotkey.gif" width="480" alt="SpotAsk chat window summoned with a hotkey"></td>
+    <td width="50%" align="center"><img src="images/spotask-selection.gif" width="480" alt="SpotAsk quick action bar next to selected text in another app"></td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">Press your hotkey (default Option + Space) to summon the chat window and ask anything.</td>
+    <td width="50%" align="center">Select text in Safari, Notes, or other apps, then use the quick action bar to translate, explain, summarize, polish, or run a custom prompt.</td>
+  </tr>
+</table>
+
 ## Download
 
 Download the matching package from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases):

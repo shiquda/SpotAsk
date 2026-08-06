@@ -38,6 +38,25 @@
 - **8 种界面语言** — 简体中文、English、Español、Deutsch、日本語、Français、Português、Русский。
 - **融入 macOS 系统** — 通过 Spotlight、Siri 和快捷指令直接提问、开始新对话或执行提示词。
 
+## 典型用例
+
+SpotAsk 围绕两个日常场景设计，先看看它们怎么用：
+
+<table>
+  <tr>
+    <td width="50%" align="center"><strong>快速对话</strong></td>
+    <td width="50%" align="center"><strong>划词即问</strong></td>
+  </tr>
+  <tr>
+    <td width="50%" align="center"><img src="images/spotask-hotkey.gif" width="480" alt="按快捷键呼出 SpotAsk 对话窗口"></td>
+    <td width="50%" align="center"><img src="images/spotask-selection.gif" width="480" alt="SpotAsk 在其他应用中选中文字时出现的快捷操作条"></td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">按你的快捷键（默认 Option + Space）呼出对话窗口，随时提问。</td>
+    <td width="50%" align="center">在 Safari、备忘录或其他应用中选中文字，使用操作条翻译、解释、总结、润色或执行自定义提示词。</td>
+  </tr>
+</table>
+
 ## 下载
 
 请从 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases) 下载与你的 Mac 匹配的软件包：
