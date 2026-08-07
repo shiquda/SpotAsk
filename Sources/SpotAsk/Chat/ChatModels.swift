@@ -32,6 +32,9 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
     /// SF Symbol captured when the one-shot prompt was sent. Existing
     /// sessions without this field continue to use the stable fallback.
     let appliedPresetSymbolName: String?
+    /// Context attached to a user question. Images keep binary data; documents
+    /// and code are normalized to text. Not persisted to the session file.
+    var attachments: [ChatAttachment]
 
     init(
         id: UUID = UUID(),
@@ -43,6 +46,7 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         reasoningCompletedAt: Date? = nil,
         modelDisplayName: String? = nil,
         completedAt: Date? = nil,
+        attachments: [ChatAttachment] = [],
         appliedPresetTitle: String? = nil,
         appliedPresetSymbolName: String? = nil
     ) {
@@ -55,8 +59,41 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         self.reasoningCompletedAt = reasoningCompletedAt
         self.modelDisplayName = modelDisplayName
         self.completedAt = completedAt
+        self.attachments = attachments
         self.appliedPresetTitle = appliedPresetTitle
         self.appliedPresetSymbolName = appliedPresetSymbolName
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case role
+        case content
+        case reasoningContent
+        case createdAt
+        case state
+        case reasoningCompletedAt
+        case modelDisplayName
+        case completedAt
+        case appliedPresetTitle
+        case appliedPresetSymbolName
+        case attachments
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        role = try container.decode(ChatRole.self, forKey: .role)
+        content = try container.decode(String.self, forKey: .content)
+        reasoningContent = try container.decodeIfPresent(String.self, forKey: .reasoningContent)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        state = try container.decodeIfPresent(MessageState.self, forKey: .state) ?? .complete
+        reasoningCompletedAt = try container.decodeIfPresent(Date.self, forKey: .reasoningCompletedAt)
+        modelDisplayName = try container.decodeIfPresent(String.self, forKey: .modelDisplayName)
+        completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
+        appliedPresetTitle = try container.decodeIfPresent(String.self, forKey: .appliedPresetTitle)
+        appliedPresetSymbolName = try container.decodeIfPresent(String.self, forKey: .appliedPresetSymbolName)
+        // Older session files have no attachments key; decode them as empty.
+        attachments = try container.decodeIfPresent([ChatAttachment].self, forKey: .attachments) ?? []
     }
 
     var appliedPresetIcon: String {

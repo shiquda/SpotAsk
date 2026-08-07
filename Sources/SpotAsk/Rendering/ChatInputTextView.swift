@@ -15,6 +15,9 @@ struct ChatInputTextView: NSViewRepresentable {
     let isGenerating: Bool
     let onSubmit: () -> Bool
     let onEscape: () -> Void
+    /// Called when the user pastes an image (screenshot) instead of text.
+    let onPasteImage: (Data) -> Void
+    let onPasteFiles: ([URL]) -> Void
     /// Called when the up arrow is pressed in an empty input with no selection.
     /// Return true when a previous question was recalled.
     let onRecall: () -> Bool
@@ -33,6 +36,16 @@ struct ChatInputTextView: NSViewRepresentable {
         }
         textView.onEscape = onEscape
         textView.onRecall = onRecall
+        textView.onPasteImage = { [weak coordinator = context.coordinator] data in
+            MainActor.assumeIsolated {
+                coordinator?.pasteImage(data)
+            }
+        }
+        textView.onPasteFiles = { [weak coordinator = context.coordinator] urls in
+            MainActor.assumeIsolated {
+                coordinator?.pasteFiles(urls)
+            }
+        }
         textView.onLayoutPass = { [weak coordinator = context.coordinator] in
             guard let coordinator, let textView = $0 as? NSTextView else { return }
             coordinator.updateHeightIfNeeded(of: textView)
@@ -83,6 +96,16 @@ struct ChatInputTextView: NSViewRepresentable {
         }
         textView.onEscape = onEscape
         textView.onRecall = onRecall
+        textView.onPasteImage = { [weak coordinator = context.coordinator] data in
+            MainActor.assumeIsolated {
+                coordinator?.pasteImage(data)
+            }
+        }
+        textView.onPasteFiles = { [weak coordinator = context.coordinator] urls in
+            MainActor.assumeIsolated {
+                coordinator?.pasteFiles(urls)
+            }
+        }
 
         let editorOwnsDraft = ChatInputSynchronization.shouldPreserveFocusedDraft(
             isGenerating: isGenerating,
@@ -138,6 +161,16 @@ struct ChatInputTextView: NSViewRepresentable {
                 textView.string = ""
                 updateHeightIfNeeded(of: textView)
             }
+        }
+
+        @MainActor
+        func pasteImage(_ data: Data) {
+            parent.onPasteImage(data)
+        }
+
+        @MainActor
+        func pasteFiles(_ urls: [URL]) {
+            parent.onPasteFiles(urls)
         }
 
         @MainActor
@@ -211,11 +244,35 @@ private final class ComposerTextView: NSTextView {
     var onSubmit: ((NSTextView) -> Void)?
     var onEscape: (() -> Void)?
     var onRecall: (() -> Bool)?
+    var onPasteImage: ((Data) -> Void)?
+    var onPasteFiles: (([URL]) -> Void)?
     var onLayoutPass: ((NSView) -> Void)?
 
     override func layout() {
         super.layout()
         onLayoutPass?(self)
+    }
+
+    /// Screenshots land in the attachment strip instead of the text editor.
+    /// Plain-text and rich-text clipboard content keeps the normal NSTextView
+    /// paste behavior untouched.
+    override func paste(_ sender: Any?) {
+        let pasteboard = NSPasteboard.general
+        if let urls = Self.pastedFileURLs(from: pasteboard), !urls.isEmpty {
+            onPasteFiles?(urls)
+            return
+        }
+        if let pngData = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff) {
+            onPasteImage?(pngData)
+            return
+        }
+        super.paste(sender)
+    }
+
+    /// Files copied in Finder keep their real filename and kind when pasted;
+    /// bare clipboard images (screenshots) still land in the image path.
+    static func pastedFileURLs(from pasteboard: NSPasteboard) -> [URL]? {
+        pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL]
     }
 
     override func keyDown(with event: NSEvent) {

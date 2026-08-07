@@ -9,7 +9,16 @@ protocol ChatProvider: Sendable {
 protocol ChatProviderFactory {
     func makeProvider() throws -> any ChatProvider
     func makeTargetSnapshot() throws -> ProviderTargetSnapshot
+    func makeTargetSnapshot(modelID: UUID) throws -> ProviderTargetSnapshot
     func makeProvider(for target: ProviderTargetSnapshot) throws -> any ChatProvider
+}
+
+extension ChatProviderFactory {
+    /// Default implementation keeps test factories that only model the
+    /// catalog-default path compiling without repeating the override.
+    func makeTargetSnapshot(modelID: UUID) throws -> ProviderTargetSnapshot {
+        try makeTargetSnapshot()
+    }
 }
 
 @MainActor
@@ -38,8 +47,15 @@ struct OpenAICompatibleProviderFactory: ChatProviderFactory {
     }
 
     func makeTargetSnapshot() throws -> ProviderTargetSnapshot {
+        guard let catalog = settings.providerRegistry.catalog else {
+            throw ChatError.invalidConfiguration
+        }
+        return try makeTargetSnapshot(modelID: catalog.selectedModelID)
+    }
+
+    func makeTargetSnapshot(modelID: UUID) throws -> ProviderTargetSnapshot {
         guard let catalog = settings.providerRegistry.catalog,
-              let model = catalog.models.first(where: { $0.id == catalog.selectedModelID }) else {
+              let model = catalog.models.first(where: { $0.id == modelID }) else {
             throw ChatError.invalidConfiguration
         }
         return try resolver.resolve(

@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Quick model switch: pick any provider's model for the current conversation from the header without touching Settings; New Conversation returns to the default model.
+- Temporary attachments: paste a screenshot, drag in images or text/code files, or pick them from a file chooser; images are sent as image content and text files are attached as text context.
+- Attachment context follows the conversation: later questions resend earlier screenshots and files, and retry keeps the original attachments.
+- Model picker search with provider grouping, keyboard navigation, and a Use Default Model shortcut for returning to the Settings default.
+
 - Cross-app selection assistant: select text in Safari, Notes, or other apps to translate, explain, summarize, polish, or run a custom prompt.
 - Quick action bar that appears next to selected text, with text labels shown by default.
 - Direct-run mode and optional automatic invocation for the selection assistant.

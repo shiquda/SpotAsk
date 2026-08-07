@@ -62,6 +62,8 @@
 		00100000000000000000003C /* SelectionDiagnosticsSink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000049 /* SelectionDiagnosticsSink.swift */; };
 		00100000000000000000003D /* AnthropicProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000004A /* AnthropicProvider.swift */; };
 		00100000000000000000003E /* DiagnosticLogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000004B /* DiagnosticLogStore.swift */; };
+		00100000000000000000003F /* ChatAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000058 /* ChatAttachment.swift */; };
+		001000000000000000000040 /* AttachmentProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000059 /* AttachmentProcessor.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -137,6 +139,8 @@
 		002000000000000000000055 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = Sources/SpotAsk/Resources/fr.lproj/AppShortcuts.strings; sourceTree = SOURCE_ROOT; };
 		002000000000000000000056 /* pt */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = pt; path = Sources/SpotAsk/Resources/pt.lproj/AppShortcuts.strings; sourceTree = SOURCE_ROOT; };
 		002000000000000000000057 /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = Sources/SpotAsk/Resources/ru.lproj/AppShortcuts.strings; sourceTree = SOURCE_ROOT; };
+		002000000000000000000058 /* ChatAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Attachments/ChatAttachment.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000059 /* AttachmentProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Attachments/AttachmentProcessor.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -204,6 +208,8 @@
 				002000000000000000000045 /* SelectionAutoInvokeMonitor.swift */,
 				002000000000000000000046 /* SelectionElementChain.swift */,
 				002000000000000000000048 /* SelectionDiagnosticsFormatting.swift */,
+				002000000000000000000058 /* ChatAttachment.swift */,
+				002000000000000000000059 /* AttachmentProcessor.swift */,
 				002000000000000000000023 /* Localization.swift */,
 			);
 			name = Sources;
@@ -358,6 +364,8 @@
 				00100000000000000000003C,
 				00100000000000000000003D,
 				00100000000000000000003E,
+				00100000000000000000003F,
+				001000000000000000000040,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

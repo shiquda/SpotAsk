@@ -19,6 +19,11 @@ final class ChatViewModel {
     private(set) var streamingContent = ""
     private(set) var streamingReasoning: String?
     private(set) var streamingAnswerChunks: [String] = []
+    /// Draft attachments for the next question. They move into the user message
+    /// on send, so retry and follow-up context never depend on draft state.
+    private(set) var pendingAttachments: [ChatAttachment] = []
+    /// Per-conversation model override. `nil` means "use the Settings default".
+    private(set) var sessionModelID: UUID?
 
     private let settings: AppSettings
     private let providerFactory: any ChatProviderFactory
@@ -42,7 +47,9 @@ final class ChatViewModel {
         return liveMessage(message)
     }
     var canSend: Bool {
-        !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasContent = !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !pendingAttachments.isEmpty
+        return hasContent
             && generationState != .connecting
             && generationState != .streaming
             && !isSessionChoicePending
@@ -55,6 +62,94 @@ final class ChatViewModel {
               last.role == .assistant,
               last.state == .complete else { return false }
         return messages.contains { $0.role == .user }
+    }
+
+    // MARK: - Session model override
+
+    /// The model that the next request actually uses: the current conversation's
+    /// override when present and still resolvable, otherwise the Settings default.
+    var effectiveModel: ModelConfiguration? {
+        guard let catalog = settings.providerRegistry.catalog else { return nil }
+        if let sessionModelID,
+           let model = catalog.models.first(where: { $0.id == sessionModelID }) {
+            return model
+        }
+        return catalog.models.first(where: { $0.id == catalog.selectedModelID })
+    }
+
+    var effectiveModelID: UUID? { effectiveModel?.id }
+
+    var effectiveProvider: ProviderConfiguration? {
+        guard let model = effectiveModel,
+              let catalog = settings.providerRegistry.catalog else { return nil }
+        return catalog.providers.first(where: { $0.id == model.providerID })
+    }
+
+    /// Applies a model override for this conversation only. The Settings default
+    /// is never touched; New Conversation returns to it.
+    func selectSessionModel(id: UUID) {
+        guard let catalog = settings.providerRegistry.catalog,
+              catalog.models.contains(where: { $0.id == id }) else { return }
+        sessionModelID = id
+    }
+
+    func useDefaultModel() {
+        sessionModelID = nil
+    }
+
+    /// A model deleted in Settings must never wedge the conversation on a stale
+    /// UUID; the override is dropped and the default model takes over.
+    private func reconcileSessionModel() {
+        guard let sessionModelID,
+              let catalog = settings.providerRegistry.catalog,
+              !catalog.models.contains(where: { $0.id == sessionModelID }) else { return }
+        self.sessionModelID = nil
+    }
+
+    // MARK: - Attachments
+
+    func addAttachments(_ newAttachments: [ChatAttachment]) {
+        guard !newAttachments.isEmpty else { return }
+        let available = AttachmentLimits.maxAttachmentsPerMessage - pendingAttachments.count
+        guard available > 0 else {
+            StatusToastCenter.shared.show(L10n.string("chat.attachmentTooMany"), isError: true)
+            return
+        }
+        if newAttachments.count > available {
+            pendingAttachments.append(contentsOf: newAttachments.prefix(available))
+            StatusToastCenter.shared.show(L10n.string("chat.attachmentTooMany"), isError: true)
+        } else {
+            pendingAttachments.append(contentsOf: newAttachments)
+        }
+    }
+
+    func removeAttachment(id: UUID) {
+        pendingAttachments.removeAll { $0.id == id }
+    }
+
+    /// Ingests one dropped/picked file through the shared processor and reports
+    /// failures as a toast so the composer stays lightweight.
+    func addAttachment(from url: URL) async {
+        do {
+            let attachment = try await AttachmentProcessor.shared.process(url: url)
+            addAttachments([attachment])
+        } catch let error as AttachmentError {
+            StatusToastCenter.shared.show(error.localizedDescription, isError: true)
+        } catch {
+            StatusToastCenter.shared.show(L10n.string("chat.attachmentFileReadFailed"), isError: true)
+        }
+    }
+
+    /// Ingests clipboard image data, normalized to PNG, through the same pipeline.
+    func addScreenshot(_ image: Data) async {
+        do {
+            let attachment = try await AttachmentProcessor.shared.processScreenshot(image)
+            addAttachments([attachment])
+        } catch let error as AttachmentError {
+            StatusToastCenter.shared.show(error.localizedDescription, isError: true)
+        } catch {
+            StatusToastCenter.shared.show(L10n.string("chat.attachmentImageDecodeFailed"), isError: true)
+        }
     }
 
     /// Returns the row data the UI should render. While a message is actively
@@ -72,6 +167,7 @@ final class ChatViewModel {
             reasoningCompletedAt: message.reasoningCompletedAt,
             modelDisplayName: message.modelDisplayName,
             completedAt: message.completedAt,
+            attachments: message.attachments,
             appliedPresetTitle: message.appliedPresetTitle,
             appliedPresetSymbolName: message.appliedPresetSymbolName
         )
@@ -81,13 +177,16 @@ final class ChatViewModel {
     func send(selectionSnapshot: SelectedTextSnapshot? = nil) -> Bool {
         guard canSend else { return false }
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        let attachments = pendingAttachments
         let promptPreset = selectedPromptPreset
         selectedPromptPreset = nil
         input = ""
+        pendingAttachments = []
         messages.append(
             ChatMessage(
                 role: .user,
                 content: text,
+                attachments: attachments,
                 appliedPresetTitle: promptPreset?.title,
                 appliedPresetSymbolName: promptPreset?.symbolName
             )
@@ -130,6 +229,8 @@ final class ChatViewModel {
         streamingAnswerChunks = []
         messages.removeAll()
         input = ""
+        pendingAttachments = []
+        sessionModelID = nil
         error = nil
         generationState = .idle
         selectedPromptPreset = nil
@@ -202,6 +303,7 @@ final class ChatViewModel {
 
     private func beginRequest(using promptPreset: PromptPreset? = nil, selectionSnapshot: SelectedTextSnapshot? = nil) {
         guard messages.last?.role == .user else { return }
+        reconcileSessionModel()
         error = nil
         generationState = .connecting
         let assistantID = UUID()
@@ -216,7 +318,11 @@ final class ChatViewModel {
         retryPromptPreset = promptPreset
         let target: ProviderTargetSnapshot
         do {
-            target = try providerFactory.makeTargetSnapshot()
+            if let effectiveModelID {
+                target = try providerFactory.makeTargetSnapshot(modelID: effectiveModelID)
+            } else {
+                target = try providerFactory.makeTargetSnapshot()
+            }
             if let assistantIndex = messages.firstIndex(where: { $0.id == assistantID }) {
                 messages[assistantIndex].modelDisplayName = target.displayName
             }
@@ -282,7 +388,7 @@ final class ChatViewModel {
         let conversation = messages
             .filter { $0.role == .user || ($0.role == .assistant && $0.state == .complete) }
             .map { message in
-                ChatMessage(
+                var requestMessage = ChatMessage(
                     id: message.id,
                     role: message.role,
                     content: message.content,
@@ -291,6 +397,15 @@ final class ChatViewModel {
                     appliedPresetTitle: message.appliedPresetTitle,
                     appliedPresetSymbolName: message.appliedPresetSymbolName
                 )
+                // Attachments belong to the conversation context, so follow-up
+                // requests resend earlier screenshots and documents.
+                requestMessage.attachments = message.attachments
+                // An image-only send stays silent in the UI but still gives the
+                // provider a concrete instruction on the wire.
+                if message.role == .user, message.content.isEmpty, !message.attachments.isEmpty {
+                    requestMessage.content = L10n.string("chat.attachmentFallbackPrompt")
+                }
+                return requestMessage
             }
         let maximum = settings.contextLimit == 0 ? Int.max : settings.contextLimit
         let recent = Array(conversation.suffix(maximum))

@@ -63,7 +63,7 @@ struct OpenAICompatibleProvider: ChatProvider {
     func testConnection() async throws {
         let request = ChatRequest(model: configuration.model, messages: [ChatMessage(role: .user, content: "ping")], stream: false)
         var urlRequest = try makeURLRequest(for: request)
-        urlRequest.httpBody = try JSONEncoder().encode(OpenAIRequest(model: configuration.model, messages: [.init(role: "user", content: "ping")], stream: false, maxTokens: 1))
+        urlRequest.httpBody = try JSONEncoder().encode(OpenAIRequest(model: configuration.model, messages: [.init(role: "user", content: .text("ping"))], stream: false, maxTokens: 1))
         _ = try await transport.data(for: urlRequest)
     }
 
@@ -98,11 +98,74 @@ struct OpenAICompatibleProvider: ChatProvider {
         urlRequest.timeoutInterval = configuration.timeout
         urlRequest.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let messages = request.messages.map { OpenAIRequest.Message(role: $0.role.rawValue, content: $0.content) }
+        let messages = request.messages.map { message in
+            OpenAIRequest.Message(role: message.role.rawValue, content: Self.openAIContent(for: message))
+        }
         urlRequest.httpBody = try JSONEncoder().encode(OpenAIRequest(model: request.model, messages: messages, stream: request.stream, maxTokens: nil))
         return urlRequest
     }
 
+    /// Text-only requests keep the historical `content: "string"` wire format.
+    /// Only messages with attachments switch to the multimodal content array.
+    private static func openAIContent(for message: ChatMessage) -> OpenAIMessageContent {
+        guard !message.attachments.isEmpty else { return .text(message.content) }
+        var parts: [OpenAIContentPart] = []
+        for attachment in message.attachments {
+            switch attachment.payload {
+            case let .image(data):
+                parts.append(
+                    OpenAIContentPart(
+                        type: "image_url",
+                        text: nil,
+                        imageURL: .init(url: "data:\(attachment.mimeType);base64,\(data.base64EncodedString())")
+                    )
+                )
+            case let .text(text, _):
+                parts.append(
+                    OpenAIContentPart(
+                        type: "text",
+                        text: "[Attached file: \(attachment.filename)]\n\(text)",
+                        imageURL: nil
+                    )
+                )
+            }
+        }
+        if !message.content.isEmpty {
+            parts.append(OpenAIContentPart(type: "text", text: message.content, imageURL: nil))
+        }
+        return .parts(parts)
+    }
+}
+
+/// One user message's content. Encoding a single value keeps text-only requests
+/// byte-for-byte compatible with the previous `content: String` schema.
+enum OpenAIMessageContent: Encodable {
+    case text(String)
+    case parts([OpenAIContentPart])
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case let .text(text): try container.encode(text)
+        case let .parts(parts): try container.encode(parts)
+        }
+    }
+}
+
+struct OpenAIContentPart: Encodable, Equatable {
+    let type: String
+    let text: String?
+    let imageURL: OpenAIImageURL?
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case text
+        case imageURL = "image_url"
+    }
+}
+
+struct OpenAIImageURL: Encodable, Equatable {
+    let url: String
 }
 
 struct NonStreamingResponse: Decodable {
@@ -130,7 +193,10 @@ struct NonStreamingResponse: Decodable {
 }
 
 private struct OpenAIRequest: Encodable {
-    struct Message: Encodable { let role: String; let content: String }
+    struct Message: Encodable {
+        let role: String
+        let content: OpenAIMessageContent
+    }
     let model: String
     let messages: [Message]
     let stream: Bool

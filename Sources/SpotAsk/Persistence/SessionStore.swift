@@ -12,7 +12,14 @@ struct SessionStore {
     func save(_ messages: [ChatMessage]) throws {
         let directory = try applicationSupportDirectory()
         try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
-        try JSONEncoder().encode(messages).write(to: directory.appendingPathComponent("current-session.json"), options: .atomic)
+        // Attachments are intentionally not persisted: the session file stays
+        // small and a restart starts without binary context.
+        let stripped = messages.map { message in
+            var copy = message
+            copy.attachments = []
+            return copy
+        }
+        try JSONEncoder().encode(stripped).write(to: directory.appendingPathComponent("current-session.json"), options: .atomic)
     }
 
     func load() throws -> [ChatMessage] {

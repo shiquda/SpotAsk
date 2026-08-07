@@ -512,20 +512,345 @@ final class ChatViewModelTests: XCTestCase {
         recorder: RequestRecorder,
         scripts: [[MockStep]],
         contextLimit: Int = 20,
+        snapshots: [UUID: ProviderTargetSnapshot] = [:],
         configure: ((AppSettings) -> Void)? = nil
     ) -> ChatViewModel {
+        makeViewModelWithSettings(
+            recorder: recorder,
+            scripts: scripts,
+            contextLimit: contextLimit,
+            snapshots: snapshots,
+            configure: configure
+        ).0
+    }
+
+    private func makeViewModelWithSettings(
+        recorder: RequestRecorder,
+        scripts: [[MockStep]],
+        contextLimit: Int = 20,
+        snapshots: [UUID: ProviderTargetSnapshot] = [:],
+        configure: ((AppSettings) -> Void)? = nil
+    ) -> (ChatViewModel, AppSettings) {
         let suiteName = "SpotAskTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
         let settings = AppSettings(defaults: defaults)
         settings.contextLimit = contextLimit
         configure?(settings)
-        let factory = MockFactory(recorder: recorder, scripts: scripts)
-        return ChatViewModel(settings: settings, providerFactory: factory, sessionStore: SessionStore(bundleIdentifier: suiteName))
+        let factory = MockFactory(recorder: recorder, scripts: scripts, snapshotsByModelID: snapshots)
+        let viewModel = ChatViewModel(settings: settings, providerFactory: factory, sessionStore: SessionStore(bundleIdentifier: suiteName))
+        return (viewModel, settings)
     }
 
     private func waitForIdle(_ viewModel: ChatViewModel) async {
         await waitForState(viewModel, .idle)
+    }
+
+    // MARK: - Quick Model Switch
+
+    func testDefaultModelUsedWhenNoSessionOverride() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("answer")]])
+
+        viewModel.input = "question"
+        viewModel.send()
+        await waitForIdle(viewModel)
+
+        XCTAssertEqual(recorder.modelIDs.count, 1)
+    }
+
+    func testSessionModelOverrideUsedForRequest() async {
+        let recorder = RequestRecorder()
+        let modelB = UUID()
+        let snapshotB = ProviderTargetSnapshot.testValue(
+            modelID: modelB,
+            displayName: "Model B",
+            upstreamModelID: "model-b"
+        )
+        let (viewModel, settings) = makeViewModelWithSettings(
+            recorder: recorder,
+            scripts: [[.answer("answer")]],
+            snapshots: [modelB: snapshotB]
+        ) { settings in
+            guard let catalog = settings.providerRegistry.catalog,
+                  let providerID = catalog.providers.first?.id else { return }
+            _ = try? settings.providerRegistry.saveModel(
+                ModelConfiguration(
+                    id: modelB,
+                    displayName: "Model B",
+                    upstreamModelID: "model-b",
+                    providerID: providerID,
+                    isStreamingEnabled: true
+                )
+            )
+        }
+
+        viewModel.selectSessionModel(id: modelB)
+        XCTAssertEqual(viewModel.effectiveModelID, modelB)
+        viewModel.input = "question"
+        viewModel.send()
+        await waitForIdle(viewModel)
+
+        XCTAssertEqual(recorder.modelIDs, [modelB])
+        XCTAssertEqual(viewModel.lastAssistantMessage?.modelDisplayName, "Model B")
+    }
+
+    func testNewConversationResetsSessionModel() async {
+        let recorder = RequestRecorder()
+        let modelB = UUID()
+        let (viewModel, settings) = makeViewModelWithSettings(
+            recorder: recorder,
+            scripts: [[.answer("answer")]],
+            snapshots: [modelB: ProviderTargetSnapshot.testValue(modelID: modelB)]
+        ) { settings in
+            guard let catalog = settings.providerRegistry.catalog,
+                  let providerID = catalog.providers.first?.id else { return }
+            _ = try? settings.providerRegistry.saveModel(
+                ModelConfiguration(
+                    id: modelB,
+                    displayName: "Model B",
+                    upstreamModelID: "model-b",
+                    providerID: providerID,
+                    isStreamingEnabled: true
+                )
+            )
+        }
+
+        viewModel.selectSessionModel(id: modelB)
+        XCTAssertEqual(viewModel.effectiveModelID, modelB)
+        XCTAssertNotNil(viewModel.sessionModelID)
+
+        viewModel.newConversation()
+
+        XCTAssertNil(viewModel.sessionModelID)
+        XCTAssertNotEqual(viewModel.effectiveModelID, modelB)
+    }
+
+    func testDeletedSessionModelFallsBackToDefault() async {
+        let recorder = RequestRecorder()
+        let (viewModel, settings) = makeViewModelWithSettings(
+            recorder: recorder,
+            scripts: [[.answer("answer")]]
+        ) { settings in
+            guard let catalog = settings.providerRegistry.catalog,
+                  let providerID = catalog.providers.first?.id else { return }
+            _ = try? settings.providerRegistry.saveModel(
+                ModelConfiguration(
+                    displayName: "Model B",
+                    upstreamModelID: "model-b",
+                    providerID: providerID,
+                    isStreamingEnabled: true
+                )
+            )
+        }
+        guard let catalog = settings.providerRegistry.catalog,
+              let modelB = catalog.models.first(where: { $0.upstreamModelID == "model-b" }) else {
+            XCTFail("Catalog setup failed")
+            return
+        }
+        let defaultID = catalog.selectedModelID
+
+        // Override to model B, then delete it from Settings.
+        viewModel.selectSessionModel(id: modelB.id)
+        XCTAssertEqual(viewModel.effectiveModelID, modelB.id)
+        try? settings.providerRegistry.deleteModel(id: modelB.id)
+
+        viewModel.input = "question"
+        viewModel.send()
+        await waitForIdle(viewModel)
+
+        XCTAssertNil(viewModel.sessionModelID)
+        XCTAssertEqual(viewModel.effectiveModelID, defaultID)
+        XCTAssertEqual(recorder.modelIDs.first, defaultID)
+    }
+
+    func testSelectSessionModelDoesNotChangeCatalogSelection() async {
+        let recorder = RequestRecorder()
+        let (viewModel, settings) = makeViewModelWithSettings(
+            recorder: recorder,
+            scripts: [[.answer("answer")]]
+        ) { settings in
+            guard let catalog = settings.providerRegistry.catalog,
+                  let providerID = catalog.providers.first?.id else { return }
+            _ = try? settings.providerRegistry.saveModel(
+                ModelConfiguration(
+                    displayName: "Model B",
+                    upstreamModelID: "model-b",
+                    providerID: providerID,
+                    isStreamingEnabled: true
+                )
+            )
+        }
+        let selectedBefore = settings.providerRegistry.catalog?.selectedModelID
+        guard let modelB = settings.providerRegistry.catalog?.models.first(where: { $0.upstreamModelID == "model-b" }) else {
+            XCTFail("Model B not found")
+            return
+        }
+
+        viewModel.selectSessionModel(id: modelB.id)
+
+        XCTAssertEqual(viewModel.effectiveModelID, modelB.id)
+        XCTAssertEqual(settings.providerRegistry.catalog?.selectedModelID, selectedBefore)
+    }
+
+    // MARK: - Attachments
+
+    func testCanSendTrueWithOnlyAttachments() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("answer")]])
+        viewModel.addAttachments([makeAttachment()])
+
+        XCTAssertTrue(viewModel.canSend)
+
+        viewModel.send()
+        await waitForIdle(viewModel)
+
+        XCTAssertEqual(viewModel.messages.last?.role, .assistant)
+        let userMessage = viewModel.messages.first { $0.role == .user }
+        XCTAssertEqual(userMessage?.attachments.count, 1)
+        XCTAssertTrue(viewModel.pendingAttachments.isEmpty)
+    }
+
+    func testSendMovesPendingAttachmentsIntoUserMessage() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("answer")]])
+        let attachment = makeAttachment()
+        viewModel.input = "what is this?"
+        viewModel.addAttachments([attachment])
+
+        viewModel.send()
+        await waitForIdle(viewModel)
+
+        let userMessage = viewModel.messages.first { $0.role == .user }
+        XCTAssertEqual(userMessage?.content, "what is this?")
+        XCTAssertEqual(userMessage?.attachments, [attachment])
+        XCTAssertEqual(userMessage?.attachments.first?.id, attachment.id)
+    }
+
+    func testNewConversationClearsPendingAttachments() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [])
+        viewModel.addAttachments([makeAttachment()])
+        XCTAssertFalse(viewModel.pendingAttachments.isEmpty)
+
+        viewModel.newConversation()
+
+        XCTAssertTrue(viewModel.pendingAttachments.isEmpty)
+    }
+
+    func testRetryKeepsOriginalAttachments() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(
+            recorder: recorder,
+            scripts: [[.failure(.rateLimited(message: nil))], [.answer("recovered")]]
+        )
+        let attachment = makeAttachment()
+        viewModel.input = "retry me"
+        viewModel.addAttachments([attachment])
+        viewModel.send()
+        await waitForState(viewModel, .failed)
+
+        viewModel.retry()
+        await waitForIdle(viewModel)
+
+        let requestMessages = recorder.requests.last?.messages ?? []
+        let userMessage = requestMessages.first { $0.role == .user }
+        XCTAssertEqual(userMessage?.attachments, [attachment])
+    }
+
+    func testFollowUpRequestIncludesEarlierAttachments() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("first answer")], [.answer("second answer")]])
+        let attachment = makeAttachment(filename: "shot.png")
+        viewModel.input = "first question"
+        viewModel.addAttachments([attachment])
+        viewModel.send()
+        await waitForIdle(viewModel)
+
+        viewModel.input = "follow up"
+        viewModel.send()
+        await waitForIdle(viewModel)
+
+        XCTAssertEqual(recorder.requests.count, 2)
+        let firstTurnUserMessage = recorder.requests[1].messages.first { $0.role == .user && $0.content == "first question" }
+        XCTAssertEqual(firstTurnUserMessage?.attachments, [attachment])
+    }
+
+    func testFallbackPromptInjectedWhenOnlyAttachments() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("answer")]])
+        viewModel.addAttachments([makeAttachment(filename: "shot.png")])
+        XCTAssertTrue(viewModel.canSend)
+
+        viewModel.send()
+        await waitForIdle(viewModel)
+
+        let userMessage = recorder.requests.first?.messages.first { $0.role == .user }
+        XCTAssertNotNil(userMessage)
+        XCTAssertFalse(userMessage?.content.isEmpty ?? true)
+        XCTAssertEqual(userMessage?.attachments.count, 1)
+    }
+
+    func testAttachmentLimitTruncatesAtEight() {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [])
+        let tooMany = (0 ..< 10).map { makeAttachment(filename: "file\($0).txt", text: "hello") }
+
+        viewModel.addAttachments(tooMany)
+
+        XCTAssertEqual(viewModel.pendingAttachments.count, AttachmentLimits.maxAttachmentsPerMessage)
+    }
+
+    func testSessionStoreStripsAttachments() async {
+        let suiteName = "SpotAskTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        settings.retainSession = true
+        let store = SessionStore(bundleIdentifier: suiteName)
+        defer { try? store.clear() }
+        let recorder = RequestRecorder()
+        let viewModel = ChatViewModel(
+            settings: settings,
+            providerFactory: MockFactory(recorder: recorder, scripts: [[.answer("answer")]]),
+            sessionStore: store
+        )
+        viewModel.input = "question"
+        viewModel.addAttachments([makeAttachment(filename: "shot.png")])
+        viewModel.send()
+        await waitForIdle(viewModel)
+
+        let restored = (try? store.load()) ?? []
+        let userMessage = restored.first { $0.role == .user }
+        XCTAssertEqual(userMessage?.content, "question")
+        XCTAssertTrue(userMessage?.attachments.isEmpty ?? false)
+    }
+
+    func testOldSessionJSONWithoutAttachmentsStillDecodes() throws {
+        let json = """
+        [{"id":"\(UUID().uuidString)","role":"user","content":"legacy","createdAt":\(Date().timeIntervalSince1970),"state":"complete"}]
+        """
+        let decoded = try JSONDecoder().decode([ChatMessage].self, from: Data(json.utf8))
+        XCTAssertEqual(decoded.count, 1)
+        XCTAssertEqual(decoded[0].content, "legacy")
+        XCTAssertTrue(decoded[0].attachments.isEmpty)
+    }
+
+    private func makeAttachment(filename: String = "shot.png", text: String? = nil) -> ChatAttachment {
+        if let text {
+            return ChatAttachment(
+                filename: filename,
+                mimeType: "text/plain",
+                byteCount: text.utf8.count,
+                payload: .text(text: text, originalKind: .text)
+            )
+        }
+        return ChatAttachment(
+            filename: filename,
+            mimeType: "image/png",
+            byteCount: 4,
+            payload: .image(data: Data([0, 1, 2, 3]))
+        )
     }
 
     private func waitForState(_ viewModel: ChatViewModel, _ state: GenerationState) async {
@@ -540,12 +865,20 @@ final class ChatViewModelTests: XCTestCase {
 private final class RequestRecorder: @unchecked Sendable {
     var requests: [ChatRequest] = []
     var invocation = 0
+    var modelIDs: [UUID] = []
 }
 
 @MainActor
 private struct MockFactory: ChatProviderFactory {
     let recorder: RequestRecorder
     let scripts: [[MockStep]]
+    let snapshotsByModelID: [UUID: ProviderTargetSnapshot]
+
+    init(recorder: RequestRecorder, scripts: [[MockStep]], snapshotsByModelID: [UUID: ProviderTargetSnapshot] = [:]) {
+        self.recorder = recorder
+        self.scripts = scripts
+        self.snapshotsByModelID = snapshotsByModelID
+    }
 
     func makeProvider() throws -> any ChatProvider {
         let index = recorder.invocation
@@ -555,6 +888,14 @@ private struct MockFactory: ChatProviderFactory {
 
     func makeTargetSnapshot() throws -> ProviderTargetSnapshot {
         ProviderTargetSnapshot.testValue()
+    }
+
+    func makeTargetSnapshot(modelID: UUID) throws -> ProviderTargetSnapshot {
+        recorder.modelIDs.append(modelID)
+        if let snapshot = snapshotsByModelID[modelID] {
+            return snapshot
+        }
+        return ProviderTargetSnapshot.testValue(modelID: modelID)
     }
 
     func makeProvider(for target: ProviderTargetSnapshot) throws -> any ChatProvider {

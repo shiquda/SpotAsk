@@ -113,7 +113,7 @@ struct AnthropicProvider: ChatProvider {
             .joined(separator: "\n\n")
         let conversation = request.messages
             .filter { $0.role != .system }
-            .map { AnthropicRequest.Message(role: $0.role.rawValue, content: $0.content) }
+            .map { AnthropicRequest.Message(role: $0.role.rawValue, content: Self.anthropicContent(for: $0)) }
         urlRequest.httpBody = try JSONEncoder().encode(
             AnthropicRequest(
                 model: request.model,
@@ -124,6 +124,41 @@ struct AnthropicProvider: ChatProvider {
             )
         )
         return urlRequest
+    }
+
+    /// Text-only messages keep the historical `content: "string"` shape. Only
+    /// messages with attachments become an array of content blocks.
+    private static func anthropicContent(for message: ChatMessage) -> AnthropicMessageContent {
+        guard !message.attachments.isEmpty else { return .text(message.content) }
+        var blocks: [AnthropicContentBlock] = []
+        for attachment in message.attachments {
+            switch attachment.payload {
+            case let .image(data):
+                blocks.append(
+                    AnthropicContentBlock(
+                        type: "image",
+                        text: nil,
+                        source: AnthropicImageSource(
+                            type: "base64",
+                            mediaType: attachment.mimeType,
+                            data: data.base64EncodedString()
+                        )
+                    )
+                )
+            case let .text(text, _):
+                blocks.append(
+                    AnthropicContentBlock(
+                        type: "text",
+                        text: "<attachment name=\"\(attachment.filename)\">\n\(text)\n</attachment>",
+                        source: nil
+                    )
+                )
+            }
+        }
+        if !message.content.isEmpty {
+            blocks.append(AnthropicContentBlock(type: "text", text: message.content, source: nil))
+        }
+        return .blocks(blocks)
     }
 
     private func makeStreamEvents(from payload: String) throws -> [ChatStreamEvent] {
@@ -168,7 +203,7 @@ struct AnthropicProvider: ChatProvider {
 private struct AnthropicRequest: Encodable {
     struct Message: Encodable {
         let role: String
-        let content: String
+        let content: AnthropicMessageContent
     }
 
     let model: String
@@ -183,6 +218,39 @@ private struct AnthropicRequest: Encodable {
         case system
         case messages
         case stream
+    }
+}
+
+/// Single-value encoding preserves the plain-string content for text-only
+/// requests; multimodal messages use an explicit block array.
+private enum AnthropicMessageContent: Encodable {
+    case text(String)
+    case blocks([AnthropicContentBlock])
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case let .text(text): try container.encode(text)
+        case let .blocks(blocks): try container.encode(blocks)
+        }
+    }
+}
+
+private struct AnthropicContentBlock: Encodable {
+    let type: String
+    let text: String?
+    let source: AnthropicImageSource?
+}
+
+private struct AnthropicImageSource: Encodable {
+    let type: String
+    let mediaType: String
+    let data: String
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case mediaType = "media_type"
+        case data
     }
 }
 

@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 @MainActor
 private enum NewConversationConfirmation {
@@ -45,6 +46,7 @@ func shortcutPresetSelection(current: PromptPreset?, requested: PromptPreset) ->
 enum ChatEscapeAction: Equatable {
     case preserveMarkedText
     case dismissPresetPopover
+    case dismissModelPicker
     case cancelGeneration
     case startNewConversation
     case dismissWindow
@@ -53,6 +55,7 @@ enum ChatEscapeAction: Equatable {
 func chatEscapeAction(
     hasMarkedText: Bool,
     isPresetPopoverPresented: Bool,
+    isModelPickerPresented: Bool = false,
     isGenerating: Bool,
     startsNewConversation: Bool,
     hasMessages: Bool
@@ -62,6 +65,9 @@ func chatEscapeAction(
     }
     if isPresetPopoverPresented {
         return .dismissPresetPopover
+    }
+    if isModelPickerPresented {
+        return .dismissModelPicker
     }
     if isGenerating {
         return .cancelGeneration
@@ -203,6 +209,8 @@ struct ChatView: View {
     @State private var userMessageExpansionState = UserMessageExpansionState()
     @State private var assistantMessageExpansionState = MessageExpansionState()
     @State private var isPresetPopoverPresented = false
+    @State private var isModelPickerPresented = false
+    @State private var isDropTargeted = false
     @State private var showsShortcutHints = false
     @State private var shortcutDispatcher: InAppShortcutDispatcher?
     @State private var chatWindowReference = ChatWindowReference()
@@ -252,6 +260,11 @@ struct ChatView: View {
                 presentSettingsWindow()
             }
         }
+        .onChange(of: isModelPickerPresented) { _, isPresented in
+            if !isPresented {
+                inputFocused = true
+            }
+        }
         .onAppear {
             inputFocused = true
             viewModel.offerSessionChoiceIfNeeded()
@@ -275,6 +288,20 @@ struct ChatView: View {
             showsShortcutHints = false
         }
         .onExitCommand(perform: handleEscape)
+        .overlay {
+            if isDropTargeted {
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Brand.accent, lineWidth: 1.5)
+                    .background(Brand.accent.opacity(0.06))
+                    .padding(6)
+                    .allowsHitTesting(false)
+            }
+        }
+        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+            handleDroppedProviders(providers)
+            return true
+        }
+        .animation(.easeOut(duration: 0.12), value: isDropTargeted)
         .font(contentFont)
         .environment(\.dynamicTypeSize, settings.interfaceZoomLevel.dynamicTypeSize)
         .preferredColorScheme(colorScheme)
@@ -304,6 +331,28 @@ struct ChatView: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel(Text("SpotAsk"))
+            ModelPickerHeaderButton(
+                modelName: viewModel.effectiveModel?.displayName ?? "",
+                isDisabled: isGenerating,
+                isPresented: $isModelPickerPresented
+            ) {
+                ModelPickerContent(
+                    catalog: settings.providerRegistry.catalog,
+                    effectiveModelID: viewModel.effectiveModelID,
+                    hasSessionOverride: viewModel.sessionModelID != nil,
+                    isDisabled: isGenerating,
+                    onSelect: { id in
+                        viewModel.selectSessionModel(id: id)
+                        isModelPickerPresented = false
+                        inputFocused = true
+                    },
+                    onUseDefault: {
+                        viewModel.useDefaultModel()
+                        isModelPickerPresented = false
+                        inputFocused = true
+                    }
+                )
+            }
             if isGenerating {
                 ProgressView()
                     .controlSize(.small)
@@ -539,6 +588,9 @@ struct ChatView: View {
 
     private var composer: some View {
         VStack(alignment: .leading, spacing: 7) {
+            if !viewModel.pendingAttachments.isEmpty {
+                attachmentStrip
+            }
             HStack(alignment: .bottom, spacing: 8) {
                 if !viewModel.messages.isEmpty {
                     PresetPopoverTrigger(
@@ -551,6 +603,7 @@ struct ChatView: View {
                     )
                     .transition(.opacity)
                 }
+                AttachmentPickerButton(action: presentAttachmentPicker)
                 ChatInputTextView(
                     text: $viewModel.input,
                     isFocused: $inputFocused,
@@ -561,6 +614,16 @@ struct ChatView: View {
                         return true
                     },
                     onEscape: handleEscape,
+                    onPasteImage: { data in
+                        Task { await viewModel.addScreenshot(data) }
+                    },
+                    onPasteFiles: { urls in
+                        Task { @MainActor in
+                            for url in urls {
+                                await viewModel.addAttachment(from: url)
+                            }
+                        }
+                    },
                     onRecall: { viewModel.recallLastQuestion() }
                 )
                 .frame(height: inputHeight)
@@ -611,6 +674,47 @@ struct ChatView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
+    }
+
+    private var attachmentStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(viewModel.pendingAttachments) { attachment in
+                    AttachmentChip(attachment: attachment) {
+                        viewModel.removeAttachment(id: attachment.id)
+                    }
+                }
+            }
+            .padding(.horizontal, 2)
+            .padding(.vertical, 2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityLabel(L10n.string("chat.attachments"))
+    }
+
+    private func presentAttachmentPicker() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.begin { response in
+            guard response == .OK else { return }
+            for url in panel.urls {
+                Task { await viewModel.addAttachment(from: url) }
+            }
+        }
+    }
+
+    private func handleDroppedProviders(_ providers: [NSItemProvider]) {
+        for provider in providers {
+            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+                guard let data = item as? Data,
+                      let url = URL(dataRepresentation: data, relativeTo: nil) else { return }
+                Task { @MainActor in
+                    await viewModel.addAttachment(from: url)
+                }
+            }
+        }
     }
 
     private var placeholderText: String {
@@ -800,10 +904,11 @@ struct ChatView: View {
     }
 
     /// Applies a preset from the quick-strip or the in-conversation popover.
-    /// With a non-empty draft it selects the preset and sends immediately, so
-    /// the user skips the send button; with an empty or whitespace-only draft
-    /// it only selects the preset, swaps the placeholder, and focuses the
-    /// input (Return still sends). "直接提问" passes nil and never sends.
+    /// With a non-empty draft (typed text or pending attachments) it selects
+    /// the preset and sends immediately, so the user skips the send button;
+    /// with an empty draft it only selects the preset, swaps the placeholder,
+    /// and focuses the input (Return still sends). "直接提问" passes nil and
+    /// never sends.
     private func applyPreset(_ preset: PromptPreset?) {
         guard let preset else {
             viewModel.selectedPromptPreset = nil
@@ -817,8 +922,7 @@ struct ChatView: View {
         }
         viewModel.selectedPromptPreset = enabledPreset
         inputFocused = true
-        guard !viewModel.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              viewModel.canSend else { return }
+        guard viewModel.canSend else { return }
         sendFromComposer()
     }
 
@@ -859,6 +963,7 @@ struct ChatView: View {
         switch chatEscapeAction(
             hasMarkedText: composerHasMarkedText(),
             isPresetPopoverPresented: isPresetPopoverPresented,
+            isModelPickerPresented: isModelPickerPresented,
             isGenerating: isGenerating,
             startsNewConversation: settings.escapeStartsNewConversation,
             hasMessages: !viewModel.messages.isEmpty
@@ -867,6 +972,8 @@ struct ChatView: View {
             break
         case .dismissPresetPopover:
             isPresetPopoverPresented = false
+        case .dismissModelPicker:
+            isModelPickerPresented = false
         case .cancelGeneration:
             viewModel.cancel()
         case .startNewConversation:
@@ -1926,20 +2033,35 @@ private struct UserMessageContentView: View {
                 }
             }
 
-            Text(displayedContent)
-                .textSelection(.enabled)
-                .lineSpacing(2)
-                .lineLimit(isCollapsible && !isExpanded ? UserMessageDisplayPolicy.collapsedLineLimit : nil)
-                // A line-limit transition inside a lazy stack can otherwise
-                // reuse the collapsed measurement for one layout pass. Force
-                // vertical intrinsic measurement and a fresh text identity so
-                // the bubble grows before the controls below it are placed.
-                .fixedSize(horizontal: false, vertical: true)
-                .id("question-text-\(message.id.uuidString)-\(isExpanded ? "expanded" : "collapsed")")
+            if !message.attachments.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(message.attachments) { attachment in
+                            MessageAttachmentThumbnail(attachment: attachment)
+                        }
+                    }
+                    .padding(.leading, 12)
+                }
                 .frame(maxWidth: 620, alignment: .leading)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
+            }
+
+            if !message.content.isEmpty {
+                Text(displayedContent)
+                    .textSelection(.enabled)
+                    .lineSpacing(2)
+                    .lineLimit(isCollapsible && !isExpanded ? UserMessageDisplayPolicy.collapsedLineLimit : nil)
+                    // A line-limit transition inside a lazy stack can
+                    // otherwise reuse the collapsed measurement for one
+                    // layout pass. Force vertical intrinsic measurement
+                    // and a fresh text identity so the bubble grows before
+                    // the controls below it are placed.
+                    .fixedSize(horizontal: false, vertical: true)
+                    .id("question-text-\(message.id.uuidString)-\(isExpanded ? "expanded" : "collapsed")")
+                    .frame(maxWidth: 620, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
+            }
 
             if isCollapsible {
                 Button(action: onToggleExpansion) {
@@ -1989,5 +2111,395 @@ private struct UserMessageContentView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(L10n.string("chat.user"))
+    }
+}
+
+// MARK: - Model picker
+
+/// The header's quiet model selector: visually weaker than the SpotAsk brand,
+/// opens a searchable popover, and stays disabled while a response is running.
+private struct ModelPickerHeaderButton<PopoverContent: View>: View {
+    let modelName: String
+    let isDisabled: Bool
+    @Binding var isPresented: Bool
+    @ViewBuilder let popoverContent: () -> PopoverContent
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button {
+            isPresented.toggle()
+        } label: {
+            HStack(spacing: 4) {
+                Text(modelName.isEmpty ? L10n.string("chat.model") : modelName)
+                    .font(.system(size: 12, weight: .medium))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: 150)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8, weight: .semibold))
+            }
+            .foregroundStyle(isHovering ? Brand.fg : Brand.muted)
+            .padding(.horizontal, 8)
+            .frame(height: 24)
+            .background(
+                RoundedRectangle(cornerRadius: 6).fill(isHovering || isPresented ? Brand.surface : Color.clear)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.5 : 1)
+        .help(isDisabled ? L10n.string("chat.modelChangeDisabledWhileGenerating") : L10n.string("chat.model"))
+        .accessibilityLabel(L10n.string("chat.model"))
+        .accessibilityValue(modelName)
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .popover(isPresented: $isPresented, attachmentAnchor: .point(.bottom), arrowEdge: .top) {
+            popoverContent()
+        }
+    }
+}
+
+/// Searchable model list grouped by provider. Keyboard: arrows move the
+/// highlight, Return selects, Escape closes (the popover's default).
+private struct ModelPickerContent: View {
+    let catalog: ProviderModelCatalog?
+    let effectiveModelID: UUID?
+    let hasSessionOverride: Bool
+    let isDisabled: Bool
+    let onSelect: (UUID) -> Void
+    let onUseDefault: () -> Void
+
+    @State private var searchText = ""
+    @State private var highlightedID: UUID?
+    @FocusState private var isSearchFocused: Bool
+
+    private var filteredGroups: [(provider: ProviderConfiguration, models: [ModelConfiguration])] {
+        guard let catalog else { return [] }
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return catalog.providers.compactMap { provider in
+            let models = catalog.models
+                .filter { $0.providerID == provider.id }
+                .filter { model in
+                    guard !query.isEmpty else { return true }
+                    return model.displayName.lowercased().contains(query)
+                        || model.upstreamModelID.lowercased().contains(query)
+                        || provider.name.lowercased().contains(query)
+                }
+            return models.isEmpty ? nil : (provider, models)
+        }
+    }
+
+    private var flattenedModels: [ModelConfiguration] {
+        filteredGroups.flatMap(\.models)
+    }
+
+    private var defaultModelName: String? {
+        guard let catalog else { return nil }
+        return catalog.models.first(where: { $0.id == catalog.selectedModelID })?.displayName
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            TextField(L10n.string("chat.modelPickerSearchPlaceholder"), text: $searchText)
+                .textFieldStyle(.plain)
+                .font(.system(size: 13))
+                .focused($isSearchFocused)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(.quinary, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .strokeBorder(Brand.border, lineWidth: 0.5)
+                }
+                .onKeyPress(.downArrow) {
+                    moveHighlight(by: 1)
+                    return .handled
+                }
+                .onKeyPress(.upArrow) {
+                    moveHighlight(by: -1)
+                    return .handled
+                }
+                .onKeyPress(.return) {
+                    if let highlightedID {
+                        onSelect(highlightedID)
+                    }
+                    return .handled
+                }
+                .onChange(of: searchText) { _, _ in
+                    highlightFirst()
+                }
+                .onAppear {
+                    highlightFirst()
+                    isSearchFocused = true
+                }
+
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 2) {
+                    if hasSessionOverride, let defaultModelName {
+                        UseDefaultModelRow(modelName: defaultModelName) {
+                            onUseDefault()
+                        }
+                        Divider().padding(.vertical, 4)
+                    }
+                    ForEach(filteredGroups, id: \.provider.id) { group in
+                        Text(group.provider.name)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Brand.muted)
+                            .textCase(.uppercase)
+                            .padding(.horizontal, 8)
+                            .padding(.top, 6)
+                            .padding(.bottom, 2)
+                        ForEach(group.models) { model in
+                            modelRow(model)
+                        }
+                    }
+                }
+                .padding(.bottom, 4)
+            }
+        }
+        .padding(8)
+        .frame(width: 300, height: 340)
+    }
+
+    private func modelRow(_ model: ModelConfiguration) -> some View {
+        let isHighlighted = highlightedID == model.id
+        return Button {
+            guard !isDisabled else { return }
+            onSelect(model.id)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Brand.accent)
+                    .frame(width: 14)
+                    .opacity(model.id == effectiveModelID ? 1 : 0)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(model.displayName)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Brand.fg)
+                        .lineLimit(1)
+                    if model.displayName != model.upstreamModelID {
+                        Text(model.upstreamModelID)
+                            .font(.system(size: 10))
+                            .foregroundStyle(Brand.muted)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+                Spacer(minLength: 8)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isHighlighted ? Brand.surface : Color.clear)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .help(isDisabled ? L10n.string("chat.modelChangeDisabledWhileGenerating") : model.displayName)
+        .accessibilityLabel(model.displayName)
+        .accessibilityAddTraits(model.id == effectiveModelID ? .isSelected : [])
+    }
+
+    private func highlightFirst() {
+        if let highlightedID, flattenedModels.contains(where: { $0.id == highlightedID }) {
+            return
+        }
+        highlightedID = effectiveModelID ?? flattenedModels.first?.id
+    }
+
+    private func moveHighlight(by delta: Int) {
+        let models = flattenedModels
+        guard !models.isEmpty else { return }
+        let currentIndex = models.firstIndex(where: { $0.id == highlightedID }) ?? -1
+        let nextIndex = min(max(currentIndex + delta, 0), models.count - 1)
+        highlightedID = models[nextIndex].id
+    }
+}
+
+private struct UseDefaultModelRow: View {
+    let modelName: String
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.uturn.backward")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Brand.muted)
+                    .frame(width: 14)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(L10n.string("chat.useDefaultModel"))
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Brand.fg)
+                    Text(modelName)
+                        .font(.system(size: 10))
+                        .foregroundStyle(Brand.muted)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 8)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 6).fill(isHovering ? Brand.surface : Color.clear)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+        .accessibilityLabel(L10n.string("chat.useDefaultModel"))
+    }
+}
+
+// MARK: - Attachment picker button
+
+private struct AttachmentPickerButton: View {
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "paperclip")
+                .font(.system(size: 15))
+                .foregroundStyle(isHovering ? Brand.fg : Brand.muted)
+                .frame(width: 34, height: 34)
+                .background(
+                    Circle().fill(isHovering ? Brand.surface : Brand.bg)
+                )
+                .overlay {
+                    Circle().strokeBorder(Brand.border, lineWidth: 1)
+                }
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .help(L10n.string("chat.attachmentPicker"))
+        .accessibilityLabel(L10n.string("chat.attachmentPicker"))
+    }
+}
+
+// MARK: - Attachment chips
+
+/// Draft attachment chip in the composer with a remove affordance.
+private struct AttachmentChip: View {
+    let attachment: ChatAttachment
+    let onRemove: () -> Void
+
+    @State private var isHovering = false
+
+    private var thumbnail: NSImage? {
+        if case let .image(data) = attachment.payload {
+            return NSImage(data: data)
+        }
+        return nil
+    }
+
+    private var symbolName: String {
+        attachment.kind == .code ? "chevron.left.forwardslash.chevron.right" : "doc.text"
+    }
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Group {
+                if let thumbnail {
+                    Image(nsImage: thumbnail)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 18, height: 18)
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                } else {
+                    Image(systemName: symbolName)
+                        .font(.system(size: 9))
+                        .foregroundStyle(Brand.muted)
+                        .frame(width: 18, height: 18)
+                        .background(.quinary, in: RoundedRectangle(cornerRadius: 3))
+                }
+            }
+            Text(attachment.filename)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Brand.fg)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Button(action: onRemove) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundStyle(isHovering ? Brand.fg : Brand.muted)
+                    .frame(width: 12, height: 12)
+                    .background(
+                        Circle().fill(isHovering ? Brand.surface : Color.clear)
+                    )
+            }
+            .buttonStyle(.plain)
+            .help(L10n.string("chat.removeAttachment"))
+            .accessibilityLabel(L10n.string("chat.removeAttachment"))
+        }
+        .padding(.leading, 5)
+        .padding(.trailing, 3)
+        .padding(.vertical, 2)
+        .background(Brand.surface, in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6).strokeBorder(Brand.border, lineWidth: 0.5)
+        }
+        .help(attachmentTooltip)
+        .onHover { isHovering = $0 }
+        .accessibilityLabel(attachment.filename)
+    }
+
+    private var attachmentTooltip: String {
+        if attachment.isTruncated {
+            return L10n.string("chat.attachmentTruncated", "\(AttachmentLimits.maxExtractedTextPerAttachment)")
+        }
+        return attachment.filename
+    }
+}
+
+/// Read-only attachment chip shown inside a sent user message.
+private struct MessageAttachmentThumbnail: View {
+    let attachment: ChatAttachment
+
+    private var thumbnail: NSImage? {
+        if case let .image(data) = attachment.payload {
+            return NSImage(data: data)
+        }
+        return nil
+    }
+
+    private var symbolName: String {
+        attachment.kind == .code ? "chevron.left.forwardslash.chevron.right" : "doc.text"
+    }
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Group {
+                if let thumbnail {
+                    Image(nsImage: thumbnail)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 18, height: 18)
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                } else {
+                    Image(systemName: symbolName)
+                        .font(.system(size: 9))
+                        .foregroundStyle(Brand.muted)
+                        .frame(width: 18, height: 18)
+                        .background(.quinary, in: RoundedRectangle(cornerRadius: 3))
+                }
+            }
+            Text(attachment.filename)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Brand.fg)
+                .lineLimit(1)
+        }
+        .help(attachment.filename)
+        .accessibilityLabel(attachment.filename)
     }
 }

@@ -32,6 +32,8 @@
 - **Select text in other apps** — highlight text in Safari, Notes, or other macOS apps; translate, explain, summarize, polish, or run a custom prompt from the quick action bar that appears next to your selection.
 - **Control automatic quick actions** — choose all apps, a blacklist, or a whitelist to decide where the quick action bar can appear automatically.
 - **Use your own service (BYOK)** — bring your own key for any OpenAI-compatible or Anthropic service, discover available models, and route traffic through an optional proxy with credentials.
+- **Switch models anytime** — change the model for the current conversation right from the window, without touching your default in Settings.
+- **Ask with attachments** — paste a screenshot, or drop in images and text/code files; follow-up questions keep the earlier context.
 - **See answers as they arrive** — streamed responses, thinking shown with elapsed time, and stop, retry, and regenerate controls.
 - **Copy what you need** — grab the full answer or individual code blocks in one click.
 - **Automate repeated tasks** — built-in prompts for translate, explain, summarize, and polish; create your own for repeated workflows.
