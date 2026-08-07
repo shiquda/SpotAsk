@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Provider brand icons for supported services in the model picker, chat header, and settings.
+- Optional IM-style conversation layout: model messages on the left and your messages on the right in bubbles, available from Appearance settings.
+
+### Changed
+
+- Automatic selection assistant skips empty or whitespace-only selections before waking.
+
+## [0.1.4] - 2026-08-07
+
+### Added
+
 - Quick model switch: pick any provider's model for the current conversation from the header without touching Settings; New Conversation returns to the default model.
 - Temporary attachments: paste a screenshot, drag in images or text/code files, or pick them from a file chooser; images are sent as image content and text files are attached as text context.
 - Attachment context follows the conversation: later questions resend earlier screenshots and files, and retry keeps the original attachments.
@@ -50,4 +61,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provider cards can be expanded and collapsed reliably.
 - Thinking expansion behavior: when enabled, thinking stays expanded during reasoning and collapses for the final answer; when disabled, it stays collapsed.
 
-[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/shiquda/SpotAsk/compare/v0.1.3...v0.1.4
