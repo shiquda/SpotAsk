@@ -30,12 +30,8 @@
 
 - **Ask from anywhere** — press Option + Space (customizable) to open a focused chat window, ready for a question.
 - **Select text in other apps** — highlight text in Safari, Notes, or other macOS apps; translate, explain, summarize, polish, or run a custom prompt from the quick action bar that appears next to your selection.
-- **Control automatic quick actions** — choose all apps, a blacklist, or a whitelist to decide where the quick action bar can appear automatically.
-- **Use your own service (BYOK)** — bring your own key for any OpenAI-compatible or Anthropic service, discover available models, and route traffic through an optional proxy with credentials.
 - **Switch models anytime** — change the model for the current conversation right from the window, without touching your default in Settings.
 - **Ask with attachments** — paste a screenshot, or drop in images and text/code files; follow-up questions keep the earlier context.
-- **See answers as they arrive** — streamed responses, thinking shown with elapsed time, and stop, retry, and regenerate controls.
-- **Choose a chat layout** — keep the original left-aligned reading style or switch to a conversation layout with the model on the left and you on the right, using bubbles.
 - **Copy what you need** — grab the full answer or individual code blocks in one click.
 - **Automate repeated tasks** — built-in prompts for translate, explain, summarize, and polish; create your own for repeated workflows.
 - **Customize shortcuts** — choose a global hotkey preset or record your own shortcuts for chat, the selection assistant, and common actions.
@@ -115,7 +111,7 @@ Use **Test Connection** to confirm the values work, then close Settings and star
 ## Everyday use
 
 | Action | How |
-|---|---|
+| --- | --- |
 | Open the chat window | Click the menu bar icon, or press your configured hotkey (default Option + Space) |
 | Send a question | Type your question and press Return |
 | Add a line break | Shift + Return |
