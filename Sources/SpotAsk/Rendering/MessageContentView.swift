@@ -12,6 +12,7 @@ struct MessageContentView: View {
     let regenerateShortcut: InAppShortcut?
     let isExpanded: Bool
     let onToggleExpansion: () -> Void
+    let streamingChunks: [String]
     private let collapsedPreview: String?
 
     init(
@@ -25,7 +26,8 @@ struct MessageContentView: View {
         copyShortcut: InAppShortcut?,
         regenerateShortcut: InAppShortcut?,
         isExpanded: Bool = false,
-        onToggleExpansion: @escaping () -> Void = {}
+        onToggleExpansion: @escaping () -> Void = {},
+        streamingChunks: [String] = []
     ) {
         self.message = message
         self.canRegenerate = canRegenerate
@@ -38,6 +40,7 @@ struct MessageContentView: View {
         self.regenerateShortcut = regenerateShortcut
         self.isExpanded = isExpanded
         self.onToggleExpansion = onToggleExpansion
+        self.streamingChunks = streamingChunks
         collapsedPreview = message.state == .streaming
             ? nil
             : AssistantMessageDisplayPolicy.collapsedPreview(for: message.content)
@@ -45,16 +48,17 @@ struct MessageContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if message.state == .streaming {
-                StreamingMarkdownTextView(content: message.content)
-            } else if let collapsedPreview, !isExpanded {
+            if let collapsedPreview, !isExpanded, message.state != .streaming {
                 Text(collapsedPreview)
                     .textSelection(.enabled)
                     .lineSpacing(2)
                     .lineLimit(AssistantMessageDisplayPolicy.collapsedLineLimit)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                MarkdownTextView(content: message.content)
+                StreamingMarkdownBlockView(
+                    chunks: streamingChunks.isEmpty ? [message.content] : streamingChunks,
+                    isComplete: message.state != .streaming
+                )
             }
 
             if collapsedPreview != nil {

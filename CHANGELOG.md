@@ -28,11 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Conversation roles are labeled with icons, the assistant's model name, and 你 for your own messages.
 - Streaming answer updates are isolated to the active message instead of rewriting the whole conversation array.
 - The conversation keeps the recent active tail non-lazy while older history remains lazily loaded.
-- Streaming answers render Markdown while generating; parsing happens off the main actor and is rate-limited instead of showing raw markup or re-laying out Textual blocks per token.
+- Streaming answers are rendered as stable Markdown blocks; only the active tail reparses, and completion seals the tail without replacing the renderer tree.
 - Scroll geometry callbacks only update follow state when the near-bottom value actually changes, and size-change anchoring is disabled while the user is scrolling.
 
 ### Fixed
 
+- Streaming Markdown now preserves paragraph, soft line, list, and code-block line breaks while the answer is still generating.
 - Long answers streamed in the current window stay expanded after completion, and expanded assistant messages survive later conversation updates.
 - Chat and reasoning scrolling now coalesces rapid updates instead of queuing one scroll command per token flush.
 - The composer skips full TextKit measurement while it is already at its maximum height.

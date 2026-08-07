@@ -18,6 +18,7 @@ final class ChatViewModel {
     private(set) var activeStreamingAssistantID: UUID?
     private(set) var streamingContent = ""
     private(set) var streamingReasoning: String?
+    private(set) var streamingAnswerChunks: [String] = []
 
     private let settings: AppSettings
     private let providerFactory: any ChatProviderFactory
@@ -126,6 +127,7 @@ final class ChatViewModel {
         activeStreamingAssistantID = nil
         streamingContent = ""
         streamingReasoning = nil
+        streamingAnswerChunks = []
         messages.removeAll()
         input = ""
         error = nil
@@ -206,6 +208,7 @@ final class ChatViewModel {
         activeStreamingAssistantID = assistantID
         streamingContent = ""
         streamingReasoning = nil
+        streamingAnswerChunks = []
         if let selectionSnapshot {
             selectionSnapshotsByAssistantID[assistantID] = selectionSnapshot
         }
@@ -309,6 +312,7 @@ final class ChatViewModel {
         }
         if streamingContent.isEmpty {
             streamingContent = text
+            streamingAnswerChunks.append(text)
             return
         }
         pendingAnswer += text
@@ -342,6 +346,9 @@ final class ChatViewModel {
             return
         }
         streamingContent += pendingAnswer
+        if !pendingAnswer.isEmpty {
+            streamingAnswerChunks.append(pendingAnswer)
+        }
         if !pendingReasoning.isEmpty {
             streamingReasoning = (streamingReasoning ?? "") + pendingReasoning
         }
@@ -361,6 +368,8 @@ final class ChatViewModel {
         activeStreamingAssistantID = nil
         streamingContent = ""
         streamingReasoning = nil
+        // Keep the chunked answer available to the shared block renderer after
+        // completion so sealing the live tail does not rebuild the document.
     }
 
     private func completeAssistant(with id: UUID, state: MessageState) {

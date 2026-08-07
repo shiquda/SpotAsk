@@ -72,15 +72,55 @@ final class MarkdownRenderingTests: XCTestCase {
         withExtendedLifetime(partialAnswer) {}
     }
 
-    func testStreamingMarkdownParserStripsBasicSyntax() throws {
-        let attributed = try XCTUnwrap(StreamingMarkdownParser.parse("**bold** `code`"))
+    func testStreamingDocumentSealsParagraphOnBlankLine() {
+        var document = MarkdownStreamingDocument()
 
-        XCTAssertEqual(String(attributed.characters), "bold code")
+        document.consume(chunks: ["第一段\n\n第二段"], isComplete: false)
+
+        XCTAssertEqual(document.blocks.map(\.source), ["第一段"])
+        XCTAssertEqual(document.liveTail?.source, "第二段")
+        XCTAssertFalse(document.liveTail?.isSealed ?? true)
     }
 
-    func testStreamingMarkdownParserAcceptsUnclosedCodeFence() throws {
-        let attributed = try XCTUnwrap(StreamingMarkdownParser.parse("```json\n{\"partial\": true}"))
+    func testStreamingDocumentSealsRemainingTailOnCompletion() {
+        var document = MarkdownStreamingDocument()
+        let chunks = ["第一段\n\n第二段"]
+        document.consume(chunks: chunks, isComplete: false)
 
-        XCTAssertTrue(String(attributed.characters).contains("partial"))
+        document.consume(chunks: chunks, isComplete: true)
+
+        XCTAssertEqual(document.blocks.map(\.source), ["第一段", "第二段"])
+        XCTAssertTrue(document.blocks.allSatisfy(\.isSealed))
+        XCTAssertNil(document.liveTail)
+    }
+
+    func testCodeFenceStaysInLiveTailUntilClosed() {
+        var document = MarkdownStreamingDocument()
+        let opening = "```swift\nlet a = 1\n\nprint(a)\n"
+        let closing = "```"
+
+        document.consume(chunks: [opening], isComplete: false)
+
+        XCTAssertTrue(document.blocks.isEmpty)
+        XCTAssertEqual(document.liveTail?.source, opening)
+
+        document.consume(chunks: [opening, closing], isComplete: false)
+
+        XCTAssertEqual(document.blocks.count, 1)
+        XCTAssertEqual(document.blocks.first?.kind, .code)
+        XCTAssertTrue(document.blocks.first?.source.hasSuffix("```") == true)
+        XCTAssertNil(document.liveTail)
+    }
+
+    func testAppendingChunksDoesNotRebuildSealedBlockIdentity() {
+        var document = MarkdownStreamingDocument()
+        let initial = "第一段\n\n第二段\n\n第三段\n\n第四段"
+        document.consume(chunks: [initial], isComplete: false)
+        let sealedIDs = document.blocks.map(\.id)
+
+        document.consume(chunks: [initial, "第五段"], isComplete: false)
+
+        XCTAssertEqual(document.blocks.map(\.id), sealedIDs)
+        XCTAssertEqual(document.liveTail?.source, "第四段第五段")
     }
 }

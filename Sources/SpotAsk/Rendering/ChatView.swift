@@ -1022,7 +1022,8 @@ private struct AssistantMessageRow: View {
                     copyShortcut: isLatestAssistant ? copyShortcut : nil,
                     regenerateShortcut: isLatestAssistant ? regenerateShortcut : nil,
                     isExpanded: isExpanded,
-                    onToggleExpansion: onToggleExpansion
+                    onToggleExpansion: onToggleExpansion,
+                    streamingChunks: streamingChunks
                 )
             }
             if displayedMessage.state == .failed {
@@ -1046,6 +1047,13 @@ private struct AssistantMessageRow: View {
         .onChange(of: displayedMessage) { _, newValue in
             onLiveMessageChanged(newValue)
         }
+    }
+
+    private var streamingChunks: [String] {
+        if message.state == .streaming || message.id == viewModel.messages.last(where: { $0.role == .assistant })?.id {
+            return viewModel.streamingAnswerChunks
+        }
+        return []
     }
 
     @ViewBuilder
@@ -1922,6 +1930,12 @@ private struct UserMessageContentView: View {
                 .textSelection(.enabled)
                 .lineSpacing(2)
                 .lineLimit(isCollapsible && !isExpanded ? UserMessageDisplayPolicy.collapsedLineLimit : nil)
+                // A line-limit transition inside a lazy stack can otherwise
+                // reuse the collapsed measurement for one layout pass. Force
+                // vertical intrinsic measurement and a fresh text identity so
+                // the bubble grows before the controls below it are placed.
+                .fixedSize(horizontal: false, vertical: true)
+                .id("question-text-\(message.id.uuidString)-\(isExpanded ? "expanded" : "collapsed")")
                 .frame(maxWidth: 620, alignment: .leading)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 9)

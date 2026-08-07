@@ -86,7 +86,8 @@ struct ChatInputTextView: NSViewRepresentable {
 
         let editorOwnsDraft = ChatInputSynchronization.shouldPreserveFocusedDraft(
             isGenerating: isGenerating,
-            isFirstResponder: scrollView.window?.firstResponder === textView
+            isFirstResponder: scrollView.window?.firstResponder === textView,
+            isModelTextEmpty: text.isEmpty
         )
         if textView.string != text && !editorOwnsDraft {
             let selectedRange = textView.selectedRange()
@@ -188,8 +189,12 @@ struct ChatInputTextView: NSViewRepresentable {
 }
 
 enum ChatInputSynchronization {
-    static func shouldPreserveFocusedDraft(isGenerating: Bool, isFirstResponder: Bool) -> Bool {
-        isGenerating && isFirstResponder
+    static func shouldPreserveFocusedDraft(
+        isGenerating: Bool,
+        isFirstResponder: Bool,
+        isModelTextEmpty: Bool = false
+    ) -> Bool {
+        isGenerating && isFirstResponder && !isModelTextEmpty
     }
 }
 

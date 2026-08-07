@@ -7,6 +7,11 @@ final class ChatViewModelTests: XCTestCase {
         XCTAssertTrue(ChatInputSynchronization.shouldPreserveFocusedDraft(isGenerating: true, isFirstResponder: true))
         XCTAssertFalse(ChatInputSynchronization.shouldPreserveFocusedDraft(isGenerating: true, isFirstResponder: false))
         XCTAssertFalse(ChatInputSynchronization.shouldPreserveFocusedDraft(isGenerating: false, isFirstResponder: true))
+        XCTAssertFalse(ChatInputSynchronization.shouldPreserveFocusedDraft(
+            isGenerating: true,
+            isFirstResponder: true,
+            isModelTextEmpty: true
+        ))
     }
 
     func testSendAndFollowUpIncludeConversationContext() async {
@@ -67,6 +72,7 @@ final class ChatViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.streamingContent, "partial")
         XCTAssertEqual(viewModel.streamingReasoning, "partial reasoning")
+        XCTAssertEqual(viewModel.streamingAnswerChunks, ["partial"])
         XCTAssertEqual(viewModel.messages.last?.content, "")
         XCTAssertNil(viewModel.messages.last?.reasoningContent)
         XCTAssertEqual(viewModel.lastAssistantMessage?.content, "partial")
@@ -76,6 +82,18 @@ final class ChatViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.messages.last?.content, "partial")
         XCTAssertEqual(viewModel.messages.last?.reasoningContent, "partial reasoning")
         XCTAssertNil(viewModel.activeStreamingAssistantID)
+    }
+
+    func testStreamingChunksRemainAvailableToRendererAfterCompletion() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("final answer")]])
+
+        viewModel.input = "question"
+        viewModel.send()
+        await waitForIdle(viewModel)
+
+        XCTAssertEqual(viewModel.streamingAnswerChunks, ["final answer"])
+        XCTAssertEqual(viewModel.messages.last?.content, "final answer")
     }
 
     func testCompletedAnswerCommitsStreamingContentOnce() async {
