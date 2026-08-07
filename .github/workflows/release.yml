@@ -22,11 +22,11 @@ jobs:
     runs-on: macos-26
     environment: release
     env:
-      SPOTASK_CODESIGN_IDENTITY: ${{ secrets.SPOTASK_CODESIGN_IDENTITY }}
-      SPOTASK_REQUIRE_DEVELOPER_ID: ${{ secrets.SPOTASK_REQUIRE_DEVELOPER_ID }}
-      SPOTASK_REQUIRE_NOTARIZATION: ${{ secrets.SPOTASK_REQUIRE_NOTARIZATION }}
-      SPOTASK_NOTARY_KEYCHAIN_PROFILE: ${{ secrets.SPOTASK_NOTARY_KEYCHAIN_PROFILE }}
-      SPOTASK_NOTARY_KEYCHAIN: ${{ secrets.SPOTASK_NOTARY_KEYCHAIN }}
+      APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      SPOTASK_NOTARY_APPLE_ID: ${{ secrets.APPLE_NOTARIZATION_APPLE_ID }}
+      SPOTASK_NOTARY_TEAM_ID: ${{ secrets.APPLE_NOTARIZATION_TEAM_ID }}
+      SPOTASK_NOTARY_PASSWORD: ${{ secrets.APPLE_NOTARIZATION_APP_PASSWORD }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -50,6 +50,45 @@ jobs:
           app_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
           tag_version=${RELEASE_TAG#v}
           test "$tag_version" = "$app_version"
+      - name: Skip Apple signing
+        if: env.APPLE_CERTIFICATE_BASE64 == ''
+        run: echo "No APPLE_CERTIFICATE_BASE64 secret; building unsigned DMGs."
+      - name: Configure Apple Developer signing
+        if: env.APPLE_CERTIFICATE_BASE64 != ''
+        run: |
+          set -eu
+          test -n "$APPLE_CERTIFICATE_PASSWORD"
+          test -n "$SPOTASK_NOTARY_APPLE_ID"
+          test -n "$SPOTASK_NOTARY_TEAM_ID"
+          test -n "$SPOTASK_NOTARY_PASSWORD"
+
+          KEYCHAIN_PATH="$RUNNER_TEMP/spotask-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 16)"
+          P12_PATH="$RUNNER_TEMP/DeveloperID.p12"
+
+          printf '%s\n' "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$P12_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security default-keychain -s "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" "$HOME/Library/Keychains/login.keychain-db"
+          security import "$P12_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          rm -f "$P12_PATH"
+
+          security find-identity -v -p codesigning
+          SIGNING_IDENTITY=$(security find-identity -v -p codesigning \
+            | sed -n 's/^[[:space:]]*[0-9][0-9]*)[[:space:]]*[0-9A-Fa-f]*[[:space:]]*"\(.*\)".*/\1/p' \
+            | grep 'Developer ID Application' \
+            | head -n 1)
+          if [ -z "$SIGNING_IDENTITY" ]; then
+            echo "No Developer ID Application identity found in the imported certificate" >&2
+            exit 1
+          fi
+
+          echo "SPOTASK_CODESIGN_IDENTITY=$SIGNING_IDENTITY" >> "$GITHUB_ENV"
+          echo "SPOTASK_REQUIRE_DEVELOPER_ID=1" >> "$GITHUB_ENV"
+          echo "SPOTASK_REQUIRE_NOTARIZATION=1" >> "$GITHUB_ENV"
       - name: Build arm64 DMG
         run: ./Scripts/make-release-dmg.sh --arch arm64 --output dist
       - name: Build x86_64 DMG

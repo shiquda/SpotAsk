@@ -33,7 +33,89 @@ open build/SpotAsk.app
 ./Scripts/make-release-dmg.sh --arch x86_64
 ```
 
-Signing and notarization are optional and configured through environment variables: `SPOTASK_CODESIGN_IDENTITY`, `SPOTASK_REQUIRE_DEVELOPER_ID`, `SPOTASK_REQUIRE_NOTARIZATION`, `SPOTASK_NOTARY_KEYCHAIN_PROFILE`, `SPOTASK_NOTARY_KEYCHAIN`.
+Signing and notarization are optional and configured through environment variables:
+
+- `SPOTASK_CODESIGN_IDENTITY` — Developer ID Application identity name
+- `SPOTASK_REQUIRE_DEVELOPER_ID` — set to `1` to require a Developer ID signature
+- `SPOTASK_REQUIRE_NOTARIZATION` — set to `1` to submit the DMG to Apple Notary
+- `SPOTASK_NOTARY_KEYCHAIN_PROFILE` — local Keychain profile from `notarytool store-credentials`
+- `SPOTASK_NOTARY_KEYCHAIN` — optional Keychain path when using a profile
+- `SPOTASK_NOTARY_APPLE_ID` / `SPOTASK_NOTARY_TEAM_ID` / `SPOTASK_NOTARY_PASSWORD` — direct notarization credentials for CI
+
+### Apple Developer setup
+
+SpotAsk is distributed outside the App Store, so it needs a **Developer ID Application** certificate and Apple notarization. A free Personal Team cannot provide this; the paid Apple Developer Program is required.
+
+1. Sign in to Xcode with the paid Apple ID: **Xcode > Settings > Accounts**.
+2. Select the account and open **Manage Certificates**.
+3. Click **+** and choose **Developer ID Application**. Keep the generated certificate in the login Keychain.
+4. Confirm the identity is available:
+
+```sh
+security find-identity -v -p codesigning | grep "Developer ID Application"
+```
+
+The project already uses team ID `9JQA7UT66M` and bundle ID `com.spotask.app`. Confirm these values under **Certificates, Identifiers & Profiles** in the [Apple Developer site](https://developer.apple.com/account/).
+
+Create an app-specific password at [account.apple.com](https://account.apple.com/sign-in) under **Sign-In and Security > App-Specific Passwords**. Use that password only for notarization; your normal Apple ID password cannot be used.
+
+### Local signed and notarized DMG
+
+Store the notarization credentials in the macOS login Keychain once:
+
+```sh
+xcrun notarytool store-credentials "SpotAskNotary" \
+  --apple-id "you@example.com" \
+  --team-id "9JQA7UT66M" \
+  --password "xxxx-xxxx-xxxx-xxxx"
+```
+
+Then build, sign, and notarize locally:
+
+```sh
+SPOTASK_CODESIGN_IDENTITY="Developer ID Application: your name (TEAMID)" \
+SPOTASK_REQUIRE_DEVELOPER_ID=1 \
+SPOTASK_REQUIRE_NOTARIZATION=1 \
+SPOTASK_NOTARY_KEYCHAIN_PROFILE=SpotAskNotary \
+./Scripts/make-release-dmg.sh --arch arm64
+```
+
+The result is `dist/SpotAsk-<version>-arm64.dmg`. If notarization succeeds, `spctl` passes and opening the DMG no longer shows the "unidentified developer" Gatekeeper warning.
+
+For a one-off CI-style local test without a Keychain profile, the script also accepts:
+
+```sh
+SPOTASK_NOTARY_APPLE_ID="you@example.com" \
+SPOTASK_NOTARY_TEAM_ID="9JQA7UT66M" \
+SPOTASK_NOTARY_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
+SPOTASK_REQUIRE_DEVELOPER_ID=1 \
+SPOTASK_REQUIRE_NOTARIZATION=1 \
+./Scripts/make-release-dmg.sh --arch arm64
+```
+
+Prefer the Keychain profile on your own Mac; the direct environment variables exist mainly for GitHub Actions secrets.
+
+### GitHub Actions signing
+
+Export the Developer ID identity as a PKCS#12 file for the runner. Select **Developer ID Application** in Keychain Access, choose **Export**, and set a password for the `.p12`.
+
+Encode the file without line breaks:
+
+```sh
+base64 -i DeveloperID.p12 -o DeveloperID.p12.base64
+```
+
+Add these secrets to **Settings > Secrets and variables > Actions** (or to the `release` environment used by the workflow):
+
+| Secret | Value |
+| --- | --- |
+| `APPLE_CERTIFICATE_BASE64` | contents of `DeveloperID.p12.base64` |
+| `APPLE_CERTIFICATE_PASSWORD` | password chosen when exporting the `.p12` |
+| `APPLE_NOTARIZATION_APPLE_ID` | paid Apple ID used for notarization |
+| `APPLE_NOTARIZATION_TEAM_ID` | `9JQA7UT66M` |
+| `APPLE_NOTARIZATION_APP_PASSWORD` | app-specific password created above |
+
+The Release workflow now imports the certificate into a temporary Keychain, signs both DMGs with Developer ID, submits them to Apple Notary, and uploads the artifacts to the tag release. If `APPLE_CERTIFICATE_BASE64` is not configured, the workflow falls back to unsigned DMGs.
 
 ## Project layout
 
@@ -63,9 +145,9 @@ The selection assistant reads selected text through the macOS Accessibility API.
 
 1. Update `CHANGELOG.md`: rename `## [Unreleased]` to the new version with today's date, then open a fresh `## [Unreleased]` section.
 2. Bump `MARKETING_VERSION` in `SpotAsk.xcodeproj/project.pbxproj` and `CFBundleShortVersionString` in `Resources/Info.plist`.
-3. Run `swift test` and build both DMGs with `Scripts/make-release-dmg.sh`.
+3. Run `swift test` and build both DMGs with `Scripts/make-release-dmg.sh`. If Apple secrets are configured, the Release workflow signs and notarizes them automatically.
 4. Tag the release `vX.Y.Z` and push the tag.
-5. Create a GitHub Release for the tag and attach both DMGs plus the SHA256SUMS file; copy the changelog section into the release notes.
+5. GitHub Actions creates the GitHub Release, attaches both DMGs plus the SHA256SUMS file, and copies the changelog section into the release notes.
 
 ## Contributing
 

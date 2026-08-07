@@ -9,11 +9,15 @@ REQUIRE_DEVELOPER_ID=${SPOTASK_REQUIRE_DEVELOPER_ID:-0}
 REQUIRE_NOTARIZATION=${SPOTASK_REQUIRE_NOTARIZATION:-0}
 NOTARY_KEYCHAIN_PROFILE=${SPOTASK_NOTARY_KEYCHAIN_PROFILE:-}
 NOTARY_KEYCHAIN=${SPOTASK_NOTARY_KEYCHAIN:-}
+NOTARY_APPLE_ID=${SPOTASK_NOTARY_APPLE_ID:-}
+NOTARY_TEAM_ID=${SPOTASK_NOTARY_TEAM_ID:-}
+NOTARY_PASSWORD=${SPOTASK_NOTARY_PASSWORD:-}
 ENTITLEMENTS_PATH=${SPOTASK_ENTITLEMENTS_PATH:-"$ROOT_DIR/Config/SpotAsk.selection-assistant.entitlements"}
 
 usage() {
     printf '%s\n' "Usage: $0 [--arch arm64|x86_64] [--output DIRECTORY] [--sign-identity IDENTITY] [--entitlements PATH] [--require-developer-id]"
     printf '%s\n' "The default entitlements are the non-sandboxed selection assistant configuration used by the local release build."
+    printf '%s\n' "Notarization uses SPOTASK_REQUIRE_NOTARIZATION=1 with either SPOTASK_NOTARY_KEYCHAIN_PROFILE or SPOTASK_NOTARY_APPLE_ID/TEAM_ID/PASSWORD."
 }
 
 while [ "$#" -gt 0 ]; do
@@ -65,8 +69,10 @@ case "$REQUIRE_NOTARIZATION" in
         ;;
 esac
 
-if [ "$REQUIRE_NOTARIZATION" = 1 ] && [ -z "$NOTARY_KEYCHAIN_PROFILE" ]; then
-    printf '%s\n' "A notarytool keychain profile is required" >&2
+if [ "$REQUIRE_NOTARIZATION" = 1 ] \
+    && [ -z "$NOTARY_KEYCHAIN_PROFILE" ] \
+    && { [ -z "$NOTARY_APPLE_ID" ] || [ -z "$NOTARY_TEAM_ID" ] || [ -z "$NOTARY_PASSWORD" ]; }; then
+    printf '%s\n' "A notarytool keychain profile or Apple ID credentials are required" >&2
     exit 1
 fi
 
@@ -97,12 +103,24 @@ fi
 hdiutil verify "$DMG_PATH" >/dev/null
 rm -rf "$STAGING_DIR"
 
-if [ -n "$NOTARY_KEYCHAIN_PROFILE" ]; then
-    set -- submit "$DMG_PATH" --keychain-profile "$NOTARY_KEYCHAIN_PROFILE" --wait --timeout 30m
-    if [ -n "$NOTARY_KEYCHAIN" ]; then
-        set -- "$@" --keychain "$NOTARY_KEYCHAIN"
+if [ "$REQUIRE_NOTARIZATION" = 1 ]; then
+    if [ -n "$NOTARY_KEYCHAIN_PROFILE" ]; then
+        set -- submit "$DMG_PATH" --keychain-profile "$NOTARY_KEYCHAIN_PROFILE" --wait --timeout 30m
+        if [ -n "$NOTARY_KEYCHAIN" ]; then
+            set -- "$@" --keychain "$NOTARY_KEYCHAIN"
+        fi
+        xcrun notarytool "$@"
+    elif [ -n "$NOTARY_APPLE_ID" ] && [ -n "$NOTARY_TEAM_ID" ] && [ -n "$NOTARY_PASSWORD" ]; then
+        xcrun notarytool submit "$DMG_PATH" \
+            --apple-id "$NOTARY_APPLE_ID" \
+            --team-id "$NOTARY_TEAM_ID" \
+            --password "$NOTARY_PASSWORD" \
+            --wait \
+            --timeout 30m
+    else
+        printf '%s\n' "A notarytool keychain profile or Apple ID credentials are required" >&2
+        exit 1
     fi
-    xcrun notarytool "$@"
     xcrun stapler staple "$DMG_PATH"
     xcrun stapler validate "$DMG_PATH"
     spctl --assess --type open --context context:primary-signature --verbose=4 "$DMG_PATH"
