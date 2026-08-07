@@ -64,6 +64,8 @@
 		00100000000000000000003E /* DiagnosticLogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000004B /* DiagnosticLogStore.swift */; };
 		00100000000000000000003F /* ChatAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000058 /* ChatAttachment.swift */; };
 		001000000000000000000040 /* AttachmentProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000059 /* AttachmentProcessor.swift */; };
+		001000000000000000000041 /* ProviderIcons in Resources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000005A /* ProviderIcons */; };
+		001000000000000000000042 /* ProviderBrandIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000005B /* ProviderBrandIcon.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -141,6 +143,8 @@
 		002000000000000000000057 /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = Sources/SpotAsk/Resources/ru.lproj/AppShortcuts.strings; sourceTree = SOURCE_ROOT; };
 		002000000000000000000058 /* ChatAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Attachments/ChatAttachment.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000059 /* AttachmentProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Attachments/AttachmentProcessor.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000005A /* ProviderIcons */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Sources/SpotAsk/Resources/ProviderIcons; sourceTree = SOURCE_ROOT; };
+		00200000000000000000005B /* ProviderBrandIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ProviderBrandIcon.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -210,6 +214,7 @@
 				002000000000000000000048 /* SelectionDiagnosticsFormatting.swift */,
 				002000000000000000000058 /* ChatAttachment.swift */,
 				002000000000000000000059 /* AttachmentProcessor.swift */,
+				00200000000000000000005B /* ProviderBrandIcon.swift */,
 				002000000000000000000023 /* Localization.swift */,
 			);
 			name = Sources;
@@ -217,7 +222,7 @@
 		};
 		003000000000000000000003 /* Resources */ = {
 			isa = PBXGroup;
-			children = (002000000000000000000020 /* Info.plist */, 002000000000000000000030 /* AppIcon.icns */, 002000000000000000000026 /* Localizable.strings */, 002000000000000000000029 /* AppShortcuts.strings */);
+			children = (002000000000000000000020 /* Info.plist */, 002000000000000000000030 /* AppIcon.icns */, 002000000000000000000026 /* Localizable.strings */, 002000000000000000000029 /* AppShortcuts.strings */, 00200000000000000000005A /* ProviderIcons */);
 			name = Resources;
 			sourceTree = "<group>";
 		};
@@ -321,7 +326,7 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		006000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (001000000000000000000021 /* Localizable.strings in Resources */, 001000000000000000000022 /* AppShortcuts.strings in Resources */, 001000000000000000000023 /* AppIcon.icns in Resources */,); runOnlyForDeploymentPostprocessing = 0; };
+		006000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (001000000000000000000021 /* Localizable.strings in Resources */, 001000000000000000000022 /* AppShortcuts.strings in Resources */, 001000000000000000000023 /* AppIcon.icns in Resources */, 001000000000000000000041 /* ProviderIcons in Resources */,); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -366,6 +371,7 @@
 				00100000000000000000003E,
 				00100000000000000000003F,
 				001000000000000000000040,
+				001000000000000000000042,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

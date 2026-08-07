@@ -556,6 +556,12 @@ private struct ProviderSettingsPage: View {
 private struct DiscoveredModelSelectionSheet: View {
     @Bindable var state: ProviderSettingsState
 
+    private var discoveryProvider: ProviderConfiguration? {
+        guard let providerID = state.selectedProviderID,
+              let catalog = state.settings.providerRegistry.catalog else { return nil }
+        return catalog.providers.first(where: { $0.id == providerID })
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(L10n.string("settings.modelSelectionTitle"))
@@ -571,9 +577,21 @@ private struct DiscoveredModelSelectionSheet: View {
                             get: { state.selectedDiscoveredModelIDs.contains(modelID) },
                             set: { _ in state.toggleDiscoveredModel(modelID) }
                         )) {
-                            Text(modelID)
-                                .font(.system(size: 13))
-                                .textSelection(.enabled)
+                            HStack(spacing: 8) {
+                                ProviderBrandIconView(
+                                    slug: ProviderBrandIconMatcher.match(
+                                        providerName: discoveryProvider?.name,
+                                        address: discoveryProvider?.address,
+                                        modelName: modelID
+                                    ),
+                                    size: 14,
+                                    fallbackSymbol: "sparkles",
+                                    fallbackColor: .secondary
+                                )
+                                Text(modelID)
+                                    .font(.system(size: 13))
+                                    .textSelection(.enabled)
+                            }
                         }
                         .toggleStyle(.checkbox)
                     }
@@ -731,9 +749,15 @@ private struct ProviderTreeRow: View {
                     onSelectProvider()
                 } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: "server.rack")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
+                        ProviderBrandIconView(
+                            slug: ProviderBrandIconMatcher.match(
+                                providerName: provider.name,
+                                address: provider.address
+                            ),
+                            size: 14,
+                            fallbackSymbol: "server.rack",
+                            fallbackColor: .secondary
+                        )
                         Text(provider.name)
                             .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
                             .lineLimit(1)
@@ -1074,13 +1098,15 @@ private struct ModelDetailForm: View {
     let isNew: Bool
     var showsHeader = true
 
-    private var parentProviderName: String {
+    private var parentProvider: ProviderConfiguration? {
         guard let catalog = state.settings.providerRegistry.catalog,
               let pid = state.newModelParentProviderID ?? state.selectedModel?.providerID,
-              let provider = catalog.providers.first(where: { $0.id == pid }) else {
-            return ""
-        }
-        return provider.name
+              let provider = catalog.providers.first(where: { $0.id == pid }) else { return nil }
+        return provider
+    }
+
+    private var parentProviderName: String {
+        parentProvider?.name ?? ""
     }
 
     var body: some View {
@@ -1116,9 +1142,17 @@ private struct ModelDetailForm: View {
                 }
                 SettingsFieldRow(label: L10n.string("settings.service")) {
                     HStack(spacing: 8) {
-                        Image(systemName: "server.rack")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
+                        ProviderBrandIconView(
+                            slug: parentProvider.flatMap { provider in
+                                ProviderBrandIconMatcher.match(
+                                    providerName: provider.name,
+                                    address: provider.address
+                                )
+                            },
+                            size: 13,
+                            fallbackSymbol: "server.rack",
+                            fallbackColor: .secondary
+                        )
                         Text(parentProviderName)
                             .font(.system(size: 13))
                             .foregroundStyle(.secondary)
@@ -1333,9 +1367,15 @@ private struct ProviderCard: View {
                 state.selectProvider(provider.id)
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "server.rack")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
+                    ProviderBrandIconView(
+                        slug: ProviderBrandIconMatcher.match(
+                            providerName: provider.name,
+                            address: provider.address
+                        ),
+                        size: 18,
+                        fallbackSymbol: "server.rack",
+                        fallbackColor: .secondary
+                    )
 
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 6) {
@@ -1402,6 +1442,11 @@ private struct ProviderModelRow: View {
     @Bindable var state: ProviderSettingsState
     let model: ModelConfiguration
 
+    private var provider: ProviderConfiguration? {
+        guard let catalog = state.settings.providerRegistry.catalog else { return nil }
+        return catalog.providers.first(where: { $0.id == model.providerID })
+    }
+
     private var isActive: Bool {
         state.activeModelID == model.id
     }
@@ -1440,6 +1485,17 @@ private struct ProviderModelRow: View {
                 state.selectModel(model.id)
             } label: {
                 HStack(spacing: 8) {
+                    ProviderBrandIconView(
+                        slug: ProviderBrandIconMatcher.match(
+                            providerName: provider?.name,
+                            address: provider?.address,
+                            modelName: model.displayName,
+                            upstreamModelID: model.upstreamModelID
+                        ),
+                        size: 14,
+                        fallbackSymbol: "sparkles",
+                        fallbackColor: .secondary
+                    )
                     VStack(alignment: .leading, spacing: 1) {
                         HStack(spacing: 5) {
                             Text(model.displayName)

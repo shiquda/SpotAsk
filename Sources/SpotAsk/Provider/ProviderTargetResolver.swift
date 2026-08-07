@@ -7,6 +7,7 @@ struct ProviderTargetSnapshot: Equatable, Sendable {
     let apiKey: String
     let displayName: String
     let upstreamModelID: String
+    let providerName: String
     let isStreamingEnabled: Bool
     let timeout: TimeInterval
     let format: ProviderFormat
@@ -18,6 +19,7 @@ struct ProviderTargetSnapshot: Equatable, Sendable {
         apiKey: String,
         displayName: String,
         upstreamModelID: String,
+        providerName: String = "",
         isStreamingEnabled: Bool,
         timeout: TimeInterval,
         format: ProviderFormat = .openAICompatible
@@ -28,6 +30,7 @@ struct ProviderTargetSnapshot: Equatable, Sendable {
         self.apiKey = apiKey
         self.displayName = displayName
         self.upstreamModelID = upstreamModelID
+        self.providerName = providerName
         self.isStreamingEnabled = isStreamingEnabled
         self.timeout = timeout
         self.format = format
@@ -66,6 +69,7 @@ struct ProviderTargetResolver: ProviderTargetResolving {
             apiKey: apiKey,
             displayName: model.displayName,
             upstreamModelID: model.upstreamModelID,
+            providerName: provider.name,
             isStreamingEnabled: model.isStreamingEnabled,
             timeout: provider.timeout,
             format: provider.format

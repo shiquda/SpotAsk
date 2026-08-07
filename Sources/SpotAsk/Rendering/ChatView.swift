@@ -333,6 +333,7 @@ struct ChatView: View {
             .accessibilityLabel(Text("SpotAsk"))
             ModelPickerHeaderButton(
                 modelName: viewModel.effectiveModel?.displayName ?? "",
+                providerIconSlug: effectiveProviderIconSlug,
                 isDisabled: isGenerating,
                 isPresented: $isModelPickerPresented
             ) {
@@ -728,6 +729,17 @@ struct ChatView: View {
         viewModel.generationState == .connecting || viewModel.generationState == .streaming
     }
 
+    private var effectiveProviderIconSlug: String? {
+        guard let model = viewModel.effectiveModel,
+              let provider = viewModel.effectiveProvider else { return nil }
+        return ProviderBrandIconMatcher.match(
+            providerName: provider.name,
+            address: provider.address,
+            modelName: model.displayName,
+            upstreamModelID: model.upstreamModelID
+        )
+    }
+
     private var colorScheme: ColorScheme? {
         settings.appearance.colorScheme
     }
@@ -1104,7 +1116,10 @@ private struct AssistantMessageRow: View {
     var body: some View {
         let displayedMessage = viewModel.liveMessage(message)
         VStack(alignment: .leading, spacing: 8) {
-            AssistantMessageHeader(modelDisplayName: displayedMessage.modelDisplayName)
+            AssistantMessageHeader(
+                modelDisplayName: displayedMessage.modelDisplayName,
+                providerName: displayedMessage.providerName
+            )
 
             if let reasoning = displayedMessage.reasoningContent, !reasoning.isEmpty {
                 reasoningSection(message: displayedMessage, reasoning: reasoning)
@@ -1220,21 +1235,32 @@ private struct AssistantMessageRow: View {
 
 fileprivate struct AssistantMessageHeader: View {
     let modelDisplayName: String?
+    let providerName: String?
 
     var body: some View {
+        let slug = ProviderBrandIconMatcher.match(
+            providerName: providerName,
+            modelName: modelDisplayName
+        )
         HStack(spacing: 6) {
             ZStack {
-                Circle()
-                    .fill(
+                if slug != nil {
+                    Circle().fill(Brand.surface)
+                } else {
+                    Circle().fill(
                         LinearGradient(
                             colors: [Brand.accent, .cyan],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
-                Image(systemName: "brain.head.profile")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(.white)
+                }
+                ProviderBrandIconView(
+                    slug: slug,
+                    size: 18,
+                    fallbackSymbol: "brain.head.profile",
+                    fallbackColor: .white
+                )
             }
             .frame(width: 18, height: 18)
             .accessibilityLabel(L10n.string("chat.assistant"))
@@ -2120,6 +2146,7 @@ private struct UserMessageContentView: View {
 /// opens a searchable popover, and stays disabled while a response is running.
 private struct ModelPickerHeaderButton<PopoverContent: View>: View {
     let modelName: String
+    let providerIconSlug: String?
     let isDisabled: Bool
     @Binding var isPresented: Bool
     @ViewBuilder let popoverContent: () -> PopoverContent
@@ -2131,6 +2158,12 @@ private struct ModelPickerHeaderButton<PopoverContent: View>: View {
             isPresented.toggle()
         } label: {
             HStack(spacing: 4) {
+                ProviderBrandIconView(
+                    slug: providerIconSlug,
+                    size: 14,
+                    fallbackSymbol: "sparkles",
+                    fallbackColor: isHovering ? Brand.fg : Brand.muted
+                )
                 Text(modelName.isEmpty ? L10n.string("chat.model") : modelName)
                     .font(.system(size: 12, weight: .medium))
                     .lineLimit(1)
@@ -2244,15 +2277,27 @@ private struct ModelPickerContent: View {
                         Divider().padding(.vertical, 4)
                     }
                     ForEach(filteredGroups, id: \.provider.id) { group in
-                        Text(group.provider.name)
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(Brand.muted)
-                            .textCase(.uppercase)
-                            .padding(.horizontal, 8)
-                            .padding(.top, 6)
-                            .padding(.bottom, 2)
+                        HStack(spacing: 5) {
+                            ProviderBrandIconView(
+                                slug: ProviderBrandIconMatcher.match(
+                                    providerName: group.provider.name,
+                                    address: group.provider.address
+                                ),
+                                size: 12,
+                                fallbackSymbol: "server.rack",
+                                fallbackColor: Brand.muted
+                            )
+                            Text(group.provider.name)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(Brand.muted)
+                                .textCase(.uppercase)
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.top, 6)
+                        .padding(.bottom, 2)
                         ForEach(group.models) { model in
-                            modelRow(model)
+                            modelRow(model, provider: group.provider)
                         }
                     }
                 }
@@ -2263,18 +2308,24 @@ private struct ModelPickerContent: View {
         .frame(width: 300, height: 340)
     }
 
-    private func modelRow(_ model: ModelConfiguration) -> some View {
+    private func modelRow(_ model: ModelConfiguration, provider: ProviderConfiguration) -> some View {
         let isHighlighted = highlightedID == model.id
         return Button {
             guard !isDisabled else { return }
             onSelect(model.id)
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Brand.accent)
-                    .frame(width: 14)
-                    .opacity(model.id == effectiveModelID ? 1 : 0)
+                ProviderBrandIconView(
+                    slug: ProviderBrandIconMatcher.match(
+                        providerName: provider.name,
+                        address: provider.address,
+                        modelName: model.displayName,
+                        upstreamModelID: model.upstreamModelID
+                    ),
+                    size: 16,
+                    fallbackSymbol: "sparkles",
+                    fallbackColor: Brand.muted
+                )
                 VStack(alignment: .leading, spacing: 1) {
                     Text(model.displayName)
                         .font(.system(size: 13, weight: .medium))
@@ -2289,6 +2340,11 @@ private struct ModelPickerContent: View {
                     }
                 }
                 Spacer(minLength: 8)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Brand.accent)
+                    .frame(width: 14)
+                    .opacity(model.id == effectiveModelID ? 1 : 0)
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 6)

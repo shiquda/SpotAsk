@@ -169,7 +169,8 @@ final class ChatViewModel {
             completedAt: message.completedAt,
             attachments: message.attachments,
             appliedPresetTitle: message.appliedPresetTitle,
-            appliedPresetSymbolName: message.appliedPresetSymbolName
+            appliedPresetSymbolName: message.appliedPresetSymbolName,
+            providerName: message.providerName
         )
     }
 
@@ -325,6 +326,7 @@ final class ChatViewModel {
             }
             if let assistantIndex = messages.firstIndex(where: { $0.id == assistantID }) {
                 messages[assistantIndex].modelDisplayName = target.displayName
+                messages[assistantIndex].providerName = target.providerName
             }
         } catch let receivedError as ChatError {
             finishAfterError(receivedError, assistantID: assistantID)

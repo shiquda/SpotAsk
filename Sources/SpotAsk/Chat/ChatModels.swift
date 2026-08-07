@@ -28,6 +28,9 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
     var modelDisplayName: String?
     /// Kept so completed answers can show their actual request duration.
     var completedAt: Date?
+    /// Provider name captured when the answer was requested. Used only for
+    /// icon matching; older sessions decode it as nil.
+    var providerName: String?
     let appliedPresetTitle: String?
     /// SF Symbol captured when the one-shot prompt was sent. Existing
     /// sessions without this field continue to use the stable fallback.
@@ -48,7 +51,8 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         completedAt: Date? = nil,
         attachments: [ChatAttachment] = [],
         appliedPresetTitle: String? = nil,
-        appliedPresetSymbolName: String? = nil
+        appliedPresetSymbolName: String? = nil,
+        providerName: String? = nil
     ) {
         self.id = id
         self.role = role
@@ -62,6 +66,7 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         self.attachments = attachments
         self.appliedPresetTitle = appliedPresetTitle
         self.appliedPresetSymbolName = appliedPresetSymbolName
+        self.providerName = providerName
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -74,6 +79,7 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         case reasoningCompletedAt
         case modelDisplayName
         case completedAt
+        case providerName
         case appliedPresetTitle
         case appliedPresetSymbolName
         case attachments
@@ -90,6 +96,7 @@ struct ChatMessage: Identifiable, Codable, Equatable, Sendable {
         reasoningCompletedAt = try container.decodeIfPresent(Date.self, forKey: .reasoningCompletedAt)
         modelDisplayName = try container.decodeIfPresent(String.self, forKey: .modelDisplayName)
         completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
+        providerName = try container.decodeIfPresent(String.self, forKey: .providerName)
         appliedPresetTitle = try container.decodeIfPresent(String.self, forKey: .appliedPresetTitle)
         appliedPresetSymbolName = try container.decodeIfPresent(String.self, forKey: .appliedPresetSymbolName)
         // Older session files have no attachments key; decode them as empty.
