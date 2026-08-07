@@ -112,6 +112,14 @@ enum SelectionAssistantMode: String, CaseIterable, Identifiable, Codable, Sendab
     var id: String { rawValue }
 }
 
+enum SelectionAutoInvokeScope: String, CaseIterable, Identifiable, Codable, Sendable {
+    case allApps
+    case blacklist
+    case whitelist
+
+    var id: String { rawValue }
+}
+
 enum SelectionAutoInvokeDelay {
     static let minimum: Double = 0
     static let maximum: Double = 3
@@ -307,6 +315,9 @@ final class AppSettings {
         static let selectionAssistantToggleShortcut = "selectionAssistantToggleShortcut"
         static let selectionAutoInvokeEnabled = "selectionAutoInvokeEnabled"
         static let selectionAutoInvokeDelay = "selectionAutoInvokeDelay"
+        static let selectionAutoInvokeScope = "selectionAutoInvokeScope"
+        static let selectionAutoInvokeBlacklist = "selectionAutoInvokeBlacklist"
+        static let selectionAutoInvokeWhitelist = "selectionAutoInvokeWhitelist"
         static let selectionActionBarShowsLabels = "selectionActionBarShowsLabels"
     }
 
@@ -400,6 +411,15 @@ final class AppSettings {
     var selectionAutoInvokeEnabled: Bool {
         didSet { defaults.set(selectionAutoInvokeEnabled, forKey: Key.selectionAutoInvokeEnabled) }
     }
+    var selectionAutoInvokeScope: SelectionAutoInvokeScope {
+        didSet { defaults.set(selectionAutoInvokeScope.rawValue, forKey: Key.selectionAutoInvokeScope) }
+    }
+    var selectionAutoInvokeBlacklist: [String] {
+        didSet { defaults.set(selectionAutoInvokeBlacklist, forKey: Key.selectionAutoInvokeBlacklist) }
+    }
+    var selectionAutoInvokeWhitelist: [String] {
+        didSet { defaults.set(selectionAutoInvokeWhitelist, forKey: Key.selectionAutoInvokeWhitelist) }
+    }
     /// Seconds between the selection settling and the quick actions appearing.
     var selectionAutoInvokeDelay: Double {
         didSet {
@@ -411,6 +431,20 @@ final class AppSettings {
             }
         }
     }
+
+    /// Decides whether an automatic trigger may run in the given source app.
+    /// Manual shortcuts are intentionally not affected by this filter.
+    func allowsAutomaticInvoke(from source: SelectionSourceApplication?) -> Bool {
+        guard let identifier = source?.bundleIdentifier ?? source?.localizedName, !identifier.isEmpty else {
+            return selectionAutoInvokeScope == .allApps
+        }
+        switch selectionAutoInvokeScope {
+        case .allApps: return true
+        case .blacklist: return !selectionAutoInvokeBlacklist.contains(identifier)
+        case .whitelist: return selectionAutoInvokeWhitelist.contains(identifier)
+        }
+    }
+
     var panelWidth: Double { didSet { defaults.set(panelWidth, forKey: Key.panelWidth) } }
     var panelHeight: Double { didSet { defaults.set(panelHeight, forKey: Key.panelHeight) } }
     var showsMenuBarIcon: Bool {
@@ -499,6 +533,9 @@ final class AppSettings {
         selectionDefaultPromptID = UUID(uuidString: defaults.string(forKey: Key.selectionDefaultPromptID) ?? "") ?? PromptPreset.builtIn.first?.id
         selectionAssistantToggleShortcut = defaults.data(forKey: Key.selectionAssistantToggleShortcut).flatMap { try? JSONDecoder().decode(InAppShortcut.self, from: $0) }
         selectionAutoInvokeEnabled = defaults.object(forKey: Key.selectionAutoInvokeEnabled) as? Bool ?? false
+        selectionAutoInvokeScope = SelectionAutoInvokeScope(rawValue: defaults.string(forKey: Key.selectionAutoInvokeScope) ?? "") ?? .allApps
+        selectionAutoInvokeBlacklist = defaults.stringArray(forKey: Key.selectionAutoInvokeBlacklist) ?? []
+        selectionAutoInvokeWhitelist = defaults.stringArray(forKey: Key.selectionAutoInvokeWhitelist) ?? []
         selectionActionBarShowsLabels = defaults.object(forKey: Key.selectionActionBarShowsLabels) as? Bool ?? true
         selectionAutoInvokeDelay = SelectionAutoInvokeDelay.normalized(
             defaults.object(forKey: Key.selectionAutoInvokeDelay) as? Double ?? SelectionAutoInvokeDelay.defaultValue

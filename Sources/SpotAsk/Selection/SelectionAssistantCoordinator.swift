@@ -5,6 +5,7 @@ import Foundation
 final class SelectionAssistantCoordinator {
     private let settings: AppSettings
     private let reader: any SelectedTextReading
+    private let applicationProvider: any ForegroundSelectionApplicationProviding
     private let permissionCoordinator: AccessibilityPermissionCoordinator
     private let settingsOpener: any AccessibilityPermissionSettingsOpening
     private let commandCenter: SpotAskCommandCenter
@@ -17,6 +18,7 @@ final class SelectionAssistantCoordinator {
     init(
         settings: AppSettings,
         reader: any SelectedTextReading = AccessibilitySelectedTextReader(),
+        applicationProvider: any ForegroundSelectionApplicationProviding = MacOSForegroundSelectionApplicationProvider(),
         permissionCoordinator: AccessibilityPermissionCoordinator,
         settingsOpener: any AccessibilityPermissionSettingsOpening = MacOSAccessibilityPermissionSettingsOpener(),
         commandCenter: SpotAskCommandCenter = .shared,
@@ -24,6 +26,7 @@ final class SelectionAssistantCoordinator {
     ) {
         self.settings = settings
         self.reader = reader
+        self.applicationProvider = applicationProvider
         self.permissionCoordinator = permissionCoordinator
         self.settingsOpener = settingsOpener
         self.commandCenter = commandCenter
@@ -43,6 +46,7 @@ final class SelectionAssistantCoordinator {
             guard let self else { return }
             try? await Task.sleep(for: .seconds(settings.selectionAutoInvokeDelay))
             guard !Task.isCancelled else { return }
+            guard settings.allowsAutomaticInvoke(from: applicationProvider.frontmostApplication()) else { return }
             trigger(showsFeedback: false)
         }
     }

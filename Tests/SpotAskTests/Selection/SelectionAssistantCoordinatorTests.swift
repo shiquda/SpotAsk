@@ -82,6 +82,42 @@ struct SelectionAssistantCoordinatorTests {
         #expect(overlay.hideCount == 1)
     }
 
+    @Test("Automatic trigger is skipped for a blacklisted source app")
+    func automaticTriggerSkipsBlacklistedApp() async {
+        let settings = makeSettings()
+        settings.selectionAutoInvokeEnabled = true
+        settings.selectionAutoInvokeDelay = 0
+        settings.selectionAutoInvokeScope = .blacklist
+        settings.selectionAutoInvokeBlacklist = ["com.example.Source"]
+
+        let reader = SelectionReaderStub(snapshot: sampleSnapshot)
+        let coordinator = makeCoordinator(settings: settings, reader: reader)
+
+        coordinator.scheduleAutomaticTrigger()
+        try? await Task.sleep(for: .seconds(0.02))
+
+        #expect(reader.promptRequests.isEmpty)
+    }
+
+    @Test("Automatic trigger runs for an allowed whitelisted source app")
+    func automaticTriggerRunsForWhitelistedApp() async {
+        let settings = makeSettings()
+        settings.selectionAutoInvokeEnabled = true
+        settings.selectionAutoInvokeDelay = 0
+        settings.selectionAutoInvokeScope = .whitelist
+        settings.selectionAutoInvokeWhitelist = ["com.example.Source"]
+
+        let reader = SelectionReaderStub(snapshot: sampleSnapshot)
+        let coordinator = makeCoordinator(settings: settings, reader: reader)
+
+        coordinator.scheduleAutomaticTrigger()
+        for _ in 0 ..< 20 where reader.promptRequests.isEmpty {
+            await Task.yield()
+        }
+
+        #expect(reader.promptRequests == [false])
+    }
+
     private func makeSettings() -> AppSettings {
         let suiteName = "SelectionAssistantCoordinatorTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
@@ -90,6 +126,23 @@ struct SelectionAssistantCoordinatorTests {
         settings.selectionAssistantEnabled = true
         settings.selectionAssistantMode = .actionBar
         return settings
+    }
+
+    private func makeCoordinator(
+        settings: AppSettings,
+        reader: any SelectedTextReading
+    ) -> SelectionAssistantCoordinator {
+        SelectionAssistantCoordinator(
+            settings: settings,
+            reader: reader,
+            applicationProvider: ForegroundSelectionApplicationStub(source: sampleSnapshot.source),
+            permissionCoordinator: AccessibilityPermissionCoordinator(
+                permissionChecker: SelectionPermissionChecker(isTrusted: true)
+            ),
+            settingsOpener: SelectionSettingsOpenerStub(),
+            commandCenter: SpotAskCommandCenter(),
+            overlay: SelectionOverlayStub()
+        )
     }
 
     private var sampleSnapshot: SelectedTextSnapshot {
@@ -132,6 +185,18 @@ private final class SelectionReaderStub: SelectedTextReading, @unchecked Sendabl
     func readSelection(promptForPermission: Bool) async throws -> SelectedTextSnapshot {
         promptRequests.append(promptForPermission)
         return snapshot
+    }
+}
+
+private struct ForegroundSelectionApplicationStub: ForegroundSelectionApplicationProviding {
+    let source: SelectionSourceApplication?
+
+    func frontmostApplication() -> SelectionSourceApplication? {
+        source
+    }
+
+    func currentProcessIdentifier() -> pid_t {
+        -1
     }
 }
 

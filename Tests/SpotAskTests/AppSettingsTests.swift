@@ -339,6 +339,69 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(SelectionAutoInvokeDelay.normalized(SelectionAutoInvokeDelay.defaultValue), SelectionAutoInvokeDelay.defaultValue)
     }
 
+    func testSelectionAutoInvokeScopeDefaultsToAllAppsAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        XCTAssertEqual(AppSettings(defaults: defaults).selectionAutoInvokeScope, .allApps)
+
+        let settings = AppSettings(defaults: defaults)
+        settings.selectionAutoInvokeScope = .whitelist
+        XCTAssertEqual(AppSettings(defaults: defaults).selectionAutoInvokeScope, .whitelist)
+    }
+
+    func testSelectionAutoInvokeAppListsPersist() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let settings = AppSettings(defaults: defaults)
+        XCTAssertTrue(settings.selectionAutoInvokeBlacklist.isEmpty)
+        XCTAssertTrue(settings.selectionAutoInvokeWhitelist.isEmpty)
+
+        settings.selectionAutoInvokeBlacklist = ["com.example.Blocked", "com.example.Another"]
+        settings.selectionAutoInvokeWhitelist = ["com.example.Allowed"]
+
+        let reloaded = AppSettings(defaults: defaults)
+        XCTAssertEqual(reloaded.selectionAutoInvokeBlacklist, ["com.example.Blocked", "com.example.Another"])
+        XCTAssertEqual(reloaded.selectionAutoInvokeWhitelist, ["com.example.Allowed"])
+    }
+
+    func testAutomaticInvokeFilteringUsesBundleIdentifierWithNameFallback() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let settings = AppSettings(defaults: defaults)
+        let source = SelectionSourceApplication(
+            processIdentifier: 42,
+            bundleIdentifier: "com.example.Source",
+            localizedName: "Source"
+        )
+        let nameOnlySource = SelectionSourceApplication(
+            processIdentifier: 42,
+            bundleIdentifier: nil,
+            localizedName: "Notes"
+        )
+
+        XCTAssertTrue(settings.allowsAutomaticInvoke(from: source))
+
+        settings.selectionAutoInvokeScope = .blacklist
+        settings.selectionAutoInvokeBlacklist = ["com.example.Source"]
+        XCTAssertFalse(settings.allowsAutomaticInvoke(from: source))
+        XCTAssertTrue(settings.allowsAutomaticInvoke(from: nameOnlySource))
+
+        settings.selectionAutoInvokeBlacklist = ["Notes"]
+        XCTAssertFalse(settings.allowsAutomaticInvoke(from: nameOnlySource))
+        XCTAssertTrue(settings.allowsAutomaticInvoke(from: source))
+
+        settings.selectionAutoInvokeScope = .whitelist
+        settings.selectionAutoInvokeWhitelist = ["com.example.Source"]
+        XCTAssertTrue(settings.allowsAutomaticInvoke(from: source))
+        XCTAssertFalse(settings.allowsAutomaticInvoke(from: nameOnlySource))
+    }
+
     func testLocalizationUsesExplicitLanguageSelection() {
         XCTAssertEqual(L10n.string("settings.title", language: .english), "Settings")
         XCTAssertEqual(L10n.string("settings.title", language: .simplifiedChinese), "设置")

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cross-app selection assistant: select text in Safari, Notes, or other apps to translate, explain, summarize, polish, or run a custom prompt.
 - Quick action bar that appears next to selected text, with text labels shown by default.
 - Direct-run mode and optional automatic invocation for the selection assistant.
+- Blacklist and whitelist app filtering for the selection assistant's automatic invocation, with a searchable app picker.
 - Anthropic provider support in addition to OpenAI-compatible services, with model discovery and refresh.
 - HTTP and SOCKS5 proxy support with optional credentials and a connection test.
 - Customizable global hotkey for opening the chat window.
