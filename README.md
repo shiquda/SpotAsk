@@ -35,6 +35,7 @@
 - **Switch models anytime** — change the model for the current conversation right from the window, without touching your default in Settings.
 - **Ask with attachments** — paste a screenshot, or drop in images and text/code files; follow-up questions keep the earlier context.
 - **See answers as they arrive** — streamed responses, thinking shown with elapsed time, and stop, retry, and regenerate controls.
+- **Choose a chat layout** — keep the original left-aligned reading style or switch to a conversation layout with the model on the left and you on the right, using bubbles.
 - **Copy what you need** — grab the full answer or individual code blocks in one click.
 - **Automate repeated tasks** — built-in prompts for translate, explain, summarize, and polish; create your own for repeated workflows.
 - **Customize shortcuts** — choose a global hotkey preset or record your own shortcuts for chat, the selection assistant, and common actions.
@@ -67,7 +68,7 @@ Download the matching package from [GitHub Releases](https://github.com/shiquda/
 - **Apple silicon** — choose the `arm64` DMG for M-series Macs.
 - **Intel** — choose the `x86_64` DMG for Intel Macs.
 
-The packages do not yet have a Developer ID, so macOS asks you to confirm the first launch. To use SpotAsk from Spotlight, Siri, or Shortcuts, build it from source with your own Apple development team by following [Build with system integrations](#build-with-system-integrations).
+The packages are signed with a Developer ID and notarized by Apple, so macOS can verify them on first launch without a manual confirmation. The official release supports SpotAsk from Spotlight, Siri, or Shortcuts. To build a custom version instead, follow [Build with system integrations](#build-with-system-integrations).
 
 ## Quick start
 
@@ -90,7 +91,7 @@ After launch, SpotAsk appears in your menu bar. The app has no Dock icon.
 
 ### Build with system integrations
 
-Spotlight, Siri, and Shortcuts require a build signed with an Apple development team. A free Apple Account is sufficient for a personal build:
+The official release supports Spotlight, Siri, and Shortcuts. If you build a custom version, sign it with an Apple development team. A free Apple Account is sufficient for a personal build:
 
 1. Open `SpotAsk.xcodeproj` in Xcode.
 2. Select the SpotAsk target, then open **Signing & Capabilities**.
