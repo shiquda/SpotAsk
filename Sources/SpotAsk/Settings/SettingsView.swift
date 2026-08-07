@@ -2227,10 +2227,11 @@ private struct GeneralSettingsPage: View {
                 }
                 SettingsToggleRow(label: L10n.string("settings.launchAtLogin"), isOn: Bindable(settings).launchAtLogin)
                     .onChange(of: settings.launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
-                SettingsToggleRow(label: L10n.string("settings.silentLaunch"), isOn: Bindable(settings).silentLaunch)
-                Text(L10n.string("settings.silentLaunchDescription"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                SettingsToggleRow(
+                    label: L10n.string("settings.silentLaunch"),
+                    description: L10n.string("settings.silentLaunchDescription"),
+                    isOn: Bindable(settings).silentLaunch
+                )
                 SettingsToggleRow(label: L10n.string("settings.showMenuBarIcon"), isOn: Bindable(settings).showsMenuBarIcon)
                 SettingsToggleRow(label: L10n.string("settings.restoreSession"), isOn: Bindable(settings).retainSession)
                 SettingsToggleRow(label: L10n.string("settings.clearInputOnClose"), isOn: Bindable(settings).clearInputOnClose)
@@ -2312,10 +2313,11 @@ private struct GeneralSettingsPage: View {
             }
 
             SettingsGroup(title: L10n.string("settings.diagnostics")) {
-                SettingsToggleRow(label: L10n.string("settings.diagnosticsEnabled"), isOn: Bindable(settings).diagnosticsEnabled)
-                Text(L10n.string("settings.diagnosticsDescription"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                SettingsToggleRow(
+                    label: L10n.string("settings.diagnosticsEnabled"),
+                    description: L10n.string("settings.diagnosticsDescription"),
+                    isOn: Bindable(settings).diagnosticsEnabled
+                )
                 if settings.diagnosticsEnabled {
                     HStack(spacing: 10) {
                         Button(L10n.string("settings.diagnosticsExport")) {
@@ -2580,14 +2582,25 @@ private struct SettingsLabeledRow<Content: View>: View {
 
 private struct SettingsToggleRow: View {
     let label: String
+    var description: String?
     @Binding var isOn: Bool
 
     var body: some View {
         SettingsLabeledRow(label: label) {
-            Toggle("", isOn: $isOn)
-                .toggleStyle(.switch)
-                .labelsHidden()
-                .accessibilityLabel(label)
+            HStack(spacing: 14) {
+                if let description {
+                    Text(description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                Toggle("", isOn: $isOn)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+                    .accessibilityLabel(label)
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }
 }

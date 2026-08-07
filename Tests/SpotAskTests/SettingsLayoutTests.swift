@@ -156,21 +156,30 @@ struct SettingsLayoutTests {
         }
     }
 
-    @Test func toggleAndPickerControlsShareTheControlColumn() throws {
+    @Test func toggleSwitchesAlignTrailingWhilePickersKeepTheControlColumn() throws {
         let fixture = makeWindow(section: .general)
         defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
 
         let switches = descendants(of: NSSwitch.self, in: fixture.hostingView)
         let popups = descendants(of: NSPopUpButton.self, in: fixture.hostingView)
-        let reference = try #require(switches.first)
-        let referenceFrame = reference.convert(reference.bounds, to: fixture.hostingView)
+        let switchReference = try #require(switches.first)
+        let popupReference = try #require(popups.first)
+        let switchFrame = switchReference.convert(switchReference.bounds, to: fixture.hostingView)
+        let popupFrame = popupReference.convert(popupReference.bounds, to: fixture.hostingView)
 
         #expect(!popups.isEmpty)
+        for toggle in switches {
+            let frame = toggle.convert(toggle.bounds, to: fixture.hostingView)
+            #expect(
+                abs(frame.maxX - switchFrame.maxX) < 1,
+                "Toggle switches must align to the same trailing edge: \(frame) vs \(switchFrame)"
+            )
+        }
         for popup in popups {
             let frame = popup.convert(popup.bounds, to: fixture.hostingView)
             #expect(
-                abs(frame.minX - referenceFrame.minX) < 1,
-                "Toggle and picker controls must share the same control column: \(frame) vs \(referenceFrame)"
+                abs(frame.minX - popupFrame.minX) < 1,
+                "Pickers must stay in the settings control column: \(frame) vs \(popupFrame)"
             )
         }
     }
