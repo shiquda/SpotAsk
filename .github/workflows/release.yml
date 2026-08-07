@@ -1,4 +1,4 @@
-name: Release
+name: Release - Submit Notarization
 
 on:
   push:
@@ -12,13 +12,14 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-submit-${{ inputs.release_tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
-  publish:
+  submit:
     runs-on: macos-26
     environment: release
     env:
@@ -50,13 +51,11 @@ jobs:
           app_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
           tag_version=${RELEASE_TAG#v}
           test "$tag_version" = "$app_version"
-      - name: Skip Apple signing
-        if: env.APPLE_CERTIFICATE_BASE64 == ''
-        run: echo "No APPLE_CERTIFICATE_BASE64 secret; building unsigned DMGs."
+          echo "APP_VERSION=$app_version" >> "$GITHUB_ENV"
       - name: Configure Apple Developer signing
-        if: env.APPLE_CERTIFICATE_BASE64 != ''
         run: |
           set -eu
+          test -n "$APPLE_CERTIFICATE_BASE64"
           test -n "$APPLE_CERTIFICATE_PASSWORD"
           test -n "$SPOTASK_NOTARY_APPLE_ID"
           test -n "$SPOTASK_NOTARY_TEAM_ID"
@@ -88,19 +87,63 @@ jobs:
 
           echo "SPOTASK_CODESIGN_IDENTITY=$SIGNING_IDENTITY" >> "$GITHUB_ENV"
           echo "SPOTASK_REQUIRE_DEVELOPER_ID=1" >> "$GITHUB_ENV"
-          echo "SPOTASK_REQUIRE_NOTARIZATION=1" >> "$GITHUB_ENV"
+          echo "SPOTASK_REQUIRE_NOTARIZATION=0" >> "$GITHUB_ENV"
       - name: Build arm64 DMG
         run: ./Scripts/make-release-dmg.sh --arch arm64 --output dist
       - name: Build x86_64 DMG
         run: ./Scripts/make-release-dmg.sh --arch x86_64 --output dist
       - name: Create checksums
         run: shasum -a 256 dist/*.dmg > "dist/SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt"
-      - name: Publish GitHub Release
+      - name: Submit DMGs for notarization
+        run: |
+          set -eu
+          arm64_dmg="dist/SpotAsk-${APP_VERSION}-arm64.dmg"
+          x86_64_dmg="dist/SpotAsk-${APP_VERSION}-x86_64.dmg"
+
+          arm64_json=$(./Scripts/notarize-dmg.sh submit "$arm64_dmg")
+          x86_64_json=$(./Scripts/notarize-dmg.sh submit "$x86_64_dmg")
+          arm64_id=$(printf '%s' "$arm64_json" | jq -er '.id')
+          x86_64_id=$(printf '%s' "$x86_64_json" | jq -er '.id')
+
+          jq -n \
+            --arg id "$arm64_id" \
+            --arg architecture arm64 \
+            --arg file "SpotAsk-${APP_VERSION}-arm64.dmg" \
+            '{submission_id: $id, architecture: $architecture, file: $file}' > dist/notary-arm64.json
+          jq -n \
+            --arg id "$x86_64_id" \
+            --arg architecture x86_64 \
+            --arg file "SpotAsk-${APP_VERSION}-x86_64.dmg" \
+            '{submission_id: $id, architecture: $architecture, file: $file}' > dist/notary-x86_64.json
+          cat dist/notary-arm64.json dist/notary-x86_64.json
+      - name: Create or update Draft Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" dist/* --clobber
+          set -eu
+          if release_json=$(gh release view "$RELEASE_TAG" --json isDraft 2>/dev/null); then
+            is_draft=$(printf '%s' "$release_json" | jq -r '.isDraft')
+            if [ "$is_draft" != true ]; then
+              echo "Release $RELEASE_TAG is already published; refusing to replace it." >&2
+              exit 1
+            fi
+            gh release upload "$RELEASE_TAG" \
+              "dist/SpotAsk-${APP_VERSION}-arm64.dmg" \
+              "dist/SpotAsk-${APP_VERSION}-x86_64.dmg" \
+              "dist/SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt" \
+              dist/notary-arm64.json \
+              dist/notary-x86_64.json \
+              --clobber
           else
-            gh release create "$RELEASE_TAG" dist/* --title "$RELEASE_TAG" --generate-notes
+            gh release create "$RELEASE_TAG" \
+              "dist/SpotAsk-${APP_VERSION}-arm64.dmg" \
+              "dist/SpotAsk-${APP_VERSION}-x86_64.dmg" \
+              "dist/SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt" \
+              dist/notary-arm64.json \
+              dist/notary-x86_64.json \
+              --draft \
+              --verify-tag \
+              --title "$RELEASE_TAG" \
+              --generate-notes
           fi
+          gh workflow enable notarize-poll.yml --repo "$GITHUB_REPOSITORY"

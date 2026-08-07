@@ -419,7 +419,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Config/SpotAsk.selection-assistant.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 9JQA7UT66M;
+				DEVELOPMENT_TEAM = 6UR4V5Z3N7;
 				CURRENT_PROJECT_VERSION = 16;
 				ENABLE_APP_SANDBOX = NO;
 				EXTRACT_APP_INTENTS_METADATA = YES;
@@ -441,7 +441,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Config/SpotAsk.selection-assistant.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 9JQA7UT66M;
+				DEVELOPMENT_TEAM = 6UR4V5Z3N7;
 				CURRENT_PROJECT_VERSION = 16;
 				ENABLE_APP_SANDBOX = NO;
 				EXTRACT_APP_INTENTS_METADATA = YES;

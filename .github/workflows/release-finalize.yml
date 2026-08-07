@@ -1,0 +1,81 @@
+name: Release - Finalize Notarization
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: v* draft release to staple and publish
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-finalize-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    runs-on: macos-26
+    environment: release
+    env:
+      SPOTASK_NOTARY_APPLE_ID: ${{ secrets.APPLE_NOTARIZATION_APPLE_ID }}
+      SPOTASK_NOTARY_TEAM_ID: ${{ secrets.APPLE_NOTARIZATION_TEAM_ID }}
+      SPOTASK_NOTARY_PASSWORD: ${{ secrets.APPLE_NOTARIZATION_APP_PASSWORD }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Staple and publish draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$RELEASE_TAG" in
+            v*) ;;
+            *) echo "Release tag must start with v" >&2; exit 1 ;;
+          esac
+
+          release_dir="$RUNNER_TEMP/finalize-$RELEASE_TAG"
+          mkdir -p "$release_dir"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --dir "$release_dir" \
+            --pattern 'SpotAsk-*.dmg' \
+            --pattern 'notary-*.json'
+
+          test -f "$release_dir/notary-arm64.json"
+          test -f "$release_dir/notary-x86_64.json"
+
+          for marker in "$release_dir"/notary-*.json; do
+            submission_id=$(jq -er '.submission_id' "$marker")
+            architecture=$(jq -er '.architecture' "$marker")
+            file=$(jq -er '.file' "$marker")
+            status=$(./Scripts/notarize-dmg.sh info "$submission_id" | jq -er '.status')
+            echo "$architecture: $status"
+            if [ "$status" != Accepted ]; then
+              echo "Notarization is not accepted for $architecture ($submission_id)" >&2
+              ./Scripts/notarize-dmg.sh log "$submission_id" "$RUNNER_TEMP/notary-$architecture.log" || true
+              cat "$RUNNER_TEMP/notary-$architecture.log" 2>/dev/null || true
+              exit 1
+            fi
+            ./Scripts/notarize-dmg.sh staple "$release_dir/$file"
+          done
+
+          checksums="SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt"
+          (
+            cd "$release_dir"
+            shasum -a 256 SpotAsk-*.dmg > "$checksums"
+          )
+          gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            "$release_dir"/SpotAsk-*.dmg \
+            "$release_dir/$checksums" \
+            --clobber
+
+          for marker in "$release_dir"/notary-*.json; do
+            marker_name=$(basename "$marker")
+            gh release delete-asset "$RELEASE_TAG" "$marker_name" --yes --repo "$GITHUB_REPOSITORY"
+          done
+
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+          echo "Published notarized release $RELEASE_TAG"

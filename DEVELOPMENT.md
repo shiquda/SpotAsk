@@ -47,15 +47,15 @@ Signing and notarization are optional and configured through environment variabl
 SpotAsk is distributed outside the App Store, so it needs a **Developer ID Application** certificate and Apple notarization. A free Personal Team cannot provide this; the paid Apple Developer Program is required.
 
 1. Sign in to Xcode with the paid Apple ID: **Xcode > Settings > Accounts**.
-2. Select the account and open **Manage Certificates**.
-3. Click **+** and choose **Developer ID Application**. Keep the generated certificate in the login Keychain.
+2. In the Apple Developer website, open **Certificates, Identifiers & Profiles > Certificates**, click **+**, and choose **Developer ID Application**.
+3. Select the **G2 Sub-CA**, upload a CSR generated on this Mac, download the `.cer`, and combine it with the matching private key into a `.p12` file. Import the `.p12` into the login Keychain.
 4. Confirm the identity is available:
 
 ```sh
 security find-identity -v -p codesigning | grep "Developer ID Application"
 ```
 
-The project already uses team ID `9JQA7UT66M` and bundle ID `com.spotask.app`. Confirm these values under **Certificates, Identifiers & Profiles** in the [Apple Developer site](https://developer.apple.com/account/).
+The project uses team ID `6UR4V5Z3N7` and bundle ID `com.spotask.app`. Confirm these values under **Certificates, Identifiers & Profiles** in the [Apple Developer site](https://developer.apple.com/account/).
 
 Create an app-specific password at [account.apple.com](https://account.apple.com/sign-in) under **Sign-In and Security > App-Specific Passwords**. Use that password only for notarization; your normal Apple ID password cannot be used.
 
@@ -66,8 +66,7 @@ Store the notarization credentials in the macOS login Keychain once:
 ```sh
 xcrun notarytool store-credentials "SpotAskNotary" \
   --apple-id "you@example.com" \
-  --team-id "9JQA7UT66M" \
-  --password "xxxx-xxxx-xxxx-xxxx"
+  --team-id "6UR4V5Z3N7"
 ```
 
 Then build, sign, and notarize locally:
@@ -86,7 +85,7 @@ For a one-off CI-style local test without a Keychain profile, the script also ac
 
 ```sh
 SPOTASK_NOTARY_APPLE_ID="you@example.com" \
-SPOTASK_NOTARY_TEAM_ID="9JQA7UT66M" \
+SPOTASK_NOTARY_TEAM_ID="6UR4V5Z3N7" \
 SPOTASK_NOTARY_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
 SPOTASK_REQUIRE_DEVELOPER_ID=1 \
 SPOTASK_REQUIRE_NOTARIZATION=1 \
@@ -112,10 +111,28 @@ Add these secrets to **Settings > Secrets and variables > Actions** (or to the `
 | `APPLE_CERTIFICATE_BASE64` | contents of `DeveloperID.p12.base64` |
 | `APPLE_CERTIFICATE_PASSWORD` | password chosen when exporting the `.p12` |
 | `APPLE_NOTARIZATION_APPLE_ID` | paid Apple ID used for notarization |
-| `APPLE_NOTARIZATION_TEAM_ID` | `9JQA7UT66M` |
+| `APPLE_NOTARIZATION_TEAM_ID` | `6UR4V5Z3N7` |
 | `APPLE_NOTARIZATION_APP_PASSWORD` | app-specific password created above |
 
-The Release workflow now imports the certificate into a temporary Keychain, signs both DMGs with Developer ID, submits them to Apple Notary, and uploads the artifacts to the tag release. If `APPLE_CERTIFICATE_BASE64` is not configured, the workflow falls back to unsigned DMGs.
+The Release workflow does not wait on Apple's notarization queue. It imports the certificate into a temporary Keychain, builds both signed DMGs, submits them with `notarytool submit --no-wait`, and stores the submission IDs as `notary-*.json` assets on a **Draft Release**.
+
+The `notarize-poll.yml` workflow checks draft releases every 30 minutes. While a draft has `notary-*.json` markers, it queries Apple and waits. Once both submissions are `Accepted`, it dispatches `release-finalize.yml`, which:
+
+1. Downloads the draft DMGs.
+2. Runs `xcrun stapler staple` and validates the notarization ticket.
+3. Replaces the checksum file with the stapled artifacts.
+4. Removes the `notary-*.json` markers.
+5. Publishes the release.
+
+The public release is only created after Apple accepts both architectures. To finalize a draft manually:
+
+```sh
+gh workflow run release-finalize.yml \
+  --repo shiquda/SpotAsk \
+  --field release_tag=v0.1.4
+```
+
+Notarization can occasionally take much longer than the usual few minutes. A new account or a submission Apple holds for review can remain `In Progress` for hours, so leaving the Draft Release in place and letting the poll workflow retry is expected.
 
 ## Project layout
 
