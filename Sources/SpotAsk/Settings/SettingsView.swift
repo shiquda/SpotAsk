@@ -2446,6 +2446,17 @@ private struct AppearanceSettingsPage: View {
                         Spacer(minLength: 0)
                     }
                 }
+                SettingsFieldRow(label: L10n.string("settings.chatMessageStyle")) {
+                    HStack(spacing: 0) {
+                        Picker(L10n.string("settings.chatMessageStyle"), selection: Bindable(settings).chatMessageStyle) {
+                            Text(L10n.string("chatMessageStyle.standard")).tag(ChatMessageStyle.standard)
+                            Text(L10n.string("chatMessageStyle.im")).tag(ChatMessageStyle.im)
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        Spacer(minLength: 0)
+                    }
+                }
                 SettingsFieldRow(label: L10n.string("settings.fontSize")) {
                     HStack(spacing: 0) {
                         Picker(L10n.string("settings.fontSize"), selection: Bindable(settings).fontSize) {

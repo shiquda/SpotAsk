@@ -42,6 +42,8 @@
 "chat.collapseAnswer" = "收起回答";
 "chat.stopped" = "已停止生成";
 "chat.expandAnswer" = "展开完整回答";
+"chatMessageStyle.standard" = "标准";
+"chatMessageStyle.im" = "对话";
 "chat.usePrompt" = "本次使用：%@";
 "chat.user" = "你";
 "chat.usedPrompt" = "已使用：%@";
@@ -255,6 +257,7 @@
 "settings.clearKeyFailure" = "无法清除访问密钥";
 "settings.clearKeySuccess" = "访问密钥已清除";
 "settings.cancel" = "取消";
+"settings.chatMessageStyle" = "消息样式";
 "settings.fontSize" = "字体大小";
 "settings.launchAtLogin" = "登录时启动";
 "settings.silentLaunch" = "静默启动";

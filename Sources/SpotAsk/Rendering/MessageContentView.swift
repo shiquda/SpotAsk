@@ -1,5 +1,94 @@
 import SwiftUI
 
+enum MessageBubbleMetrics {
+    /// Similar desktop messengers keep bubbles around 70-80% of the chat
+    /// content width; 520pt is about 77% of the default 722pt panel content.
+    static let maxWidth: CGFloat = 520
+}
+
+/// A chat bubble that hugs short content but wraps once it reaches the
+/// configured maximum width, instead of always filling the whole row.
+struct MessageBubbleContainer<Content: View>: View {
+    let fill: Color
+    let foreground: Color?
+    let border: Color?
+    let maxWidth: CGFloat
+    let alignment: Alignment
+    let content: Content
+
+    init(
+        fill: Color = Brand.surface,
+        foreground: Color? = nil,
+        border: Color? = Brand.border,
+        maxWidth: CGFloat = MessageBubbleMetrics.maxWidth,
+        alignment: Alignment = .leading,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.fill = fill
+        self.foreground = foreground
+        self.border = border
+        self.maxWidth = maxWidth
+        self.alignment = alignment
+        self.content = content()
+    }
+
+    var body: some View {
+        BubbleLayout(maxWidth: maxWidth - 24) {
+            content
+        }
+        .foregroundStyle(foreground ?? Color.primary)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(fill, in: RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            if let border {
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(border, lineWidth: 1)
+            }
+        }
+        .frame(maxWidth: maxWidth, alignment: alignment)
+    }
+}
+
+/// Measures the content at its natural width first, then clamps it to the
+/// bubble cap so short messages stay compact and long messages wrap.
+private struct BubbleLayout: Layout {
+    let maxWidth: CGFloat
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) -> CGSize {
+        guard let subview = subviews.first else { return .zero }
+        let availableWidth = min(proposal.width ?? maxWidth, maxWidth)
+        let naturalSize = subview.sizeThatFits(.unspecified)
+        let contentWidth = naturalSize.width > 0
+            ? min(naturalSize.width, availableWidth)
+            : availableWidth
+        let wrappedSize = subview.sizeThatFits(
+            ProposedViewSize(width: contentWidth, height: nil)
+        )
+        return CGSize(
+            width: contentWidth,
+            height: max(wrappedSize.height, naturalSize.height)
+        )
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) {
+        guard let subview = subviews.first else { return }
+        subview.place(
+            at: bounds.origin,
+            proposal: ProposedViewSize(width: bounds.width, height: bounds.height)
+        )
+    }
+}
+
 struct MessageContentView: View {
     let message: ChatMessage
     let canRegenerate: Bool
@@ -13,6 +102,7 @@ struct MessageContentView: View {
     let isExpanded: Bool
     let onToggleExpansion: () -> Void
     let streamingChunks: [String]
+    private let isBubble: Bool
     private let collapsedPreview: String?
 
     init(
@@ -27,7 +117,8 @@ struct MessageContentView: View {
         regenerateShortcut: InAppShortcut?,
         isExpanded: Bool = false,
         onToggleExpansion: @escaping () -> Void = {},
-        streamingChunks: [String] = []
+        streamingChunks: [String] = [],
+        isBubble: Bool = false
     ) {
         self.message = message
         self.canRegenerate = canRegenerate
@@ -41,6 +132,7 @@ struct MessageContentView: View {
         self.isExpanded = isExpanded
         self.onToggleExpansion = onToggleExpansion
         self.streamingChunks = streamingChunks
+        self.isBubble = isBubble
         collapsedPreview = message.state == .streaming
             ? nil
             : AssistantMessageDisplayPolicy.collapsedPreview(for: message.content)
@@ -48,18 +140,7 @@ struct MessageContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if let collapsedPreview, !isExpanded, message.state != .streaming {
-                Text(collapsedPreview)
-                    .textSelection(.enabled)
-                    .lineSpacing(2)
-                    .lineLimit(AssistantMessageDisplayPolicy.collapsedLineLimit)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                StreamingMarkdownBlockView(
-                    chunks: streamingChunks.isEmpty ? [message.content] : streamingChunks,
-                    isComplete: message.state != .streaming
-                )
-            }
+            messageBody
 
             if collapsedPreview != nil {
                 Button(action: onToggleExpansion) {
@@ -135,6 +216,36 @@ struct MessageContentView: View {
                     }
                 }
                 .controlSize(.small)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var messageBody: some View {
+        if isBubble {
+            MessageBubbleContainer(maxWidth: MessageBubbleMetrics.maxWidth) {
+                messageContent
+            }
+        } else {
+            messageContent
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    @ViewBuilder
+    private var messageContent: some View {
+        Group {
+            if let collapsedPreview, !isExpanded, message.state != .streaming {
+                Text(collapsedPreview)
+                    .textSelection(.enabled)
+                    .lineSpacing(2)
+                    .lineLimit(AssistantMessageDisplayPolicy.collapsedLineLimit)
+            } else {
+                StreamingMarkdownBlockView(
+                    chunks: streamingChunks.isEmpty ? [message.content] : streamingChunks,
+                    isComplete: message.state != .streaming,
+                    fillsAvailableWidth: !isBubble
+                )
             }
         }
     }

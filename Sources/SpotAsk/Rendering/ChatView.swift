@@ -429,29 +429,21 @@ struct ChatView: View {
                     sessionChoiceBanner
                     Divider()
                 }
+                GeometryReader { geometry in
+                let contentWidth = conversationColumnWidth(viewportWidth: geometry.size.width)
                 ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        if !historicalMessages.isEmpty {
-                            LazyVStack(alignment: .leading, spacing: 20) {
-                                ForEach(historicalMessages) { message in
-                                    messageRow(message)
-                                        .id(message.id)
-                                }
-                            }
-                        }
-                        ForEach(activeTailMessages) { message in
-                            messageRow(message)
-                                .id(message.id)
-                        }
-                        Color.clear
-                            .frame(height: 1)
-                            .id("conversation-bottom")
-                    }
-                    .frame(maxWidth: 760, alignment: .leading)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 20)
+                    // Each row carries an explicit finite width (see messageRow),
+                    // so a LazyVStack proposing ideal width to its children cannot
+                    // re-center a short IM bubble. The horizontal padding then
+                    // positions the column: IM sits flush to the 24pt content
+                    // inset, standard mode centers the 760pt column.
+                    conversationContent(contentWidth: contentWidth)
+                        .padding(
+                            .horizontal,
+                            conversationColumnHorizontalPadding(viewportWidth: geometry.size.width)
+                        )
+                        .padding(.vertical, 20)
                 }
                 .defaultScrollAnchor(scrollFollowState.followsLatest ? .bottom : nil, for: .sizeChanges)
                 // Keep scrolled content clear of the header Material and the
@@ -496,7 +488,46 @@ struct ChatView: View {
                     scrollToBottom(using: proxy)
                 }
                 }
+                }
             }
+        }
+    }
+
+    /// The conversation column width inside the scroll viewport. IM rows span
+    /// the full padded width so the trailing-aligned bubble reaches the right
+    /// inset; standard mode keeps the familiar 760pt centered column.
+    private func conversationColumnWidth(viewportWidth: CGFloat) -> CGFloat {
+        let paddedWidth = max(0, viewportWidth - 48)
+        return settings.chatMessageStyle == .im ? paddedWidth : min(paddedWidth, 760)
+    }
+
+    /// The symmetric horizontal inset that positions the measured column.
+    /// In IM mode the column is exactly `viewport - 48`, so this resolves to
+    /// the canonical 24pt inset and each row's trailing-aligned user bubble
+    /// lands flush against the content right inset. In standard mode it grows
+    /// beyond 24 only to center a column narrower than the viewport.
+    private func conversationColumnHorizontalPadding(viewportWidth: CGFloat) -> CGFloat {
+        let columnWidth = conversationColumnWidth(viewportWidth: viewportWidth)
+        return max(24, (viewportWidth - columnWidth) / 2)
+    }
+
+    private func conversationContent(contentWidth: CGFloat) -> some View {
+        return VStack(alignment: .leading, spacing: 20) {
+            if !historicalMessages.isEmpty {
+                LazyVStack(alignment: .leading, spacing: 20) {
+                    ForEach(historicalMessages) { message in
+                        messageRow(message, contentWidth: contentWidth)
+                            .id(message.id)
+                    }
+                }
+            }
+            ForEach(activeTailMessages) { message in
+                messageRow(message, contentWidth: contentWidth)
+                    .id(message.id)
+            }
+            Color.clear
+                .frame(height: 1)
+                .id("conversation-bottom")
         }
     }
 
@@ -534,48 +565,60 @@ struct ChatView: View {
     }
 
     @ViewBuilder
-    private func messageRow(_ message: ChatMessage) -> some View {
-        switch message.role {
-        case .system:
-            EmptyView()
-        case .user:
-            let canRetry = canRetry(userMessage: message)
-            UserMessageContentView(
-                message: message,
-                isExpanded: userMessageExpansionState.isExpanded(messageID: message.id),
-                onToggleExpansion: { userMessageExpansionState.toggle(messageID: message.id) },
-                canRetry: canRetry,
-                onRetry: viewModel.retry,
-                retryShortcut: canRetry ? shortcutHint(for: .operation(.regenerateOrRetry)) : nil
-            )
-        case .assistant:
-            AssistantMessageRow(
-                viewModel: viewModel,
-                message: message,
-                reasoningState: reasoningToggle.state(for: message.id),
-                reduceMotion: reduceMotion,
-                isLatestAssistant: message.id == viewModel.messages.last(where: { $0.role == .assistant })?.id,
-                canRegenerate: viewModel.canRegenerate,
-                onRegenerate: viewModel.regenerate,
-                isCopied: copiedMessageID == message.id,
-                onCopy: { copyMessage(message) },
-                canInsertSelection: message.state == .complete && (viewModel.selectionSnapshot(for: message.id)?.canReplaceSelection ?? false),
-                onInsertSelection: { insertSelection(from: message) },
-                copyShortcut: shortcutHint(for: .operation(.copyAnswer)),
-                regenerateShortcut: shortcutHint(for: .operation(.regenerateOrRetry)),
-                retryShortcut: shortcutHint(for: .operation(.regenerateOrRetry)),
-                errorDescription: viewModel.error?.localizedDescription,
-                onRetry: viewModel.retry,
-                isExpanded: assistantMessageExpansionState.isExpanded(messageID: message.id),
-                onToggleExpansion: {
-                    assistantMessageExpansionState.toggle(messageID: message.id)
-                },
-                onToggleReasoning: {
-                    reasoningToggle.toggleByUser(messageID: message.id)
-                },
-                onLiveMessageChanged: { reconcileReasoningAfterStreamingUpdate($0) }
-            )
+    private func messageRow(_ message: ChatMessage, contentWidth: CGFloat) -> some View {
+        Group {
+            switch message.role {
+            case .system:
+                EmptyView()
+            case .user:
+                let canRetry = canRetry(userMessage: message)
+                UserMessageContentView(
+                    message: message,
+                    isIM: settings.chatMessageStyle == .im,
+                    isExpanded: userMessageExpansionState.isExpanded(messageID: message.id),
+                    onToggleExpansion: { userMessageExpansionState.toggle(messageID: message.id) },
+                    canRetry: canRetry,
+                    onRetry: viewModel.retry,
+                    retryShortcut: canRetry ? shortcutHint(for: .operation(.regenerateOrRetry)) : nil
+                )
+            case .assistant:
+                AssistantMessageRow(
+                    viewModel: viewModel,
+                    message: message,
+                    reasoningState: reasoningToggle.state(for: message.id),
+                    reduceMotion: reduceMotion,
+                    isIM: settings.chatMessageStyle == .im,
+                    isLatestAssistant: message.id == viewModel.messages.last(where: { $0.role == .assistant })?.id,
+                    canRegenerate: viewModel.canRegenerate,
+                    onRegenerate: viewModel.regenerate,
+                    isCopied: copiedMessageID == message.id,
+                    onCopy: { copyMessage(message) },
+                    canInsertSelection: message.state == .complete && (viewModel.selectionSnapshot(for: message.id)?.canReplaceSelection ?? false),
+                    onInsertSelection: { insertSelection(from: message) },
+                    copyShortcut: shortcutHint(for: .operation(.copyAnswer)),
+                    regenerateShortcut: shortcutHint(for: .operation(.regenerateOrRetry)),
+                    retryShortcut: shortcutHint(for: .operation(.regenerateOrRetry)),
+                    errorDescription: viewModel.error?.localizedDescription,
+                    onRetry: viewModel.retry,
+                    isExpanded: assistantMessageExpansionState.isExpanded(messageID: message.id),
+                    onToggleExpansion: {
+                        assistantMessageExpansionState.toggle(messageID: message.id)
+                    },
+                    onToggleReasoning: {
+                        reasoningToggle.toggleByUser(messageID: message.id)
+                    },
+                    onLiveMessageChanged: { reconcileReasoningAfterStreamingUpdate($0) }
+                )
+            }
         }
+        // A LazyVStack proposes ideal width to its children, so a short IM
+        // bubble collapses to its intrinsic width and floats centered. Pin
+        // each row to the measured content width: the trailing-aligned user
+        // bubble reaches the right inset, and the assistant bubble stays left.
+        .frame(
+            width: contentWidth,
+            alignment: settings.chatMessageStyle == .im && message.role == .user ? .trailing : .leading
+        )
     }
 
     private func reconcileReasoningAfterStreamingUpdate(_ message: ChatMessage) {
@@ -1096,6 +1139,7 @@ private struct AssistantMessageRow: View {
     let message: ChatMessage
     let reasoningState: ReasoningToggleState
     let reduceMotion: Bool
+    let isIM: Bool
     let isLatestAssistant: Bool
     let canRegenerate: Bool
     let onRegenerate: () -> Void
@@ -1145,7 +1189,8 @@ private struct AssistantMessageRow: View {
                     regenerateShortcut: isLatestAssistant ? regenerateShortcut : nil,
                     isExpanded: isExpanded,
                     onToggleExpansion: onToggleExpansion,
-                    streamingChunks: streamingChunks
+                    streamingChunks: streamingChunks,
+                    isBubble: isIM
                 )
             }
             if displayedMessage.state == .failed {
@@ -1169,6 +1214,7 @@ private struct AssistantMessageRow: View {
         .onChange(of: displayedMessage) { _, newValue in
             onLiveMessageChanged(newValue)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var streamingChunks: [String] {
@@ -1991,6 +2037,7 @@ private struct PopoverOutsideClickMonitor: NSViewRepresentable {
 
 private struct UserMessageContentView: View {
     let message: ChatMessage
+    let isIM: Bool
     let isExpanded: Bool
     let onToggleExpansion: () -> Void
     private let collapsedPreview: String?
@@ -2002,6 +2049,7 @@ private struct UserMessageContentView: View {
 
     init(
         message: ChatMessage,
+        isIM: Bool,
         isExpanded: Bool,
         onToggleExpansion: @escaping () -> Void,
         canRetry: Bool,
@@ -2009,6 +2057,7 @@ private struct UserMessageContentView: View {
         retryShortcut: InAppShortcut?
     ) {
         self.message = message
+        self.isIM = isIM
         self.isExpanded = isExpanded
         self.onToggleExpansion = onToggleExpansion
         self.canRetry = canRetry
@@ -2029,28 +2078,151 @@ private struct UserMessageContentView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [.cyan, .blue],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                    Image(systemName: "person.fill")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(.white)
+        Group {
+            if isIM {
+                VStack(alignment: .trailing, spacing: 5) {
+                    content
                 }
-                .frame(width: 18, height: 18)
-                .accessibilityLabel(L10n.string("chat.user"))
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            } else {
+                HStack(alignment: .top, spacing: 0) {
+                    content
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(L10n.string("chat.user"))
+    }
 
+    @ViewBuilder
+    private var content: some View {
+        VStack(alignment: isIM ? .trailing : .leading, spacing: 5) {
+                header
+
+                if !message.attachments.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(message.attachments) { attachment in
+                                MessageAttachmentThumbnail(attachment: attachment)
+                            }
+                        }
+                        .padding(.leading, isIM ? 0 : 12)
+                        .padding(.trailing, isIM ? 12 : 0)
+                    }
+                    .frame(maxWidth: isIM ? MessageBubbleMetrics.maxWidth : 620, alignment: isIM ? .trailing : .leading)
+                }
+
+                if !message.content.isEmpty {
+                    if isIM {
+                        MessageBubbleContainer(
+                            fill: Brand.accent,
+                            foreground: .white,
+                            border: nil,
+                            maxWidth: MessageBubbleMetrics.maxWidth,
+                            alignment: .trailing
+                        ) {
+                            userMessageText
+                        }
+                    } else {
+                        userMessageText
+                            .frame(maxWidth: 620, alignment: .leading)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 9)
+                            .background(
+                                Color(nsColor: .quaternarySystemFill),
+                                in: RoundedRectangle(cornerRadius: 5)
+                            )
+                            .foregroundStyle(Color.primary)
+                    }
+                }
+
+                if isCollapsible {
+                    Button(action: onToggleExpansion) {
+                        Label(
+                            isExpanded
+                                ? L10n.string("chat.collapseQuestion")
+                                : L10n.string("chat.showFullQuestion"),
+                            systemImage: isExpanded ? "chevron.up" : "chevron.down"
+                        )
+                        .font(.caption.weight(.medium))
+                    }
+                    .buttonStyle(.borderless)
+                    .help(isExpanded ? L10n.string("chat.collapseQuestion") : L10n.string("chat.showFullQuestion"))
+                    .accessibilityLabel(isExpanded ? L10n.string("chat.collapseQuestion") : L10n.string("chat.showFullQuestion"))
+                }
+
+                HStack(spacing: 4) {
+                    if isIM {
+                        Spacer(minLength: 8)
+                    }
+                    MessageToolbarIconButton {
+                        Clipboard.copy(message.content)
+                        didCopy = true
+                        Task {
+                            try? await Task.sleep(for: .milliseconds(1_500))
+                            guard !Task.isCancelled else { return }
+                            didCopy = false
+                        }
+                    } label: {
+                        Image(systemName: didCopy ? "checkmark" : "doc.on.doc")
+                    }
+                    .help(didCopy ? L10n.string("chat.copied") : L10n.string("chat.copyQuestion"))
+                    .accessibilityLabel(didCopy ? L10n.string("chat.questionCopied") : L10n.string("chat.copyQuestion"))
+
+                    if canRetry {
+                        MessageToolbarIconButton(action: onRetry) {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .help(L10n.string("chat.retry"))
+                        .accessibilityLabel(L10n.string("chat.retryFailedRequest"))
+                        .overlay(alignment: .bottomTrailing) {
+                            ShortcutKeycap(shortcut: retryShortcut)
+                                .offset(x: 4, y: 4)
+                        }
+                    }
+
+                    if !isIM {
+                        Spacer(minLength: 8)
+                    }
+                }
+                .controlSize(.small)
+            }
+    }
+
+    private var userMessageText: some View {
+        Text(displayedContent)
+            .textSelection(.enabled)
+            .lineSpacing(2)
+            .lineLimit(isCollapsible && !isExpanded ? UserMessageDisplayPolicy.collapsedLineLimit : nil)
+            // A line-limit transition inside a lazy stack can otherwise reuse
+            // the collapsed measurement for one layout pass. Force vertical
+            // intrinsic measurement and a fresh text identity so the bubble
+            // grows before the controls below it are placed.
+            .fixedSize(horizontal: false, vertical: true)
+            .id("question-text-\(message.id.uuidString)-\(isExpanded ? "expanded" : "collapsed")")
+    }
+
+    private var header: some View {
+        HStack(spacing: 6) {
+            if isIM {
+                Spacer(minLength: 8)
+                if let presetTitle = message.appliedPresetTitle {
+                    Label(L10n.string("chat.usedPrompt", presetTitle), systemImage: message.appliedPresetIcon)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel(L10n.string("chat.usedPrompt", presetTitle))
+                }
                 Text(L10n.string("chat.user"))
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.secondary)
-
+                userAvatar
+            } else {
+                userAvatar
+                Text(L10n.string("chat.user"))
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
                 if let presetTitle = message.appliedPresetTitle {
                     Label(L10n.string("chat.usedPrompt", presetTitle), systemImage: message.appliedPresetIcon)
                         .font(.caption)
@@ -2058,84 +2230,24 @@ private struct UserMessageContentView: View {
                         .accessibilityLabel(L10n.string("chat.usedPrompt", presetTitle))
                 }
             }
-
-            if !message.attachments.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        ForEach(message.attachments) { attachment in
-                            MessageAttachmentThumbnail(attachment: attachment)
-                        }
-                    }
-                    .padding(.leading, 12)
-                }
-                .frame(maxWidth: 620, alignment: .leading)
-            }
-
-            if !message.content.isEmpty {
-                Text(displayedContent)
-                    .textSelection(.enabled)
-                    .lineSpacing(2)
-                    .lineLimit(isCollapsible && !isExpanded ? UserMessageDisplayPolicy.collapsedLineLimit : nil)
-                    // A line-limit transition inside a lazy stack can
-                    // otherwise reuse the collapsed measurement for one
-                    // layout pass. Force vertical intrinsic measurement
-                    // and a fresh text identity so the bubble grows before
-                    // the controls below it are placed.
-                    .fixedSize(horizontal: false, vertical: true)
-                    .id("question-text-\(message.id.uuidString)-\(isExpanded ? "expanded" : "collapsed")")
-                    .frame(maxWidth: 620, alignment: .leading)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 9)
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
-            }
-
-            if isCollapsible {
-                Button(action: onToggleExpansion) {
-                    Label(
-                        isExpanded
-                            ? L10n.string("chat.collapseQuestion")
-                            : L10n.string("chat.showFullQuestion"),
-                        systemImage: isExpanded ? "chevron.up" : "chevron.down"
-                    )
-                    .font(.caption.weight(.medium))
-                }
-                .buttonStyle(.borderless)
-                .help(isExpanded ? L10n.string("chat.collapseQuestion") : L10n.string("chat.showFullQuestion"))
-                .accessibilityLabel(isExpanded ? L10n.string("chat.collapseQuestion") : L10n.string("chat.showFullQuestion"))
-            }
-
-            HStack(spacing: 4) {
-                MessageToolbarIconButton {
-                    Clipboard.copy(message.content)
-                    didCopy = true
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(1_500))
-                        guard !Task.isCancelled else { return }
-                        didCopy = false
-                    }
-                } label: {
-                    Image(systemName: didCopy ? "checkmark" : "doc.on.doc")
-                }
-                .help(didCopy ? L10n.string("chat.copied") : L10n.string("chat.copyQuestion"))
-                .accessibilityLabel(didCopy ? L10n.string("chat.questionCopied") : L10n.string("chat.copyQuestion"))
-
-                if canRetry {
-                    MessageToolbarIconButton(action: onRetry) {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                    .help(L10n.string("chat.retry"))
-                    .accessibilityLabel(L10n.string("chat.retryFailedRequest"))
-                    .overlay(alignment: .bottomTrailing) {
-                        ShortcutKeycap(shortcut: retryShortcut)
-                            .offset(x: 4, y: 4)
-                    }
-                }
-
-                Spacer(minLength: 8)
-            }
-            .controlSize(.small)
         }
-        .accessibilityElement(children: .contain)
+    }
+
+    private var userAvatar: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [.cyan, .blue],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            Image(systemName: "person.fill")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.white)
+        }
+        .frame(width: 18, height: 18)
         .accessibilityLabel(L10n.string("chat.user"))
     }
 }

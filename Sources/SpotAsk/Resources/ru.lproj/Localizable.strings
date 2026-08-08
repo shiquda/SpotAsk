@@ -42,6 +42,8 @@
 "chat.collapseAnswer" = "Свернуть ответ";
 "chat.stopped" = "Генерация остановлена";
 "chat.expandAnswer" = "Показать полный ответ";
+"chatMessageStyle.standard" = "Стандартный";
+"chatMessageStyle.im" = "Диалог";
 "chat.usePrompt" = "Использовать для этого вопроса: %@";
 "chat.user" = "Вы";
 "chat.usedPrompt" = "Использован режим: %@";
@@ -255,6 +257,7 @@
 "settings.clearKeyFailure" = "Не удалось очистить ключ доступа";
 "settings.clearKeySuccess" = "Ключ доступа очищен";
 "settings.cancel" = "Отмена";
+"settings.chatMessageStyle" = "Стиль сообщений";
 "settings.fontSize" = "Размер шрифта";
 "settings.launchAtLogin" = "Запускать при входе в систему";
 "settings.silentLaunch" = "Запускать скрытно";

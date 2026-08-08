@@ -72,6 +72,7 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
         var launchAtLogin: Bool
         var appearance: String
         var fontSize: String
+        var chatMessageStyle: String?
         var interfaceZoomLevel: String
         var language: String
         var hotKeyPreset: String

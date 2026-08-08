@@ -178,6 +178,13 @@ enum FontSize: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum ChatMessageStyle: String, CaseIterable, Identifiable, Codable, Sendable {
+    case standard
+    case im
+
+    var id: String { rawValue }
+}
+
 enum InterfaceZoomLevel: String, CaseIterable, Identifiable {
     case compact
     case standard
@@ -295,6 +302,7 @@ final class AppSettings {
         static let diagnosticsEnabled = "diagnosticsEnabled"
         static let appearance = "appearance"
         static let fontSize = "fontSize"
+        static let chatMessageStyle = "chatMessageStyle"
         static let interfaceZoomLevel = "interfaceZoomLevel"
         static let language = AppLanguage.defaultsKey
         static let hotKeyPreset = "hotKeyPreset"
@@ -365,6 +373,7 @@ final class AppSettings {
         }
     }
     var fontSize: FontSize { didSet { defaults.set(fontSize.rawValue, forKey: Key.fontSize) } }
+    var chatMessageStyle: ChatMessageStyle { didSet { defaults.set(chatMessageStyle.rawValue, forKey: Key.chatMessageStyle) } }
     var interfaceZoomLevel: InterfaceZoomLevel {
         didSet { defaults.set(interfaceZoomLevel.rawValue, forKey: Key.interfaceZoomLevel) }
     }
@@ -521,6 +530,7 @@ final class AppSettings {
         diagnosticsEnabled = defaults.object(forKey: Key.diagnosticsEnabled) as? Bool ?? false
         appearance = AppearanceMode(rawValue: defaults.string(forKey: Key.appearance) ?? "system") ?? .system
         fontSize = FontSize(rawValue: defaults.string(forKey: Key.fontSize) ?? "standard") ?? .standard
+        chatMessageStyle = ChatMessageStyle(rawValue: defaults.string(forKey: Key.chatMessageStyle) ?? "") ?? .standard
         interfaceZoomLevel = InterfaceZoomLevel(rawValue: defaults.string(forKey: Key.interfaceZoomLevel) ?? "standard") ?? .standard
         language = AppLanguage(rawValue: defaults.string(forKey: Key.language) ?? "system") ?? .system
         hotKeyPreset = HotKeyPreset(rawValue: defaults.string(forKey: Key.hotKeyPreset) ?? "optionSpace") ?? .optionSpace
@@ -689,6 +699,7 @@ final class AppSettings {
                 launchAtLogin: launchAtLogin,
                 appearance: appearance.rawValue,
                 fontSize: fontSize.rawValue,
+                chatMessageStyle: chatMessageStyle.rawValue,
                 interfaceZoomLevel: interfaceZoomLevel.rawValue,
                 language: language.rawValue,
                 hotKeyPreset: hotKeyPreset.rawValue,
@@ -742,6 +753,7 @@ final class AppSettings {
         launchAtLogin = general.launchAtLogin
         appearance = AppearanceMode(rawValue: general.appearance) ?? .system
         fontSize = FontSize(rawValue: general.fontSize) ?? .standard
+        chatMessageStyle = ChatMessageStyle(rawValue: general.chatMessageStyle ?? "") ?? .standard
         interfaceZoomLevel = InterfaceZoomLevel(rawValue: general.interfaceZoomLevel) ?? .standard
         language = AppLanguage(rawValue: general.language) ?? .system
         hotKeyPreset = HotKeyPreset(rawValue: general.hotKeyPreset) ?? .optionSpace

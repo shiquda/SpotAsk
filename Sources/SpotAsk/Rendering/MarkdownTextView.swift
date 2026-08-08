@@ -3,13 +3,27 @@ import Textual
 
 struct MarkdownTextView: View {
     let content: String
+    let fillsAvailableWidth: Bool
 
+    init(content: String, fillsAvailableWidth: Bool = true) {
+        self.content = content
+        self.fillsAvailableWidth = fillsAvailableWidth
+    }
+
+    @ViewBuilder
     var body: some View {
-        StructuredText(markdown: Self.markdownWithCopyableStandaloneCode(content))
+        let markdown = StructuredText(markdown: Self.markdownWithCopyableStandaloneCode(content))
             .textual.codeBlockStyle(CodeBlockView())
             .textual.structuredTextStyle(.gitHub)
             .textual.textSelection(.enabled)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        Group {
+            if fillsAvailableWidth {
+                markdown
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                markdown
+            }
+        }
         .multilineTextAlignment(.leading)
         .accessibilityLabel(L10n.string("chat.answerContent"))
     }
@@ -265,21 +279,35 @@ struct MarkdownStreamingDocument: Equatable {
 struct StreamingMarkdownBlockView: View {
     let chunks: [String]
     let isComplete: Bool
+    let fillsAvailableWidth: Bool
 
     @State private var document = MarkdownStreamingDocument()
 
+    init(chunks: [String], isComplete: Bool, fillsAvailableWidth: Bool = true) {
+        self.chunks = chunks
+        self.isComplete = isComplete
+        self.fillsAvailableWidth = fillsAvailableWidth
+    }
+
+    @ViewBuilder
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let content = VStack(alignment: .leading, spacing: 8) {
             ForEach(document.blocks) { block in
-                MarkdownBlockView(block: block)
+                MarkdownBlockView(block: block, fillsAvailableWidth: fillsAvailableWidth)
                     .id(block.id)
             }
             if let tail = document.liveTail {
-                MarkdownBlockView(block: tail)
+                MarkdownBlockView(block: tail, fillsAvailableWidth: fillsAvailableWidth)
                     .id(tail.id)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        Group {
+            if fillsAvailableWidth {
+                content.frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                content
+            }
+        }
         .onAppear {
             document.consume(chunks: chunks, isComplete: isComplete)
         }
@@ -294,12 +322,18 @@ struct StreamingMarkdownBlockView: View {
 
 private struct MarkdownBlockView: View {
     let block: MarkdownRenderBlock
+    let fillsAvailableWidth: Bool
+
+    init(block: MarkdownRenderBlock, fillsAvailableWidth: Bool = true) {
+        self.block = block
+        self.fillsAvailableWidth = fillsAvailableWidth
+    }
 
     var body: some View {
         if block.source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             EmptyView()
         } else {
-            MarkdownTextView(content: block.source)
+            MarkdownTextView(content: block.source, fillsAvailableWidth: fillsAvailableWidth)
         }
     }
 }

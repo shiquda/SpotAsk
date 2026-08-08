@@ -118,6 +118,25 @@ struct SelectionAssistantCoordinatorTests {
         #expect(reader.promptRequests == [false])
     }
 
+    @Test("Automatic trigger does not show actions for empty selection text")
+    func automaticTriggerSkipsEmptySelectionText() async {
+        let settings = makeSettings()
+        settings.selectionAutoInvokeEnabled = true
+        settings.selectionAutoInvokeDelay = 0
+
+        let overlay = SelectionOverlayStub()
+        let reader = SelectionReaderStub(snapshot: makeSnapshot(text: " \n "))
+        let coordinator = makeCoordinator(settings: settings, reader: reader, overlay: overlay)
+
+        coordinator.scheduleAutomaticTrigger()
+        for _ in 0 ..< 20 where reader.promptRequests.isEmpty {
+            await Task.yield()
+        }
+
+        #expect(reader.promptRequests == [false])
+        #expect(!overlay.hasActionHandler)
+    }
+
     private func makeSettings() -> AppSettings {
         let suiteName = "SelectionAssistantCoordinatorTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
@@ -130,7 +149,8 @@ struct SelectionAssistantCoordinatorTests {
 
     private func makeCoordinator(
         settings: AppSettings,
-        reader: any SelectedTextReading
+        reader: any SelectedTextReading,
+        overlay: SelectionOverlayStub = SelectionOverlayStub()
     ) -> SelectionAssistantCoordinator {
         SelectionAssistantCoordinator(
             settings: settings,
@@ -141,15 +161,19 @@ struct SelectionAssistantCoordinatorTests {
             ),
             settingsOpener: SelectionSettingsOpenerStub(),
             commandCenter: SpotAskCommandCenter(),
-            overlay: SelectionOverlayStub()
+            overlay: overlay
         )
     }
 
     private var sampleSnapshot: SelectedTextSnapshot {
+        makeSnapshot()
+    }
+
+    private func makeSnapshot(text: String = "Selected text") -> SelectedTextSnapshot {
         SelectedTextSnapshot(
-            text: "Selected text",
+            text: text,
             source: SelectionSourceApplication(processIdentifier: 42, bundleIdentifier: "com.example.Source", localizedName: "Source"),
-            selectedRange: SelectionCharacterRange(location: 0, length: 13),
+            selectedRange: text.isEmpty ? nil : SelectionCharacterRange(location: 0, length: text.count),
             anchor: .pointer(CGPoint(x: 20, y: 20))
         )
     }

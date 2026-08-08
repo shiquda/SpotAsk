@@ -42,6 +42,8 @@
 "chat.collapseAnswer" = "Antwort einklappen";
 "chat.stopped" = "Generierung gestoppt";
 "chat.expandAnswer" = "Vollständige Antwort anzeigen";
+"chatMessageStyle.standard" = "Standard";
+"chatMessageStyle.im" = "Chat";
 "chat.usePrompt" = "Für diese Frage verwenden: %@";
 "chat.user" = "Du";
 "chat.usedPrompt" = "Verwendeter Modus: %@";
@@ -255,6 +257,7 @@
 "settings.clearKeyFailure" = "Zugriffsschlüssel konnte nicht gelöscht werden";
 "settings.clearKeySuccess" = "Zugriffsschlüssel gelöscht";
 "settings.cancel" = "Abbrechen";
+"settings.chatMessageStyle" = "Nachrichtenformat";
 "settings.fontSize" = "Schriftgröße";
 "settings.launchAtLogin" = "Bei Anmeldung starten";
 "settings.silentLaunch" = "Lautlos starten";

@@ -15,6 +15,18 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertTrue(AppSettings(defaults: defaults).keepWindowOnTop)
     }
 
+    func testChatMessageStyleDefaultsToStandardAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        XCTAssertEqual(AppSettings(defaults: defaults).chatMessageStyle, .standard)
+
+        let settings = AppSettings(defaults: defaults)
+        settings.chatMessageStyle = .im
+        XCTAssertEqual(AppSettings(defaults: defaults).chatMessageStyle, .im)
+    }
+
     func testMenuBarIconDefaultsToVisibleAndPersists() {
         let suite = "AppSettingsTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!

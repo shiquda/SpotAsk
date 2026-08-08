@@ -74,6 +74,8 @@ final class SelectionAssistantCoordinator {
             do {
                 let current = try await reader.readSelection(promptForPermission: false)
                 guard token == triggerToken else { return }
+                // An empty or whitespace-only selection must not wake the assistant.
+                guard !current.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
                 snapshot = current
                 if settings.selectionAssistantMode == .direct {
                     let preset = settings.selectionPromptPreset()
