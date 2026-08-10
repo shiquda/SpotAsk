@@ -284,6 +284,27 @@ final class ChatViewModel {
         beginRequest(using: promptPreset)
     }
 
+    /// Selects a model for this conversation and replaces the latest completed
+    /// answer with a fresh request using that model.
+    @discardableResult
+    func regenerate(withModelID modelID: UUID) -> Bool {
+        guard canRegenerate else { return false }
+        selectSessionModel(id: modelID)
+        guard sessionModelID == modelID else { return false }
+        regenerate()
+        return true
+    }
+
+    /// Clears the conversation model override and replaces the latest completed
+    /// answer with a fresh request using the Settings default.
+    @discardableResult
+    func regenerateWithDefaultModel() -> Bool {
+        guard canRegenerate else { return false }
+        useDefaultModel()
+        regenerate()
+        return true
+    }
+
     func clearAllLocalData() {
         newConversation()
     }

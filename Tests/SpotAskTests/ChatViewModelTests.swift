@@ -693,6 +693,95 @@ final class ChatViewModelTests: XCTestCase {
         XCTAssertEqual(settings.providerRegistry.catalog?.selectedModelID, selectedBefore)
     }
 
+    func testRegenerateWithSelectedModelUsesSessionOverride() async {
+        let recorder = RequestRecorder()
+        let modelB = UUID()
+        let snapshotB = ProviderTargetSnapshot.testValue(
+            modelID: modelB,
+            displayName: "Model B",
+            upstreamModelID: "model-b"
+        )
+        let (viewModel, settings) = makeViewModelWithSettings(
+            recorder: recorder,
+            scripts: [[.answer("first answer")], [.answer("second answer")]],
+            snapshots: [modelB: snapshotB]
+        ) { settings in
+            guard let catalog = settings.providerRegistry.catalog,
+                  let providerID = catalog.providers.first?.id else { return }
+            _ = try? settings.providerRegistry.saveModel(
+                ModelConfiguration(
+                    id: modelB,
+                    displayName: "Model B",
+                    upstreamModelID: "model-b",
+                    providerID: providerID,
+                    isStreamingEnabled: true
+                )
+            )
+        }
+
+        viewModel.input = "question"
+        viewModel.send()
+        await waitForIdle(viewModel)
+
+        XCTAssertTrue(viewModel.regenerate(withModelID: modelB))
+        await waitForIdle(viewModel)
+
+        XCTAssertEqual(viewModel.sessionModelID, modelB)
+        XCTAssertEqual(recorder.modelIDs.last, modelB)
+        XCTAssertEqual(viewModel.lastAssistantMessage?.modelDisplayName, "Model B")
+        XCTAssertEqual(viewModel.messages.filter { $0.role == .user }.count, 1)
+    }
+
+    func testRegenerateWithDefaultModelClearsSessionOverride() async {
+        let recorder = RequestRecorder()
+        let modelB = UUID()
+        let (viewModel, settings) = makeViewModelWithSettings(
+            recorder: recorder,
+            scripts: [[.answer("first answer")], [.answer("second answer")]],
+            snapshots: [modelB: ProviderTargetSnapshot.testValue(modelID: modelB)]
+        ) { settings in
+            guard let catalog = settings.providerRegistry.catalog,
+                  let providerID = catalog.providers.first?.id else { return }
+            _ = try? settings.providerRegistry.saveModel(
+                ModelConfiguration(
+                    id: modelB,
+                    displayName: "Model B",
+                    upstreamModelID: "model-b",
+                    providerID: providerID,
+                    isStreamingEnabled: true
+                )
+            )
+        }
+        let defaultID = settings.providerRegistry.catalog?.selectedModelID
+
+        viewModel.input = "question"
+        viewModel.send()
+        await waitForIdle(viewModel)
+        viewModel.selectSessionModel(id: modelB)
+        XCTAssertEqual(viewModel.sessionModelID, modelB)
+
+        XCTAssertTrue(viewModel.regenerateWithDefaultModel())
+        await waitForIdle(viewModel)
+
+        XCTAssertNil(viewModel.sessionModelID)
+        XCTAssertEqual(recorder.modelIDs.last, defaultID)
+        XCTAssertEqual(viewModel.lastAssistantMessage?.content, "second answer")
+    }
+
+    func testRegenerateWithUnknownModelDoesNotReplaceAnswer() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("answer")]])
+
+        viewModel.input = "question"
+        viewModel.send()
+        await waitForIdle(viewModel)
+        let requestCount = recorder.requests.count
+
+        XCTAssertFalse(viewModel.regenerate(withModelID: UUID()))
+        XCTAssertEqual(recorder.requests.count, requestCount)
+        XCTAssertEqual(viewModel.lastAssistantMessage?.content, "answer")
+    }
+
     // MARK: - Attachments
 
     func testCanSendTrueWithOnlyAttachments() async {

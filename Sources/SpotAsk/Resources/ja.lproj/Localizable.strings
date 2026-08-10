@@ -31,6 +31,7 @@
 "chat.regenerate" = "回答を再生成";
 "chat.requestFailed" = "リクエストに失敗しました";
 "chat.retry" = "再試行";
+"chat.retryWithAnotherModel" = "別のモデルで再試行";
 "chat.retryFailedRequest" = "失敗した最新のリクエストを再試行";
 "chat.selectPrompt" = "質問方法を選択";
 "chat.send" = "質問を送信";

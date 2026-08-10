@@ -3,6 +3,11 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 @MainActor
+private final class ComposerTextViewReference {
+    weak var textView: NSTextView?
+}
+
+@MainActor
 private enum NewConversationConfirmation {
     static func present(
         settings: AppSettings,
@@ -205,6 +210,7 @@ struct ChatView: View {
     @State private var scrollFollowState = ScrollFollowState()
     @State private var pendingScrollTask: Task<Void, Never>?
     @State private var inputHeight = ChatInputTextView.minHeight
+    @State private var composerTextView = ComposerTextViewReference()
     @State private var reasoningToggle = ReasoningToggleStateStore()
     @State private var userMessageExpansionState = UserMessageExpansionState()
     @State private var assistantMessageExpansionState = MessageExpansionState()
@@ -584,13 +590,17 @@ struct ChatView: View {
             case .assistant:
                 AssistantMessageRow(
                     viewModel: viewModel,
+                    settings: settings,
                     message: message,
                     reasoningState: reasoningToggle.state(for: message.id),
                     reduceMotion: reduceMotion,
                     isIM: settings.chatMessageStyle == .im,
                     isLatestAssistant: message.id == viewModel.messages.last(where: { $0.role == .assistant })?.id,
                     canRegenerate: viewModel.canRegenerate,
+                    canRetryWithModel: message.id == viewModel.messages.last(where: { $0.role == .assistant })?.id && viewModel.canRegenerate,
                     onRegenerate: viewModel.regenerate,
+                    onRetryWithModel: { retryLatestAnswer(with: $0) },
+                    onRetryWithDefaultModel: retryLatestAnswerWithDefaultModel,
                     isCopied: copiedMessageID == message.id,
                     onCopy: { copyMessage(message) },
                     canInsertSelection: message.state == .complete && (viewModel.selectionSnapshot(for: message.id)?.canReplaceSelection ?? false),
@@ -668,6 +678,7 @@ struct ChatView: View {
                             }
                         }
                     },
+                    onTextViewReady: { composerTextView.textView = $0 },
                     onRecall: { viewModel.recallLastQuestion() }
                 )
                 .frame(height: inputHeight)
@@ -831,6 +842,15 @@ struct ChatView: View {
         responderHasMarkedText(chatWindowReference.window?.firstResponder)
     }
 
+    private func focusInput() {
+        inputFocused = true
+        viewModel.offerSessionChoiceIfNeeded()
+        guard let window = chatWindowReference.window,
+              let composerTextView = composerTextView.textView,
+              window.firstResponder !== composerTextView else { return }
+        window.makeFirstResponder(composerTextView)
+    }
+
     private func performShortcutTarget(_ target: InAppShortcutTarget) -> Bool {
         switch target {
         case let .promptPreset(id):
@@ -840,8 +860,7 @@ struct ChatView: View {
         case let .operation(operation):
             switch operation {
             case .focusInput:
-                inputFocused = true
-                viewModel.offerSessionChoiceIfNeeded()
+                focusInput()
                 return true
             case .regenerateOrRetry:
                 if viewModel.canRegenerate {
@@ -913,6 +932,14 @@ struct ChatView: View {
             guard !Task.isCancelled, copyFeedbackToken == token else { return }
             copiedMessageID = nil
         }
+    }
+
+    private func retryLatestAnswer(with modelID: UUID) {
+        viewModel.regenerate(withModelID: modelID)
+    }
+
+    private func retryLatestAnswerWithDefaultModel() {
+        viewModel.regenerateWithDefaultModel()
     }
 
     private func insertSelection(from message: ChatMessage) {
@@ -1046,8 +1073,7 @@ struct ChatView: View {
     private func handleCommandAction(_ action: SpotAskCommandAction) {
         switch action {
         case .focusInput:
-            inputFocused = true
-            viewModel.offerSessionChoiceIfNeeded()
+            focusInput()
         case let .compose(question, promptPreset):
             composeQuestion(question, promptPreset: promptPreset)
         case let .prepare(promptPreset):
@@ -1136,13 +1162,17 @@ struct ChatView: View {
 /// flush only invalidates the active answer row, not the whole conversation.
 private struct AssistantMessageRow: View {
     let viewModel: ChatViewModel
+    let settings: AppSettings
     let message: ChatMessage
     let reasoningState: ReasoningToggleState
     let reduceMotion: Bool
     let isIM: Bool
     let isLatestAssistant: Bool
     let canRegenerate: Bool
+    let canRetryWithModel: Bool
     let onRegenerate: () -> Void
+    let onRetryWithModel: (UUID) -> Void
+    let onRetryWithDefaultModel: () -> Void
     let isCopied: Bool
     let onCopy: () -> Void
     let canInsertSelection: Bool
@@ -1162,7 +1192,13 @@ private struct AssistantMessageRow: View {
         VStack(alignment: .leading, spacing: 8) {
             AssistantMessageHeader(
                 modelDisplayName: displayedMessage.modelDisplayName,
-                providerName: displayedMessage.providerName
+                providerName: displayedMessage.providerName,
+                catalog: settings.providerRegistry.catalog,
+                effectiveModelID: viewModel.effectiveModelID,
+                hasSessionOverride: viewModel.sessionModelID != nil,
+                canRetryWithModel: canRetryWithModel,
+                onRetryWithModel: onRetryWithModel,
+                onRetryWithDefaultModel: onRetryWithDefaultModel
             )
 
             if let reasoning = displayedMessage.reasoningContent, !reasoning.isEmpty {
@@ -1282,6 +1318,14 @@ private struct AssistantMessageRow: View {
 fileprivate struct AssistantMessageHeader: View {
     let modelDisplayName: String?
     let providerName: String?
+    let catalog: ProviderModelCatalog?
+    let effectiveModelID: UUID?
+    let hasSessionOverride: Bool
+    let canRetryWithModel: Bool
+    let onRetryWithModel: (UUID) -> Void
+    let onRetryWithDefaultModel: () -> Void
+
+    @State private var isRetryPickerPresented = false
 
     var body: some View {
         let slug = ProviderBrandIconMatcher.match(
@@ -1316,6 +1360,64 @@ fileprivate struct AssistantMessageHeader: View {
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.secondary)
             }
+
+            if canRetryWithModel {
+                RetryWithModelButton(
+                    isPresented: $isRetryPickerPresented,
+                    catalog: catalog,
+                    effectiveModelID: effectiveModelID,
+                    hasSessionOverride: hasSessionOverride,
+                    onRetryWithModel: { modelID in
+                        isRetryPickerPresented = false
+                        onRetryWithModel(modelID)
+                    },
+                    onRetryWithDefaultModel: {
+                        isRetryPickerPresented = false
+                        onRetryWithDefaultModel()
+                    }
+                )
+            }
+        }
+    }
+}
+
+private struct RetryWithModelButton: View {
+    @Binding var isPresented: Bool
+    let catalog: ProviderModelCatalog?
+    let effectiveModelID: UUID?
+    let hasSessionOverride: Bool
+    let onRetryWithModel: (UUID) -> Void
+    let onRetryWithDefaultModel: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button {
+            isPresented.toggle()
+        } label: {
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(isHovering || isPresented ? Brand.fg : Brand.muted)
+                .frame(width: 22, height: 22)
+                .background(
+                    RoundedRectangle(cornerRadius: 5).fill(isHovering || isPresented ? Brand.surface : Color.clear)
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(L10n.string("chat.retryWithAnotherModel"))
+        .accessibilityLabel(L10n.string("chat.retryWithAnotherModel"))
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .popover(isPresented: $isPresented, attachmentAnchor: .point(.bottom), arrowEdge: .top) {
+            ModelPickerContent(
+                catalog: catalog,
+                effectiveModelID: effectiveModelID,
+                hasSessionOverride: hasSessionOverride,
+                isDisabled: false,
+                onSelect: onRetryWithModel,
+                onUseDefault: onRetryWithDefaultModel
+            )
         }
     }
 }

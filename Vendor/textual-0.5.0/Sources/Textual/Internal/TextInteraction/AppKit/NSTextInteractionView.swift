@@ -285,7 +285,7 @@
       pasteboard.clearContents()
 
       let formatter = Formatter(attributedText)
-      pasteboard.setString(formatter.plainText(), forType: .string)
+      pasteboard.setString(formatter.markdown(), forType: .string)
       pasteboard.setString(formatter.html(), forType: .html)
     }
   }

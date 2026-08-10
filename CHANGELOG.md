@@ -11,10 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Provider brand icons for supported services in the model picker, chat header, and settings.
 - Optional IM-style conversation layout: model messages on the left and your messages on the right in bubbles, available from Appearance settings.
+- Choose another model from the assistant message header and regenerate the latest answer with it.
+- Copied message selections restore Markdown markers across headings, lists, quotes, code blocks, and tables.
 
 ### Changed
 
 - Automatic selection assistant skips empty or whitespace-only selections before waking.
+- Completed message code blocks wrap instead of opening a separate scrollable selection surface, so a drag can pass through them continuously.
+
+### Fixed
+
+- Message text can be selected continuously across multiple lines and copied.
+- Selection highlighting stays continuous across Markdown blocks instead of showing separate highlighted fragments.
+- ⌘+L restores focus to the question input when focus has moved elsewhere.
+- The Settings sidebar supports Up/Down arrow navigation between sections while a sidebar item is focused.
 
 ## [0.1.4] - 2026-08-07
 

@@ -240,14 +240,34 @@ struct MessageContentView: View {
                     .textSelection(.enabled)
                     .lineSpacing(2)
                     .lineLimit(AssistantMessageDisplayPolicy.collapsedLineLimit)
+            } else if message.state == .streaming {
+                // Keep one StructuredText selection model while tokens arrive.
+                // The stream is already coalesced by ChatViewModel, so reparsing
+                // here follows visible updates rather than every network delta.
+                MarkdownTextView(
+                    content: Self.streamingMarkdownContent(
+                        messageContent: message.content,
+                        chunks: streamingChunks
+                    ),
+                    fillsAvailableWidth: !isBubble
+                )
             } else {
-                StreamingMarkdownBlockView(
-                    chunks: streamingChunks.isEmpty ? [message.content] : streamingChunks,
-                    isComplete: message.state != .streaming,
+                // A completed answer renders as one StructuredText document so
+                // the selection interaction can span paragraph and block
+                // boundaries instead of being split between sealed blocks.
+                MarkdownTextView(
+                    content: message.content,
                     fillsAvailableWidth: !isBubble
                 )
             }
         }
+    }
+
+    nonisolated static func streamingMarkdownContent(
+        messageContent: String,
+        chunks: [String]
+    ) -> String {
+        chunks.isEmpty ? messageContent : chunks.joined()
     }
 
     private var responseMetadata: String? {

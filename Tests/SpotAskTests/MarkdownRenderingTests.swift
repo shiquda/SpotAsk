@@ -3,6 +3,23 @@ import XCTest
 import Textual
 
 final class MarkdownRenderingTests: XCTestCase {
+    func testStreamingMarkdownContentJoinsDeltasIntoOneDocument() {
+        XCTAssertEqual(
+            MessageContentView.streamingMarkdownContent(
+                messageContent: "fallback",
+                chunks: ["# Title\n\n", "First paragraph.\n\n", "- item"]
+            ),
+            "# Title\n\nFirst paragraph.\n\n- item"
+        )
+        XCTAssertEqual(
+            MessageContentView.streamingMarkdownContent(
+                messageContent: "fallback",
+                chunks: []
+            ),
+            "fallback"
+        )
+    }
+
     private let richMarkdown = """
     # 发布说明
 

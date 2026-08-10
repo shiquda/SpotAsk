@@ -10,6 +10,7 @@
   // range within this layout, and paints them in a `Canvas` behind the text.
 
   struct AppKitTextSelectionView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(TextSelectionModel.self) private var textSelectionModel: TextSelectionModel?
     @State private var selectionRects: [TextSelectionRect] = []
 
@@ -31,7 +32,7 @@
             for selectionRect in selectionRects {
               context.fill(
                 Path(selectionRect.rect.integral),
-                with: .color(.init(nsColor: .selectedTextBackgroundColor))
+                with: .color(AppKitSelectionHighlightStyle.color(for: colorScheme))
               )
             }
           }
@@ -49,6 +50,17 @@
       } else {
         selectionRects = []
       }
+    }
+  }
+
+  enum AppKitSelectionHighlightStyle {
+    static func opacity(for colorScheme: ColorScheme) -> Double {
+      colorScheme == .dark ? 0.48 : 0.36
+    }
+
+    static func color(for colorScheme: ColorScheme) -> Color {
+      Color(nsColor: .selectedTextBackgroundColor)
+        .opacity(opacity(for: colorScheme))
     }
   }
 #endif

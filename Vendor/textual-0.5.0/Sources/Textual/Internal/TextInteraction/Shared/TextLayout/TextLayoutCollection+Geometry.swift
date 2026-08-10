@@ -227,18 +227,19 @@
     ) -> TextPosition? {
       let layout = layouts[layoutIndex]
       let line = layout.lines[lineIndex]
-      let runIndex = line.runIndex(closestToX: x)
+      let localX = x - layout.origin.x
+      let runIndex = line.runIndex(closestToX: localX)
       let run = line.runs[runIndex]
       let direction = run.layoutDirection
 
-      let runSliceIndex = run.sliceIndex(closestToX: x)
+      let runSliceIndex = run.sliceIndex(closestToX: localX)
       let runSlice = run.slices[runSliceIndex]
 
       let leadingDistance = abs(
-        x - runSlice.typographicBounds.leadingEdgeX(for: direction)
+        localX - runSlice.typographicBounds.leadingEdgeX(for: direction)
       )
       let trailingDistance = abs(
-        x - runSlice.typographicBounds.trailingEdgeX(for: direction)
+        localX - runSlice.typographicBounds.trailingEdgeX(for: direction)
       )
 
       return TextPosition(

@@ -31,6 +31,7 @@
 "chat.regenerate" = "重新生成回答";
 "chat.requestFailed" = "请求失败";
 "chat.retry" = "重试";
+"chat.retryWithAnotherModel" = "用其他模型重试";
 "chat.retryFailedRequest" = "重试最近一次失败请求";
 "chat.selectPrompt" = "选择提问方式";
 "chat.send" = "发送问题";

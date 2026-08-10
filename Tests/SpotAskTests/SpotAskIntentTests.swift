@@ -31,6 +31,38 @@ struct SpotAskIntentTests {
         #expect(panel.composerIsFirstResponder)
     }
 
+    @Test @MainActor func repeatedOpenRestoresComposerFocusAfterItMovesAway() async {
+        let commandCenter = SpotAskCommandCenter()
+        let panel = HostingPanelController()
+        let settings = makeSettings()
+        let viewModel = ChatViewModel(
+            settings: settings,
+            providerFactory: ImmediateProviderFactory(),
+            sessionStore: SessionStore(bundleIdentifier: "SpotAskIntentTests.\(UUID().uuidString)")
+        )
+
+        commandCenter.open()
+        commandCenter.configure(panelController: panel)
+        commandCenter.setPanelContent {
+            ChatView(
+                viewModel: viewModel,
+                settings: settings,
+                keyStore: EmptyKeyStore(),
+                providerFactory: ImmediateProviderFactory(),
+                commandCenter: commandCenter
+            )
+        }
+        await panel.waitForComposerFocus()
+
+        panel.moveFocusAway()
+        #expect(!panel.composerIsFirstResponder)
+
+        commandCenter.open()
+        await panel.waitForComposerFocus()
+
+        #expect(panel.composerIsFirstResponder)
+    }
+
     @Test @MainActor func coldStartAskReachesHostedChatViewModelExactlyOnce() async {
         let commandCenter = SpotAskCommandCenter()
         let panel = HostingPanelController()
@@ -308,6 +340,13 @@ private final class HostingPanelController: SpotAskPanelControlling {
     func hide() { isVisible = false }
     func toggle() { isVisible.toggle() }
     func toggleWindowOnTop() {}
+
+    func moveFocusAway() {
+        guard let window else { return }
+        let temporaryResponder = NSView(frame: NSRect(x: 0, y: 0, width: 10, height: 10))
+        window.contentView?.addSubview(temporaryResponder)
+        window.makeFirstResponder(temporaryResponder)
+    }
 
     var composerIsFirstResponder: Bool {
         guard let firstResponder = window?.firstResponder as? NSTextView else { return false }

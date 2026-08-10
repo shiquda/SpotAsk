@@ -31,6 +31,7 @@
 "chat.regenerate" = "Régénérer la réponse";
 "chat.requestFailed" = "La requête a échoué";
 "chat.retry" = "Réessayer";
+"chat.retryWithAnotherModel" = "Réessayer avec un autre modèle";
 "chat.retryFailedRequest" = "Réessayer la dernière requête échouée";
 "chat.selectPrompt" = "Choisir comment demander";
 "chat.send" = "Envoyer la question";

@@ -31,6 +31,7 @@
 "chat.regenerate" = "Regenerate answer";
 "chat.requestFailed" = "Request failed";
 "chat.retry" = "Retry";
+"chat.retryWithAnotherModel" = "Retry with another model";
 "chat.retryFailedRequest" = "Retry the most recent failed request";
 "chat.selectPrompt" = "Choose how to ask";
 "chat.send" = "Send question";

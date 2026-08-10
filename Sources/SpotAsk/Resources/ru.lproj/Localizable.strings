@@ -31,6 +31,7 @@
 "chat.regenerate" = "Перегенерировать ответ";
 "chat.requestFailed" = "Запрос не удался";
 "chat.retry" = "Повторить";
+"chat.retryWithAnotherModel" = "Повторить с другой моделью";
 "chat.retryFailedRequest" = "Повторить последний неудачный запрос";
 "chat.selectPrompt" = "Выбрать способ вопроса";
 "chat.send" = "Отправить вопрос";

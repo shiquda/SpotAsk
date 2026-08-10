@@ -14,6 +14,7 @@ struct MarkdownTextView: View {
     var body: some View {
         let markdown = StructuredText(markdown: Self.markdownWithCopyableStandaloneCode(content))
             .textual.codeBlockStyle(CodeBlockView())
+            .textual.overflowMode(.wrap)
             .textual.structuredTextStyle(.gitHub)
             .textual.textSelection(.enabled)
         Group {

@@ -18,6 +18,9 @@ struct ChatInputTextView: NSViewRepresentable {
     /// Called when the user pastes an image (screenshot) instead of text.
     let onPasteImage: (Data) -> Void
     let onPasteFiles: ([URL]) -> Void
+    /// Provides the underlying AppKit editor so callers can restore first
+    /// responder even when SwiftUI focus state is already true.
+    let onTextViewReady: (NSTextView) -> Void
     /// Called when the up arrow is pressed in an empty input with no selection.
     /// Return true when a previous question was recalled.
     let onRecall: () -> Bool
@@ -69,6 +72,7 @@ struct ChatInputTextView: NSViewRepresentable {
         textView.minSize = NSSize(width: 0, height: Self.minHeight - 16)
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.setAccessibilityLabel(L10n.string("chat.inputAccessibility"))
+        onTextViewReady(textView)
 
         let scrollView = ComposerScrollView()
         scrollView.documentView = textView
@@ -89,6 +93,7 @@ struct ChatInputTextView: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? ComposerTextView else { return }
         context.coordinator.parent = self
+        onTextViewReady(textView)
         textView.onSubmit = { [weak coordinator = context.coordinator] textView in
             MainActor.assumeIsolated {
                 coordinator?.submit(textView)

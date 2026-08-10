@@ -9,6 +9,14 @@ struct SettingsLayoutTests {
         #expect(ProviderSettingsIcon.useForChat == "checkmark.circle")
     }
 
+    @Test func settingsSidebarNavigationMovesOnlyBetweenExistingSections() {
+        #expect(SettingsSection.provider.moving(.down) == .prompts)
+        #expect(SettingsSection.general.moving(.up) == .shortcuts)
+        #expect(SettingsSection.about.moving(.up) == .appearance)
+        #expect(SettingsSection.about.moving(.down) == nil)
+        #expect(SettingsSection.provider.moving(.up) == nil)
+    }
+
     @Test func providerPageScrollingRevealsBottomControls() throws {
         let fixture = makeWindow(section: .provider)
         defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }

@@ -57,6 +57,25 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
     }
 }
 
+enum SettingsSidebarNavigationDirection: Hashable {
+    case up
+    case down
+}
+
+extension SettingsSection {
+    func moving(_ direction: SettingsSidebarNavigationDirection) -> SettingsSection? {
+        guard let index = SettingsSection.allCases.firstIndex(of: self) else { return nil }
+        switch direction {
+        case .up where index > SettingsSection.allCases.startIndex:
+            return SettingsSection.allCases[SettingsSection.allCases.index(before: index)]
+        case .down where index < SettingsSection.allCases.index(before: SettingsSection.allCases.endIndex):
+            return SettingsSection.allCases[SettingsSection.allCases.index(after: index)]
+        default:
+            return nil
+        }
+    }
+}
+
 struct SettingsView: View {
     let settings: AppSettings
     let accessibilityPermissionCoordinator: AccessibilityPermissionCoordinator
@@ -454,6 +473,7 @@ private struct SelectionAutoInvokeApplicationSearchPopover: View {
 private struct SettingsSidebar: View {
     @Binding var selection: SettingsSection
     let settings: AppSettings
+    @FocusState private var focusedSection: SettingsSection?
 
     var body: some View {
         let _ = settings.language  // observe so sidebar re-renders on language change
@@ -467,6 +487,7 @@ private struct SettingsSidebar: View {
             ForEach(SettingsSection.allCases) { section in
                 Button {
                     selection = section
+                    focusedSection = section
                 } label: {
                     HStack(spacing: 11) {
                         Image(systemName: section.symbol)
@@ -485,6 +506,15 @@ private struct SettingsSidebar: View {
                     .background(selection == section ? Color.primary.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
                 .buttonStyle(.plain)
+                .focusable()
+                .focused($focusedSection, equals: section)
+                .focusEffectDisabled()
+                .onKeyPress(.upArrow) {
+                    moveSelection(from: section, direction: .up)
+                }
+                .onKeyPress(.downArrow) {
+                    moveSelection(from: section, direction: .down)
+                }
             }
 
             Spacer()
@@ -499,6 +529,13 @@ private struct SettingsSidebar: View {
         .frame(width: 190)
         .background(Color.primary.opacity(0.075), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .padding(12)
+    }
+
+    private func moveSelection(from current: SettingsSection, direction: SettingsSidebarNavigationDirection) -> KeyPress.Result {
+        guard let next = current.moving(direction) else { return .ignored }
+        selection = next
+        focusedSection = next
+        return .handled
     }
 }
 
