@@ -142,7 +142,8 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, @unchecked Sen
             source: source,
             selectedRange: selectedRange,
             anchor: anchor,
-            canReplaceSelection: canReplaceSelection
+            canReplaceSelection: canReplaceSelection,
+            isConfirmedSelection: selectedRange?.isNonEmpty == true || match.evidence == .textMarkerRange
         )
     }
 

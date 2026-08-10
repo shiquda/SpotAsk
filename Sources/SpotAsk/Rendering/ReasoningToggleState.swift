@@ -1,5 +1,17 @@
 import Foundation
 
+enum ReasoningTextUpdate: Equatable {
+    case unchanged
+    case append(String)
+    case replace(String)
+
+    static func change(from current: String, to updated: String) -> Self {
+        guard current != updated else { return .unchanged }
+        guard updated.hasPrefix(current) else { return .replace(updated) }
+        return .append(String(updated.dropFirst(current.count)))
+    }
+}
+
 /// Per-message reasoning expand/collapse rules, extracted so every transition
 /// is testable without SwiftUI or the view hierarchy.
 struct ReasoningToggleState: Equatable {

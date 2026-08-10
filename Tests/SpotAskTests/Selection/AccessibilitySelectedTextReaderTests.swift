@@ -111,6 +111,7 @@ struct AccessibilitySelectedTextReaderTests {
         let snapshot = try await fixture.makeReader().readSelection(promptForPermission: false)
 
         #expect(snapshot.text == "Browser selected paragraph")
+        #expect(snapshot.isConfirmedSelection)
         #expect(fixture.elementReader.calls.contains(.attribute(fixture.selectedTextMarkerRangeAttribute, fixture.focusedElement)))
         #expect(fixture.elementReader.calls.contains(.parameterized(
             fixture.stringForTextMarkerRangeParameterizedAttribute,
@@ -138,6 +139,34 @@ struct AccessibilitySelectedTextReaderTests {
         await #expect(throws: SelectionReadingError.noSelection) {
             try await fixture.makeReader().readSelection(promptForPermission: false)
         }
+    }
+
+    @Test("A zero-length web marker range is rejected even if the app returns a value")
+    func zeroLengthWebMarkerValueReturnsNoSelection() async {
+        let fixture = ReaderFixture()
+        let marker = Data([0x01, 0x02])
+        let zeroLengthRange = AccessibilityTextMarkerRange(startMarker: marker, endMarker: marker)
+        fixture.setFocusedElement(fixture.focusedElement)
+        fixture.elementReader.set(
+            .textMarkerRange(zeroLengthRange),
+            attribute: fixture.selectedTextMarkerRangeAttribute,
+            element: fixture.focusedElement
+        )
+        fixture.elementReader.set(
+            .string("https://example.com/current-page"),
+            attribute: fixture.stringForTextMarkerRangeParameterizedAttribute,
+            element: fixture.focusedElement,
+            parameter: .textMarkerRange(zeroLengthRange)
+        )
+
+        await #expect(throws: SelectionReadingError.noSelection) {
+            try await fixture.makeReader().readSelection(promptForPermission: false)
+        }
+        #expect(!fixture.elementReader.calls.contains(.parameterized(
+            fixture.stringForTextMarkerRangeParameterizedAttribute,
+            .textMarkerRange(zeroLengthRange),
+            fixture.focusedElement
+        )))
     }
 
     @Test("A secure ancestor stops all selected text reads")
@@ -178,6 +207,7 @@ struct AccessibilitySelectedTextReaderTests {
         let snapshot = try await reader.readSelection(promptForPermission: false)
 
         #expect(snapshot.selectedRange == nil)
+        #expect(!snapshot.isConfirmedSelection)
         #expect(snapshot.anchor == .pointer(CGPoint(x: 30, y: 40)))
         #expect(!fixture.elementReader.calls.contains { call in
             if case let .parameterized(attribute, _, _) = call {

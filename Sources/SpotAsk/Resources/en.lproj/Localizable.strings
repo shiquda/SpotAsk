@@ -259,6 +259,7 @@
 "settings.clearKeySuccess" = "Access key cleared";
 "settings.cancel" = "Cancel";
 "settings.chatMessageStyle" = "Message Style";
+"settings.renderMath" = "Render math formulas";
 "settings.fontSize" = "Font Size";
 "settings.launchAtLogin" = "Launch at login";
 "settings.silentLaunch" = "Launch silently";

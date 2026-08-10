@@ -47,16 +47,19 @@ final class SelectionAssistantCoordinator {
             try? await Task.sleep(for: .seconds(settings.selectionAutoInvokeDelay))
             guard !Task.isCancelled else { return }
             guard settings.allowsAutomaticInvoke(from: applicationProvider.frontmostApplication()) else { return }
-            trigger(showsFeedback: false)
+            trigger(showsFeedback: false, requiresConfirmedSelection: true)
         }
     }
 
     func cancelAutomaticTrigger() {
         automaticTriggerTask?.cancel()
         automaticTriggerTask = nil
+        // AX reads can outlive the delay task. Invalidate an in-flight result so
+        // a click that clears the visual selection cannot revive stale text.
+        triggerToken += 1
     }
 
-    private func trigger(showsFeedback: Bool) {
+    private func trigger(showsFeedback: Bool, requiresConfirmedSelection: Bool = false) {
         guard settings.selectionAssistantEnabled else { return }
         guard permissionCoordinator.requestPermissionForSelectionAssistant() == .allowed else {
             guard showsFeedback, !hasShownPermissionRecovery else { return }
@@ -76,6 +79,7 @@ final class SelectionAssistantCoordinator {
                 guard token == triggerToken else { return }
                 // An empty or whitespace-only selection must not wake the assistant.
                 guard !current.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                guard !requiresConfirmedSelection || current.isConfirmedSelection else { return }
                 snapshot = current
                 if settings.selectionAssistantMode == .direct {
                     let preset = settings.selectionPromptPreset()

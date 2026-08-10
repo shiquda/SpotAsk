@@ -2494,6 +2494,10 @@ private struct AppearanceSettingsPage: View {
                         Spacer(minLength: 0)
                     }
                 }
+                SettingsToggleRow(
+                    label: L10n.string("settings.renderMath"),
+                    isOn: Bindable(settings).renderMath
+                )
                 SettingsFieldRow(label: L10n.string("settings.fontSize")) {
                     HStack(spacing: 0) {
                         Picker(L10n.string("settings.fontSize"), selection: Bindable(settings).fontSize) {

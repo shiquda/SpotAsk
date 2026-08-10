@@ -219,6 +219,18 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertTrue(AppSettings(defaults: defaults).defaultExpandReasoning)
     }
 
+    func testMathRenderingDefaultsToOnAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        XCTAssertTrue(AppSettings(defaults: defaults).renderMath)
+
+        let settings = AppSettings(defaults: defaults)
+        settings.renderMath = false
+        XCTAssertFalse(AppSettings(defaults: defaults).renderMath)
+    }
+
     func testEscapePrioritizesMarkedTextPopoverAndGeneration() {
         XCTAssertEqual(
             chatEscapeAction(

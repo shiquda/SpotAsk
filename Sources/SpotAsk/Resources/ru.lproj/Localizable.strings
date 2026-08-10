@@ -259,6 +259,7 @@
 "settings.clearKeySuccess" = "Ключ доступа очищен";
 "settings.cancel" = "Отмена";
 "settings.chatMessageStyle" = "Стиль сообщений";
+"settings.renderMath" = "Отображать математические формулы";
 "settings.fontSize" = "Размер шрифта";
 "settings.launchAtLogin" = "Запускать при входе в систему";
 "settings.silentLaunch" = "Запускать скрытно";

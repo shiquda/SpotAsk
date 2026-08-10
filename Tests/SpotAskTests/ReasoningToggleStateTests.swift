@@ -2,6 +2,27 @@ import XCTest
 @testable import SpotAsk
 
 final class ReasoningToggleStateTests: XCTestCase {
+    func testReasoningTextUpdateAppendsOnlyTheNewSuffix() {
+        XCTAssertEqual(
+            ReasoningTextUpdate.change(from: "first", to: "first second"),
+            .append(" second")
+        )
+    }
+
+    func testReasoningTextUpdateReplacesWhenContentIsRewritten() {
+        XCTAssertEqual(
+            ReasoningTextUpdate.change(from: "draft", to: "revised"),
+            .replace("revised")
+        )
+    }
+
+    func testReasoningTextUpdateSkipsUnchangedContent() {
+        XCTAssertEqual(
+            ReasoningTextUpdate.change(from: "same", to: "same"),
+            .unchanged
+        )
+    }
+
     func testInitialHistoricalReasoningIsCollapsed() {
         let message = assistant(reasoning: "Earlier work", state: .complete)
         var store = ReasoningToggleStateStore()

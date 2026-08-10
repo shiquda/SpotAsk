@@ -292,6 +292,7 @@ final class AppSettings {
         static let confirmBeforeStartingNewConversation = "confirmBeforeStartingNewConversation"
         static let escapeStartsNewConversation = "escapeStartsNewConversation"
         static let defaultExpandReasoning = "defaultExpandReasoning"
+        static let renderMath = "renderMath"
         static let launchAtLogin = "launchAtLogin"
         static let silentLaunch = "silentLaunch"
         static let proxyEnabled = "proxyEnabled"
@@ -353,6 +354,7 @@ final class AppSettings {
     var defaultExpandReasoning: Bool {
         didSet { defaults.set(defaultExpandReasoning, forKey: Key.defaultExpandReasoning) }
     }
+    var renderMath: Bool { didSet { defaults.set(renderMath, forKey: Key.renderMath) } }
     var launchAtLogin: Bool { didSet { defaults.set(launchAtLogin, forKey: Key.launchAtLogin) } }
     var silentLaunch: Bool { didSet { defaults.set(silentLaunch, forKey: Key.silentLaunch) } }
     var proxyEnabled: Bool { didSet { defaults.set(proxyEnabled, forKey: Key.proxyEnabled) } }
@@ -520,6 +522,7 @@ final class AppSettings {
         confirmBeforeStartingNewConversation = defaults.object(forKey: Key.confirmBeforeStartingNewConversation) as? Bool ?? true
         escapeStartsNewConversation = defaults.object(forKey: Key.escapeStartsNewConversation) as? Bool ?? false
         defaultExpandReasoning = defaults.object(forKey: Key.defaultExpandReasoning) as? Bool ?? false
+        renderMath = defaults.object(forKey: Key.renderMath) as? Bool ?? true
         launchAtLogin = defaults.bool(forKey: Key.launchAtLogin)
         silentLaunch = defaults.object(forKey: Key.silentLaunch) as? Bool ?? false
         proxyEnabled = defaults.object(forKey: Key.proxyEnabled) as? Bool ?? false
@@ -696,6 +699,7 @@ final class AppSettings {
                 confirmBeforeStartingNewConversation: confirmBeforeStartingNewConversation,
                 escapeStartsNewConversation: escapeStartsNewConversation,
                 defaultExpandReasoning: defaultExpandReasoning,
+                renderMath: renderMath,
                 launchAtLogin: launchAtLogin,
                 appearance: appearance.rawValue,
                 fontSize: fontSize.rawValue,
@@ -750,6 +754,7 @@ final class AppSettings {
         confirmBeforeStartingNewConversation = general.confirmBeforeStartingNewConversation
         escapeStartsNewConversation = general.escapeStartsNewConversation
         defaultExpandReasoning = general.defaultExpandReasoning
+        renderMath = general.renderMath ?? true
         launchAtLogin = general.launchAtLogin
         appearance = AppearanceMode(rawValue: general.appearance) ?? .system
         fontSize = FontSize(rawValue: general.fontSize) ?? .standard

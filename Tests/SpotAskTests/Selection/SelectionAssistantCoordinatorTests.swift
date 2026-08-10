@@ -6,6 +6,63 @@ import Testing
 @Suite("Selection assistant permission flow")
 @MainActor
 struct SelectionAssistantCoordinatorTests {
+    @Test("A plain click gesture does not schedule automatic selection")
+    func plainClickGestureDoesNotScheduleAutomaticSelection() {
+        #expect(!SelectionAutoInvokeGesture.shouldTrigger(
+            mouseDownLocation: CGPoint(x: 20, y: 20),
+            mouseUpLocation: CGPoint(x: 21, y: 20),
+            clickCount: 1,
+            modifierFlags: []
+        ))
+    }
+
+    @Test("Cancelling automatic selection discards an in-flight stale AX result")
+    func cancellingAutomaticSelectionDiscardsInFlightResult() async {
+        let settings = makeSettings()
+        settings.selectionAutoInvokeEnabled = true
+        settings.selectionAutoInvokeDelay = 0
+
+        let overlay = SelectionOverlayStub()
+        let reader = SuspendingSelectionReader()
+        let coordinator = makeCoordinator(settings: settings, reader: reader, overlay: overlay)
+
+        coordinator.scheduleAutomaticTrigger()
+        for _ in 0 ..< 50 where !(await reader.hasStarted()) {
+            await Task.yield()
+        }
+        #expect(await reader.hasStarted())
+
+        coordinator.cancelAutomaticTrigger()
+        await reader.finish(with: sampleSnapshot)
+        for _ in 0 ..< 10 {
+            await Task.yield()
+        }
+
+        #expect(!overlay.hasActionHandler)
+    }
+
+    @Test("Drag, multi-click, and Shift selection gestures can trigger automatic selection")
+    func explicitSelectionGesturesCanScheduleAutomaticSelection() {
+        #expect(SelectionAutoInvokeGesture.shouldTrigger(
+            mouseDownLocation: CGPoint(x: 20, y: 20),
+            mouseUpLocation: CGPoint(x: 30, y: 20),
+            clickCount: 1,
+            modifierFlags: []
+        ))
+        #expect(SelectionAutoInvokeGesture.shouldTrigger(
+            mouseDownLocation: CGPoint(x: 20, y: 20),
+            mouseUpLocation: CGPoint(x: 20, y: 20),
+            clickCount: 2,
+            modifierFlags: []
+        ))
+        #expect(SelectionAutoInvokeGesture.shouldTrigger(
+            mouseDownLocation: CGPoint(x: 20, y: 20),
+            mouseUpLocation: CGPoint(x: 20, y: 20),
+            clickCount: 1,
+            modifierFlags: .shift
+        ))
+    }
+
     @Test("A missing permission shows one recovery action without reading selected text")
     func missingPermissionDoesNotReadAndDoesNotRepeatRecovery() {
         let settings = makeSettings()
@@ -137,6 +194,50 @@ struct SelectionAssistantCoordinatorTests {
         #expect(!overlay.hasActionHandler)
     }
 
+    @Test("Automatic trigger ignores a focused value without a real selection range")
+    func automaticTriggerSkipsUnconfirmedFocusedValue() async {
+        let settings = makeSettings()
+        settings.selectionAutoInvokeEnabled = true
+        settings.selectionAutoInvokeDelay = 0
+
+        let overlay = SelectionOverlayStub()
+        let reader = SelectionReaderStub(snapshot: SelectedTextSnapshot(
+            text: "https://example.com/current-page",
+            source: sampleSnapshot.source,
+            selectedRange: nil,
+            anchor: .pointer(CGPoint(x: 20, y: 20)),
+            isConfirmedSelection: false
+        ))
+        let coordinator = makeCoordinator(settings: settings, reader: reader, overlay: overlay)
+
+        coordinator.scheduleAutomaticTrigger()
+        for _ in 0 ..< 20 where reader.promptRequests.isEmpty {
+            await Task.yield()
+        }
+
+        #expect(reader.promptRequests == [false])
+        #expect(!overlay.hasActionHandler)
+    }
+
+    @Test("Automatic trigger accepts a genuinely selected URL")
+    func automaticTriggerAcceptsSelectedURL() async {
+        let settings = makeSettings()
+        settings.selectionAutoInvokeEnabled = true
+        settings.selectionAutoInvokeDelay = 0
+
+        let overlay = SelectionOverlayStub()
+        let reader = SelectionReaderStub(snapshot: makeSnapshot(text: "https://example.com/selected"))
+        let coordinator = makeCoordinator(settings: settings, reader: reader, overlay: overlay)
+
+        coordinator.scheduleAutomaticTrigger()
+        for _ in 0 ..< 20 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+
+        #expect(reader.promptRequests == [false])
+        #expect(overlay.hasActionHandler)
+    }
+
     private func makeSettings() -> AppSettings {
         let suiteName = "SelectionAssistantCoordinatorTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
@@ -209,6 +310,27 @@ private final class SelectionReaderStub: SelectedTextReading, @unchecked Sendabl
     func readSelection(promptForPermission: Bool) async throws -> SelectedTextSnapshot {
         promptRequests.append(promptForPermission)
         return snapshot
+    }
+}
+
+private actor SuspendingSelectionReader: SelectedTextReading {
+    private var continuation: CheckedContinuation<SelectedTextSnapshot, any Error>?
+    private var started = false
+
+    func readSelection(promptForPermission: Bool) async throws -> SelectedTextSnapshot {
+        started = true
+        return try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+        }
+    }
+
+    func hasStarted() -> Bool {
+        started
+    }
+
+    func finish(with snapshot: SelectedTextSnapshot) {
+        continuation?.resume(returning: snapshot)
+        continuation = nil
     }
 }
 

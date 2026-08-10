@@ -259,6 +259,7 @@
 "settings.clearKeySuccess" = "Zugriffsschlüssel gelöscht";
 "settings.cancel" = "Abbrechen";
 "settings.chatMessageStyle" = "Nachrichtenformat";
+"settings.renderMath" = "Mathematische Formeln darstellen";
 "settings.fontSize" = "Schriftgröße";
 "settings.launchAtLogin" = "Bei Anmeldung starten";
 "settings.silentLaunch" = "Lautlos starten";

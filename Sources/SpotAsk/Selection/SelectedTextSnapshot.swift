@@ -8,19 +8,22 @@ struct SelectedTextSnapshot: Equatable, Sendable {
     let selectedRange: SelectionCharacterRange?
     let anchor: SelectionAnchor
     let canReplaceSelection: Bool
+    let isConfirmedSelection: Bool
 
     init(
         text: String,
         source: SelectionSourceApplication,
         selectedRange: SelectionCharacterRange?,
         anchor: SelectionAnchor,
-        canReplaceSelection: Bool = false
+        canReplaceSelection: Bool = false,
+        isConfirmedSelection: Bool? = nil
     ) {
         self.text = text
         self.source = source
         self.selectedRange = selectedRange
         self.anchor = anchor
         self.canReplaceSelection = canReplaceSelection
+        self.isConfirmedSelection = isConfirmedSelection ?? selectedRange?.isNonEmpty == true
     }
 }
 

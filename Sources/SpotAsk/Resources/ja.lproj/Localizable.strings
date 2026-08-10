@@ -259,6 +259,7 @@
 "settings.clearKeySuccess" = "アクセスキーを消去しました";
 "settings.cancel" = "キャンセル";
 "settings.chatMessageStyle" = "メッセージ表示";
+"settings.renderMath" = "数式を表示";
 "settings.fontSize" = "文字サイズ";
 "settings.launchAtLogin" = "ログイン時に起動";
 "settings.silentLaunch" = "静かに起動";

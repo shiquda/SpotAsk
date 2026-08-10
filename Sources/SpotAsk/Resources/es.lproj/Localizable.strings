@@ -259,6 +259,7 @@
 "settings.clearKeySuccess" = "Clave de acceso borrada";
 "settings.cancel" = "Cancelar";
 "settings.chatMessageStyle" = "Estilo de mensajes";
+"settings.renderMath" = "Mostrar fórmulas matemáticas";
 "settings.fontSize" = "Tamaño de letra";
 "settings.launchAtLogin" = "Iniciar al iniciar sesión";
 "settings.silentLaunch" = "Iniciar en silencio";

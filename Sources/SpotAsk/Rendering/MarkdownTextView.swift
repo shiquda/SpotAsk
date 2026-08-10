@@ -4,15 +4,22 @@ import Textual
 struct MarkdownTextView: View {
     let content: String
     let fillsAvailableWidth: Bool
+    let rendersMath: Bool
 
-    init(content: String, fillsAvailableWidth: Bool = true) {
+    init(content: String, fillsAvailableWidth: Bool = true, rendersMath: Bool = true) {
         self.content = content
         self.fillsAvailableWidth = fillsAvailableWidth
+        self.rendersMath = rendersMath
     }
 
     @ViewBuilder
     var body: some View {
-        let markdown = StructuredText(markdown: Self.markdownWithCopyableStandaloneCode(content))
+        let preparedContent = Self.markdownWithCopyableStandaloneCode(content)
+        let markdownSource = rendersMath ? MathMarkdownNormalizer.normalize(preparedContent) : preparedContent
+        let markdown = StructuredText(
+            markdown: markdownSource,
+            syntaxExtensions: rendersMath ? [.math] : []
+        )
             .textual.codeBlockStyle(CodeBlockView())
             .textual.overflowMode(.wrap)
             .textual.structuredTextStyle(.gitHub)
@@ -52,6 +59,294 @@ struct MarkdownTextView: View {
                 return "```\n\(code)\n```"
             }
             .joined(separator: "\n")
+    }
+}
+
+enum MathMarkdownNormalizer {
+    private struct Fence {
+        let marker: Character
+        let length: Int
+    }
+
+    static func normalize(_ markdown: String) -> String {
+        let delimiterNormalized = normalizeBackslashDelimiters(markdown)
+        return normalizeStandaloneDollarBlocks(delimiterNormalized)
+    }
+
+    private static func normalizeBackslashDelimiters(_ markdown: String) -> String {
+        guard markdown.contains(#"\("#) || markdown.contains(#"\["#) else { return markdown }
+
+        var activeFence: Fence?
+        var isInBlockMath = false
+        var normalizedLines: [String] = []
+        normalizedLines.reserveCapacity(markdown.reduce(into: 1) { if $1 == "\n" { $0 += 1 } })
+
+        for line in markdown.split(separator: "\n", omittingEmptySubsequences: false) {
+            let line = String(line)
+            if let fence = activeFence {
+                normalizedLines.append(line)
+                if isClosingFence(line, fence: fence) {
+                    activeFence = nil
+                }
+                continue
+            }
+            if let fence = openingFence(in: line) {
+                activeFence = fence
+                normalizedLines.append(line)
+                continue
+            }
+            normalizedLines.append(normalizeLine(line, isInBlockMath: &isInBlockMath))
+        }
+        return normalizedLines.joined(separator: "\n")
+    }
+
+    // Textual renders ```math blocks directly at the block layout layer. This
+    // avoids relying on post-Markdown pattern replacement across attributed
+    // runs, which is unreliable for some macOS block-math documents.
+    private static func normalizeStandaloneDollarBlocks(_ markdown: String) -> String {
+        guard markdown.contains("$$") else { return markdown }
+
+        var activeFence: Fence?
+        var activeDollarBlock: [String]?
+        var normalizedLines: [String] = []
+        normalizedLines.reserveCapacity(markdown.reduce(into: 1) { if $1 == "\n" { $0 += 1 } })
+
+        for line in markdown.split(separator: "\n", omittingEmptySubsequences: false) {
+            let line = String(line)
+            if let fence = activeFence {
+                normalizedLines.append(line)
+                if isClosingFence(line, fence: fence) {
+                    activeFence = nil
+                }
+                continue
+            }
+            if let fence = openingFence(in: line) {
+                activeFence = fence
+                normalizedLines.append(line)
+                continue
+            }
+
+            if let existingBlock = activeDollarBlock {
+                var blockLines = existingBlock
+                if let closingContent = closingDollarBlockContent(in: line) {
+                    if !closingContent.isEmpty {
+                        blockLines.append(closingContent)
+                    }
+                    appendMathFence(with: blockLines, to: &normalizedLines)
+                    activeDollarBlock = nil
+                } else {
+                    blockLines.append(line)
+                    activeDollarBlock = blockLines
+                }
+                continue
+            }
+
+            if let content = completeDollarBlockContent(in: line) {
+                appendMathFence(with: [content], to: &normalizedLines)
+            } else if isDollarBlockOpening(line) {
+                activeDollarBlock = []
+            } else {
+                normalizedLines.append(line)
+            }
+        }
+
+        if let activeDollarBlock {
+            normalizedLines.append("$$")
+            normalizedLines.append(contentsOf: activeDollarBlock)
+        }
+        return normalizedLines.joined(separator: "\n")
+    }
+
+    private static func appendMathFence(with lines: [String], to output: inout [String]) {
+        output.append("```math")
+        output.append(normalizeRendererCompatibility(lines.joined(separator: "\n")))
+        output.append("```")
+    }
+
+    private static func normalizeRendererCompatibility(_ latex: String) -> String {
+        guard latex.contains(#"\begin{aligned}"#) else { return latex }
+
+        var isInAlignedEnvironment = false
+        return latex
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { rawLine in
+                var line = String(rawLine)
+                if line.contains(#"\begin{aligned}"#) {
+                    isInAlignedEnvironment = true
+                }
+                if isInAlignedEnvironment {
+                    // SwiftUIMath's aligned environment supports exactly two
+                    // columns. Keep the first alignment point and turn the
+                    // common `&&` annotation separator into visual spacing.
+                    line = line.replacingOccurrences(of: "&&", with: #"\quad "#)
+                    line = removingUnsupportedRowSpacing(from: line)
+                }
+                if line.contains(#"\end{aligned}"#) {
+                    isInAlignedEnvironment = false
+                }
+                return line
+            }
+            .joined(separator: "\n")
+    }
+
+    private static func removingUnsupportedRowSpacing(from line: String) -> String {
+        guard
+            let opening = line.range(of: #"\\["#, options: .backwards),
+            let closing = line[opening.upperBound...].firstIndex(of: "]")
+        else {
+            return line
+        }
+
+        var normalized = line
+        normalized.replaceSubrange(opening.lowerBound ... closing, with: #"\\"#)
+        return normalized
+    }
+
+    private static func completeDollarBlockContent(in line: String) -> String? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard trimmed.hasPrefix("$$"), trimmed.hasSuffix("$$"), trimmed.count > 4 else { return nil }
+        let start = trimmed.index(trimmed.startIndex, offsetBy: 2)
+        let end = trimmed.index(trimmed.endIndex, offsetBy: -2)
+        let content = trimmed[start ..< end].trimmingCharacters(in: .whitespacesAndNewlines)
+        return content.isEmpty || content.contains("$$") ? nil : content
+    }
+
+    private static func isDollarBlockOpening(_ line: String) -> Bool {
+        line.trimmingCharacters(in: .whitespaces) == "$$"
+    }
+
+    private static func closingDollarBlockContent(in line: String) -> String? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard trimmed.hasSuffix("$$") else { return nil }
+        let end = trimmed.index(trimmed.endIndex, offsetBy: -2)
+        return String(trimmed[..<end]).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func normalizeLine(_ line: String, isInBlockMath: inout Bool) -> String {
+        var output = ""
+        output.reserveCapacity(line.count)
+        var index = line.startIndex
+
+        while index < line.endIndex {
+            if isInBlockMath {
+                if isDelimiter(in: line, at: index, closing: "]") {
+                    output += "$$"
+                    index = line.index(index, offsetBy: 2)
+                    isInBlockMath = false
+                } else {
+                    output.append(line[index])
+                    index = line.index(after: index)
+                }
+                continue
+            }
+
+            if line[index] == "`" {
+                let tickCount = runLength(of: "`", in: line, from: index)
+                let contentStart = line.index(index, offsetBy: tickCount)
+                if let closing = matchingBacktickRun(in: line, from: contentStart, length: tickCount) {
+                    let closingEnd = line.index(closing, offsetBy: tickCount)
+                    output += line[index ..< closingEnd]
+                    index = closingEnd
+                } else {
+                    output += line[index...]
+                    index = line.endIndex
+                }
+                continue
+            }
+
+            if isDelimiter(in: line, at: index, closing: "[") {
+                output += "$$"
+                index = line.index(index, offsetBy: 2)
+                isInBlockMath = true
+                continue
+            }
+
+            if isDelimiter(in: line, at: index, closing: "("),
+               let closing = findDelimiter(in: line, from: line.index(index, offsetBy: 2), closing: ")") {
+                output += "$"
+                output += line[line.index(index, offsetBy: 2) ..< closing]
+                output += "$"
+                index = line.index(closing, offsetBy: 2)
+                continue
+            }
+
+            output.append(line[index])
+            index = line.index(after: index)
+        }
+        return output
+    }
+
+    private static func isDelimiter(
+        in line: String,
+        at index: String.Index,
+        closing: Character
+    ) -> Bool {
+        guard line[index] == "\\" else { return false }
+        let next = line.index(after: index)
+        guard next < line.endIndex, line[next] == closing else { return false }
+        return !isEscapedBackslash(in: line, at: index)
+    }
+
+    private static func findDelimiter(
+        in line: String,
+        from start: String.Index,
+        closing: Character
+    ) -> String.Index? {
+        var index = start
+        while index < line.endIndex {
+            if isDelimiter(in: line, at: index, closing: closing) { return index }
+            index = line.index(after: index)
+        }
+        return nil
+    }
+
+    private static func isEscapedBackslash(in line: String, at index: String.Index) -> Bool {
+        var cursor = index
+        var count = 0
+        while cursor > line.startIndex {
+            let previous = line.index(before: cursor)
+            guard line[previous] == "\\" else { break }
+            count += 1
+            cursor = previous
+        }
+        return count.isMultiple(of: 2) == false
+    }
+
+    private static func matchingBacktickRun(
+        in line: String,
+        from start: String.Index,
+        length: Int
+    ) -> String.Index? {
+        var index = start
+        while index < line.endIndex {
+            if line[index] == "`", runLength(of: "`", in: line, from: index) == length {
+                return index
+            }
+            index = line.index(after: index)
+        }
+        return nil
+    }
+
+    private static func runLength(of character: Character, in line: String, from start: String.Index) -> Int {
+        var count = 0
+        var index = start
+        while index < line.endIndex, line[index] == character {
+            count += 1
+            index = line.index(after: index)
+        }
+        return count
+    }
+
+    private static func openingFence(in line: String) -> Fence? {
+        let trimmed = line.drop(while: { $0 == " " || $0 == "\t" })
+        guard let marker = trimmed.first, marker == "`" || marker == "~" else { return nil }
+        let length = trimmed.prefix(while: { $0 == marker }).count
+        return length >= 3 ? Fence(marker: marker, length: length) : nil
+    }
+
+    private static func isClosingFence(_ line: String, fence: Fence) -> Bool {
+        let trimmed = line.drop(while: { $0 == " " || $0 == "\t" })
+        return trimmed.prefix(while: { $0 == fence.marker }).count >= fence.length
     }
 }
 

@@ -81,6 +81,126 @@ final class MarkdownRenderingTests: XCTestCase {
         XCTAssertEqual(MarkdownTextView.markdownWithCopyableStandaloneCode(markdown), markdown)
     }
 
+    func testMathNormalizerSupportsCommonBackslashDelimiters() {
+        let markdown = #"""
+        Inline \(x + y\).
+
+        \[
+        \int_0^1 x^2\,dx
+        \]
+        """#
+
+        XCTAssertEqual(
+            MathMarkdownNormalizer.normalize(markdown),
+            """
+            Inline $x + y$.
+
+            ```math
+            \\int_0^1 x^2\\,dx
+            ```
+            """
+        )
+    }
+
+    func testMathNormalizerPreservesDollarDelimitersAndCode() {
+        let markdown = #"""
+        Existing $x$ and $$y$$.
+        Inline code `\(notMath\)`.
+
+        ```tex
+        \[notMath\]
+        ```
+        """#
+
+        XCTAssertEqual(MathMarkdownNormalizer.normalize(markdown), markdown)
+    }
+
+    func testMathNormalizerLeavesEscapedAndUnclosedDelimitersAlone() {
+        let markdown = #"Escaped \\(value\\) and unclosed \(value."#
+        XCTAssertEqual(MathMarkdownNormalizer.normalize(markdown), markdown)
+    }
+
+    func testMathNormalizerConvertsSpacedBlockDelimiterToMathFence() {
+        let markdown = """
+        由此可推出电磁波，并得到其在真空中的传播速度：
+
+        $$ c=\\frac{1}{\\sqrt{\\mu_0\\varepsilon_0}} $$
+
+        这说明光本质上是一种电磁波。
+        """
+
+        XCTAssertEqual(
+            MathMarkdownNormalizer.normalize(markdown),
+            """
+            由此可推出电磁波，并得到其在真空中的传播速度：
+
+            ```math
+            c=\\frac{1}{\\sqrt{\\mu_0\\varepsilon_0}}
+            ```
+
+            这说明光本质上是一种电磁波。
+            """
+        )
+    }
+
+    func testMathNormalizerAdaptsMultiColumnAlignedBlockForRenderer() {
+        let markdown = #"""
+        \[
+        \begin{aligned}
+        \nabla\cdot \mathbf{E} &= \frac{\rho}{\varepsilon_0}
+        &&\text{（高斯定律：电荷产生电场）}\\[4pt]
+        \nabla\cdot \mathbf{B} &= 0
+        &&\text{（磁场无散：不存在磁单极子）}
+        \end{aligned}
+        \]
+        """#
+
+        XCTAssertEqual(
+            MathMarkdownNormalizer.normalize(markdown),
+            #"""
+            ```math
+            \begin{aligned}
+            \nabla\cdot \mathbf{E} &= \frac{\rho}{\varepsilon_0}
+            \quad \text{（高斯定律：电荷产生电场）}\\
+            \nabla\cdot \mathbf{B} &= 0
+            \quad \text{（磁场无散：不存在磁单极子）}
+            \end{aligned}
+            ```
+            """#
+        )
+    }
+
+    @MainActor
+    func testNormalizedBlockMathUsesTextualMathCodeBlock() throws {
+        let normalized = MathMarkdownNormalizer.normalize("$$ x^2 + y^2 = z^2 $$")
+        let parsed = try AttributedStringMarkdownParser.markdown().attributedString(for: normalized)
+
+        XCTAssertTrue(parsed.runs.contains { run in
+            run.presentationIntent?.components.contains { component in
+                guard case let .codeBlock(languageHint) = component.kind else { return false }
+                return languageHint?.lowercased() == "math"
+            } == true
+        })
+    }
+
+    func testMathNormalizerPreservesUnclosedDollarBlock() {
+        let markdown = """
+        $$
+        x + y
+        """
+
+        XCTAssertEqual(MathMarkdownNormalizer.normalize(markdown), markdown)
+    }
+
+    @MainActor
+    func testMathRenderingCanBeEnabledOrDisabled() {
+        let enabled = MarkdownTextView(content: "$E = mc^2$", rendersMath: true)
+        let disabled = MarkdownTextView(content: "$E = mc^2$", rendersMath: false)
+
+        withExtendedLifetime(enabled) {}
+        withExtendedLifetime(disabled) {}
+    }
+
     @MainActor
     func testTextualAcceptsUnclosedFenceDuringStreaming() {
         let partialMarkdown = "```json\n{\"partial\": true}"

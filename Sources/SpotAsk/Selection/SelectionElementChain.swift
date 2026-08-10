@@ -7,6 +7,17 @@ import Foundation
 /// with its range. Keeping this logic in one place guarantees the reader and
 /// the write-back re-verification follow the same element resolution rules.
 enum SelectionElementChain {
+    struct SelectedTextMatch: Equatable {
+        enum Evidence: Equatable {
+            case selectedText
+            case textMarkerRange
+        }
+
+        let element: AccessibilityElementID
+        let text: String
+        let evidence: Evidence
+    }
+
     static let defaultLimit = 6
 
     static func focusedElement(
@@ -56,11 +67,11 @@ enum SelectionElementChain {
     static func selectedTextMatch(
         in candidates: [AccessibilityElementID],
         reader: any AccessibilityElementReading
-    ) throws -> (element: AccessibilityElementID, text: String)? {
+    ) throws -> SelectedTextMatch? {
         for element in candidates {
-            if let text = try selectedText(from: element, reader: reader),
-               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return (element, text)
+            if let match = try selectedText(from: element, reader: reader),
+               !match.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return match
             }
         }
         return nil
@@ -69,11 +80,11 @@ enum SelectionElementChain {
     private static func selectedText(
         from element: AccessibilityElementID,
         reader: any AccessibilityElementReading
-    ) throws -> String? {
+    ) throws -> SelectedTextMatch? {
         do {
             let value = try reader.copyAttribute(kAXSelectedTextAttribute as String, from: element)
             if case let .string(text) = value, !text.isEmpty {
-                return text
+                return SelectedTextMatch(element: element, text: text, evidence: .selectedText)
             }
         } catch {
             if !isAbsentAttribute(error) { throw error }
@@ -86,14 +97,15 @@ enum SelectionElementChain {
                 kAXSelectedTextMarkerRangeAttribute as String,
                 from: element
             )
-            guard case let .textMarkerRange(markerRange) = markerValue else { return nil }
+            guard case let .textMarkerRange(markerRange) = markerValue,
+                  markerRange.isNonEmpty else { return nil }
             let stringValue = try reader.copyParameterizedAttribute(
                 kAXStringForTextMarkerRangeParameterizedAttribute as String,
                 parameter: .textMarkerRange(markerRange),
                 from: element
             )
             guard case let .string(text) = stringValue else { return nil }
-            return text
+            return SelectedTextMatch(element: element, text: text, evidence: .textMarkerRange)
         } catch {
             if isAbsentAttribute(error) { return nil }
             throw error

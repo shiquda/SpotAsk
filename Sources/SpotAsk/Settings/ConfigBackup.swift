@@ -69,6 +69,7 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
         var confirmBeforeStartingNewConversation: Bool
         var escapeStartsNewConversation: Bool
         var defaultExpandReasoning: Bool
+        var renderMath: Bool?
         var launchAtLogin: Bool
         var appearance: String
         var fontSize: String

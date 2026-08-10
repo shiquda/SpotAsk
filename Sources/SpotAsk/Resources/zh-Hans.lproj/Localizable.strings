@@ -259,6 +259,7 @@
 "settings.clearKeySuccess" = "访问密钥已清除";
 "settings.cancel" = "取消";
 "settings.chatMessageStyle" = "消息样式";
+"settings.renderMath" = "渲染数学公式";
 "settings.fontSize" = "字体大小";
 "settings.launchAtLogin" = "登录时启动";
 "settings.silentLaunch" = "静默启动";

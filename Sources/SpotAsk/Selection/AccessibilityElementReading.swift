@@ -39,6 +39,10 @@ struct AccessibilityTextMarkerRange: Equatable, Hashable, Sendable {
     let startMarker: Data
     let endMarker: Data
 
+    var isNonEmpty: Bool {
+        !startMarker.isEmpty && !endMarker.isEmpty && startMarker != endMarker
+    }
+
     init(_ range: AXTextMarkerRange) {
         startMarker = Self.markerData(AXTextMarkerRangeCopyStartMarker(range))
         endMarker = Self.markerData(AXTextMarkerRangeCopyEndMarker(range))

@@ -13,6 +13,7 @@ final class ConfigBackupTests: XCTestCase {
 
         let source = AppSettings(defaults: sourceDefaults)
         source.defaultExpandReasoning = true
+        source.renderMath = false
         source.chatMessageStyle = .im
         source.systemPrompt = "custom system prompt"
         source.contextLimit = 40
@@ -51,6 +52,7 @@ final class ConfigBackupTests: XCTestCase {
         try destination.applyConfigurationBackup(decoded)
 
         XCTAssertTrue(destination.defaultExpandReasoning)
+        XCTAssertFalse(destination.renderMath)
         XCTAssertEqual(destination.chatMessageStyle, .im)
         XCTAssertEqual(destination.systemPrompt, "custom system prompt")
         XCTAssertEqual(destination.contextLimit, 40)

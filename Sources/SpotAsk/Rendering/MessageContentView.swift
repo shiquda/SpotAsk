@@ -103,6 +103,7 @@ struct MessageContentView: View {
     let onToggleExpansion: () -> Void
     let streamingChunks: [String]
     private let isBubble: Bool
+    private let rendersMath: Bool
     private let collapsedPreview: String?
 
     init(
@@ -118,7 +119,8 @@ struct MessageContentView: View {
         isExpanded: Bool = false,
         onToggleExpansion: @escaping () -> Void = {},
         streamingChunks: [String] = [],
-        isBubble: Bool = false
+        isBubble: Bool = false,
+        rendersMath: Bool = true
     ) {
         self.message = message
         self.canRegenerate = canRegenerate
@@ -133,6 +135,7 @@ struct MessageContentView: View {
         self.onToggleExpansion = onToggleExpansion
         self.streamingChunks = streamingChunks
         self.isBubble = isBubble
+        self.rendersMath = rendersMath
         collapsedPreview = message.state == .streaming
             ? nil
             : AssistantMessageDisplayPolicy.collapsedPreview(for: message.content)
@@ -249,7 +252,8 @@ struct MessageContentView: View {
                         messageContent: message.content,
                         chunks: streamingChunks
                     ),
-                    fillsAvailableWidth: !isBubble
+                    fillsAvailableWidth: !isBubble,
+                    rendersMath: rendersMath
                 )
             } else {
                 // A completed answer renders as one StructuredText document so
@@ -257,7 +261,8 @@ struct MessageContentView: View {
                 // boundaries instead of being split between sealed blocks.
                 MarkdownTextView(
                     content: message.content,
-                    fillsAvailableWidth: !isBubble
+                    fillsAvailableWidth: !isBubble,
+                    rendersMath: rendersMath
                 )
             }
         }
