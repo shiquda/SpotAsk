@@ -270,10 +270,25 @@ final class ProviderModelRegistry {
             throw ProviderModelRegistryError.duplicateModelID(result.models.first!.id)
         }
         result.providers = try result.providers.map(normalized(provider:))
-        result.models = try result.models.map(normalized(model:))
+        result.models = try result.models.map { model in
+            var normalizedModel = try normalized(model: model)
+            guard !normalizedModel.isCompatibilityProfileManuallySet,
+                  let provider = result.providers.first(where: { $0.id == normalizedModel.providerID }) else {
+                return normalizedModel
+            }
+            normalizedModel.compatibilityProfile = .inferred(
+                modelName: normalizedModel.displayName,
+                upstreamModelID: normalizedModel.upstreamModelID,
+                providerName: provider.name,
+                providerAddress: provider.address,
+                providerFormat: provider.format
+            )
+            return normalizedModel
+        }
         for index in result.models.indices {
             guard let provider = result.providers.first(where: { $0.id == result.models[index].providerID }),
                   provider.format == .anthropic,
+                  !result.models[index].isCompatibilityProfileManuallySet,
                   result.models[index].compatibilityProfile == .genericOpenAI else {
                 continue
             }

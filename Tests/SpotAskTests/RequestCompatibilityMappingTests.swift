@@ -38,6 +38,62 @@ final class RequestCompatibilityMappingTests: XCTestCase {
         )
     }
 
+    func testInferenceUsesPlatformBeforeUpstreamModelName() {
+        XCTAssertEqual(
+            RequestCompatibilityProfile.inferred(
+                modelName: "DeepSeek R1",
+                upstreamModelID: "deepseek/deepseek-r1",
+                providerName: "OpenRouter",
+                providerAddress: "https://openrouter.ai/api/v1"
+            ),
+            .openRouter
+        )
+        XCTAssertEqual(
+            RequestCompatibilityProfile.inferred(
+                modelName: "DeepSeek V3",
+                upstreamModelID: "deepseek-v3",
+                providerName: "火山方舟",
+                providerAddress: "https://ark.cn-beijing.volces.com/api/v3"
+            ),
+            .volcengineArk
+        )
+    }
+
+    func testInferenceRecognizesCommonModelNames() {
+        XCTAssertEqual(
+            RequestCompatibilityProfile.inferred(modelName: "DeepSeek V3", upstreamModelID: "deepseek-chat"),
+            .deepSeek
+        )
+        XCTAssertEqual(
+            RequestCompatibilityProfile.inferred(modelName: "Qwen3", upstreamModelID: "qwen3-235b"),
+            .qwen
+        )
+        XCTAssertEqual(
+            RequestCompatibilityProfile.inferred(modelName: "Kimi K2", upstreamModelID: "moonshot-v1"),
+            .kimi
+        )
+        XCTAssertEqual(
+            RequestCompatibilityProfile.inferred(modelName: "GLM-4", upstreamModelID: "glm-4.5"),
+            .zAI
+        )
+        XCTAssertEqual(
+            RequestCompatibilityProfile.inferred(modelName: "Codestral", upstreamModelID: "codestral-latest"),
+            .mistral
+        )
+        XCTAssertEqual(
+            RequestCompatibilityProfile.inferred(modelName: "Grok", upstreamModelID: "grok-4"),
+            .xAI
+        )
+        XCTAssertEqual(
+            RequestCompatibilityProfile.inferred(modelName: "GPT", upstreamModelID: "gpt-5"),
+            .openAI
+        )
+        XCTAssertEqual(
+            RequestCompatibilityProfile.inferred(modelName: "Custom", upstreamModelID: "my-model"),
+            .genericOpenAI
+        )
+    }
+
     func testQwenAndSiliconFlowMapBudget() {
         let expected: [String: ModelJSONValue] = [
             "enable_thinking": .bool(true),

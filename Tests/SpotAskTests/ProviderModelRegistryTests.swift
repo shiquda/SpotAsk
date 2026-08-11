@@ -302,7 +302,97 @@ final class ProviderModelRegistryTests: XCTestCase {
         let loaded = try XCTUnwrap(AppSettings(defaults: defaults).providerRegistry.catalog)
 
         XCTAssertEqual(loaded.models[0].compatibilityProfile, .anthropic)
+        XCTAssertFalse(loaded.models[0].isCompatibilityProfileManuallySet)
         XCTAssertEqual(loaded.models[0].thinkingMode, .providerDefault)
+    }
+
+    func testManualCompatibilityProfileIsPreservedForAnthropicProvider() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let provider = ProviderConfiguration(
+            name: "Anthropic",
+            address: "https://api.anthropic.com",
+            addressMode: .baseURL,
+            timeout: 30,
+            format: .anthropic
+        )
+        let model = ModelConfiguration(
+            displayName: "Claude",
+            upstreamModelID: "claude",
+            providerID: provider.id,
+            isStreamingEnabled: true,
+            compatibilityProfile: .genericOpenAI,
+            isCompatibilityProfileManuallySet: true
+        )
+        defaults.set(
+            try JSONEncoder().encode(
+                ProviderModelCatalog(providers: [provider], models: [model], selectedModelID: model.id)
+            ),
+            forKey: ProviderModelRegistry.defaultsKey
+        )
+
+        let loaded = try XCTUnwrap(AppSettings(defaults: defaults).providerRegistry.catalog)
+
+        XCTAssertEqual(loaded.models[0].compatibilityProfile, .genericOpenAI)
+        XCTAssertTrue(loaded.models[0].isCompatibilityProfileManuallySet)
+    }
+
+    func testAutomaticCompatibilityProfileIsInferredFromModelName() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let provider = ProviderConfiguration(
+            name: "OpenAI Compatible",
+            address: "https://example.com/v1",
+            addressMode: .baseURL,
+            timeout: 30
+        )
+        let model = ModelConfiguration(
+            displayName: "DeepSeek V3",
+            upstreamModelID: "deepseek-chat",
+            providerID: provider.id,
+            isStreamingEnabled: true
+        )
+        defaults.set(
+            try JSONEncoder().encode(
+                ProviderModelCatalog(providers: [provider], models: [model], selectedModelID: model.id)
+            ),
+            forKey: ProviderModelRegistry.defaultsKey
+        )
+
+        let loaded = try XCTUnwrap(AppSettings(defaults: defaults).providerRegistry.catalog)
+
+        XCTAssertEqual(loaded.models[0].compatibilityProfile, .deepSeek)
+        XCTAssertFalse(loaded.models[0].isCompatibilityProfileManuallySet)
+    }
+
+    func testManualCompatibilityProfileOverridesInference() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let provider = ProviderConfiguration(
+            name: "OpenAI Compatible",
+            address: "https://example.com/v1",
+            addressMode: .baseURL,
+            timeout: 30
+        )
+        let model = ModelConfiguration(
+            displayName: "DeepSeek V3",
+            upstreamModelID: "deepseek-chat",
+            providerID: provider.id,
+            isStreamingEnabled: true,
+            compatibilityProfile: .genericOpenAI,
+            isCompatibilityProfileManuallySet: true
+        )
+        defaults.set(
+            try JSONEncoder().encode(
+                ProviderModelCatalog(providers: [provider], models: [model], selectedModelID: model.id)
+            ),
+            forKey: ProviderModelRegistry.defaultsKey
+        )
+
+        let loaded = try XCTUnwrap(AppSettings(defaults: defaults).providerRegistry.catalog)
+
+        XCTAssertEqual(loaded.models[0].compatibilityProfile, .genericOpenAI)
+        XCTAssertTrue(loaded.models[0].isCompatibilityProfileManuallySet)
     }
 
     func testModelCannotMoveBetweenProviders() throws {

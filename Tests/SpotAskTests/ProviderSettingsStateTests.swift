@@ -231,6 +231,33 @@ final class ProviderSettingsStateTests: XCTestCase {
         XCTAssertEqual(saved.extraRequestParameters, ["temperature": .number(0.5)])
     }
 
+    func testModelNameInferenceUpdatesDraftUntilManualOverride() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let provider = try XCTUnwrap(settings.providerRegistry.catalog?.providers.first)
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(),
+            providerFactory: NoopProviderFactory()
+        )
+
+        state.startNewModel(for: provider.id)
+        state.draftModelDisplayName = "DeepSeek V3"
+        state.draftModelUpstreamID = "deepseek-chat"
+        state.updateDraftModelCompatibilityProfileIfNeeded()
+
+        XCTAssertEqual(state.draftModelCompatibilityProfile, .deepSeek)
+        XCTAssertFalse(state.draftModelCompatibilityProfileIsManual)
+
+        state.setDraftModelCompatibilityProfile(.genericOpenAI)
+        state.draftModelUpstreamID = "deepseek-reasoner"
+        state.updateDraftModelCompatibilityProfileIfNeeded()
+
+        XCTAssertEqual(state.draftModelCompatibilityProfile, .genericOpenAI)
+        XCTAssertTrue(state.draftModelCompatibilityProfileIsManual)
+    }
+
     func testSaveModelRejectsProtectedCustomRequestKeys() throws {
         let (defaults, suiteName) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }

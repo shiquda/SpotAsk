@@ -1170,12 +1170,18 @@ private struct ModelDetailForm: View {
                 SettingsFieldRow(label: L10n.string("settings.displayName")) {
                     TextField(L10n.string("settings.displayNamePlaceholder"), text: $state.draftModelDisplayName)
                         .textFieldStyle(.roundedBorder)
-                        .onChange(of: state.draftModelDisplayName) { _, _ in state.clearStatus() }
+                        .onChange(of: state.draftModelDisplayName) { _, _ in
+                            state.updateDraftModelCompatibilityProfileIfNeeded()
+                            state.clearStatus()
+                        }
                 }
                 SettingsFieldRow(label: L10n.string("settings.upstreamModelID")) {
                     TextField("gpt-5-mini", text: $state.draftModelUpstreamID)
                         .textFieldStyle(.roundedBorder)
-                        .onChange(of: state.draftModelUpstreamID) { _, _ in state.clearStatus() }
+                        .onChange(of: state.draftModelUpstreamID) { _, _ in
+                            state.updateDraftModelCompatibilityProfileIfNeeded()
+                            state.clearStatus()
+                        }
                 }
                 SettingsFieldRow(label: L10n.string("settings.service")) {
                     HStack(spacing: 8) {
@@ -1203,14 +1209,19 @@ private struct ModelDetailForm: View {
                 SettingsToggleRow(label: L10n.string("settings.streaming"), isOn: $state.draftModelStreaming)
                 SettingsFieldRow(label: L10n.string("settings.requestCompatibilityProfile")) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Picker(L10n.string("settings.requestCompatibilityProfile"), selection: $state.draftModelCompatibilityProfile) {
+                        Picker(
+                            L10n.string("settings.requestCompatibilityProfile"),
+                            selection: Binding(
+                                get: { state.draftModelCompatibilityProfile },
+                                set: { state.setDraftModelCompatibilityProfile($0) }
+                            )
+                        ) {
                             ForEach(RequestCompatibilityProfile.allCases, id: \.self) { profile in
                                 Text(profile.settingsTitle).tag(profile)
                             }
                         }
                         .labelsHidden()
                         .pickerStyle(.menu)
-                        .onChange(of: state.draftModelCompatibilityProfile) { _, _ in state.clearStatus() }
                         Text(L10n.string("settings.requestCompatibilityProfileDescription"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -2861,6 +2872,7 @@ final class ProviderSettingsState {
     var draftModelUpstreamID = ""
     var draftModelStreaming = true
     var draftModelCompatibilityProfile: RequestCompatibilityProfile = .genericOpenAI
+    var draftModelCompatibilityProfileIsManual = false
     var draftModelThinkingMode: ModelThinkingMode = .providerDefault
     var draftModelExtraRequestParametersText = ""
 
@@ -3038,7 +3050,14 @@ final class ProviderSettingsState {
         draftModelDisplayName = ""
         draftModelUpstreamID = ""
         draftModelStreaming = true
-        draftModelCompatibilityProfile = provider.format == .anthropic ? .anthropic : .genericOpenAI
+        draftModelCompatibilityProfileIsManual = false
+        draftModelCompatibilityProfile = .inferred(
+            modelName: "",
+            upstreamModelID: "",
+            providerName: provider.name,
+            providerAddress: provider.address,
+            providerFormat: provider.format
+        )
         draftModelThinkingMode = .providerDefault
         draftModelExtraRequestParametersText = ""
 
@@ -3063,6 +3082,7 @@ final class ProviderSettingsState {
         draftModelUpstreamID = model.upstreamModelID
         draftModelStreaming = model.isStreamingEnabled
         draftModelCompatibilityProfile = model.compatibilityProfile
+        draftModelCompatibilityProfileIsManual = model.isCompatibilityProfileManuallySet
         draftModelThinkingMode = model.thinkingMode
         draftModelExtraRequestParametersText = Self.requestParametersText(model.extraRequestParameters)
 
@@ -3141,7 +3161,12 @@ final class ProviderSettingsState {
         draftModelUpstreamID = ""
         draftModelStreaming = true
         let newModelProvider = settings.providerRegistry.catalog?.providers.first(where: { $0.id == providerID })
-        draftModelCompatibilityProfile = newModelProvider?.format == .anthropic ? .anthropic : .genericOpenAI
+        draftModelCompatibilityProfileIsManual = false
+        draftModelCompatibilityProfile = Self.inferredCompatibilityProfile(
+            modelName: "",
+            upstreamModelID: "",
+            provider: newModelProvider
+        )
         draftModelThinkingMode = .providerDefault
         draftModelExtraRequestParametersText = ""
         status = ""
@@ -3170,7 +3195,12 @@ final class ProviderSettingsState {
             draftModelDisplayName = ""
             draftModelUpstreamID = ""
             draftModelStreaming = true
-            draftModelCompatibilityProfile = provider.format == .anthropic ? .anthropic : .genericOpenAI
+            draftModelCompatibilityProfileIsManual = false
+            draftModelCompatibilityProfile = Self.inferredCompatibilityProfile(
+                modelName: "",
+                upstreamModelID: "",
+                provider: provider
+            )
             draftModelThinkingMode = .providerDefault
             draftModelExtraRequestParametersText = ""
         } else if let mid = selectedModelID,
@@ -3180,6 +3210,7 @@ final class ProviderSettingsState {
             draftModelUpstreamID = model.upstreamModelID
             draftModelStreaming = model.isStreamingEnabled
             draftModelCompatibilityProfile = model.compatibilityProfile
+            draftModelCompatibilityProfileIsManual = model.isCompatibilityProfileManuallySet
             draftModelThinkingMode = model.thinkingMode
             draftModelExtraRequestParametersText = Self.requestParametersText(model.extraRequestParameters)
             draftProviderName = ""
@@ -3200,6 +3231,7 @@ final class ProviderSettingsState {
             draftModelUpstreamID = ""
             draftModelStreaming = true
             draftModelCompatibilityProfile = .genericOpenAI
+            draftModelCompatibilityProfileIsManual = false
             draftModelThinkingMode = .providerDefault
             draftModelExtraRequestParametersText = ""
             apiKeyDraft = ""
@@ -3279,6 +3311,12 @@ final class ProviderSettingsState {
                 isStreamingEnabled: draftModelStreaming,
                 source: .manual,
                 compatibilityProfile: draftModelCompatibilityProfile,
+                isCompatibilityProfileManuallySet: draftModelCompatibilityProfileIsManual ||
+                    draftModelCompatibilityProfile != Self.inferredCompatibilityProfile(
+                        modelName: displayName,
+                        upstreamModelID: upstreamID,
+                        provider: settings.providerRegistry.catalog?.providers.first(where: { $0.id == providerID })
+                    ),
                 thinkingMode: draftModelThinkingMode,
                 extraRequestParameters: try decodedExtraRequestParameters()
             )
@@ -3290,6 +3328,40 @@ final class ProviderSettingsState {
         } catch {
             setStatus(L10n.string("settings.modelSaveFailed"), isError: true)
         }
+    }
+
+    func setDraftModelCompatibilityProfile(_ profile: RequestCompatibilityProfile) {
+        draftModelCompatibilityProfile = profile
+        draftModelCompatibilityProfileIsManual = true
+        clearStatus()
+    }
+
+    func updateDraftModelCompatibilityProfileIfNeeded() {
+        guard !draftModelCompatibilityProfileIsManual else { return }
+        let provider = newModelParentProviderID.flatMap { id in
+            settings.providerRegistry.catalog?.providers.first(where: { $0.id == id })
+        } ?? selectedModel.flatMap { model in
+            settings.providerRegistry.catalog?.providers.first(where: { $0.id == model.providerID })
+        }
+        draftModelCompatibilityProfile = Self.inferredCompatibilityProfile(
+            modelName: draftModelDisplayName,
+            upstreamModelID: draftModelUpstreamID,
+            provider: provider
+        )
+    }
+
+    private static func inferredCompatibilityProfile(
+        modelName: String,
+        upstreamModelID: String,
+        provider: ProviderConfiguration?
+    ) -> RequestCompatibilityProfile {
+        .inferred(
+            modelName: modelName,
+            upstreamModelID: upstreamModelID,
+            providerName: provider?.name ?? "",
+            providerAddress: provider?.address ?? "",
+            providerFormat: provider?.format ?? .openAICompatible
+        )
     }
 
     /// Set a model as the active chat model without switching editing context.

@@ -159,6 +159,92 @@ extension ModelThinkingMode {
 }
 
 extension RequestCompatibilityProfile {
+    /// Infers the request dialect for a model when the user has not pinned it.
+    /// Platform gateways win over upstream model names because their request
+    /// body is interpreted by the gateway, not by the upstream vendor.
+    static func inferred(
+        modelName: String,
+        upstreamModelID: String,
+        providerName: String = "",
+        providerAddress: String = "",
+        providerFormat: ProviderFormat = .openAICompatible
+    ) -> Self {
+        if providerFormat == .anthropic {
+            return .anthropic
+        }
+
+        let providerText = normalizedInferenceText([providerName, providerAddress])
+        if containsAny(providerText, ["openrouter"]) {
+            return .openRouter
+        }
+        if containsAny(providerText, ["volcengine", "volc", "ark", "doubao", "火山", "方舟", "豆包"]) {
+            return .volcengineArk
+        }
+        if containsAny(providerText, ["siliconflow", "siliconcloud", "silicon", "硅基流动"]) {
+            return .siliconFlow
+        }
+        if containsAny(providerText, ["azure"]) {
+            return .azureOpenAI
+        }
+        if !containsAny(providerText, ["openaicompatible", "通用openai"]),
+           containsAny(providerText, ["openai", "chatgpt"]) {
+            return .openAI
+        }
+        if containsAny(providerText, ["deepseek", "深度求索"]) {
+            return .deepSeek
+        }
+        if containsAny(providerText, ["qwen", "dashscope", "bailian", "百炼", "通义"]) {
+            return .qwen
+        }
+        if containsAny(providerText, ["kimi", "moonshot", "月之暗面"]) {
+            return .kimi
+        }
+        if containsAny(providerText, ["z.ai", "zai", "zhipu", "chatglm", "bigmodel", "智谱"]) {
+            return .zAI
+        }
+        if containsAny(providerText, ["mistral", "lechat"]) {
+            return .mistral
+        }
+        if containsAny(providerText, ["xai", "grok"]) {
+            return .xAI
+        }
+
+        let modelText = normalizedInferenceText([modelName, upstreamModelID])
+        if containsAny(modelText, ["deepseek", "深度求索"]) {
+            return .deepSeek
+        }
+        if containsAny(modelText, ["qwen", "通义"]) {
+            return .qwen
+        }
+        if containsAny(modelText, ["kimi", "moonshot", "月之暗面"]) {
+            return .kimi
+        }
+        if containsAny(modelText, ["glm", "zai", "zhipu", "chatglm", "智谱"]) {
+            return .zAI
+        }
+        if containsAny(modelText, ["mistral", "codestral", "pixtral", "ministral"]) {
+            return .mistral
+        }
+        if containsAny(modelText, ["grok", "xai"]) {
+            return .xAI
+        }
+        if modelText.hasPrefix("gpt") || modelText.hasPrefix("openai") || modelText.hasPrefix("o1") || modelText.hasPrefix("o3") || modelText.hasPrefix("o4") {
+            return .openAI
+        }
+        return .genericOpenAI
+    }
+
+    private static func normalizedInferenceText(_ values: [String]) -> String {
+        values
+            .joined(separator: " ")
+            .lowercased()
+            .filter { $0.isLetter || $0.isNumber }
+    }
+
+    private static func containsAny(_ text: String, _ patterns: [String]) -> Bool {
+        patterns.contains { text.contains(normalizedInferenceText([$0])) }
+    }
+
     static let protectedStructuralKeys: Set<String> = ["model", "messages", "stream", "system"]
     static let reasoningControlKeys: Set<String> = [
         "reasoning_effort",
@@ -288,6 +374,7 @@ struct ModelConfiguration: Identifiable, Codable, Equatable, Sendable {
     var isStreamingEnabled: Bool
     var source: ModelConfigurationSource
     var compatibilityProfile: RequestCompatibilityProfile
+    var isCompatibilityProfileManuallySet: Bool
     var thinkingMode: ModelThinkingMode
     var extraRequestParameters: [String: ModelJSONValue]?
 
@@ -299,6 +386,7 @@ struct ModelConfiguration: Identifiable, Codable, Equatable, Sendable {
         isStreamingEnabled: Bool,
         source: ModelConfigurationSource = .manual,
         compatibilityProfile: RequestCompatibilityProfile = .genericOpenAI,
+        isCompatibilityProfileManuallySet: Bool? = nil,
         thinkingMode: ModelThinkingMode = .providerDefault,
         extraRequestParameters: [String: ModelJSONValue]? = nil
     ) {
@@ -309,6 +397,7 @@ struct ModelConfiguration: Identifiable, Codable, Equatable, Sendable {
         self.isStreamingEnabled = isStreamingEnabled
         self.source = source
         self.compatibilityProfile = compatibilityProfile
+        self.isCompatibilityProfileManuallySet = isCompatibilityProfileManuallySet ?? (compatibilityProfile != .genericOpenAI)
         self.thinkingMode = thinkingMode
         self.extraRequestParameters = extraRequestParameters
     }
@@ -321,6 +410,7 @@ struct ModelConfiguration: Identifiable, Codable, Equatable, Sendable {
         case isStreamingEnabled
         case source
         case compatibilityProfile
+        case isCompatibilityProfileManuallySet
         case thinkingMode
         case extraRequestParameters
     }
@@ -334,6 +424,7 @@ struct ModelConfiguration: Identifiable, Codable, Equatable, Sendable {
         isStreamingEnabled = try container.decode(Bool.self, forKey: .isStreamingEnabled)
         source = try container.decodeIfPresent(ModelConfigurationSource.self, forKey: .source) ?? .manual
         compatibilityProfile = try container.decodeIfPresent(RequestCompatibilityProfile.self, forKey: .compatibilityProfile) ?? .genericOpenAI
+        isCompatibilityProfileManuallySet = try container.decodeIfPresent(Bool.self, forKey: .isCompatibilityProfileManuallySet) ?? false
         thinkingMode = try container.decodeIfPresent(ModelThinkingMode.self, forKey: .thinkingMode) ?? .providerDefault
         extraRequestParameters = try container.decodeIfPresent([String: ModelJSONValue].self, forKey: .extraRequestParameters)
     }
