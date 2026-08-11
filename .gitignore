@@ -6,6 +6,7 @@ node_modules/
 AGENTS.md
 docs/post/
 docs/research/
+research/
 docs/.DS_Store
 docs/site/.vitepress/cache/
 docs/site/.vitepress/dist/
