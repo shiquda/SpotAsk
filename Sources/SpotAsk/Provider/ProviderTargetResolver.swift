@@ -11,6 +11,9 @@ struct ProviderTargetSnapshot: Equatable, Sendable {
     let isStreamingEnabled: Bool
     let timeout: TimeInterval
     let format: ProviderFormat
+    let compatibilityProfile: RequestCompatibilityProfile
+    let thinkingMode: ModelThinkingMode
+    let extraRequestParameters: [String: ModelJSONValue]?
 
     init(
         modelID: UUID,
@@ -22,7 +25,10 @@ struct ProviderTargetSnapshot: Equatable, Sendable {
         providerName: String = "",
         isStreamingEnabled: Bool,
         timeout: TimeInterval,
-        format: ProviderFormat = .openAICompatible
+        format: ProviderFormat = .openAICompatible,
+        compatibilityProfile: RequestCompatibilityProfile = .genericOpenAI,
+        thinkingMode: ModelThinkingMode = .providerDefault,
+        extraRequestParameters: [String: ModelJSONValue]? = nil
     ) {
         self.modelID = modelID
         self.providerID = providerID
@@ -34,6 +40,9 @@ struct ProviderTargetSnapshot: Equatable, Sendable {
         self.isStreamingEnabled = isStreamingEnabled
         self.timeout = timeout
         self.format = format
+        self.compatibilityProfile = compatibilityProfile
+        self.thinkingMode = thinkingMode
+        self.extraRequestParameters = extraRequestParameters
     }
 }
 
@@ -72,7 +81,10 @@ struct ProviderTargetResolver: ProviderTargetResolving {
             providerName: provider.name,
             isStreamingEnabled: model.isStreamingEnabled,
             timeout: provider.timeout,
-            format: provider.format
+            format: provider.format,
+            compatibilityProfile: model.compatibilityProfile,
+            thinkingMode: model.thinkingMode,
+            extraRequestParameters: model.extraRequestParameters
         )
     }
 }

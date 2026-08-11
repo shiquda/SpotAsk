@@ -31,6 +31,7 @@
 - **Ask from anywhere** — press Option + Space (customizable) to open a focused chat window, ready for a question.
 - **Select text in other apps** — highlight text in Safari, Notes, or other macOS apps; translate, explain, summarize, polish, or run a custom prompt from the quick action bar that appears next to your selection.
 - **Switch models anytime** — change the model for the current conversation right from the window, without touching your default in Settings.
+- **Control thinking per model** — disable thinking or choose a level, and add custom request fields for provider-specific options.
 - **Ask with attachments** — paste a screenshot, or drop in images and text/code files; follow-up questions keep the earlier context.
 - **Copy what you need** — grab the full answer or individual code blocks in one click.
 - **Automate repeated tasks** — built-in prompts for translate, explain, summarize, and polish; create your own for repeated workflows.

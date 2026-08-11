@@ -74,7 +74,10 @@ struct OpenAICompatibleProviderFactory: ChatProviderFactory {
                     endpoint: target.endpoint,
                     apiKey: target.apiKey,
                     model: target.upstreamModelID,
-                    timeout: target.timeout
+                    timeout: target.timeout,
+                    compatibilityProfile: target.compatibilityProfile,
+                    thinkingMode: target.thinkingMode,
+                    extraRequestParameters: target.extraRequestParameters
                 ),
                 urlSession: urlSession
             )
@@ -84,7 +87,10 @@ struct OpenAICompatibleProviderFactory: ChatProviderFactory {
                     endpoint: target.endpoint,
                     apiKey: target.apiKey,
                     model: target.upstreamModelID,
-                    timeout: target.timeout
+                    timeout: target.timeout,
+                    compatibilityProfile: target.compatibilityProfile,
+                    thinkingMode: target.thinkingMode,
+                    extraRequestParameters: target.extraRequestParameters
                 ),
                 urlSession: urlSession
             )

@@ -207,7 +207,14 @@ final class ProviderModelRegistryTests: XCTestCase {
             ProviderConfiguration(name: "Second", address: "https://second.example/v1", addressMode: .baseURL, timeout: 25)
         )
         let secondModel = try registry.saveModel(
-            ModelConfiguration(displayName: "Second", upstreamModelID: "second-upstream", providerID: secondProvider.id, isStreamingEnabled: false)
+            ModelConfiguration(
+                displayName: "Second",
+                upstreamModelID: "second-upstream",
+                providerID: secondProvider.id,
+                isStreamingEnabled: false,
+                compatibilityProfile: .openRouter,
+                thinkingMode: .low
+            )
         )
         try registry.selectModel(id: secondModel.id)
         let directoryURL = FileManager.default.temporaryDirectory
@@ -227,6 +234,8 @@ final class ProviderModelRegistryTests: XCTestCase {
         XCTAssertEqual(target.endpoint.absoluteString, "https://second.example/v1/chat/completions")
         XCTAssertFalse(target.isStreamingEnabled)
         XCTAssertEqual(target.timeout, 25)
+        XCTAssertEqual(target.compatibilityProfile, .openRouter)
+        XCTAssertEqual(target.thinkingMode, .low)
     }
 
     func testLoadedCatalogIsNormalizedAndPersisted() throws {
@@ -265,6 +274,35 @@ final class ProviderModelRegistryTests: XCTestCase {
             ),
             loaded
         )
+    }
+
+    func testAnthropicModelDefaultsToAnthropicCompatibilityProfile() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let provider = ProviderConfiguration(
+            name: "Anthropic",
+            address: "https://api.anthropic.com",
+            addressMode: .baseURL,
+            timeout: 30,
+            format: .anthropic
+        )
+        let model = ModelConfiguration(
+            displayName: "Claude",
+            upstreamModelID: "claude",
+            providerID: provider.id,
+            isStreamingEnabled: true
+        )
+        defaults.set(
+            try JSONEncoder().encode(
+                ProviderModelCatalog(providers: [provider], models: [model], selectedModelID: model.id)
+            ),
+            forKey: ProviderModelRegistry.defaultsKey
+        )
+
+        let loaded = try XCTUnwrap(AppSettings(defaults: defaults).providerRegistry.catalog)
+
+        XCTAssertEqual(loaded.models[0].compatibilityProfile, .anthropic)
+        XCTAssertEqual(loaded.models[0].thinkingMode, .providerDefault)
     }
 
     func testModelCannotMoveBetweenProviders() throws {
@@ -312,6 +350,8 @@ final class ProviderModelRegistryTests: XCTestCase {
         let catalog = try JSONDecoder().decode(ProviderModelCatalog.self, from: catalogData)
 
         XCTAssertEqual(catalog.models.first?.source, .manual)
+        XCTAssertEqual(catalog.models.first?.compatibilityProfile, .genericOpenAI)
+        XCTAssertEqual(catalog.models.first?.thinkingMode, .providerDefault)
     }
 
     func testLegacyProviderDecodesAsOpenAICompatibleFormat() throws {

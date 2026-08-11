@@ -7,6 +7,27 @@ struct AnthropicProvider: ChatProvider {
         let apiKey: String
         let model: String
         let timeout: TimeInterval
+        let compatibilityProfile: RequestCompatibilityProfile
+        let thinkingMode: ModelThinkingMode
+        let extraRequestParameters: [String: ModelJSONValue]?
+
+        init(
+            endpoint: URL,
+            apiKey: String,
+            model: String,
+            timeout: TimeInterval,
+            compatibilityProfile: RequestCompatibilityProfile = .anthropic,
+            thinkingMode: ModelThinkingMode = .providerDefault,
+            extraRequestParameters: [String: ModelJSONValue]? = nil
+        ) {
+            self.endpoint = endpoint
+            self.apiKey = apiKey
+            self.model = model
+            self.timeout = timeout
+            self.compatibilityProfile = compatibilityProfile
+            self.thinkingMode = thinkingMode
+            self.extraRequestParameters = extraRequestParameters
+        }
     }
 
     private static let apiVersion = "2023-06-01"
@@ -111,19 +132,46 @@ struct AnthropicProvider: ChatProvider {
             .map { $0.content.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
             .joined(separator: "\n\n")
-        let conversation = request.messages
-            .filter { $0.role != .system }
-            .map { AnthropicRequest.Message(role: $0.role.rawValue, content: Self.anthropicContent(for: $0)) }
-        urlRequest.httpBody = try JSONEncoder().encode(
-            AnthropicRequest(
-                model: request.model,
-                maxTokens: Self.maxTokens,
-                system: system.isEmpty ? nil : system,
-                messages: conversation,
-                stream: stream
-            )
+        urlRequest.httpBody = try makeRequestBody(
+            for: request,
+            system: system,
+            stream: stream
         )
         return urlRequest
+    }
+
+    private func makeRequestBody(for request: ChatRequest, system: String, stream: Bool) throws -> Data {
+        let conversation = try request.messages
+            .filter { $0.role != .system }
+            .map { message in
+                try ModelJSONValue.object([
+                    "role": .string(message.role.rawValue),
+                    "content": .wrapping(Self.anthropicContent(for: message))
+                ])
+            }
+        var body: [String: ModelJSONValue] = [
+            "model": .string(request.model),
+            "max_tokens": .number(Double(Self.maxTokens)),
+            "messages": .array(conversation),
+            "stream": .bool(stream)
+        ]
+        if !system.isEmpty {
+            body["system"] = .string(system)
+        }
+        let automatic = configuration.compatibilityProfile.automaticReasoningParameters(for: configuration.thinkingMode)
+        let extras = configuration.extraRequestParameters ?? [:]
+        if extras.keys.contains(where: { RequestCompatibilityProfile.reasoningControlKeys.contains($0) }) {
+            for key in automatic.keys { body.removeValue(forKey: key) }
+        } else {
+            for (key, value) in automatic {
+                body[key] = value
+            }
+        }
+        if extras.keys.contains(where: { RequestCompatibilityProfile.protectedStructuralKeys.contains($0) }) {
+            throw ChatError.invalidConfiguration
+        }
+        body.mergeModelJSON(extras)
+        return try JSONEncoder().encode(body)
     }
 
     /// Text-only messages keep the historical `content: "string"` shape. Only
@@ -197,27 +245,6 @@ struct AnthropicProvider: ChatProvider {
             events.append(.completed)
         }
         return events
-    }
-}
-
-private struct AnthropicRequest: Encodable {
-    struct Message: Encodable {
-        let role: String
-        let content: AnthropicMessageContent
-    }
-
-    let model: String
-    let maxTokens: Int
-    let system: String?
-    let messages: [Message]
-    let stream: Bool
-
-    enum CodingKeys: String, CodingKey {
-        case model
-        case maxTokens = "max_tokens"
-        case system
-        case messages
-        case stream
     }
 }
 

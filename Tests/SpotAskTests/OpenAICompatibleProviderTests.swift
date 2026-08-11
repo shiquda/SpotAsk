@@ -176,6 +176,146 @@ final class OpenAICompatibleProviderTests: XCTestCase {
         XCTAssertFalse(sent.contains("\\("))
     }
 
+    func testProviderDefaultKeepsOpenAIRequestBodyUnchanged() async throws {
+        var capturedRequest: URLRequest?
+        StubURLProtocol.handler = { request in
+            capturedRequest = request
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "text/event-stream"]
+            )!
+            return (response, Data("data: [DONE]\n\n".utf8))
+        }
+        let provider = OpenAICompatibleProvider(
+            configuration: .init(
+                endpoint: URL(string: "https://example.com/v1/chat/completions")!,
+                apiKey: "key",
+                model: "model",
+                timeout: 5,
+                compatibilityProfile: .genericOpenAI,
+                thinkingMode: .providerDefault
+            ),
+            urlSession: makeSession()
+        )
+
+        for try await _ in provider.stream(
+            request: ChatRequest(model: "model", messages: [ChatMessage(role: .user, content: "hello")], stream: true)
+        ) {}
+
+        let captured = try XCTUnwrap(capturedRequest)
+        let body = try XCTUnwrap(bodyData(of: captured))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertNil(json["reasoning_effort"])
+        XCTAssertNil(json["thinking"])
+        XCTAssertNil(json["enable_thinking"])
+        XCTAssertNil(json["reasoning"])
+    }
+
+    func testOpenAIProfileSendsReasoningEffort() async throws {
+        var capturedRequest: URLRequest?
+        StubURLProtocol.handler = { request in
+            capturedRequest = request
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (response, Data(#"{"choices":[{"message":{"content":"ok"}}]}"#.utf8))
+        }
+        let provider = OpenAICompatibleProvider(
+            configuration: .init(
+                endpoint: URL(string: "https://example.com/v1/chat/completions")!,
+                apiKey: "key",
+                model: "model",
+                timeout: 5,
+                compatibilityProfile: .openAI,
+                thinkingMode: .high
+            ),
+            urlSession: makeSession()
+        )
+
+        for try await _ in provider.stream(
+            request: ChatRequest(model: "model", messages: [ChatMessage(role: .user, content: "hello")], stream: false)
+        ) {}
+
+        let json = try XCTUnwrap(bodyJSON(capturedRequest))
+        XCTAssertEqual(json["reasoning_effort"] as? String, "high")
+    }
+
+    func testDeepSeekAndOpenRouterProfilesUseTheirOwnThinkingSyntax() async throws {
+        var requests: [URLRequest] = []
+        StubURLProtocol.handler = { request in
+            requests.append(request)
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (response, Data(#"{"choices":[{"message":{"content":"ok"}}]}"#.utf8))
+        }
+
+        let deepSeek = OpenAICompatibleProvider(
+            configuration: .init(
+                endpoint: URL(string: "https://example.com/v1/chat/completions")!,
+                apiKey: "key",
+                model: "model",
+                timeout: 5,
+                compatibilityProfile: .deepSeek,
+                thinkingMode: .disabled
+            ),
+            urlSession: makeSession()
+        )
+        for try await _ in deepSeek.stream(
+            request: ChatRequest(model: "model", messages: [ChatMessage(role: .user, content: "hello")], stream: false)
+        ) {}
+
+        let openRouter = OpenAICompatibleProvider(
+            configuration: .init(
+                endpoint: URL(string: "https://example.com/v1/chat/completions")!,
+                apiKey: "key",
+                model: "model",
+                timeout: 5,
+                compatibilityProfile: .openRouter,
+                thinkingMode: .low
+            ),
+            urlSession: makeSession()
+        )
+        for try await _ in openRouter.stream(
+            request: ChatRequest(model: "model", messages: [ChatMessage(role: .user, content: "hello")], stream: false)
+        ) {}
+
+        let deepSeekBody = try XCTUnwrap(bodyJSON(requests[0]))
+        XCTAssertEqual(deepSeekBody["thinking"] as? [String: String], ["type": "disabled"])
+        let openRouterBody = try XCTUnwrap(bodyJSON(requests[1]))
+        let reasoning = try XCTUnwrap(openRouterBody["reasoning"] as? [String: Any])
+        XCTAssertEqual(reasoning["enabled"] as? Bool, true)
+        XCTAssertEqual(reasoning["effort"] as? String, "low")
+    }
+
+    func testCustomReasoningJSONReplacesAutomaticReasoningFamily() async throws {
+        var capturedRequest: URLRequest?
+        StubURLProtocol.handler = { request in
+            capturedRequest = request
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (response, Data(#"{"choices":[{"message":{"content":"ok"}}]}"#.utf8))
+        }
+        let provider = OpenAICompatibleProvider(
+            configuration: .init(
+                endpoint: URL(string: "https://example.com/v1/chat/completions")!,
+                apiKey: "key",
+                model: "model",
+                timeout: 5,
+                compatibilityProfile: .siliconFlow,
+                thinkingMode: .high,
+                extraRequestParameters: ["reasoning_effort": .string("max")]
+            ),
+            urlSession: makeSession()
+        )
+
+        for try await _ in provider.stream(
+            request: ChatRequest(model: "model", messages: [ChatMessage(role: .user, content: "hello")], stream: false)
+        ) {}
+
+        let json = try XCTUnwrap(bodyJSON(capturedRequest))
+        XCTAssertEqual(json["reasoning_effort"] as? String, "max")
+        XCTAssertNil(json["enable_thinking"])
+        XCTAssertNil(json["thinking_budget"])
+    }
+
     private func makeSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [StubURLProtocol.self]
@@ -197,6 +337,11 @@ final class OpenAICompatibleProviderTests: XCTestCase {
             data.append(buffer, count: read)
         }
         return data
+    }
+
+    private func bodyJSON(_ request: URLRequest?) throws -> [String: Any]? {
+        let data = try XCTUnwrap(bodyData(of: try XCTUnwrap(request)))
+        return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
     }
 }
 
@@ -455,6 +600,106 @@ final class AnthropicProviderTests: XCTestCase {
         XCTAssertEqual(textBlock["type"] as? String, "text")
     }
 
+    func testAnthropicThinkingLevelSendsAdaptiveEffort() async throws {
+        var capturedRequest: URLRequest?
+        StubURLProtocol.handler = { request in
+            capturedRequest = request
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "text/event-stream"]
+            )!
+            return (response, Data("data: {\"type\":\"message_stop\"}\n\n".utf8))
+        }
+        let provider = AnthropicProvider(
+            configuration: .init(
+                endpoint: URL(string: "https://api.anthropic.com/v1/messages")!,
+                apiKey: "key",
+                model: "claude",
+                timeout: 30,
+                compatibilityProfile: .anthropic,
+                thinkingMode: .high
+            ),
+            urlSession: makeSession()
+        )
+
+        for try await _ in provider.stream(
+            request: ChatRequest(model: "claude", messages: [ChatMessage(role: .user, content: "Hi")], stream: true)
+        ) {}
+
+        let json = try XCTUnwrap(anthropicBodyJSON(capturedRequest))
+        XCTAssertEqual(json["thinking"] as? [String: String], ["type": "adaptive"])
+        XCTAssertEqual(json["output_config"] as? [String: String], ["effort": "high"])
+    }
+
+    func testAnthropicDisabledSendsThinkingDisabled() async throws {
+        var capturedRequest: URLRequest?
+        StubURLProtocol.handler = { request in
+            capturedRequest = request
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "text/event-stream"]
+            )!
+            return (response, Data("data: {\"type\":\"message_stop\"}\n\n".utf8))
+        }
+        let provider = AnthropicProvider(
+            configuration: .init(
+                endpoint: URL(string: "https://api.anthropic.com/v1/messages")!,
+                apiKey: "key",
+                model: "claude",
+                timeout: 30,
+                compatibilityProfile: .anthropic,
+                thinkingMode: .disabled
+            ),
+            urlSession: makeSession()
+        )
+
+        for try await _ in provider.stream(
+            request: ChatRequest(model: "claude", messages: [ChatMessage(role: .user, content: "Hi")], stream: true)
+        ) {}
+
+        let json = try XCTUnwrap(anthropicBodyJSON(capturedRequest))
+        XCTAssertEqual(json["thinking"] as? [String: String], ["type": "disabled"])
+        XCTAssertNil(json["output_config"])
+    }
+
+    func testAnthropicCustomReasoningJSONReplacesAutomaticFamily() async throws {
+        var capturedRequest: URLRequest?
+        StubURLProtocol.handler = { request in
+            capturedRequest = request
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "text/event-stream"]
+            )!
+            return (response, Data("data: {\"type\":\"message_stop\"}\n\n".utf8))
+        }
+        let provider = AnthropicProvider(
+            configuration: .init(
+                endpoint: URL(string: "https://api.anthropic.com/v1/messages")!,
+                apiKey: "key",
+                model: "claude",
+                timeout: 30,
+                compatibilityProfile: .anthropic,
+                thinkingMode: .high,
+                extraRequestParameters: ["thinking": .object(["type": .string("disabled")])]
+            ),
+            urlSession: makeSession()
+        )
+
+        for try await _ in provider.stream(
+            request: ChatRequest(model: "claude", messages: [ChatMessage(role: .user, content: "Hi")], stream: true)
+        ) {}
+
+        let json = try XCTUnwrap(anthropicBodyJSON(capturedRequest))
+        XCTAssertEqual(json["thinking"] as? [String: String], ["type": "disabled"])
+        XCTAssertNil(json["output_config"])
+    }
+
     private func makeSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [StubURLProtocol.self]
@@ -476,6 +721,11 @@ final class AnthropicProviderTests: XCTestCase {
             data.append(buffer, count: read)
         }
         return data
+    }
+
+    private func anthropicBodyJSON(_ request: URLRequest?) throws -> [String: Any]? {
+        let data = try XCTUnwrap(bodyData(of: try XCTUnwrap(request)))
+        return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
     }
 }
 

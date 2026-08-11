@@ -6,6 +6,27 @@ struct OpenAICompatibleProvider: ChatProvider {
         let apiKey: String
         let model: String
         let timeout: TimeInterval
+        let compatibilityProfile: RequestCompatibilityProfile
+        let thinkingMode: ModelThinkingMode
+        let extraRequestParameters: [String: ModelJSONValue]?
+
+        init(
+            endpoint: URL,
+            apiKey: String,
+            model: String,
+            timeout: TimeInterval,
+            compatibilityProfile: RequestCompatibilityProfile = .genericOpenAI,
+            thinkingMode: ModelThinkingMode = .providerDefault,
+            extraRequestParameters: [String: ModelJSONValue]? = nil
+        ) {
+            self.endpoint = endpoint
+            self.apiKey = apiKey
+            self.model = model
+            self.timeout = timeout
+            self.compatibilityProfile = compatibilityProfile
+            self.thinkingMode = thinkingMode
+            self.extraRequestParameters = extraRequestParameters
+        }
     }
 
     let configuration: Configuration
@@ -62,8 +83,7 @@ struct OpenAICompatibleProvider: ChatProvider {
 
     func testConnection() async throws {
         let request = ChatRequest(model: configuration.model, messages: [ChatMessage(role: .user, content: "ping")], stream: false)
-        var urlRequest = try makeURLRequest(for: request)
-        urlRequest.httpBody = try JSONEncoder().encode(OpenAIRequest(model: configuration.model, messages: [.init(role: "user", content: .text("ping"))], stream: false, maxTokens: 1))
+        let urlRequest = try makeURLRequest(for: request)
         _ = try await transport.data(for: urlRequest)
     }
 
@@ -98,11 +118,36 @@ struct OpenAICompatibleProvider: ChatProvider {
         urlRequest.timeoutInterval = configuration.timeout
         urlRequest.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let messages = request.messages.map { message in
-            OpenAIRequest.Message(role: message.role.rawValue, content: Self.openAIContent(for: message))
-        }
-        urlRequest.httpBody = try JSONEncoder().encode(OpenAIRequest(model: request.model, messages: messages, stream: request.stream, maxTokens: nil))
+        urlRequest.httpBody = try makeRequestBody(for: request)
         return urlRequest
+    }
+
+    private func makeRequestBody(for request: ChatRequest) throws -> Data {
+        let messages = try request.messages.map { message in
+            try ModelJSONValue.object([
+                "role": .string(message.role.rawValue),
+                "content": .wrapping(Self.openAIContent(for: message))
+            ])
+        }
+        var body: [String: ModelJSONValue] = [
+            "model": .string(request.model),
+            "messages": .array(messages),
+            "stream": .bool(request.stream)
+        ]
+        let automatic = configuration.compatibilityProfile.automaticReasoningParameters(for: configuration.thinkingMode)
+        let extras = configuration.extraRequestParameters ?? [:]
+        if extras.keys.contains(where: { RequestCompatibilityProfile.reasoningControlKeys.contains($0) }) {
+            for key in automatic.keys { body.removeValue(forKey: key) }
+        } else {
+            for (key, value) in automatic {
+                body[key] = value
+            }
+        }
+        if extras.keys.contains(where: { RequestCompatibilityProfile.protectedStructuralKeys.contains($0) }) {
+            throw ChatError.invalidConfiguration
+        }
+        body.mergeModelJSON(extras)
+        return try JSONEncoder().encode(body)
     }
 
     /// Text-only requests keep the historical `content: "string"` wire format.
@@ -190,16 +235,4 @@ struct NonStreamingResponse: Decodable {
         if let answer = message.content, !answer.isEmpty { events.append(.answerDelta(answer)) }
         return events
     }
-}
-
-private struct OpenAIRequest: Encodable {
-    struct Message: Encodable {
-        let role: String
-        let content: OpenAIMessageContent
-    }
-    let model: String
-    let messages: [Message]
-    let stream: Bool
-    let maxTokens: Int?
-    enum CodingKeys: String, CodingKey { case model, messages, stream; case maxTokens = "max_tokens" }
 }

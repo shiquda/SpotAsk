@@ -21,7 +21,9 @@ You can add, edit, or delete services. Deleting a service removes its models. At
 
 ## Models
 
-Each model has a **Display Name**, an exact **Model ID**, and a streaming setting. The **Active** model is the Settings default used for new conversations.
+Each model has a **Display Name**, an exact **Model ID**, a streaming setting, and a thinking setting. The **Active** model is the Settings default used for new conversations.
+
+Use **API Compatibility** to match the service format before choosing a thinking level. **Provider default** sends no extra thinking fields and keeps the provider's own behavior. **Off** disables thinking where the provider supports it, while the level options map to the provider's reasoning effort or thinking budget. If a service needs a less common field, enter it as a **Custom Request Parameter**; custom thinking fields replace the selected thinking setting for that model.
 
 To add a model, use **Add Model**. To pull models from a service that supports discovery, use **Refresh Models**; this requires **Service Root** address mode and a saved access key.
 

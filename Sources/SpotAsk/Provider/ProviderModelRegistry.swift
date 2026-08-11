@@ -271,6 +271,14 @@ final class ProviderModelRegistry {
         }
         result.providers = try result.providers.map(normalized(provider:))
         result.models = try result.models.map(normalized(model:))
+        for index in result.models.indices {
+            guard let provider = result.providers.first(where: { $0.id == result.models[index].providerID }),
+                  provider.format == .anthropic,
+                  result.models[index].compatibilityProfile == .genericOpenAI else {
+                continue
+            }
+            result.models[index].compatibilityProfile = .anthropic
+        }
         for model in result.models {
             guard result.providers.contains(where: { $0.id == model.providerID }) else {
                 throw ProviderModelRegistryError.missingProvider(model.providerID)

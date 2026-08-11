@@ -1201,6 +1201,51 @@ private struct ModelDetailForm: View {
                         .foregroundStyle(.secondary)
                 }
                 SettingsToggleRow(label: L10n.string("settings.streaming"), isOn: $state.draftModelStreaming)
+                SettingsFieldRow(label: L10n.string("settings.requestCompatibilityProfile")) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Picker(L10n.string("settings.requestCompatibilityProfile"), selection: $state.draftModelCompatibilityProfile) {
+                            ForEach(RequestCompatibilityProfile.allCases, id: \.self) { profile in
+                                Text(profile.settingsTitle).tag(profile)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .onChange(of: state.draftModelCompatibilityProfile) { _, _ in state.clearStatus() }
+                        Text(L10n.string("settings.requestCompatibilityProfileDescription"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                SettingsFieldRow(label: L10n.string("settings.thinkingMode")) {
+                    Picker(L10n.string("settings.thinkingMode"), selection: $state.draftModelThinkingMode) {
+                        ForEach(ModelThinkingMode.allCases, id: \.self) { mode in
+                            Text(mode.settingsTitle).tag(mode)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .onChange(of: state.draftModelThinkingMode) { _, _ in state.clearStatus() }
+                }
+                SettingsFieldRow(label: L10n.string("settings.customRequestParameters")) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        TextField(
+                            L10n.string("settings.customRequestParametersPlaceholder"),
+                            text: $state.draftModelExtraRequestParametersText,
+                            axis: .vertical
+                        )
+                        .font(.system(size: 12, design: .monospaced))
+                        .lineLimit(2...6)
+                        .onChange(of: state.draftModelExtraRequestParametersText) { _, _ in state.clearStatus() }
+                        if let error = state.draftExtraRequestParametersJSONError {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
+                        Text(L10n.string("settings.customRequestParametersDescription"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
 
             // Show active indicator or "Use for Chat" button
@@ -1234,6 +1279,41 @@ private struct ModelDetailForm: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private extension ModelThinkingMode {
+    var settingsTitle: String {
+        switch self {
+        case .providerDefault: L10n.string("settings.thinkingModeProviderDefault")
+        case .disabled: L10n.string("settings.thinkingModeDisabled")
+        case .minimal: L10n.string("settings.thinkingModeMinimal")
+        case .low: L10n.string("settings.thinkingModeLow")
+        case .medium: L10n.string("settings.thinkingModeMedium")
+        case .high: L10n.string("settings.thinkingModeHigh")
+        case .xhigh: L10n.string("settings.thinkingModeXHigh")
+        case .max: L10n.string("settings.thinkingModeMax")
+        }
+    }
+}
+
+private extension RequestCompatibilityProfile {
+    var settingsTitle: String {
+        switch self {
+        case .genericOpenAI: L10n.string("settings.profileGenericOpenAI")
+        case .openAI: L10n.string("settings.profileOpenAI")
+        case .azureOpenAI: L10n.string("settings.profileAzureOpenAI")
+        case .deepSeek: L10n.string("settings.profileDeepSeek")
+        case .qwen: L10n.string("settings.profileQwen")
+        case .kimi: L10n.string("settings.profileKimi")
+        case .zAI: L10n.string("settings.profileZAI")
+        case .mistral: L10n.string("settings.profileMistral")
+        case .xAI: L10n.string("settings.profileXAI")
+        case .openRouter: L10n.string("settings.profileOpenRouter")
+        case .volcengineArk: L10n.string("settings.profileVolcengineArk")
+        case .siliconFlow: L10n.string("settings.profileSiliconFlow")
+        case .anthropic: L10n.string("settings.profileAnthropic")
+        }
     }
 }
 
@@ -2780,6 +2860,9 @@ final class ProviderSettingsState {
     var draftModelDisplayName = ""
     var draftModelUpstreamID = ""
     var draftModelStreaming = true
+    var draftModelCompatibilityProfile: RequestCompatibilityProfile = .genericOpenAI
+    var draftModelThinkingMode: ModelThinkingMode = .providerDefault
+    var draftModelExtraRequestParametersText = ""
 
     // MARK: Create/edit mode
 
@@ -2843,7 +2926,19 @@ final class ProviderSettingsState {
     var canSaveModel: Bool {
         let displayName = draftModelDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
         let upstreamID = draftModelUpstreamID.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !displayName.isEmpty && !upstreamID.isEmpty
+        return !displayName.isEmpty && !upstreamID.isEmpty && draftExtraRequestParametersJSONError == nil
+    }
+
+    var draftExtraRequestParametersJSONError: String? {
+        do {
+            let parameters = try decodedExtraRequestParameters() ?? [:]
+            if parameters.keys.contains(where: { RequestCompatibilityProfile.protectedStructuralKeys.contains($0) }) {
+                return L10n.string("settings.customRequestParametersProtected")
+            }
+            return nil
+        } catch {
+            return L10n.string("settings.customRequestParametersInvalid")
+        }
     }
 
     var canTestConnection: Bool {
@@ -2943,6 +3038,9 @@ final class ProviderSettingsState {
         draftModelDisplayName = ""
         draftModelUpstreamID = ""
         draftModelStreaming = true
+        draftModelCompatibilityProfile = provider.format == .anthropic ? .anthropic : .genericOpenAI
+        draftModelThinkingMode = .providerDefault
+        draftModelExtraRequestParametersText = ""
 
         apiKeyDraft = (try? keyStore.readAPIKey(for: id)) ?? ""
         status = ""
@@ -2964,6 +3062,9 @@ final class ProviderSettingsState {
         draftModelDisplayName = model.displayName
         draftModelUpstreamID = model.upstreamModelID
         draftModelStreaming = model.isStreamingEnabled
+        draftModelCompatibilityProfile = model.compatibilityProfile
+        draftModelThinkingMode = model.thinkingMode
+        draftModelExtraRequestParametersText = Self.requestParametersText(model.extraRequestParameters)
 
         draftProviderName = ""
         draftProviderAddress = ""
@@ -3039,6 +3140,10 @@ final class ProviderSettingsState {
         draftModelDisplayName = ""
         draftModelUpstreamID = ""
         draftModelStreaming = true
+        let newModelProvider = settings.providerRegistry.catalog?.providers.first(where: { $0.id == providerID })
+        draftModelCompatibilityProfile = newModelProvider?.format == .anthropic ? .anthropic : .genericOpenAI
+        draftModelThinkingMode = .providerDefault
+        draftModelExtraRequestParametersText = ""
         status = ""
         statusIsError = false
         providerFieldError = nil
@@ -3065,12 +3170,18 @@ final class ProviderSettingsState {
             draftModelDisplayName = ""
             draftModelUpstreamID = ""
             draftModelStreaming = true
+            draftModelCompatibilityProfile = provider.format == .anthropic ? .anthropic : .genericOpenAI
+            draftModelThinkingMode = .providerDefault
+            draftModelExtraRequestParametersText = ""
         } else if let mid = selectedModelID,
                   let catalog = settings.providerRegistry.catalog,
                   let model = catalog.models.first(where: { $0.id == mid }) {
             draftModelDisplayName = model.displayName
             draftModelUpstreamID = model.upstreamModelID
             draftModelStreaming = model.isStreamingEnabled
+            draftModelCompatibilityProfile = model.compatibilityProfile
+            draftModelThinkingMode = model.thinkingMode
+            draftModelExtraRequestParametersText = Self.requestParametersText(model.extraRequestParameters)
             draftProviderName = ""
             draftProviderAddress = ""
             draftProviderAddressMode = .baseURL
@@ -3088,6 +3199,9 @@ final class ProviderSettingsState {
             draftModelDisplayName = ""
             draftModelUpstreamID = ""
             draftModelStreaming = true
+            draftModelCompatibilityProfile = .genericOpenAI
+            draftModelThinkingMode = .providerDefault
+            draftModelExtraRequestParametersText = ""
             apiKeyDraft = ""
         }
     }
@@ -3140,6 +3254,10 @@ final class ProviderSettingsState {
             setStatus(L10n.string("settings.modelUpstreamIDRequired"), isError: true)
             return
         }
+        guard draftExtraRequestParametersJSONError == nil else {
+            setStatus(L10n.string("settings.customRequestParametersInvalid"), isError: true)
+            return
+        }
 
         do {
             let id = isCreatingModel ? UUID() : (selectedModelID ?? UUID())
@@ -3159,7 +3277,10 @@ final class ProviderSettingsState {
                 upstreamModelID: upstreamID,
                 providerID: providerID,
                 isStreamingEnabled: draftModelStreaming,
-                source: .manual
+                source: .manual,
+                compatibilityProfile: draftModelCompatibilityProfile,
+                thinkingMode: draftModelThinkingMode,
+                extraRequestParameters: try decodedExtraRequestParameters()
             )
             let saved = try settings.providerRegistry.saveModel(model)
             isCreatingModel = false
@@ -3389,7 +3510,10 @@ final class ProviderSettingsState {
                     upstreamModelID: model.upstreamModelID,
                     isStreamingEnabled: model.isStreamingEnabled,
                     timeout: timeout,
-                    format: isDraftProvider ? draftProviderFormat : provider.format
+                    format: isDraftProvider ? draftProviderFormat : provider.format,
+                    compatibilityProfile: model.compatibilityProfile,
+                    thinkingMode: model.thinkingMode,
+                    extraRequestParameters: model.extraRequestParameters
                 )
                 let chatProvider = try providerFactory.makeProvider(for: target)
                 try await chatProvider.testConnection()
@@ -3559,6 +3683,24 @@ final class ProviderSettingsState {
         modelRefreshTask?.cancel()
         modelRefreshTask = nil
         modelRefreshStatus = status
+    }
+
+    private func decodedExtraRequestParameters() throws -> [String: ModelJSONValue]? {
+        let text = draftModelExtraRequestParametersText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return nil }
+        let value = try JSONDecoder().decode(ModelJSONValue.self, from: Data(text.utf8))
+        guard case let .object(object) = value else {
+            throw ChatError.invalidResponse
+        }
+        return object
+    }
+
+    private static func requestParametersText(_ parameters: [String: ModelJSONValue]?) -> String {
+        guard let parameters, !parameters.isEmpty else { return "" }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        guard let data = try? encoder.encode(parameters) else { return "" }
+        return String(data: data, encoding: .utf8) ?? ""
     }
 
     func clearStatus() {

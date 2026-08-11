@@ -70,6 +70,8 @@ final class ProviderSettingsStateTests: XCTestCase {
         XCTAssertEqual(state.draftModelDisplayName, model.displayName)
         XCTAssertEqual(state.draftModelUpstreamID, model.upstreamModelID)
         XCTAssertEqual(state.draftModelStreaming, model.isStreamingEnabled)
+        XCTAssertEqual(state.draftModelCompatibilityProfile, model.compatibilityProfile)
+        XCTAssertEqual(state.draftModelThinkingMode, model.thinkingMode)
     }
 
     func testPersistingKeyDraftTargetsSelectedProviderAndKeepsDraftVisible() throws {
@@ -211,6 +213,9 @@ final class ProviderSettingsStateTests: XCTestCase {
         state.draftModelDisplayName = "New Model"
         state.draftModelUpstreamID = "new-upstream"
         state.draftModelStreaming = false
+        state.draftModelCompatibilityProfile = .deepSeek
+        state.draftModelThinkingMode = .high
+        state.draftModelExtraRequestParametersText = #"{"temperature":0.5}"#
         state.saveModel()
 
         XCTAssertFalse(state.isCreatingModel)
@@ -221,6 +226,33 @@ final class ProviderSettingsStateTests: XCTestCase {
         XCTAssertEqual(saved.upstreamModelID, "new-upstream")
         XCTAssertEqual(saved.providerID, provider.id)
         XCTAssertFalse(saved.isStreamingEnabled)
+        XCTAssertEqual(saved.compatibilityProfile, .deepSeek)
+        XCTAssertEqual(saved.thinkingMode, .high)
+        XCTAssertEqual(saved.extraRequestParameters, ["temperature": .number(0.5)])
+    }
+
+    func testSaveModelRejectsProtectedCustomRequestKeys() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let provider = try XCTUnwrap(settings.providerRegistry.catalog?.providers.first)
+        let initialModelCount = settings.providerRegistry.catalog?.models.count ?? 0
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(),
+            providerFactory: NoopProviderFactory()
+        )
+
+        state.startNewModel(for: provider.id)
+        state.draftModelDisplayName = "Bad"
+        state.draftModelUpstreamID = "bad"
+        state.draftModelExtraRequestParametersText = #"{"messages":[]}"#
+
+        XCTAssertNotNil(state.draftExtraRequestParametersJSONError)
+        state.saveModel()
+
+        XCTAssertTrue(state.statusIsError)
+        XCTAssertEqual(settings.providerRegistry.catalog?.models.count, initialModelCount)
     }
 
     func testSaveModelUpdatesExistingEntry() throws {
