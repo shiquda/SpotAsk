@@ -8,6 +8,19 @@ This guide is for people who build, test, package, localize, or release SpotAsk.
 - Xcode 16 or later
 - A service account with an OpenAI-compatible or Anthropic endpoint to exercise chat features
 
+## Documentation site
+
+The user documentation lives in `docs/site` and is built with VitePress. The source is bilingual: English at `/`, Simplified Chinese under `/zh-CN/`.
+
+```sh
+npm install
+npm run docs:dev
+npm run docs:build
+npm run docs:preview
+```
+
+The GitHub Pages workflow in `.github/workflows/docs.yml` builds `docs/site` and deploys it to `https://shiquda.github.io/SpotAsk/`.
+
 ## Build and test
 
 ```sh

@@ -1,6 +1,11 @@
 .build/
 build/
 dist/
+node_modules/
 .DS_Store
 AGENTS.md
-docs/
+docs/post/
+docs/research/
+docs/.DS_Store
+docs/site/.vitepress/cache/
+docs/site/.vitepress/dist/

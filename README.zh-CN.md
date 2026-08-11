@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="#下载">下载</a> · <a href="#快速开始">从源码构建</a> · <a href="#开发">开发</a> · <a href="README.md">English</a>
+  <a href="#下载">下载</a> · <a href="https://shiquda.github.io/SpotAsk/zh-CN/">文档</a> · <a href="#快速开始">从源码构建</a> · <a href="#开发">开发</a> · <a href="README.md">English</a>
 </p>
 
 <p align="center">
