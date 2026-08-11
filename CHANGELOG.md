@@ -7,12 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-08-11
+
 ### Added
 
 - Provider brand icons for supported services in the model picker, chat header, and settings.
 - Optional IM-style conversation layout: model messages on the left and your messages on the right in bubbles, available from Appearance settings.
 - Choose another model from the assistant message header and regenerate the latest answer with it.
 - Copied message selections restore Markdown markers across headings, lists, quotes, code blocks, and tables.
+- Math formulas render inside answers, with a toggle in Appearance settings.
+- A bilingual online user guide, reachable from About settings.
 
 ### Changed
 
@@ -25,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Selection highlighting stays continuous across Markdown blocks instead of showing separate highlighted fragments.
 - ⌘+L restores focus to the question input when focus has moved elsewhere.
 - The Settings sidebar supports Up/Down arrow navigation between sections while a sidebar item is focused.
+- Expanding the thinking process is smoother during long deep-thinking answers.
+- Automatic selection assistant no longer opens after an ordinary click or a selection that was already cleared.
 
 ## [0.1.4] - 2026-08-07
 
@@ -71,5 +77,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provider cards can be expanded and collapsed reliably.
 - Thinking expansion behavior: when enabled, thinking stays expanded during reasoning and collapses for the final answer; when disabled, it stays collapsed.
 
-[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/shiquda/SpotAsk/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/shiquda/SpotAsk/compare/v0.1.3...v0.1.4

@@ -94,6 +94,12 @@ jobs:
         run: ./Scripts/make-release-dmg.sh --arch x86_64 --output dist
       - name: Create checksums
         run: shasum -a 256 dist/*.dmg > "dist/SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt"
+      - name: Generate release notes from CHANGELOG
+        run: |
+          set -eu
+          ./Scripts/release-notes-from-changelog.sh "$RELEASE_TAG" > "$RUNNER_TEMP/release-notes.md"
+          test -s "$RUNNER_TEMP/release-notes.md"
+          echo "RELEASE_NOTES_FILE=$RUNNER_TEMP/release-notes.md" >> "$GITHUB_ENV"
       - name: Submit DMGs for notarization
         run: |
           set -eu
@@ -127,6 +133,7 @@ jobs:
               echo "Release $RELEASE_TAG is already published; refusing to replace it." >&2
               exit 1
             fi
+            gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes-file "$RELEASE_NOTES_FILE"
             gh release upload "$RELEASE_TAG" \
               "dist/SpotAsk-${APP_VERSION}-arm64.dmg" \
               "dist/SpotAsk-${APP_VERSION}-x86_64.dmg" \
@@ -144,6 +151,6 @@ jobs:
               --draft \
               --verify-tag \
               --title "$RELEASE_TAG" \
-              --generate-notes
+              --notes-file "$RELEASE_NOTES_FILE"
           fi
           gh workflow enable notarize-poll.yml --repo "$GITHUB_REPOSITORY"

@@ -142,7 +142,7 @@ The public release is only created after Apple accepts both architectures. To fi
 ```sh
 gh workflow run release-finalize.yml \
   --repo shiquda/SpotAsk \
-  --field release_tag=v0.1.4
+  --field release_tag=v0.1.5
 ```
 
 Notarization can occasionally take much longer than the usual few minutes. A new account or a submission Apple holds for review can remain `In Progress` for hours, so leaving the Draft Release in place and letting the poll workflow retry is expected.
