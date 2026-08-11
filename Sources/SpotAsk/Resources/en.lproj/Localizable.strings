@@ -143,6 +143,8 @@
 "settings.aboutDescription" = "View the app version, project source, and available updates.";
 "settings.version" = "Version";
 "settings.source" = "Project Source";
+"settings.userGuide" = "User Guide";
+"settings.openDocumentation" = "Open Documentation";
 "settings.updates" = "Updates";
 "settings.checkForUpdates" = "Check for Updates";
 "settings.checkingForUpdates" = "Checking for updates...";

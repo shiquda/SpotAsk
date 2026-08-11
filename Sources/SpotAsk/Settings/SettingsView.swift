@@ -2517,6 +2517,20 @@ private struct AppearanceSettingsPage: View {
 
 // MARK: - About Settings Page
 
+enum DocumentationLinks {
+    static let englishUserGuide = URL(string: "https://shiquda.github.io/SpotAsk/")!
+    static let simplifiedChineseUserGuide = URL(string: "https://shiquda.github.io/SpotAsk/zh-CN/")!
+
+    static func userGuideURL(
+        for language: AppLanguage,
+        preferredLanguages: [String] = Locale.preferredLanguages
+    ) -> URL {
+        let usesChineseDocumentation = language == .simplifiedChinese
+            || (language == .system && preferredLanguages.first?.lowercased().hasPrefix("zh") == true)
+        return usesChineseDocumentation ? simplifiedChineseUserGuide : englishUserGuide
+    }
+}
+
 private struct AboutSettingsPage: View {
     let updateState: AppUpdateState
     let settings: AppSettings
@@ -2535,6 +2549,12 @@ private struct AboutSettingsPage: View {
                 SettingsFieldRow(label: L10n.string("settings.source")) {
                     Link(AppUpdateChecker.sourceURL.absoluteString, destination: AppUpdateChecker.sourceURL)
                         .textSelection(.enabled)
+                }
+                Divider()
+                SettingsFieldRow(label: L10n.string("settings.userGuide")) {
+                    Link(destination: DocumentationLinks.userGuideURL(for: settings.language)) {
+                        Label(L10n.string("settings.openDocumentation"), systemImage: "book")
+                    }
                 }
             }
 

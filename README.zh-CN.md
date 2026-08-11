@@ -66,6 +66,12 @@ SpotAsk 围绕两个日常场景设计，先看看它们怎么用：
 
 软件包已使用 Apple Developer ID 签名并通过 Apple 公证，首次打开时无需在 macOS 中手动确认。官方发布版本可直接通过 Spotlight、Siri 或快捷指令调用 SpotAsk；如需自行构建，请按下方[启用系统联动](#启用系统联动)说明操作。
 
+## 文档
+
+[SpotAsk 用户手册](https://shiquda.github.io/SpotAsk/zh-CN/)包含安装、AI 服务配置、划词操作、提示词、附件、macOS 系统集成、设置参考和故障排查，同时提供[简体中文](https://shiquda.github.io/SpotAsk/zh-CN/)与[英文](https://shiquda.github.io/SpotAsk/)版本。
+
+第一次使用可以从[快速开始](https://shiquda.github.io/SpotAsk/zh-CN/getting-started)开始；遇到连接、模型、权限或快捷键问题时，请查看[故障排查](https://shiquda.github.io/SpotAsk/zh-CN/troubleshooting)。
+
 ## 快速开始
 
 也可以从源码构建 SpotAsk。

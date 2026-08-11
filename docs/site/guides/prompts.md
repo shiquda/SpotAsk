@@ -12,7 +12,7 @@ Prompts turn one question into a repeatable workflow. SpotAsk includes four buil
 In the question window, choose a prompt before sending:
 
 - With content in the input, selecting a prompt sends it immediately.
-- With an empty input, select a prompt, enter your question, then press `Return`.
+- With an empty input, select a prompt, enter your question, then press `↩`.
 
 ## Create a custom prompt
 
@@ -30,7 +30,7 @@ Turn off prompts you do not want to see. Disabled prompts are not available in t
 
 ## Prompt shortcuts
 
-The first enabled prompts get `Cmd + 1` through `Cmd + 9` by default. Prompt order changes the assignment. You can reassign or clear prompt shortcuts in Settings > **Shortcuts**.
+The first enabled prompts get `⌘ + 1` through `⌘ + 9` by default. Prompt order changes the assignment. You can reassign or clear prompt shortcuts in Settings > **Shortcuts**.
 
 ## Custom instructions
 

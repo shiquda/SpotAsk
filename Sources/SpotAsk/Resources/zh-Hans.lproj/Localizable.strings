@@ -143,6 +143,8 @@
 "settings.aboutDescription" = "查看应用版本、项目来源和可用更新。";
 "settings.version" = "版本";
 "settings.source" = "项目来源";
+"settings.userGuide" = "用户手册";
+"settings.openDocumentation" = "打开文档";
 "settings.updates" = "更新";
 "settings.checkForUpdates" = "检查更新";
 "settings.checkingForUpdates" = "正在检查更新…";

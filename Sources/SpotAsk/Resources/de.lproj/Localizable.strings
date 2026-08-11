@@ -143,6 +143,8 @@
 "settings.aboutDescription" = "App-Version, Projektquellcode und verfügbare Updates ansehen.";
 "settings.version" = "Version";
 "settings.source" = "Projektquelle";
+"settings.userGuide" = "Benutzerhandbuch";
+"settings.openDocumentation" = "Dokumentation öffnen";
 "settings.updates" = "Updates";
 "settings.checkForUpdates" = "Nach Updates suchen";
 "settings.checkingForUpdates" = "Suche nach Updates...";

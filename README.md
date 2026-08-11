@@ -66,6 +66,12 @@ Download the matching package from [GitHub Releases](https://github.com/shiquda/
 
 The packages are signed with a Developer ID and notarized by Apple, so macOS can verify them on first launch without a manual confirmation. The official release supports SpotAsk from Spotlight, Siri, or Shortcuts. To build a custom version instead, follow [Build with system integrations](#build-with-system-integrations).
 
+## Documentation
+
+The [SpotAsk user guide](https://shiquda.github.io/SpotAsk/) covers installation, AI service setup, selection actions, prompts, attachments, macOS integrations, settings, and troubleshooting. It is available in [English](https://shiquda.github.io/SpotAsk/) and [Simplified Chinese](https://shiquda.github.io/SpotAsk/zh-CN/).
+
+Start with [Getting Started](https://shiquda.github.io/SpotAsk/getting-started), or open [Troubleshooting](https://shiquda.github.io/SpotAsk/troubleshooting) when a connection, model, permission, or shortcut does not work as expected.
+
 ## Quick start
 
 You can also build SpotAsk from source.

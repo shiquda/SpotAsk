@@ -36,7 +36,7 @@ The default delay is 0.8 seconds. Set **Wait** from 0 to 3 seconds so the action
 
 ## Manual trigger
 
-The selection shortcut works even when automatic display is off. The default is `Option + Shift + Space`.
+The selection shortcut works even when automatic display is off. The default is `⌥ + ⇧ + Space`.
 
 ## What can go wrong
 

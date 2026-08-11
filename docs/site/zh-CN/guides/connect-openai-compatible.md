@@ -47,6 +47,6 @@ https://api.openai.com/v1/chat/completions
 
 ## 配置完成后
 
-关闭设置，按 `Option + Space` 提问。如果连接测试通过但提问失败，请参考[故障排查](/zh-CN/troubleshooting)。
+关闭设置，按 `⌥ + Space` 提问。如果连接测试通过但提问失败，请参考[故障排查](/zh-CN/troubleshooting)。
 
 相关：[服务根地址与完整请求地址](/zh-CN/guides/service-addresses)、[服务与模型](/zh-CN/guides/providers-and-models)

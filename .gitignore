@@ -9,3 +9,6 @@ docs/research/
 docs/.DS_Store
 docs/site/.vitepress/cache/
 docs/site/.vitepress/dist/
+docs/site/public/llms.txt
+docs/site/public/llms-full.txt
+docs/site/public/markdown/

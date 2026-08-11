@@ -444,6 +444,25 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(AppLanguage.allCases.count, 9)
     }
 
+    func testDocumentationLinkUsesChineseOnlyForChineseInterface() {
+        XCTAssertEqual(
+            DocumentationLinks.userGuideURL(for: .simplifiedChinese),
+            DocumentationLinks.simplifiedChineseUserGuide
+        )
+        XCTAssertEqual(
+            DocumentationLinks.userGuideURL(for: .english),
+            DocumentationLinks.englishUserGuide
+        )
+        XCTAssertEqual(
+            DocumentationLinks.userGuideURL(for: .system, preferredLanguages: ["zh-Hans-CN"]),
+            DocumentationLinks.simplifiedChineseUserGuide
+        )
+        XCTAssertEqual(
+            DocumentationLinks.userGuideURL(for: .system, preferredLanguages: ["en-US"]),
+            DocumentationLinks.englishUserGuide
+        )
+    }
+
     func testNewLanguagesContainEveryEnglishString() throws {
         let englishKeys = try stringsKeys(in: .english)
         let languages: [AppLanguage] = [.spanish, .german, .japanese, .french, .portuguese, .russian]

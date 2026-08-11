@@ -21,19 +21,19 @@ description: A compact reference for SpotAsk settings sections, default shortcut
 
 | Action | Shortcut |
 | --- | --- |
-| Open or focus the question window | `Option + Space` (customizable) |
-| Trigger the selection assistant | `Option + Shift + Space` |
-| Focus the input | `Cmd + L` |
-| Regenerate or retry | `Cmd + R` |
-| Copy the latest answer | `Cmd + Shift + C` |
-| Open Settings | `Cmd + ,` |
-| New conversation | `Cmd + N` |
-| Zoom in | `Cmd + =` |
-| Zoom out | `Cmd + -` |
-| Run the first enabled prompts | `Cmd + 1` through `Cmd + 9` |
-| Send the question | `Return` |
-| Add a line break | `Shift + Return` |
-| Stop generating | `Escape` |
+| Open or focus the question window | `⌥ + Space` (customizable) |
+| Trigger the selection assistant | `⌥ + ⇧ + Space` |
+| Focus the input | `⌘ + L` |
+| Regenerate or retry | `⌘ + R` |
+| Copy the latest answer | `⌘ + ⇧ + C` |
+| Open Settings | `⌘ + ,` |
+| New conversation | `⌘ + N` |
+| Zoom in | `⌘ + =` |
+| Zoom out | `⌘ + -` |
+| Run the first enabled prompts | `⌘ + 1` through `⌘ + 9` |
+| Send the question | `↩` |
+| Add a line break | `⇧ + ↩` |
+| Stop generating | `⎋` |
 
 Prompt shortcuts depend on prompt order and which prompts are enabled. In-app shortcuts can be reassigned or cleared in Settings.
 

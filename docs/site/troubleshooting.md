@@ -28,7 +28,7 @@ If refresh fails, verify the service address and access key first. If your provi
 2. Allow the **Cross-app text access** permission when requested, and check its status in Settings.
 3. If **Trigger mode** is **Show quick actions**, enable **Show quick actions after selecting text**.
 4. Check **Auto-show apps**. In whitelist mode, only selected apps show the actions; in blacklist mode, excluded apps do not.
-5. Try the selection shortcut manually: the default is `Option + Shift + Space`.
+5. Try the selection shortcut manually: the default is `⌥ + ⇧ + Space`.
 6. Remember that SpotAsk cannot read empty selections, secure input fields, or text in apps that do not expose selected text.
 
 ## Global shortcut conflicts

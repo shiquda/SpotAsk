@@ -7,9 +7,9 @@ description: Install SpotAsk, connect an AI service, and ask your first question
 
 SpotAsk runs as a native macOS menu bar app. After you connect an AI service, the shortest workflow is:
 
-1. Press `Option + Space` (or your configured hotkey) to open the question window.
+1. Press `⌥ + Space` (or your configured hotkey) to open the question window.
 2. Ask your question.
-3. Copy the answer or press `Escape` to close the window and return to what you were doing.
+3. Copy the answer or press `⎋` to close the window and return to what you were doing.
 
 ## Requirements
 
@@ -27,7 +27,7 @@ Open the DMG and move SpotAsk to Applications. The official release is signed wi
 
 ## Connect your AI service
 
-Open Settings from the menu bar (or press `Cmd + ,`), then open **Services**.
+Open Settings from the menu bar (or press `⌘ + ,`), then open **Services**.
 
 1. Add or select a service.
 2. Choose **API Format**: **OpenAI Compatible** or **Anthropic**.
@@ -41,13 +41,13 @@ If the test succeeds, close Settings and ask your first question. Most connectio
 
 ## Ask your first question
 
-Click the menu bar icon or press `Option + Space`. Type a question and press `Return`.
+Click the menu bar icon or press `⌥ + Space`. Type a question and press `↩`.
 
 The answer streams into the window when the service supports it. You can:
 
 - Click **Copy** on an answer or code block.
-- Press `Escape` to stop a response.
-- Press `Cmd + N` to start a new conversation.
+- Press `⎋` to stop a response.
+- Press `⌘ + N` to start a new conversation.
 
 ## Explore next
 

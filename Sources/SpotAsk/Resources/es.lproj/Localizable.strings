@@ -143,6 +143,8 @@
 "settings.aboutDescription" = "Consulta la versión, el código fuente y las actualizaciones disponibles.";
 "settings.version" = "Versión";
 "settings.source" = "Código del proyecto";
+"settings.userGuide" = "Manual del usuario";
+"settings.openDocumentation" = "Abrir documentación";
 "settings.updates" = "Actualizaciones";
 "settings.checkForUpdates" = "Buscar actualizaciones";
 "settings.checkingForUpdates" = "Buscando actualizaciones...";

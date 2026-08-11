@@ -9,7 +9,7 @@ Use this page as a map of what SpotAsk can do. Pick a task instead of a setting;
 
 ## Quick questions from anywhere
 
-Press your global hotkey to open a focused question window over any app. Ask, get an answer, copy it, and close with `Escape`.
+Press your global hotkey to open a focused question window over any app. Ask, get an answer, copy it, and close with `⎋`.
 
 - [Getting Started](/getting-started)
 

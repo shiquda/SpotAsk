@@ -1,4 +1,28 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig, type HeadConfig } from 'vitepress'
+
+const docsUrl = 'https://shiquda.github.io/SpotAsk/'
+const socialImageUrl = `${docsUrl}images/spotask-chat.png`
+
+function routeForPage(page: string): string {
+  const withoutExtension = page.replace(/\.md$/, '')
+  if (withoutExtension === 'index') return ''
+  return withoutExtension.endsWith('/index')
+    ? withoutExtension.slice(0, -'index'.length)
+    : withoutExtension
+}
+
+function canonicalUrlForPage(page: string): string {
+  return `${docsUrl}${routeForPage(page)}`
+}
+
+function markdownUrlForPage(page: string): string {
+  return `${docsUrl}markdown/${page}`
+}
+
+function localizedPages(page: string): { english: string; chinese: string } {
+  const english = page.startsWith('zh-CN/') ? page.slice('zh-CN/'.length) : page
+  return { english, chinese: `zh-CN/${english}` }
+}
 
 function chineseTokenizer(text: string): string[] {
   if (!text) return []
@@ -101,10 +125,63 @@ export default defineConfig({
   title: 'SpotAsk Docs',
   description: 'Learn what SpotAsk can do, connect your AI service, and solve common problems.',
   base: '/SpotAsk/',
+  srcExclude: ['public/markdown/**/*.md'],
   cleanUrls: true,
   lastUpdated: true,
+  sitemap: {
+    hostname: docsUrl
+  },
+  transformHead({ page, title, description }): HeadConfig[] {
+    if (page === '404.md') {
+      return [['meta', { name: 'robots', content: 'noindex, nofollow' }]]
+    }
+
+    const canonicalUrl = canonicalUrlForPage(page)
+    const markdownUrl = markdownUrlForPage(page)
+    const pages = localizedPages(page)
+    const isChinese = page.startsWith('zh-CN/')
+    const language = isChinese ? 'zh-CN' : 'en'
+    const structuredData = {
+      '@context': 'https://schema.org',
+      '@type': routeForPage(page) ? 'WebPage' : 'WebSite',
+      name: title,
+      description,
+      url: canonicalUrl,
+      inLanguage: language,
+      isPartOf: routeForPage(page)
+        ? {
+            '@type': 'WebSite',
+            name: 'SpotAsk Documentation',
+            url: docsUrl
+          }
+        : undefined
+    }
+
+    return [
+      ['link', { rel: 'canonical', href: canonicalUrl }],
+      ['link', { rel: 'alternate', hreflang: 'en', href: canonicalUrlForPage(pages.english) }],
+      ['link', { rel: 'alternate', hreflang: 'zh-CN', href: canonicalUrlForPage(pages.chinese) }],
+      ['link', { rel: 'alternate', hreflang: 'x-default', href: canonicalUrlForPage(pages.english) }],
+      ['link', { rel: 'alternate', type: 'text/markdown', href: markdownUrl }],
+      ['link', { rel: 'describedby', type: 'text/plain', href: `${docsUrl}llms.txt` }],
+      ['meta', { property: 'og:type', content: 'website' }],
+      ['meta', { property: 'og:site_name', content: 'SpotAsk Documentation' }],
+      ['meta', { property: 'og:title', content: title }],
+      ['meta', { property: 'og:description', content: description }],
+      ['meta', { property: 'og:url', content: canonicalUrl }],
+      ['meta', { property: 'og:image', content: socialImageUrl }],
+      ['meta', { property: 'og:locale', content: isChinese ? 'zh_CN' : 'en_US' }],
+      ['meta', { property: 'og:locale:alternate', content: isChinese ? 'en_US' : 'zh_CN' }],
+      ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+      ['meta', { name: 'twitter:title', content: title }],
+      ['meta', { name: 'twitter:description', content: description }],
+      ['meta', { name: 'twitter:image', content: socialImageUrl }],
+      ['script', { type: 'application/ld+json' }, JSON.stringify(structuredData)]
+    ]
+  },
   head: [
-    ['link', { rel: 'icon', href: '/SpotAsk/spotask-icon.png' }]
+    ['link', { rel: 'icon', href: '/SpotAsk/spotask-icon.png' }],
+    ['link', { rel: 'sitemap', type: 'application/xml', href: `${docsUrl}sitemap.xml` }]
   ],
   locales: {
     root: {

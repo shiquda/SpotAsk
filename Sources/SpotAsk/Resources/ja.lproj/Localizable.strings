@@ -143,6 +143,8 @@
 "settings.aboutDescription" = "アプリのバージョン、プロジェクトのソース、利用可能なアップデートを確認します。";
 "settings.version" = "バージョン";
 "settings.source" = "プロジェクトソース";
+"settings.userGuide" = "ユーザーマニュアル";
+"settings.openDocumentation" = "ドキュメントを開く";
 "settings.updates" = "アップデート";
 "settings.checkForUpdates" = "アップデートを確認";
 "settings.checkingForUpdates" = "アップデートを確認中...";

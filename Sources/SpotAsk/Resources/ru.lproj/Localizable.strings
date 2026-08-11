@@ -143,6 +143,8 @@
 "settings.aboutDescription" = "Просмотр версии приложения, исходного кода проекта и доступных обновлений.";
 "settings.version" = "Версия";
 "settings.source" = "Исходный код проекта";
+"settings.userGuide" = "Руководство пользователя";
+"settings.openDocumentation" = "Открыть документацию";
 "settings.updates" = "Обновления";
 "settings.checkForUpdates" = "Проверить обновления";
 "settings.checkingForUpdates" = "Проверка обновлений...";
