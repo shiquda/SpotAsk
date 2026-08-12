@@ -109,9 +109,8 @@ Personal Team builds are intended for personal use and may need to be rebuilt pe
 Open Settings from the menu bar (or press Cmd + ,) and fill in:
 
 1. **Provider** — select the service you want to use (OpenAI-compatible or Anthropic), or add a new one.
-2. **Service address** — the full chat endpoint URL for your provider.
-3. **Model** — the model name your provider expects (for example, `gpt-5-mini`).
-4. **Access key** — your service credential, stored only on this Mac.
+2. **Model** — the model name your provider expects (for example, `gpt-5-mini`).
+3. **Access key** — your service credential, stored only on this Mac.
 
 Use **Test Connection** to confirm the values work, then close Settings and start asking.
 

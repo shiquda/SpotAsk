@@ -15,7 +15,7 @@ description: A compact reference for SpotAsk settings sections, default shortcut
 | Shortcuts | Global hotkey and shortcuts used while the SpotAsk window is open |
 | General | Language, launch behavior, session retention, proxy, diagnostics, local data |
 | Appearance | Appearance, font size, message style, and reading size |
-| About | Version, project source, and updates |
+| About | Version, project source, automatic update checks, and manual update checks |
 
 ## Default shortcuts
 
@@ -53,3 +53,9 @@ Up to 8 attachments are supported per message. Very large images are normalized 
 - **New Conversation** returns to the Settings default model and clears the current draft.
 - If conversation retention is enabled, SpotAsk asks whether to continue a conversation after it has been idle for a while.
 - Escape behavior can be set in General: it stops a response or starts a new conversation.
+
+## Updates
+
+- Automatic update checking runs once when SpotAsk launches and notifies you when a new release is available.
+- **Check for Updates** checks immediately from About > Updates.
+- **Download Update** opens the release page for the available version.

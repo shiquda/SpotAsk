@@ -24,6 +24,10 @@ The selection assistant reads text you select through macOS Accessibility. Permi
 
 Configuration backup exports your services, models, prompts, shortcuts, and general settings. Access keys are excluded by default. If you choose to include them in the export, keep the file private.
 
+## Update checks
+
+Automatic update checking is enabled by default and checks the official release page once at launch. You can turn it off or check manually in About > Updates. The check does not send questions, access keys, or selected text.
+
 ## Clear local data
 
 Settings > General > **Clear All Local Data** removes access keys, settings, and saved recent conversations.
