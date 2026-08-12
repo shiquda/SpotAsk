@@ -4,6 +4,7 @@
 "chat.model" = "模型";
 "chat.answerContent" = "回答内容";
 "chat.askAnything" = "想问点什么？";
+"chat.assistant" = "助手";
 "chat.copyAnswer" = "复制回答";
 "chat.copyCompleteAnswer" = "复制完整回答";
 "chat.copyLastAnswer" = "复制最后一条完整回答";
@@ -447,6 +448,7 @@
 "settings.profileVolcengineArk" = "火山方舟";
 "settings.profileSiliconFlow" = "SiliconFlow";
 "settings.profileAnthropic" = "Anthropic";
+"settings.thinkingMode" = "思考等级";
 "settings.thinkingModeProviderDefault" = "由服务决定";
 "settings.thinkingModeDisabled" = "关闭";
 "settings.thinkingModeMinimal" = "最低";

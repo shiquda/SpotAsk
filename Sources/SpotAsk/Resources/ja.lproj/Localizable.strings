@@ -4,6 +4,7 @@
 "chat.model" = "モデル";
 "chat.answerContent" = "回答内容";
 "chat.askAnything" = "何を質問しますか？";
+"chat.assistant" = "アシスタント";
 "chat.copyAnswer" = "回答をコピー";
 "chat.copyCompleteAnswer" = "完全な回答をコピー";
 "chat.copyLastAnswer" = "最新の完全な回答をコピー";
@@ -447,6 +448,7 @@
 "settings.profileVolcengineArk" = "Volcengine Ark";
 "settings.profileSiliconFlow" = "SiliconFlow";
 "settings.profileAnthropic" = "Anthropic";
+"settings.thinkingMode" = "思考レベル";
 "settings.thinkingModeProviderDefault" = "プロバイダー既定";
 "settings.thinkingModeDisabled" = "オフ";
 "settings.thinkingModeMinimal" = "最小";

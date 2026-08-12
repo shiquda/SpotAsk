@@ -170,6 +170,14 @@ Interface strings live in `Sources/SpotAsk/Resources/<lang>.lproj/Localizable.st
 2. Create the `<lang>.lproj` directory and add both string tables.
 3. Use `L10n.string("key")` for UI strings and keep the English table in sync.
 
+For local diagnosis, run:
+
+```sh
+uv run Scripts/check-localization.py
+```
+
+The script reports `L10n.string` keys missing from `Localizable.strings`, localization tables that do not match English, and optional unused English keys with `--include-unused`. It is intentionally not part of CI.
+
 ## Accessibility
 
 The selection assistant reads selected text through the macOS Accessibility API. When a user enables the feature in Settings, the app requests permission once; reads run on a background queue. See `research/macos-accessibility-permission-guidance.md` for details.

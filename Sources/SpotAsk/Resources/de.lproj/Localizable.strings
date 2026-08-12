@@ -4,6 +4,7 @@
 "chat.model" = "Modell";
 "chat.answerContent" = "Antwortinhalt";
 "chat.askAnything" = "Was möchtest du fragen?";
+"chat.assistant" = "Assistent";
 "chat.copyAnswer" = "Antwort kopieren";
 "chat.copyCompleteAnswer" = "Vollständige Antwort kopieren";
 "chat.copyLastAnswer" = "Letzte vollständige Antwort kopieren";
@@ -447,6 +448,7 @@
 "settings.profileVolcengineArk" = "Volcengine Ark";
 "settings.profileSiliconFlow" = "SiliconFlow";
 "settings.profileAnthropic" = "Anthropic";
+"settings.thinkingMode" = "Denkstufe";
 "settings.thinkingModeProviderDefault" = "Provider-Standard";
 "settings.thinkingModeDisabled" = "Aus";
 "settings.thinkingModeMinimal" = "Minimal";
