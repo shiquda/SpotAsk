@@ -101,6 +101,7 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
     private var selectionCoordinator: SelectionAssistantCoordinator?
     private var selectionOverlay: SelectionOverlayController?
     private var selectionAutoInvokeMonitor: SelectionAutoInvokeMonitor?
+    private lazy var launchUpdateNotifier = AutomaticUpdateNotifier(settings: settings)
     private var statusBarController: StatusBarController?
     private var entryPresentationCoordinator: AppEntryPresentationCoordinator?
 
@@ -174,6 +175,7 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         if !settings.silentLaunch {
             SpotAskCommandCenter.shared.open()
         }
+        scheduleAutomaticUpdateCheck()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -204,6 +206,22 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func refreshAccessibilityPermission() {
         accessibilityPermissionCoordinator.refresh()
+    }
+
+    private func scheduleAutomaticUpdateCheck() {
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            guard let self, !Task.isCancelled else { return }
+            await self.launchUpdateNotifier.checkAtLaunchIfEnabled { update in
+                StatusToastCenter.shared.show(
+                    L10n.string("update.newVersionAvailable", update.version.description),
+                    actionTitle: L10n.string("update.viewRelease"),
+                    duration: StatusToastCenter.actionDisplayDuration
+                ) {
+                    NSWorkspace.shared.open(AppUpdateChecker.downloadURL)
+                }
+            }
+        }
     }
 
     private func registerGlobalHotKey() throws {

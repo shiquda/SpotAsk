@@ -328,6 +328,7 @@ final class AppSettings {
         static let selectionAutoInvokeBlacklist = "selectionAutoInvokeBlacklist"
         static let selectionAutoInvokeWhitelist = "selectionAutoInvokeWhitelist"
         static let selectionActionBarShowsLabels = "selectionActionBarShowsLabels"
+        static let automaticUpdateCheckEnabled = "automaticUpdateCheckEnabled"
     }
 
     private let defaults: UserDefaults
@@ -416,6 +417,9 @@ final class AppSettings {
         }
     }
     var selectionActionBarShowsLabels: Bool { didSet { defaults.set(selectionActionBarShowsLabels, forKey: Key.selectionActionBarShowsLabels) } }
+    var automaticUpdateCheckEnabled: Bool {
+        didSet { defaults.set(automaticUpdateCheckEnabled, forKey: Key.automaticUpdateCheckEnabled) }
+    }
     /// Whether a cross-app selection automatically shows the quick actions after
     /// `selectionAutoInvokeDelay` seconds. Defaults off so granting high-impact
     /// accessibility access remains an explicit user decision.
@@ -550,6 +554,7 @@ final class AppSettings {
         selectionAutoInvokeBlacklist = defaults.stringArray(forKey: Key.selectionAutoInvokeBlacklist) ?? []
         selectionAutoInvokeWhitelist = defaults.stringArray(forKey: Key.selectionAutoInvokeWhitelist) ?? []
         selectionActionBarShowsLabels = defaults.object(forKey: Key.selectionActionBarShowsLabels) as? Bool ?? true
+        automaticUpdateCheckEnabled = defaults.object(forKey: Key.automaticUpdateCheckEnabled) as? Bool ?? true
         selectionAutoInvokeDelay = SelectionAutoInvokeDelay.normalized(
             defaults.object(forKey: Key.selectionAutoInvokeDelay) as? Double ?? SelectionAutoInvokeDelay.defaultValue
         )
@@ -709,6 +714,7 @@ final class AppSettings {
                 hotKeyPreset: hotKeyPreset.rawValue,
                 keepWindowOnTop: keepWindowOnTop,
                 showsMenuBarIcon: showsMenuBarIcon,
+                automaticUpdateCheckEnabled: automaticUpdateCheckEnabled,
                 proxyEnabled: proxyEnabled,
                 proxyType: proxyType.rawValue,
                 proxyHost: proxyHost,
@@ -764,6 +770,9 @@ final class AppSettings {
         hotKeyPreset = HotKeyPreset(rawValue: general.hotKeyPreset) ?? .optionSpace
         keepWindowOnTop = general.keepWindowOnTop
         showsMenuBarIcon = general.showsMenuBarIcon
+        if let automaticUpdateCheckEnabled = general.automaticUpdateCheckEnabled {
+            self.automaticUpdateCheckEnabled = automaticUpdateCheckEnabled
+        }
         if let proxyEnabled = general.proxyEnabled { self.proxyEnabled = proxyEnabled }
         if let proxyType = general.proxyType, let type = ProxyType(rawValue: proxyType) { self.proxyType = type }
         if let proxyHost = general.proxyHost { self.proxyHost = proxyHost }

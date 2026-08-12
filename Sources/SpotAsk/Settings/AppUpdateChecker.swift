@@ -67,10 +67,30 @@ struct AppUpdateChecker: AppUpdateChecking {
         }
 
         let release = try JSONDecoder().decode(Release.self, from: data)
-        return Self.update(forReleaseTag: release.tagName, currentVersion: currentVersion)
+        return Self.update(
+            forReleaseTag: release.tagName,
+            isDraft: release.isDraft,
+            isPrerelease: release.isPrerelease,
+            currentVersion: currentVersion
+        )
     }
 
     static func update(forReleaseTag releaseTag: String, currentVersion: AppVersion) -> AvailableAppUpdate? {
+        Self.update(
+            forReleaseTag: releaseTag,
+            isDraft: false,
+            isPrerelease: false,
+            currentVersion: currentVersion
+        )
+    }
+
+    static func update(
+        forReleaseTag releaseTag: String,
+        isDraft: Bool,
+        isPrerelease: Bool,
+        currentVersion: AppVersion
+    ) -> AvailableAppUpdate? {
+        guard !isDraft, !isPrerelease else { return nil }
         guard let releaseVersion = AppVersion(string: releaseTag), currentVersion < releaseVersion else {
             return nil
         }
@@ -79,14 +99,44 @@ struct AppUpdateChecker: AppUpdateChecking {
 
     private struct Release: Decodable {
         let tagName: String
+        let isDraft: Bool
+        let isPrerelease: Bool
 
         enum CodingKeys: String, CodingKey {
             case tagName = "tag_name"
+            case isDraft = "draft"
+            case isPrerelease = "prerelease"
         }
     }
 
     private enum UpdateCheckError: Error {
         case invalidResponse
+    }
+}
+
+@MainActor
+final class AutomaticUpdateNotifier {
+    private let settings: AppSettings
+    private let checker: any AppUpdateChecking
+    private var didCheckAtLaunch = false
+
+    init(
+        settings: AppSettings = .shared,
+        checker: any AppUpdateChecking = AppUpdateChecker()
+    ) {
+        self.settings = settings
+        self.checker = checker
+    }
+
+    func checkAtLaunchIfEnabled(
+        showUpdate: @escaping (AvailableAppUpdate) -> Void
+    ) async {
+        guard !didCheckAtLaunch, settings.automaticUpdateCheckEnabled else { return }
+        didCheckAtLaunch = true
+
+        guard let update = try? await checker.check(for: .current) else { return }
+        guard settings.automaticUpdateCheckEnabled else { return }
+        showUpdate(update)
     }
 }
 

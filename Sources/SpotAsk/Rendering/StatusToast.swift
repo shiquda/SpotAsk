@@ -10,16 +10,41 @@ final class StatusToastCenter {
     private var dismissalTasks: [UUID: Task<Void, Never>] = [:]
 
     static let displayDuration: Duration = .milliseconds(2_400)
+    static let actionDisplayDuration: Duration = .seconds(8)
 
-    func show(_ message: String, isError: Bool = false) {
-        let item = StatusToastItem(message: message, isError: isError)
+    func show(
+        _ message: String,
+        isError: Bool = false,
+        actionTitle: String? = nil,
+        action: (() -> Void)? = nil
+    ) {
+        show(
+            message,
+            isError: isError,
+            actionTitle: actionTitle,
+            duration: Self.displayDuration,
+            action: action
+        )
+    }
+
+    func show(
+        _ message: String,
+        isError: Bool = false,
+        actionTitle: String? = nil,
+        duration: Duration,
+        action: (() -> Void)? = nil
+    ) {
+        let toastAction = actionTitle.map {
+            StatusToastAction(title: $0, handler: action ?? {})
+        }
+        let item = StatusToastItem(message: message, isError: isError, action: toastAction)
         items.append(item)
         if items.count > 3 {
             items.removeFirst(items.count - 3)
         }
         dismissalTasks[item.id]?.cancel()
         dismissalTasks[item.id] = Task { [weak self] in
-            try? await Task.sleep(for: Self.displayDuration)
+            try? await Task.sleep(for: duration)
             guard !Task.isCancelled else { return }
             self?.dismiss(item.id)
         }
@@ -32,10 +57,30 @@ final class StatusToastCenter {
     }
 }
 
+struct StatusToastAction: Identifiable {
+    let id = UUID()
+    let title: String
+    let handler: () -> Void
+}
+
 struct StatusToastItem: Identifiable, Equatable {
     let id = UUID()
     let message: String
     let isError: Bool
+    let action: StatusToastAction?
+
+    init(message: String, isError: Bool, action: StatusToastAction? = nil) {
+        self.message = message
+        self.isError = isError
+        self.action = action
+    }
+
+    static func == (lhs: StatusToastItem, rhs: StatusToastItem) -> Bool {
+        lhs.id == rhs.id
+            && lhs.message == rhs.message
+            && lhs.isError == rhs.isError
+            && lhs.action?.title == rhs.action?.title
+    }
 }
 
 struct StatusToastOverlay: View {
@@ -73,6 +118,17 @@ private struct StatusToastCard: View {
                 .foregroundStyle(.primary)
                 .lineLimit(3)
                 .frame(maxWidth: 220, alignment: .leading)
+            if let action = item.action {
+                Button {
+                    action.handler()
+                    onDismiss()
+                } label: {
+                    Label(action.title, systemImage: "arrow.up.right")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            }
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
                     .font(.system(size: 9, weight: .semibold))

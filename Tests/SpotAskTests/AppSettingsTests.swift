@@ -51,6 +51,18 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertTrue(AppSettings(defaults: defaults).silentLaunch)
     }
 
+    func testAutomaticUpdateCheckDefaultsToEnabledAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        XCTAssertTrue(AppSettings(defaults: defaults).automaticUpdateCheckEnabled)
+
+        let settings = AppSettings(defaults: defaults)
+        settings.automaticUpdateCheckEnabled = false
+        XCTAssertFalse(AppSettings(defaults: defaults).automaticUpdateCheckEnabled)
+    }
+
     func testProxyDefaultsToOffAndPersists() {
         let suite = "AppSettingsTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!

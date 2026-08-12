@@ -25,4 +25,19 @@ final class StatusToastTests: XCTestCase {
 
         XCTAssertEqual(center.items.map(\.message), ["Item 2", "Item 3", "Item 4"])
     }
+
+    func testActionToastStoresAndInvokesItsAction() {
+        let center = StatusToastCenter()
+        var didInvokeAction = false
+
+        center.show(
+            "New version available",
+            actionTitle: "View Release",
+            action: { didInvokeAction = true }
+        )
+
+        XCTAssertEqual(center.items[0].action?.title, "View Release")
+        center.items[0].action?.handler()
+        XCTAssertTrue(didInvokeAction)
+    }
 }

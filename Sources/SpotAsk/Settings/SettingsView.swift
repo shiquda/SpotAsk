@@ -2650,6 +2650,12 @@ private struct AboutSettingsPage: View {
             }
 
             SettingsGroup(title: L10n.string("settings.updates")) {
+                SettingsToggleRow(
+                    label: L10n.string("settings.autoCheckForUpdates"),
+                    description: L10n.string("settings.autoCheckForUpdatesDescription"),
+                    isOn: Bindable(settings).automaticUpdateCheckEnabled
+                )
+                Divider()
                 HStack(spacing: 10) {
                     Button {
                         updateState.checkForUpdate()

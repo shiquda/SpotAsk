@@ -152,6 +152,10 @@
 "settings.updateAvailable" = "La versión %@ está disponible.";
 "settings.downloadUpdate" = "Descargar actualización";
 "settings.updateCheckUnavailable" = "No se pueden buscar actualizaciones ahora mismo.";
+"settings.autoCheckForUpdates" = "Buscar actualizaciones automáticamente";
+"settings.autoCheckForUpdatesDescription" = "Busca una vez al iniciar SpotAsk y avisa cuando hay una nueva versión.";
+"update.newVersionAvailable" = "La versión %@ está disponible.";
+"update.viewRelease" = "Ver versión";
 "settings.behavior" = "Comportamiento";
 "settings.clearAccessKey" = "Borrar clave de acceso";
 "settings.clearAllLocalData" = "Borrar todos los datos locales";

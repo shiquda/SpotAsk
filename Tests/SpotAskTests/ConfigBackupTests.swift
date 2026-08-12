@@ -15,6 +15,7 @@ final class ConfigBackupTests: XCTestCase {
         source.defaultExpandReasoning = true
         source.renderMath = false
         source.chatMessageStyle = .im
+        source.automaticUpdateCheckEnabled = false
         source.systemPrompt = "custom system prompt"
         source.contextLimit = 40
         source.proxyEnabled = true
@@ -54,6 +55,7 @@ final class ConfigBackupTests: XCTestCase {
         XCTAssertTrue(destination.defaultExpandReasoning)
         XCTAssertFalse(destination.renderMath)
         XCTAssertEqual(destination.chatMessageStyle, .im)
+        XCTAssertFalse(destination.automaticUpdateCheckEnabled)
         XCTAssertEqual(destination.systemPrompt, "custom system prompt")
         XCTAssertEqual(destination.contextLimit, 40)
         XCTAssertTrue(destination.proxyEnabled)

@@ -152,6 +152,10 @@
 "settings.updateAvailable" = "バージョン %@ が利用できます。";
 "settings.downloadUpdate" = "アップデートをダウンロード";
 "settings.updateCheckUnavailable" = "現在アップデートを確認できません。";
+"settings.autoCheckForUpdates" = "アップデートを自動的に確認";
+"settings.autoCheckForUpdatesDescription" = "SpotAsk 起動時に一度確認し、新しいバージョンがあれば通知します。";
+"update.newVersionAvailable" = "新しいバージョン %@ が利用できます。";
+"update.viewRelease" = "リリースを表示";
 "settings.behavior" = "動作";
 "settings.clearAccessKey" = "アクセスキーを消去";
 "settings.clearAllLocalData" = "すべてのローカルデータを消去";

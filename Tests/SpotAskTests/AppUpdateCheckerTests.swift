@@ -29,4 +29,25 @@ final class AppUpdateCheckerTests: XCTestCase {
             )
         )
     }
+
+    func testDraftAndPrereleaseReleasesDoNotReportAnUpdate() {
+        let currentVersion = AppVersion(string: "0.1.1")!
+
+        XCTAssertNil(
+            AppUpdateChecker.update(
+                forReleaseTag: "v0.2.0",
+                isDraft: true,
+                isPrerelease: false,
+                currentVersion: currentVersion
+            )
+        )
+        XCTAssertNil(
+            AppUpdateChecker.update(
+                forReleaseTag: "v0.2.0",
+                isDraft: false,
+                isPrerelease: true,
+                currentVersion: currentVersion
+            )
+        )
+    }
 }

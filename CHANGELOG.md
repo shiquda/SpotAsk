@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Per-model thinking control: disable thinking or choose a level, with provider-specific request compatibility and custom JSON request parameters.
+- Optional automatic update check at launch, with an in-app notice that opens the release page when a new version is available.
 
 ### Fixed
 
