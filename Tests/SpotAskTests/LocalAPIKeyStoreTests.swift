@@ -3,6 +3,24 @@ import XCTest
 @testable import SpotAsk
 
 final class LocalAPIKeyStoreTests: XCTestCase {
+    func testDefaultCredentialLocationKeepsReleaseCompatibilityAndIsolatesDebug() {
+        let fileManager = FileManager.default
+        let applicationSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+
+        XCTAssertEqual(
+            LocalAPIKeyStore.defaultFileURL(fileManager: fileManager, bundleIdentifier: "com.spotask.app"),
+            applicationSupportURL
+                .appendingPathComponent("SpotAsk", isDirectory: true)
+                .appendingPathComponent("credentials.json")
+        )
+        XCTAssertEqual(
+            LocalAPIKeyStore.defaultFileURL(fileManager: fileManager, bundleIdentifier: "com.spotask.app.debug"),
+            applicationSupportURL
+                .appendingPathComponent("com.spotask.app.debug", isDirectory: true)
+                .appendingPathComponent("credentials.json")
+        )
+    }
+
     func testRoundTripUsesCurrentUserOnlyPermissions() throws {
         let directoryURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("SpotAskTests-\(UUID().uuidString)", isDirectory: true)

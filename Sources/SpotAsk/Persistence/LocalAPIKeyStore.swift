@@ -53,10 +53,14 @@ final class LocalAPIKeyStore: LegacyAPIKeyMigrating, @unchecked Sendable {
 
     init(
         fileURL: URL? = nil,
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        bundleIdentifier: String? = Bundle.main.bundleIdentifier
     ) {
         self.fileManager = fileManager
-        self.fileURL = fileURL ?? Self.defaultFileURL(fileManager: fileManager)
+        self.fileURL = fileURL ?? Self.defaultFileURL(
+            fileManager: fileManager,
+            bundleIdentifier: bundleIdentifier
+        )
     }
 
     func readAPIKey(for providerID: UUID) throws -> String? {
@@ -119,10 +123,13 @@ final class LocalAPIKeyStore: LegacyAPIKeyMigrating, @unchecked Sendable {
         try fileManager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
     }
 
-    private static func defaultFileURL(fileManager: FileManager) -> URL {
+    static func defaultFileURL(fileManager: FileManager, bundleIdentifier: String?) -> URL {
         let applicationSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let directoryName = bundleIdentifier == "com.spotask.app.debug"
+            ? "com.spotask.app.debug"
+            : "SpotAsk"
         return applicationSupportURL
-            .appendingPathComponent("SpotAsk", isDirectory: true)
+            .appendingPathComponent(directoryName, isDirectory: true)
             .appendingPathComponent("credentials.json", isDirectory: false)
     }
 }

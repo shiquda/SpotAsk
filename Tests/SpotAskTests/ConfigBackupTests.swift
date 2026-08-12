@@ -120,6 +120,60 @@ final class ConfigBackupTests: XCTestCase {
         XCTAssertEqual(try destinationKeyStore.readAPIKey(for: provider.id), "exported-secret")
     }
 
+    func testImportedProviderStateImmediatelyShowsRestoredKeyAndModels() throws {
+        let sourceSuite = "ConfigBackupProviderStateSource.\(UUID().uuidString)"
+        let sourceDefaults = UserDefaults(suiteName: sourceSuite)!
+        defer { sourceDefaults.removePersistentDomain(forName: sourceSuite) }
+        let destinationSuite = "ConfigBackupProviderStateDestination.\(UUID().uuidString)"
+        let destinationDefaults = UserDefaults(suiteName: destinationSuite)!
+        defer { destinationDefaults.removePersistentDomain(forName: destinationSuite) }
+        let credentialsURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SpotAskConfigBackupProviderState-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: credentialsURL) }
+
+        let provider = ProviderConfiguration(
+            name: "Imported Service",
+            address: "https://example.com/v1",
+            addressMode: .baseURL,
+            timeout: 30
+        )
+        let models = ["first-model", "second-model"].map {
+            ModelConfiguration(
+                displayName: $0,
+                upstreamModelID: $0,
+                providerID: provider.id,
+                isStreamingEnabled: true
+            )
+        }
+        let source = AppSettings(defaults: sourceDefaults)
+        try source.providerRegistry.replaceCatalog(
+            with: ProviderModelCatalog(
+                providers: [provider],
+                models: models,
+                selectedModelID: models[1].id
+            )
+        )
+        let keyStore = LocalAPIKeyStore(fileURL: credentialsURL)
+        try keyStore.saveAPIKey("restored-key", for: provider.id)
+        let backup = try source.makeConfigurationBackup(includeAccessKeys: true, keyStore: keyStore)
+
+        let destination = AppSettings(defaults: destinationDefaults)
+        try destination.applyConfigurationBackup(backup, keyStore: keyStore)
+        let state = ProviderSettingsState(
+            settings: destination,
+            keyStore: keyStore,
+            providerFactory: ConfigBackupProviderFactoryStub()
+        )
+
+        XCTAssertEqual(state.selectedProviderID, provider.id)
+        XCTAssertEqual(state.apiKeyDraft, "restored-key")
+        XCTAssertEqual(
+            state.modelsForProvider(provider.id).map { $0.upstreamModelID },
+            ["first-model", "second-model"]
+        )
+        XCTAssertEqual(destination.providerRegistry.catalog?.selectedModelID, models[1].id)
+    }
+
     func testApplyingUnsupportedBackupVersionFails() throws {
         let sourceSuite = "ConfigBackupVersionSource.\(UUID().uuidString)"
         let sourceDefaults = UserDefaults(suiteName: sourceSuite)!
@@ -141,5 +195,20 @@ final class ConfigBackupTests: XCTestCase {
         XCTAssertThrowsError(try AppSettings(defaults: destinationDefaults).applyConfigurationBackup(futureBackup)) { error in
             XCTAssertEqual(error as? SpotAskConfigBackupError, .unsupportedSchemaVersion(99))
         }
+    }
+}
+
+@MainActor
+private struct ConfigBackupProviderFactoryStub: ChatProviderFactory {
+    func makeProvider() throws -> any ChatProvider {
+        throw ChatError.invalidConfiguration
+    }
+
+    func makeTargetSnapshot() throws -> ProviderTargetSnapshot {
+        throw ChatError.invalidConfiguration
+    }
+
+    func makeProvider(for target: ProviderTargetSnapshot) throws -> any ChatProvider {
+        throw ChatError.invalidConfiguration
     }
 }

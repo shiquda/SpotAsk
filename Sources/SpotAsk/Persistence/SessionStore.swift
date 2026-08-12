@@ -4,7 +4,10 @@ struct SessionStore {
     private let fileManager: FileManager
     private let bundleIdentifier: String
 
-    init(fileManager: FileManager = .default, bundleIdentifier: String = "com.spotask.app") {
+    init(
+        fileManager: FileManager = .default,
+        bundleIdentifier: String = Bundle.main.bundleIdentifier ?? "com.spotask.app"
+    ) {
         self.fileManager = fileManager
         self.bundleIdentifier = bundleIdentifier
     }
