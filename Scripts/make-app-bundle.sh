@@ -4,6 +4,7 @@ set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 ARCH=$(uname -m)
 OUTPUT_DIR="$ROOT_DIR/build/SpotAsk.app"
+CONFIGURATION=Release
 SIGN_IDENTITY=${SPOTASK_CODESIGN_IDENTITY:-}
 REQUIRE_DEVELOPER_ID=${SPOTASK_REQUIRE_DEVELOPER_ID:-0}
 BUNDLE_IDENTIFIER=
@@ -11,7 +12,7 @@ DISPLAY_NAME=
 ENTITLEMENTS_PATH="$ROOT_DIR/Config/SpotAsk.selection-assistant.entitlements"
 
 usage() {
-    printf '%s\n' "Usage: $0 [--arch arm64|x86_64] [--output APP_PATH] [--bundle-identifier ID] [--display-name NAME] [--sign-identity IDENTITY] [--entitlements PATH] [--require-developer-id]"
+    printf '%s\n' "Usage: $0 [--arch arm64|x86_64] [--configuration Debug|Release] [--output APP_PATH] [--bundle-identifier ID] [--display-name NAME] [--sign-identity IDENTITY] [--entitlements PATH] [--require-developer-id]"
     printf '%s\n' "When --sign-identity is omitted, the first available code signing identity is used so Accessibility grants survive rebuilds."
 }
 
@@ -23,6 +24,10 @@ while [ "$#" -gt 0 ]; do
             ;;
         --output)
             OUTPUT_DIR=${2:?"--output requires a value"}
+            shift 2
+            ;;
+        --configuration)
+            CONFIGURATION=${2:?"--configuration requires a value"}
             shift 2
             ;;
         --bundle-identifier)
@@ -60,6 +65,14 @@ case "$ARCH" in
     arm64|x86_64) ;;
     *)
         printf 'Unsupported architecture: %s\n' "$ARCH" >&2
+        exit 2
+        ;;
+esac
+
+case "$CONFIGURATION" in
+    Debug|Release) ;;
+    *)
+        printf 'Unsupported configuration: %s\n' "$CONFIGURATION" >&2
         exit 2
         ;;
 esac
@@ -104,22 +117,22 @@ case "$OUTPUT_DIR" in
     *) APP_DIR="$ROOT_DIR/$OUTPUT_DIR" ;;
 esac
 
-BUILD_DIR="$ROOT_DIR/.build/xcode-release-$ARCH"
-RELEASE_APP_DIR="$BUILD_DIR/Build/Products/Release/SpotAsk.app"
+BUILD_DIR="$ROOT_DIR/.build/xcode-$(printf '%s' "$CONFIGURATION" | tr '[:upper:]' '[:lower:]')-$ARCH"
+BUILT_APP_DIR="$BUILD_DIR/Build/Products/$CONFIGURATION/SpotAsk.app"
 
 cd "$ROOT_DIR"
-xcodebuild \
+set -- \
     -project SpotAsk.xcodeproj \
     -scheme SpotAsk \
-    -configuration Release \
+    -configuration "$CONFIGURATION" \
     -derivedDataPath "$BUILD_DIR" \
     ARCHS="$ARCH" \
     ONLY_ACTIVE_ARCH=YES \
-    CODE_SIGNING_ALLOWED=NO \
-    build
+    CODE_SIGNING_ALLOWED=NO
+xcodebuild "$@" build
 
-if [ ! -x "$RELEASE_APP_DIR/Contents/MacOS/SpotAsk" ]; then
-    printf 'Release app is missing from %s\n' "$RELEASE_APP_DIR" >&2
+if [ ! -x "$BUILT_APP_DIR/Contents/MacOS/SpotAsk" ]; then
+    printf '%s app is missing from %s\n' "$CONFIGURATION" "$BUILT_APP_DIR" >&2
     exit 1
 fi
 
@@ -132,7 +145,7 @@ if [ -d "$APP_DIR" ]; then
 fi
 
 rm -rf "$APP_DIR"
-ditto "$RELEASE_APP_DIR" "$APP_DIR"
+ditto "$BUILT_APP_DIR" "$APP_DIR"
 if [ -n "$BUNDLE_IDENTIFIER" ]; then
     /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_IDENTIFIER" "$APP_DIR/Contents/Info.plist"
 fi
@@ -199,7 +212,7 @@ if [ "$REQUIRE_DEVELOPER_ID" = 1 ]; then
     fi
 fi
 
-printf 'Built Release bundle: %s (TeamIdentifier: %s)\n' "$APP_DIR" "${TEAM_ID:-not set}"
+printf 'Built %s bundle: %s (TeamIdentifier: %s)\n' "$CONFIGURATION" "$APP_DIR" "${TEAM_ID:-not set}"
 
 migrate_unsandboxed_data() {
     [ "${SPOTASK_SKIP_MIGRATION:-0}" = 1 ] && return 0

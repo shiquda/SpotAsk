@@ -86,11 +86,10 @@ You can also build SpotAsk from source.
 **Build and run**
 
 ```sh
-./Scripts/make-app-bundle.sh
-open build/SpotAsk.app
+./Scripts/install-debug-app.sh
 ```
 
-After launch, SpotAsk appears in your menu bar. The app has no Dock icon.
+After launch, SpotAsk Debug appears in your menu bar. It uses a separate app identity so its macOS permissions do not replace those of the official release. The app has no Dock icon.
 
 ### Build with system integrations
 

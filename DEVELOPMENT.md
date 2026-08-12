@@ -30,14 +30,17 @@ swift test
 # Build a release binary
 swift build -c release
 
-# Create an app bundle
-./Scripts/make-app-bundle.sh
-open build/SpotAsk.app
+# Build, install, and open an isolated local Debug app
+./Scripts/install-debug-app.sh
 ```
 
 ## App bundle and DMG
 
 `Scripts/make-app-bundle.sh` creates `build/SpotAsk.app`. The default entitlements (`Config/SpotAsk.selection-assistant.entitlements`) disable App Sandbox so the selection assistant can read selected text with Accessibility permission.
+
+For day-to-day development, use `Scripts/install-debug-app.sh`. It installs `~/Applications/SpotAsk Debug.app` with bundle ID `com.spotask.app.debug` and an Apple Development signature. This keeps its Accessibility permission and Launch Services identity separate from the official `SpotAsk.app`. Set `SPOTASK_DEBUG_CODESIGN_IDENTITY` only when you need to choose a different Apple Development certificate.
+
+`Scripts/make-app-bundle.sh` remains the lower-level Release bundler used by the DMG workflow. It also accepts `--configuration Debug` for custom local workflows.
 
 `Scripts/make-release-dmg.sh` packages DMGs for each architecture:
 
