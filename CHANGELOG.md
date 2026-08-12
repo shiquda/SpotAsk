@@ -7,10 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-08-12
+
 ### Added
 
 - Per-model thinking control: disable thinking or choose a level, with provider-specific request compatibility and custom JSON request parameters.
 - Optional automatic update check at launch, with an in-app notice that opens the release page when a new version is available.
+- Compatibility settings are inferred automatically from provider and model names, while manually selected profiles are preserved.
 
 ### Fixed
 
@@ -86,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provider cards can be expanded and collapsed reliably.
 - Thinking expansion behavior: when enabled, thinking stays expanded during reasoning and collapses for the final answer; when disabled, it stays collapsed.
 
-[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/shiquda/SpotAsk/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/shiquda/SpotAsk/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/shiquda/SpotAsk/compare/v0.1.3...v0.1.4
