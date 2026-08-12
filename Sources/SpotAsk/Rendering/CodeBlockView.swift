@@ -27,9 +27,30 @@ struct CodeBlockView: StructuredText.CodeBlockStyle {
                 .allowsHitTesting(false)
         }
         .overlay(alignment: .top) {
-            toolbar(configuration: configuration)
+            GeometryReader { geometry in
+                toolbar(configuration: configuration)
+                    .onAppear {
+                        registerToolbarRect(geometry, configuration: configuration)
+                    }
+                    .onChange(of: geometry.size) { _, _ in
+                        registerToolbarRect(geometry, configuration: configuration)
+                    }
+                    .onDisappear {
+                        configuration.codeBlock.unregisterInteractiveExclusionRect(id: configuration.id)
+                    }
+            }
+            .frame(height: toolbarHeight)
         }
         .textual.blockSpacing(.fontScaled(top: 0, bottom: 1))
+    }
+
+    @MainActor
+    private func registerToolbarRect(
+        _ geometry: GeometryProxy,
+        configuration: Configuration
+    ) {
+        let rect = geometry.frame(in: .named("textContainer"))
+        configuration.codeBlock.registerInteractiveExclusionRect(id: configuration.id, rect: rect)
     }
 
     @MainActor
@@ -40,23 +61,13 @@ struct CodeBlockView: StructuredText.CodeBlockStyle {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             Spacer(minLength: 8)
-            Button {
-                configuration.codeBlock.copyToPasteboard()
-                didCopy = true
-                Task {
-                    try? await Task.sleep(for: .milliseconds(1_500))
-                    guard !Task.isCancelled else { return }
-                    didCopy = false
-                }
-            } label: {
-                Image(systemName: didCopy ? "checkmark" : "doc.on.doc")
-                    .frame(width: 16, height: 16)
-            }
-            .buttonStyle(.plain)
+            CopyCodeButton(
+                didCopy: $didCopy,
+                copy: { configuration.codeBlock.copyToPasteboard() },
+                label: L10n.string("code.copy"),
+                copiedLabel: L10n.string("code.copied")
+            )
             .frame(width: 28, height: 28)
-            .contentShape(Rectangle())
-            .help(didCopy ? L10n.string("chat.copied") : L10n.string("code.copy"))
-            .accessibilityLabel(didCopy ? L10n.string("code.copied") : L10n.string("code.copy"))
         }
         .padding(.horizontal, 10)
         .frame(height: toolbarHeight)
@@ -64,6 +75,68 @@ struct CodeBlockView: StructuredText.CodeBlockStyle {
         .overlay(alignment: .bottom) {
             Divider()
                 .allowsHitTesting(false)
+        }
+    }
+
+    private struct CopyCodeButton: NSViewRepresentable {
+        @Binding var didCopy: Bool
+        let copy: () -> Void
+        let label: String
+        let copiedLabel: String
+
+        func makeCoordinator() -> Coordinator {
+            Coordinator(didCopy: $didCopy, copy: copy, label: label, copiedLabel: copiedLabel)
+        }
+
+        func makeNSView(context: Context) -> NSButton {
+            let button = NSButton()
+            button.isBordered = false
+            button.imagePosition = .imageOnly
+            button.target = context.coordinator
+            button.action = #selector(Coordinator.copyCode(_:))
+            context.coordinator.update(button)
+            return button
+        }
+
+        func updateNSView(_ button: NSButton, context: Context) {
+            context.coordinator.didCopy = $didCopy
+            context.coordinator.copy = copy
+            context.coordinator.update(button)
+        }
+
+        @MainActor
+        final class Coordinator: NSObject {
+            var didCopy: Binding<Bool>
+            var copy: () -> Void
+            let label: String
+            let copiedLabel: String
+
+            init(didCopy: Binding<Bool>, copy: @escaping () -> Void, label: String, copiedLabel: String) {
+                self.didCopy = didCopy
+                self.copy = copy
+                self.label = label
+                self.copiedLabel = copiedLabel
+            }
+
+            @objc func copyCode(_ sender: Any?) {
+                copy()
+                didCopy.wrappedValue = true
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(1_500))
+                    guard !Task.isCancelled else { return }
+                    didCopy.wrappedValue = false
+                }
+            }
+
+            func update(_ button: NSButton) {
+                let didCopy = didCopy.wrappedValue
+                button.image = NSImage(
+                    systemSymbolName: didCopy ? "checkmark" : "doc.on.doc",
+                    accessibilityDescription: nil
+                )
+                button.toolTip = didCopy ? copiedLabel : label
+                button.setAccessibilityLabel(didCopy ? copiedLabel : label)
+            }
         }
     }
 }

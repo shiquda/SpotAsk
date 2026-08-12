@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Per-model thinking control: disable thinking or choose a level, with provider-specific request compatibility and custom JSON request parameters.
 
+### Fixed
+
+- Code block copy buttons receive clicks again while Markdown text selection stays enabled.
+
 ## [0.1.5] - 2026-08-11
 
 ### Added

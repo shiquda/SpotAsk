@@ -4,6 +4,7 @@ extension StructuredText {
   struct CodeBlock: View {
     @Environment(\.highlighterTheme) private var highlighterTheme
     @Environment(\.codeBlockStyle) private var codeBlockStyle
+    @State private var interactionID = UUID()
 
     private let content: AttributedSubstring
     private let languageHint: String?
@@ -19,6 +20,7 @@ extension StructuredText {
 
     var body: some View {
       let configuration = CodeBlockStyleConfiguration(
+        id: interactionID,
         label: .init(
           HighlightedTextFragment(
             content,

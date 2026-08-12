@@ -44,8 +44,13 @@
       let isExcluded = exclusionRects.contains {
         $0.contains(localPoint)
       }
+      let isInteractiveRegion = MainActor.assumeIsolated {
+        StructuredText.CodeBlockProxy.interactiveExclusionRects.values.contains {
+          $0.contains(localPoint)
+        }
+      }
 
-      if isExcluded {
+      if isExcluded || isInteractiveRegion {
         return nil
       } else {
         return super.hitTest(point)

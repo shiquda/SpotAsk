@@ -1,8 +1,12 @@
+import Foundation
 import SwiftUI
 
 extension StructuredText {
   /// The properties of a code block passed to a `CodeBlockStyle`.
   public struct CodeBlockStyleConfiguration {
+    /// Stable identity for interactions owned by this rendered code block.
+    public let id: UUID
+
     /// A type-erased view that contains the code block content.
     public struct Label: View {
       init(_ label: some View) {

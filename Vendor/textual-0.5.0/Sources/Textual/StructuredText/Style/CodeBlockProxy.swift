@@ -1,13 +1,24 @@
+import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
 
 extension StructuredText {
   /// A proxy for a rendered code block that custom code block styles can use.
   public struct CodeBlockProxy {
+    @MainActor public static var interactiveExclusionRects: [UUID: CGRect] = [:]
+
     private let content: AttributedSubstring
 
     internal init(_ content: AttributedSubstring) {
       self.content = content
+    }
+
+    @MainActor public func registerInteractiveExclusionRect(id: UUID, rect: CGRect) {
+      Self.interactiveExclusionRects[id] = rect
+    }
+
+    @MainActor public func unregisterInteractiveExclusionRect(id: UUID) {
+      Self.interactiveExclusionRects[id] = nil
     }
 
     /// Copies the code block contents to the system pasteboard.
