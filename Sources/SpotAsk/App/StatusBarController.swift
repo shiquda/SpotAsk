@@ -57,6 +57,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     }
 
     func rebuildMenu() {
+        detachReusableItems()
         let menu = NSMenu()
         menu.addItem(withTitle: L10n.string("menu.open"), action: #selector(open), keyEquivalent: "")
         menu.addItem(withTitle: L10n.string("menu.newConversation"), action: #selector(newConversation), keyEquivalent: "")
@@ -67,13 +68,18 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         launchAtLoginItem.state = settings.launchAtLogin ? .on : .off
         menu.addItem(launchAtLoginItem)
         keepWindowOnTopItem.state = settings.keepWindowOnTop ? .on : .off
-        quickQuestionModeItem.state = settings.selectionAutoInvokeEnabled ? .on : .off
         menu.addItem(keepWindowOnTopItem)
         menu.addItem(.separator())
         menu.addItem(withTitle: L10n.string("menu.quit"), action: #selector(quit), keyEquivalent: "q")
         menu.items.forEach { $0.target = self }
         menu.delegate = self
         statusItem.menu = menu
+    }
+
+    private func detachReusableItems() {
+        for item in [quickQuestionModeItem, launchAtLoginItem, keepWindowOnTopItem] {
+            item.menu?.removeItem(item)
+        }
     }
 
     func setVisible(_ isVisible: Bool) {
