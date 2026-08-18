@@ -10,7 +10,7 @@
 "chat.copyLastAnswer" = "Скопировать последний полный ответ";
 "chat.copyQuestion" = "Скопировать вопрос";
 "chat.clearPrompt" = "Убрать режим";
-"chat.continueConversation" = "Продолжить предыдущий разговор";
+"chat.continueConversation" = "Восстановить предыдущий разговор";
 "chat.directQuestion" = "Спросить напрямую";
 "chat.copied" = "Скопировано";
 "chat.focusInput" = "Фокус на вводе";
@@ -37,8 +37,7 @@
 "chat.selectPrompt" = "Выбрать способ вопроса";
 "chat.send" = "Отправить вопрос";
 "chat.showFullQuestion" = "Показать полный вопрос";
-"chat.sessionIdleNotice" = "Прошло некоторое время с вашего последнего вопроса.";
-"chat.startNewQuestion" = "Начать новый вопрос";
+"chat.sessionIdleNotice" = "Новый разговор готов. При необходимости можно восстановить предыдущий.";
 "chat.stop" = "Остановить генерацию";
 "chat.collapseQuestion" = "Свернуть вопрос";
 "chat.collapseAnswer" = "Свернуть ответ";

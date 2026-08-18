@@ -4,8 +4,8 @@ import Observation
 @MainActor
 @Observable
 final class ChatViewModel {
-    /// How long the conversation must sit idle before the user is asked whether
-    /// a new question should continue it or start fresh. Deliberately fixed.
+    /// How long a conversation can stay idle before it starts over. The prior
+    /// conversation remains restorable until the user sends a new question.
     static let staleSessionInterval: TimeInterval = 15 * 60
 
     var messages: [ChatMessage] = []
@@ -14,7 +14,6 @@ final class ChatViewModel {
     var error: ChatError?
     var isSettingsPresented = false
     var selectedPromptPreset: PromptPreset?
-    private(set) var isSessionChoicePending = false
     private(set) var activeStreamingAssistantID: UUID?
     private(set) var streamingContent = ""
     private(set) var streamingReasoning: String?
@@ -34,7 +33,8 @@ final class ChatViewModel {
     private var flushTask: Task<Void, Never>?
     private var retryPromptPreset: PromptPreset?
     private var selectionSnapshotsByAssistantID: [UUID: SelectedTextSnapshot] = [:]
-
+    private var restorableSession: [ChatMessage]?
+    private var hasAcknowledgedInactivity = false
     init(settings: AppSettings, providerFactory: any ChatProviderFactory, sessionStore: SessionStore) {
         self.settings = settings
         self.providerFactory = providerFactory
@@ -46,18 +46,18 @@ final class ChatViewModel {
         guard let message = messages.last(where: { $0.role == .assistant }) else { return nil }
         return liveMessage(message)
     }
+    var canRestorePreviousSession: Bool { restorableSession != nil }
+
     var canSend: Bool {
         let hasContent = !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || !pendingAttachments.isEmpty
         return hasContent
             && generationState != .connecting
             && generationState != .streaming
-            && !isSessionChoicePending
     }
 
     var canRegenerate: Bool {
         guard generationState == .idle,
-              !isSessionChoicePending,
               let last = messages.last,
               last.role == .assistant,
               last.state == .complete else { return false }
@@ -177,8 +177,10 @@ final class ChatViewModel {
     @discardableResult
     func send(selectionSnapshot: SelectedTextSnapshot? = nil) -> Bool {
         guard canSend else { return false }
+        restorableSession = nil
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         let attachments = pendingAttachments
+        hasAcknowledgedInactivity = false
         let promptPreset = selectedPromptPreset
         selectedPromptPreset = nil
         input = ""
@@ -237,32 +239,36 @@ final class ChatViewModel {
         selectedPromptPreset = nil
         retryPromptPreset = nil
         selectionSnapshotsByAssistantID.removeAll()
-        isSessionChoicePending = false
+        restorableSession = nil
+        hasAcknowledgedInactivity = false
         try? sessionStore.clear()
     }
 
-    /// Offers the continue-or-start-fresh choice once a conversation has been
-    /// idle long enough that silently appending a new question would surprise
-    /// the user. Quick reopens never trigger it.
-    func offerSessionChoiceIfNeeded(now: Date = .now) {
-        guard !isSessionChoicePending,
+    /// Starts a new conversation after a long idle period while keeping the
+    /// previous messages available for one explicit restore action.
+    func prepareNewConversationAfterInactivity(now: Date = .now) {
+        guard restorableSession == nil,
+              !hasAcknowledgedInactivity,
               !messages.isEmpty,
               generationState != .connecting,
               generationState != .streaming,
               let lastMessage = messages.last,
               now.timeIntervalSince(lastMessage.createdAt) > Self.staleSessionInterval else { return }
-        isSessionChoicePending = true
+        restorableSession = messages
+        messages.removeAll()
+        sessionModelID = nil
+        error = nil
+        retryPromptPreset = nil
+        selectionSnapshotsByAssistantID.removeAll()
+        try? sessionStore.clear()
     }
 
-    func continueSession() {
-        isSessionChoicePending = false
-    }
-
-    /// Starts over but keeps the current draft so a typed question survives.
-    func startFreshSession() {
-        let draft = input
-        newConversation()
-        input = draft
+    func restoreSession() {
+        guard let restorableSession else { return }
+        messages = restorableSession
+        self.restorableSession = nil
+        hasAcknowledgedInactivity = true
+        persistIfNeeded()
     }
 
     /// Recalls the most recent question into an empty input without touching

@@ -10,7 +10,7 @@
 "chat.copyLastAnswer" = "最新の完全な回答をコピー";
 "chat.copyQuestion" = "質問をコピー";
 "chat.clearPrompt" = "プロンプトを解除";
-"chat.continueConversation" = "前の会話を続ける";
+"chat.continueConversation" = "前の会話を復元";
 "chat.directQuestion" = "直接質問";
 "chat.copied" = "コピーしました";
 "chat.focusInput" = "入力欄にフォーカス";
@@ -37,8 +37,7 @@
 "chat.selectPrompt" = "質問方法を選択";
 "chat.send" = "質問を送信";
 "chat.showFullQuestion" = "完全な質問を表示";
-"chat.sessionIdleNotice" = "前回の質問から時間が経っています。";
-"chat.startNewQuestion" = "新しい質問を開始";
+"chat.sessionIdleNotice" = "新しい会話を始められます。必要に応じて前の会話を復元できます。";
 "chat.stop" = "生成を停止";
 "chat.collapseQuestion" = "質問を折りたたむ";
 "chat.collapseAnswer" = "回答を折りたたむ";

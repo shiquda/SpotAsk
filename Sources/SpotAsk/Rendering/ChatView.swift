@@ -273,7 +273,7 @@ struct ChatView: View {
         }
         .onAppear {
             inputFocused = true
-            viewModel.offerSessionChoiceIfNeeded()
+            viewModel.prepareNewConversationAfterInactivity()
             commandCenter.setActionConsumer(handleCommandAction)
             reasoningToggle.reconcile(messages: viewModel.messages, prefersExpanded: settings.defaultExpandReasoning)
             userMessageExpansionState.reconcile(messages: viewModel.messages, role: .user)
@@ -410,29 +410,35 @@ struct ChatView: View {
     @ViewBuilder
     private var conversation: some View {
         if viewModel.messages.isEmpty {
-            VStack(spacing: 8) {
-                EmptyStateBrandMark()
-                Text(L10n.string("chat.askAnything"))
-                    .font(.system(size: 17, weight: .medium))
-                    .kerning(-0.17)
-                    .foregroundStyle(Brand.fg)
-                Text(L10n.string("chat.selectPrompt"))
-                    .font(.system(size: 13))
-                    .foregroundStyle(Brand.muted)
-                PresetStripView(
-                    presets: settings.enabledPromptPresets,
-                    selection: $viewModel.selectedPromptPreset,
-                    showsShortcutHints: showsShortcutHints,
-                    shortcutForPreset: shortcutHint(for:),
-                    onSelect: { applyPreset($0) }
-                )
-                .padding(.top, 10)
+            VStack(spacing: 0) {
+                if viewModel.canRestorePreviousSession {
+                    sessionRestoreBanner
+                    Divider()
+                }
+                VStack(spacing: 8) {
+                    EmptyStateBrandMark()
+                    Text(L10n.string("chat.askAnything"))
+                        .font(.system(size: 17, weight: .medium))
+                        .kerning(-0.17)
+                        .foregroundStyle(Brand.fg)
+                    Text(L10n.string("chat.selectPrompt"))
+                        .font(.system(size: 13))
+                        .foregroundStyle(Brand.muted)
+                    PresetStripView(
+                        presets: settings.enabledPromptPresets,
+                        selection: $viewModel.selectedPromptPreset,
+                        showsShortcutHints: showsShortcutHints,
+                        shortcutForPreset: shortcutHint(for:),
+                        onSelect: { applyPreset($0) }
+                    )
+                    .padding(.top, 10)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             VStack(spacing: 0) {
-                if viewModel.isSessionChoicePending {
-                    sessionChoiceBanner
+                if viewModel.canRestorePreviousSession {
+                    sessionRestoreBanner
                     Divider()
                 }
                 GeometryReader { geometry in
@@ -547,7 +553,7 @@ struct ChatView: View {
         Array(viewModel.messages.suffix(Self.conversationTailCount))
     }
 
-    private var sessionChoiceBanner: some View {
+    private var sessionRestoreBanner: some View {
         HStack(spacing: 10) {
             Text(L10n.string("chat.sessionIdleNotice"))
                 .font(.caption)
@@ -555,12 +561,8 @@ struct ChatView: View {
                 .lineLimit(1)
             Spacer()
             Button(L10n.string("chat.continueConversation")) {
-                viewModel.continueSession()
+                viewModel.restoreSession()
                 inputFocused = true
-            }
-            .controlSize(.small)
-            Button(L10n.string("chat.startNewQuestion")) {
-                startFreshSession()
             }
             .controlSize(.small)
         }
@@ -844,7 +846,7 @@ struct ChatView: View {
 
     private func focusInput() {
         inputFocused = true
-        viewModel.offerSessionChoiceIfNeeded()
+        viewModel.prepareNewConversationAfterInactivity()
         guard let window = chatWindowReference.window,
               let composerTextView = composerTextView.textView,
               window.firstResponder !== composerTextView else { return }
@@ -1035,11 +1037,6 @@ struct ChatView: View {
         scrollFollowState.resumeFollowing()
     }
 
-    private func startFreshSession() {
-        viewModel.startFreshSession()
-        inputFocused = true
-        scrollFollowState.resumeFollowing()
-    }
 
     private func handleEscape() {
         switch chatEscapeAction(
@@ -1094,9 +1091,8 @@ struct ChatView: View {
             inputFocused = true
             return
         }
-        // An explicit external question intentionally continues a restored
-        // session, rather than leaving it blocked behind the interactive choice.
-        viewModel.continueSession()
+        // External questions always use the new conversation prepared after
+        // inactivity; the previous one remains available only via the banner.
         viewModel.selectedPromptPreset = promptPreset.flatMap(settings.promptPresetAllowedForUse)
         // Do not start a second request while the view model is still unwinding
         // a cancelled stream. The supplied question remains ready to send.
@@ -1118,7 +1114,6 @@ struct ChatView: View {
             inputFocused = true
             return
         }
-        viewModel.continueSession()
         viewModel.selectedPromptPreset = promptPreset.flatMap(settings.promptPresetAllowedForUse)
         viewModel.input = trimmed
         inputFocused = true

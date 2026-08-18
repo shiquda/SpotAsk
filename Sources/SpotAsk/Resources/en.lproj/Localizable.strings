@@ -10,7 +10,7 @@
 "chat.copyLastAnswer" = "Copy latest full answer";
 "chat.copyQuestion" = "Copy question";
 "chat.clearPrompt" = "Clear prompt";
-"chat.continueConversation" = "Continue Previous Conversation";
+"chat.continueConversation" = "Restore Previous Conversation";
 "chat.directQuestion" = "Ask directly";
 "chat.copied" = "Copied";
 "chat.focusInput" = "Focus input";
@@ -37,8 +37,7 @@
 "chat.selectPrompt" = "Choose how to ask";
 "chat.send" = "Send question";
 "chat.showFullQuestion" = "Show full question";
-"chat.sessionIdleNotice" = "It's been a while since your last question.";
-"chat.startNewQuestion" = "Start New Question";
+"chat.sessionIdleNotice" = "A new conversation is ready. Restore the previous one if you need it.";
 "chat.stop" = "Stop generating";
 "chat.collapseQuestion" = "Collapse question";
 "chat.collapseAnswer" = "Collapse answer";

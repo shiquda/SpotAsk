@@ -63,7 +63,7 @@ struct SpotAskIntentTests {
         #expect(panel.composerIsFirstResponder)
     }
 
-    @Test @MainActor func coldStartAskReachesHostedChatViewModelExactlyOnce() async {
+    @Test @MainActor func coldStartAskStartsFreshAfterAnIdleConversation() async {
         let commandCenter = SpotAskCommandCenter()
         let panel = HostingPanelController()
         let settings = makeSettings()
@@ -94,12 +94,16 @@ struct SpotAskIntentTests {
             )
         }
 
-        await waitForUserMessages(in: viewModel, count: 2)
+        for _ in 0 ..< 100 {
+            if requestRecorder.requestCount == 1 { break }
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(10))
+        }
 
         #expect(panel.didSetContent)
         #expect(panel.didShow)
-        #expect(viewModel.isSessionChoicePending == false)
-        #expect(viewModel.messages.filter { $0.role == .user }.map(\.content) == ["已恢复的问题", "冷启动问题"])
+        #expect(viewModel.canRestorePreviousSession == false)
+        #expect(viewModel.messages.filter { $0.role == .user }.map(\.content) == ["冷启动问题"])
         #expect(viewModel.messages.last(where: { $0.role == .user })?.appliedPresetTitle == preset.title)
         #expect(requestRecorder.requestCount == 1)
     }
@@ -394,16 +398,6 @@ private func makeSettings() -> AppSettings {
     let defaults = UserDefaults(suiteName: suiteName)!
     defaults.removePersistentDomain(forName: suiteName)
     return AppSettings(defaults: defaults)
-}
-
-@MainActor
-private func waitForUserMessages(in viewModel: ChatViewModel, count: Int) async {
-    for _ in 0 ..< 100 {
-        if viewModel.messages.filter({ $0.role == .user }).count == count { return }
-        await Task.yield()
-        try? await Task.sleep(for: .milliseconds(10))
-    }
-    Issue.record("Timed out waiting for \(count) user messages")
 }
 
 @MainActor

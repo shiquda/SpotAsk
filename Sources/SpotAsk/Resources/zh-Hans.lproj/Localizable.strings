@@ -10,7 +10,7 @@
 "chat.copyLastAnswer" = "复制最后一条完整回答";
 "chat.copyQuestion" = "复制问题";
 "chat.clearPrompt" = "清除提示词";
-"chat.continueConversation" = "继续上一段对话";
+"chat.continueConversation" = "还原上一段对话";
 "chat.directQuestion" = "直接提问";
 "chat.copied" = "已复制";
 "chat.focusInput" = "聚焦输入框";
@@ -37,8 +37,7 @@
 "chat.selectPrompt" = "选择提问方式";
 "chat.send" = "发送问题";
 "chat.showFullQuestion" = "展开完整问题";
-"chat.sessionIdleNotice" = "距离上次提问已有一段时间。";
-"chat.startNewQuestion" = "开始新问题";
+"chat.sessionIdleNotice" = "已准备好新对话。需要时可还原上一段对话。";
 "chat.stop" = "停止生成";
 "chat.collapseQuestion" = "收起问题";
 "chat.collapseAnswer" = "收起回答";

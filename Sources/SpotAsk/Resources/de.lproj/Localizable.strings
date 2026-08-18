@@ -10,7 +10,7 @@
 "chat.copyLastAnswer" = "Letzte vollständige Antwort kopieren";
 "chat.copyQuestion" = "Frage kopieren";
 "chat.clearPrompt" = "Modus entfernen";
-"chat.continueConversation" = "Vorherige Unterhaltung fortsetzen";
+"chat.continueConversation" = "Vorherige Unterhaltung wiederherstellen";
 "chat.directQuestion" = "Direkt fragen";
 "chat.copied" = "Kopiert";
 "chat.focusInput" = "Eingabe fokussieren";
@@ -37,8 +37,7 @@
 "chat.selectPrompt" = "Art der Frage wählen";
 "chat.send" = "Frage senden";
 "chat.showFullQuestion" = "Vollständige Frage anzeigen";
-"chat.sessionIdleNotice" = "Es ist eine Weile her seit deiner letzten Frage.";
-"chat.startNewQuestion" = "Neue Frage starten";
+"chat.sessionIdleNotice" = "Eine neue Unterhaltung ist bereit. Du kannst die vorherige Unterhaltung bei Bedarf wiederherstellen.";
 "chat.stop" = "Generierung stoppen";
 "chat.collapseQuestion" = "Frage einklappen";
 "chat.collapseAnswer" = "Antwort einklappen";

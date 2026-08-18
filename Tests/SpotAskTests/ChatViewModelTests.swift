@@ -271,62 +271,64 @@ final class ChatViewModelTests: XCTestCase {
         XCTAssertEqual(question?.appliedPresetIcon, "character.bubble")
     }
 
-    // MARK: - Stale session choice
+    // MARK: - Stale session recovery
 
-    func testStaleSessionOffersChoiceAndBlocksSendUntilResolved() async {
+    func testStaleSessionStartsFreshAndDiscardsPreviousSessionWhenSent() async {
         let recorder = RequestRecorder()
         let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("new answer")]])
         seedConversation(viewModel, lastActivity: Date(timeIntervalSinceNow: -30 * 60))
 
-        viewModel.offerSessionChoiceIfNeeded()
+        viewModel.prepareNewConversationAfterInactivity()
 
-        XCTAssertTrue(viewModel.isSessionChoicePending)
+        XCTAssertTrue(viewModel.messages.isEmpty)
+        XCTAssertTrue(viewModel.canRestorePreviousSession)
         viewModel.input = "new question"
-        viewModel.send()
-        XCTAssertEqual(viewModel.messages.filter { $0.role == .user }.count, 1, "The new question must not be appended before the user chooses")
-        XCTAssertTrue(recorder.requests.isEmpty)
-
-        viewModel.continueSession()
-        XCTAssertFalse(viewModel.isSessionChoicePending)
         viewModel.send()
         await waitForIdle(viewModel)
 
+        XCTAssertFalse(viewModel.canRestorePreviousSession)
+        XCTAssertEqual(viewModel.messages.map(\.role), [.user, .assistant])
+        XCTAssertEqual(recorder.requests.count, 1)
+        XCTAssertEqual(recorder.requests[0].messages.map(\.role), [.system, .user])
+    }
+
+    func testRestoreSessionPreservesPreviousConversationContext() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("new answer")]])
+        seedConversation(viewModel, lastActivity: Date(timeIntervalSinceNow: -30 * 60))
+
+        viewModel.prepareNewConversationAfterInactivity()
+        viewModel.restoreSession()
+        viewModel.prepareNewConversationAfterInactivity()
+        XCTAssertEqual(viewModel.messages.map(\.role), [.user, .assistant])
+        viewModel.input = "follow up"
+        viewModel.send()
+        await waitForIdle(viewModel)
+
+        XCTAssertFalse(viewModel.canRestorePreviousSession)
         XCTAssertEqual(viewModel.messages.map(\.role), [.user, .assistant, .user, .assistant])
         XCTAssertEqual(recorder.requests.count, 1)
         XCTAssertEqual(recorder.requests[0].messages.map(\.role), [.system, .user, .assistant, .user])
     }
 
-    func testRecentSessionDoesNotOfferChoice() {
+    func testRecentSessionDoesNotStartFresh() {
         let recorder = RequestRecorder()
         let viewModel = makeViewModel(recorder: recorder, scripts: [])
         seedConversation(viewModel, lastActivity: Date(timeIntervalSinceNow: -5 * 60))
 
-        viewModel.offerSessionChoiceIfNeeded()
+        viewModel.prepareNewConversationAfterInactivity()
 
-        XCTAssertFalse(viewModel.isSessionChoicePending)
+        XCTAssertFalse(viewModel.messages.isEmpty)
+        XCTAssertFalse(viewModel.canRestorePreviousSession)
     }
 
-    func testEmptySessionDoesNotOfferChoice() {
+    func testEmptySessionDoesNotOfferRestore() {
         let recorder = RequestRecorder()
         let viewModel = makeViewModel(recorder: recorder, scripts: [])
 
-        viewModel.offerSessionChoiceIfNeeded()
+        viewModel.prepareNewConversationAfterInactivity()
 
-        XCTAssertFalse(viewModel.isSessionChoicePending)
-    }
-
-    func testStartFreshSessionClearsConversationButKeepsDraft() {
-        let recorder = RequestRecorder()
-        let viewModel = makeViewModel(recorder: recorder, scripts: [])
-        seedConversation(viewModel, lastActivity: Date(timeIntervalSinceNow: -30 * 60))
-        viewModel.offerSessionChoiceIfNeeded()
-        viewModel.input = "typed draft"
-
-        viewModel.startFreshSession()
-
-        XCTAssertTrue(viewModel.messages.isEmpty)
-        XCTAssertFalse(viewModel.isSessionChoicePending)
-        XCTAssertEqual(viewModel.input, "typed draft")
+        XCTAssertFalse(viewModel.canRestorePreviousSession)
     }
 
     // MARK: - Recall last question
