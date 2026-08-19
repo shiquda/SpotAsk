@@ -11,6 +11,8 @@ struct SettingsLayoutTests {
 
     @Test func settingsSidebarNavigationMovesOnlyBetweenExistingSections() {
         #expect(SettingsSection.provider.moving(.down) == .prompts)
+        #expect(SettingsSection.prompts.moving(.down) == .externalAsk)
+        #expect(SettingsSection.externalAsk.moving(.down) == .selectionAssistant)
         #expect(SettingsSection.general.moving(.up) == .shortcuts)
         #expect(SettingsSection.about.moving(.up) == .appearance)
         #expect(SettingsSection.about.moving(.down) == nil)
@@ -62,7 +64,7 @@ struct SettingsLayoutTests {
     }
 
     @Test func otherSettingsPagesKeepTheirExpectedScrollBehavior() throws {
-        let scrollingSections: Set<SettingsSection> = [.provider, .prompts, .shortcuts, .general]
+        let scrollingSections: Set<SettingsSection> = [.provider, .prompts, .externalAsk, .shortcuts, .general]
 
         for section in SettingsSection.allCases {
             let fixture = makeWindow(section: section)

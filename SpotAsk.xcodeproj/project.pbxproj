@@ -26,6 +26,10 @@
 		001000000000000000000012 /* ScrollPositionObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000012 /* ScrollPositionObserver.swift */; };
 		001000000000000000000013 /* LocalAPIKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000013 /* LocalAPIKeyStore.swift */; };
 		001000000000000000000014 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000014 /* AppSettings.swift */; };
+		A10A1BF55C41862B4D74E27E /* QuickAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95A0EAD8C46CC382DB50D83A /* QuickAction.swift */; };
+		BAB11B847CB8759B26387593 /* ExternalAskSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2930F9FD44A7A72B77CDEB54 /* ExternalAskSettingsPage.swift */; };
+		3FC6126F1DE94BF2D7037BB1 /* QuickActionBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B79536A0F468BAD4288F38F /* QuickActionBuilder.swift */; };
+		98A8F92204242C8C229BC165 /* QuickActionTrigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B89D7EC18F63E0A6BA78C27E /* QuickActionTrigger.swift */; };
 		001000000000000000000015 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000015 /* SettingsView.swift */; };
 		001000000000000000000016 /* Clipboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000016 /* Clipboard.swift */; };
 		001000000000000000000017 /* SafeLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000017 /* SafeLogger.swift */; };
@@ -108,6 +112,10 @@
 		002000000000000000000012 /* ScrollPositionObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ScrollPositionObserver.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000013 /* LocalAPIKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Persistence/LocalAPIKeyStore.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000014 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/AppSettings.swift; sourceTree = SOURCE_ROOT; };
+		95A0EAD8C46CC382DB50D83A /* QuickAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/QuickAction.swift; sourceTree = SOURCE_ROOT; };
+		2930F9FD44A7A72B77CDEB54 /* ExternalAskSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/ExternalAskSettingsPage.swift; sourceTree = SOURCE_ROOT; };
+		8B79536A0F468BAD4288F38F /* QuickActionBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Utilities/QuickActionBuilder.swift; sourceTree = SOURCE_ROOT; };
+		B89D7EC18F63E0A6BA78C27E /* QuickActionTrigger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/QuickActionTrigger.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000015 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/SettingsView.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000016 /* Clipboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Utilities/Clipboard.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000017 /* SafeLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Utilities/SafeLogger.swift; sourceTree = SOURCE_ROOT; };
@@ -229,6 +237,10 @@
 				002000000000000000000012 /* ScrollPositionObserver.swift */,
 				002000000000000000000013 /* LocalAPIKeyStore.swift */,
 				002000000000000000000014 /* AppSettings.swift */,
+				B89D7EC18F63E0A6BA78C27E /* QuickActionTrigger.swift */,
+				8B79536A0F468BAD4288F38F /* QuickActionBuilder.swift */,
+				2930F9FD44A7A72B77CDEB54 /* ExternalAskSettingsPage.swift */,
+				95A0EAD8C46CC382DB50D83A /* QuickAction.swift */,
 				00200000000000000000003B /* ConfigBackup.swift */,
 				002000000000000000000038 /* InAppShortcut.swift */,
 				002000000000000000000015 /* SettingsView.swift */,
@@ -400,7 +412,7 @@
 				00100000000000000000000A, 00100000000000000000000B, 00100000000000000000000C,
 				00100000000000000000000D, 00100000000000000000000E, 001000000000000000000010,
 				001000000000000000000011, 001000000000000000000012,
-				001000000000000000000013, 001000000000000000000014, 001000000000000000000015,
+				001000000000000000000013, 001000000000000000000014, A10A1BF55C41862B4D74E27E, 3FC6126F1DE94BF2D7037BB1, 98A8F92204242C8C229BC165, BAB11B847CB8759B26387593, 001000000000000000000015,
 				001000000000000000000016, 001000000000000000000017, 001000000000000000000018,
 				001000000000000000000019,
 				00100000000000000000002A,

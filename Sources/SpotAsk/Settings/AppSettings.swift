@@ -10,9 +10,12 @@ extension Notification.Name {
 }
 
 struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
+    static let defaultSymbolName: String = "sparkles"
+
     let id: UUID
     var title: String
     var instruction: String
+    var customSymbolName: String?
     let isBuiltIn: Bool
     var isEnabled: Bool
 
@@ -20,6 +23,7 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
         case id
         case title
         case instruction
+        case customSymbolName
         case isBuiltIn
         case isEnabled
     }
@@ -28,12 +32,14 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
         id: UUID = UUID(),
         title: String,
         instruction: String,
+        customSymbolName: String? = nil,
         isBuiltIn: Bool = false,
         isEnabled: Bool = true
     ) {
         self.id = id
         self.title = title
         self.instruction = instruction
+        self.customSymbolName = isBuiltIn ? nil : (Self.isValidSymbol(customSymbolName) ? customSymbolName?.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
         self.isBuiltIn = isBuiltIn
         self.isEnabled = isEnabled
     }
@@ -44,6 +50,8 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
         title = try container.decode(String.self, forKey: .title)
         instruction = try container.decode(String.self, forKey: .instruction)
         isBuiltIn = try container.decode(Bool.self, forKey: .isBuiltIn)
+        let rawSymbol = try container.decodeIfPresent(String.self, forKey: .customSymbolName)
+        customSymbolName = isBuiltIn ? nil : (Self.isValidSymbol(rawSymbol) ? rawSymbol?.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
         // Prompt presets saved before the catalog always remain enabled.
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
     }
@@ -77,16 +85,28 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
         ]
     }
 
-    /// The visual identity used when this prompt is applied. Custom prompts
-    /// deliberately share the stable default symbol.
+    /// The visual identity used when this prompt is applied. Built-ins return
+    /// their fixed symbols, while custom prompts use customSymbolName if valid,
+    /// falling back to the default "sparkles" symbol.
     var symbolName: String {
         switch id.uuidString.uppercased() {
-        case "EF8CF35C-386A-4389-A137-C207E4DB11FD": "character.bubble"
-        case "1C85A324-65B3-4EBD-B2C4-0C6B072E284A": "pencil.and.scribble"
-        case "5D03D444-EC3D-4F5D-9FB1-91EA5BD4E5B2": "list.bullet.rectangle"
-        case "BF43F694-E4AE-4B5B-9AE9-B4D6D4A4F248": "doc.text.magnifyingglass"
-        default: "sparkles"
+        case "EF8CF35C-386A-4389-A137-C207E4DB11FD": return "character.bubble"
+        case "1C85A324-65B3-4EBD-B2C4-0C6B072E284A": return "pencil.and.scribble"
+        case "5D03D444-EC3D-4F5D-9FB1-91EA5BD4E5B2": return "list.bullet.rectangle"
+        case "BF43F694-E4AE-4B5B-9AE9-B4D6D4A4F248": return "doc.text.magnifyingglass"
+        default:
+            if let customSymbolName, Self.isValidSymbol(customSymbolName) {
+                return customSymbolName
+            }
+            return Self.defaultSymbolName
         }
+    }
+
+    static func isValidSymbol(_ symbolName: String?) -> Bool {
+        guard let symbolName = symbolName?.trimmingCharacters(in: .whitespacesAndNewlines), !symbolName.isEmpty else {
+            return false
+        }
+        return NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) != nil
     }
 }
 
@@ -329,6 +349,8 @@ final class AppSettings {
         static let selectionAutoInvokeWhitelist = "selectionAutoInvokeWhitelist"
         static let selectionActionBarShowsLabels = "selectionActionBarShowsLabels"
         static let automaticUpdateCheckEnabled = "automaticUpdateCheckEnabled"
+        static let quickActionCatalog = "webQuickAskProviderCatalog"
+        static let externalAskEnabled = "webQuickAskEnabled"
     }
 
     private let defaults: UserDefaults
@@ -512,8 +534,38 @@ final class AppSettings {
         promptPresetCatalog.filter { !$0.isBuiltIn }
     }
 
+    private var quickActionCatalog: [QuickAction] {
+        didSet {
+            saveQuickActionCatalog()
+            cleanUpShortcutAssignments()
+        }
+    }
+
+    var quickActions: [QuickAction] {
+        quickActionCatalog
+    }
+
+    /// Master switch for the External Ask feature. Defaults to on; when off,
+    /// the chips strip, shortcut targets, and shortcut-settings rows all hide.
+    /// Catalog data and shortcut assignments are preserved for re-enabling.
+    var externalAskEnabled: Bool {
+        didSet { defaults.set(externalAskEnabled, forKey: Key.externalAskEnabled) }
+    }
+
+    var enabledQuickActions: [QuickAction] {
+        guard externalAskEnabled else { return [] }
+        return quickActionCatalog.filter(\.isEnabled)
+    }
+
+    var customQuickActions: [QuickAction] {
+        quickActionCatalog.filter { !$0.isBuiltIn }
+    }
+
     var shortcutAssignments: [InAppShortcutAssignment] {
-        inAppShortcutConfiguration.resolvedAssignments(for: enabledPromptPresets)
+        inAppShortcutConfiguration.resolvedAssignments(
+            for: enabledPromptPresets,
+            actions: enabledQuickActions
+        )
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -561,7 +613,9 @@ final class AppSettings {
         panelHeight = defaults.object(forKey: Key.panelHeight) as? Double ?? 520
         showsMenuBarIcon = defaults.object(forKey: Key.showsMenuBarIcon) as? Bool ?? true
         keepWindowOnTop = defaults.object(forKey: Key.keepWindowOnTop) as? Bool ?? false
+        externalAskEnabled = defaults.object(forKey: Key.externalAskEnabled) as? Bool ?? true
         promptPresetCatalog = Self.loadPromptPresetCatalog(from: defaults)
+        quickActionCatalog = Self.loadQuickActionCatalog(from: defaults)
         inAppShortcutConfiguration = Self.loadInAppShortcutConfiguration(from: defaults)
         providerRegistryStorage = ProviderModelRegistry(
             defaults: defaults,
@@ -574,6 +628,7 @@ final class AppSettings {
             )
         )
         savePromptPresetCatalog()
+        saveQuickActionCatalog()
         saveCustomPromptPresets()
         cleanUpShortcutAssignments()
     }
@@ -591,10 +646,12 @@ final class AppSettings {
         let instruction = preset.instruction.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty, !instruction.isEmpty else { return false }
 
+        let customSymbolName = (preset.customSymbolName.flatMap { PromptPreset.isValidSymbol($0) ? $0.trimmingCharacters(in: .whitespacesAndNewlines) : nil })
         let savedPreset = PromptPreset(
             id: preset.id,
             title: title,
             instruction: instruction,
+            customSymbolName: customSymbolName,
             isEnabled: promptPresetCatalog.first(where: { $0.id == preset.id })?.isEnabled ?? preset.isEnabled
         )
         if let index = promptPresetCatalog.firstIndex(where: { $0.id == preset.id && !$0.isBuiltIn }) {
@@ -633,6 +690,64 @@ final class AppSettings {
         promptPresetCatalog.first(where: { $0.id == id && $0.isEnabled })
     }
 
+    @discardableResult
+    func saveCustomQuickAction(_ action: QuickAction) -> Bool {
+        guard !action.isBuiltIn else { return false }
+        let builtInIDs = Set(QuickAction.builtIn.map(\.id))
+        guard !builtInIDs.contains(action.id) else { return false }
+
+        let name = action.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return false }
+        guard QuickActionBuilder.validate(kind: action.kind).isValid else { return false }
+
+        let symbolName = QuickAction.isValidSymbol(action.symbolName) ? action.symbolName : QuickAction.defaultSymbolName
+        let isEnabled = quickActionCatalog.first(where: { $0.id == action.id })?.isEnabled ?? action.isEnabled
+
+        let savedAction = QuickAction(
+            id: action.id,
+            name: name,
+            kind: action.kind,
+            symbolName: symbolName,
+            isBuiltIn: false,
+            isEnabled: isEnabled
+        )
+
+        if let index = quickActionCatalog.firstIndex(where: { $0.id == action.id && !$0.isBuiltIn }) {
+            quickActionCatalog[index] = savedAction
+        } else {
+            quickActionCatalog.append(savedAction)
+        }
+        return true
+    }
+
+    func deleteCustomQuickAction(id: UUID) {
+        quickActionCatalog.removeAll { $0.id == id && !$0.isBuiltIn }
+    }
+
+    func setQuickActionEnabled(id: UUID, isEnabled: Bool) {
+        guard let index = quickActionCatalog.firstIndex(where: { $0.id == id }) else { return }
+        quickActionCatalog[index].isEnabled = isEnabled
+    }
+
+    @discardableResult
+    func moveQuickAction(id: UUID, by offset: Int) -> Bool {
+        guard offset == -1 || offset == 1,
+              let sourceIndex = quickActionCatalog.firstIndex(where: { $0.id == id }) else {
+            return false
+        }
+        let destinationIndex = sourceIndex + offset
+        guard quickActionCatalog.indices.contains(destinationIndex) else { return false }
+
+        var reorderedActions = quickActionCatalog
+        reorderedActions.swapAt(sourceIndex, destinationIndex)
+        quickActionCatalog = reorderedActions
+        return true
+    }
+
+    func enabledQuickAction(id: UUID) -> QuickAction? {
+        quickActionCatalog.first(where: { $0.id == id && $0.isEnabled })
+    }
+
     func selectionPromptPreset() -> PromptPreset? {
         if let selectionDefaultPromptID, let preset = enabledPromptPreset(id: selectionDefaultPromptID) { return preset }
         return enabledPromptPresets.first
@@ -649,30 +764,51 @@ final class AppSettings {
     }
 
     func shortcut(for target: InAppShortcutTarget) -> InAppShortcut? {
-        inAppShortcutConfiguration.shortcut(for: target, presets: enabledPromptPresets)
+        inAppShortcutConfiguration.shortcut(
+            for: target,
+            presets: enabledPromptPresets,
+            actions: enabledQuickActions
+        )
     }
 
     func shortcutTarget(for shortcut: InAppShortcut) -> InAppShortcutTarget? {
-        inAppShortcutConfiguration.target(for: shortcut, presets: enabledPromptPresets)
+        inAppShortcutConfiguration.target(
+            for: shortcut,
+            presets: enabledPromptPresets,
+            actions: enabledQuickActions
+        )
     }
 
     @discardableResult
     func assignShortcut(_ shortcut: InAppShortcut, to target: InAppShortcutTarget) -> InAppShortcutAssignmentError? {
-        let error = inAppShortcutConfiguration.assign(shortcut, to: target, presets: enabledPromptPresets)
+        let error = inAppShortcutConfiguration.assign(
+            shortcut,
+            to: target,
+            presets: enabledPromptPresets,
+            actions: enabledQuickActions
+        )
         if error == nil { saveInAppShortcutConfiguration() }
         return error
     }
 
     @discardableResult
     func removeShortcut(for target: InAppShortcutTarget) -> InAppShortcutAssignmentError? {
-        let error = inAppShortcutConfiguration.removeShortcut(for: target, presets: enabledPromptPresets)
+        let error = inAppShortcutConfiguration.removeShortcut(
+            for: target,
+            presets: enabledPromptPresets,
+            actions: enabledQuickActions
+        )
         if error == nil { saveInAppShortcutConfiguration() }
         return error
     }
 
     @discardableResult
     func resetShortcut(for target: InAppShortcutTarget) -> InAppShortcutAssignmentError? {
-        let error = inAppShortcutConfiguration.resetShortcut(for: target, presets: enabledPromptPresets)
+        let error = inAppShortcutConfiguration.resetShortcut(
+            for: target,
+            presets: enabledPromptPresets,
+            actions: enabledQuickActions
+        )
         if error == nil { saveInAppShortcutConfiguration() }
         return error
     }
@@ -716,6 +852,7 @@ final class AppSettings {
                 proxyUsername: proxyUsername
             ),
             promptPresetCatalog: promptPresetCatalog,
+            quickActionCatalog: quickActionCatalog,
             shortcutConfiguration: inAppShortcutConfiguration,
             providerCatalog: providerCatalog
         )
@@ -774,6 +911,9 @@ final class AppSettings {
         if let proxyUsername = general.proxyUsername { self.proxyUsername = proxyUsername }
 
         promptPresetCatalog = Self.normalizedPromptPresetCatalog(backup.promptPresetCatalog)
+        if let quickActionCatalog = backup.quickActionCatalog {
+            self.quickActionCatalog = Self.normalizedQuickActionCatalog(quickActionCatalog)
+        }
         inAppShortcutConfiguration = backup.shortcutConfiguration
         saveInAppShortcutConfiguration()
         cleanUpShortcutAssignments()
@@ -863,10 +1003,63 @@ final class AppSettings {
     }
 
     private func cleanUpShortcutAssignments() {
-        // Disabled presets remain in the catalog so their user-selected
-        // shortcuts can become available again when the preset is re-enabled.
-        guard inAppShortcutConfiguration.cleanUp(for: promptPresetCatalog) else { return }
+        // Disabled presets and providers remain in the catalog so their user-selected
+        // shortcuts can become available again when they are re-enabled.
+        guard inAppShortcutConfiguration.cleanUp(
+            for: promptPresetCatalog,
+            actions: quickActionCatalog
+        ) else { return }
         saveInAppShortcutConfiguration()
     }
 
+    private func saveQuickActionCatalog() {
+        guard let data = try? JSONEncoder().encode(quickActionCatalog) else { return }
+        defaults.set(data, forKey: Key.quickActionCatalog)
+    }
+
+    private static func loadQuickActionCatalog(from defaults: UserDefaults) -> [QuickAction] {
+        guard let data = defaults.data(forKey: Key.quickActionCatalog),
+              let catalog = try? JSONDecoder().decode([QuickAction].self, from: data) else {
+            return normalizedQuickActionCatalog(QuickAction.builtIn)
+        }
+        return normalizedQuickActionCatalog(catalog)
+    }
+
+    private static func normalizedQuickActionCatalog(
+        _ catalog: [QuickAction]
+    ) -> [QuickAction] {
+        let builtIns = Dictionary(uniqueKeysWithValues: QuickAction.builtIn.map { ($0.id, $0) })
+        var seenIDs = Set<UUID>()
+        var normalized: [QuickAction] = []
+
+        for action in catalog where seenIDs.insert(action.id).inserted {
+            if let builtIn = builtIns[action.id] {
+                normalized.append(QuickAction(
+                    id: builtIn.id,
+                    name: builtIn.name,
+                    kind: builtIn.kind,
+                    symbolName: builtIn.symbolName,
+                    isBuiltIn: true,
+                    isEnabled: action.isEnabled
+                ))
+            } else if !action.isBuiltIn {
+                let symbol = QuickAction.isValidSymbol(action.symbolName)
+                    ? action.symbolName
+                    : QuickAction.defaultSymbolName
+                normalized.append(QuickAction(
+                    id: action.id,
+                    name: action.name,
+                    kind: action.kind,
+                    symbolName: symbol,
+                    isBuiltIn: false,
+                    isEnabled: action.isEnabled
+                ))
+            }
+        }
+
+        for builtIn in QuickAction.builtIn where seenIDs.insert(builtIn.id).inserted {
+            normalized.append(builtIn)
+        }
+        return normalized
+    }
 }

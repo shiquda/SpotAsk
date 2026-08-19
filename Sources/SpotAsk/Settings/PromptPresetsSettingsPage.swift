@@ -101,6 +101,10 @@ private struct PromptPresetRow: View {
                 onMoveUp: onMoveUp,
                 onMoveDown: onMoveDown
             )
+            Image(systemName: preset.symbolName)
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
+                .frame(width: 24, height: 24)
             VStack(alignment: .leading, spacing: 4) {
                 Text(preset.title)
                     .font(.system(size: 14, weight: .semibold))
@@ -195,15 +199,32 @@ private struct PromptPresetEditor: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var title: String
+    @State private var symbolName: String
     @State private var instruction: String
+
+    private static let availableSymbols: [String] = [
+        "sparkles",
+        "character.bubble",
+        "doc.text.magnifyingglass",
+        "list.bullet.rectangle",
+        "pencil.and.scribble",
+        "globe",
+        "bubble.left.and.bubble.right",
+        "link",
+        "safari",
+        "terminal",
+        "chevron.left.forwardslash.chevron.right",
+        "magnifyingglass",
+        "bolt"
+    ]
 
     init(preset: PromptPreset, onSave: @escaping (PromptPreset) -> Void) {
         self.preset = preset
         self.onSave = onSave
         _title = State(initialValue: preset.title)
+        _symbolName = State(initialValue: PromptPreset.isValidSymbol(preset.customSymbolName) ? (preset.customSymbolName ?? PromptPreset.defaultSymbolName) : PromptPreset.defaultSymbolName)
         _instruction = State(initialValue: preset.instruction)
     }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             Text(preset.title.isEmpty ? L10n.string("settings.newPrompt") : L10n.string("settings.editPrompt"))
@@ -214,6 +235,16 @@ private struct PromptPresetEditor: View {
                     .font(.headline)
                 TextField(L10n.string("settings.namePlaceholder"), text: $title)
                     .textFieldStyle(.roundedBorder)
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L10n.string("externalAsk.iconLabel"))
+                    .font(.headline)
+                Picker(L10n.string("externalAsk.iconLabel"), selection: $symbolName) {
+                    ForEach(Self.availableSymbols, id: \.self) { symbol in
+                        Label(symbol, systemImage: symbol).tag(symbol)
+                    }
+                }
+                .labelsHidden()
             }
 
             VStack(alignment: .leading, spacing: 8) {
@@ -232,7 +263,7 @@ private struct PromptPresetEditor: View {
                 Button(L10n.string("settings.cancel")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Button(L10n.string("settings.save")) {
-                    onSave(PromptPreset(id: preset.id, title: title, instruction: instruction))
+                    onSave(PromptPreset(id: preset.id, title: title, instruction: instruction, customSymbolName: symbolName))
                 }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)

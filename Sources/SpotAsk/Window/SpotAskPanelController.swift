@@ -93,6 +93,9 @@ final class SpotAskPanelFadeCoordinator {
 extension Notification.Name {
     static let spotAskHotKeyChanged = Notification.Name("com.spotask.hot-key-changed")
     static let spotAskLanguageChanged = Notification.Name("com.spotask.language-changed")
+    /// Posted every time the quick-ask panel is presented (including re-shows
+    /// that reuse the existing view, where SwiftUI `onAppear` does not fire).
+    static let spotAskPanelDidShow = Notification.Name("com.spotask.panel-did-show")
 }
 
 @MainActor
@@ -137,6 +140,7 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
 
     func show() {
         let panel = makePanelIfNeeded()
+        NotificationCenter.default.post(name: .spotAskPanelDidShow, object: nil)
         applyCurrentAppearance()
         constrain(panel)
         if shouldCenterNormalizedInitialSize {

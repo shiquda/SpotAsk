@@ -4,6 +4,7 @@ import SwiftUI
 enum SettingsSection: CaseIterable, Hashable, Identifiable {
     case provider
     case prompts
+    case externalAsk
     case selectionAssistant
     case shortcuts
     case general
@@ -16,6 +17,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         switch self {
         case .provider: L10n.string("settings.provider")
         case .prompts: L10n.string("settings.prompts")
+        case .externalAsk: L10n.string("settings.externalAsk")
         case .selectionAssistant: L10n.string("settings.selectionAssistant")
         case .shortcuts: L10n.string("settings.shortcuts")
         case .general: L10n.string("settings.general")
@@ -28,6 +30,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         switch self {
         case .provider: "network"
         case .prompts: "text.badge.plus"
+        case .externalAsk: "globe"
         case .selectionAssistant: "text.viewfinder"
         case .shortcuts: "command"
         case .general: "gearshape.fill"
@@ -40,11 +43,12 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         switch self {
         case .provider: .cyan
         case .prompts: .mint
+        case .externalAsk: .blue
         case .selectionAssistant: .teal
         case .shortcuts: .orange
         case .general: .gray
         case .appearance: .indigo
-        case .about: .blue
+        case .about: .purple
         }
     }
 }
@@ -99,6 +103,10 @@ struct SettingsView: View {
                 case .prompts:
                     ScrollView {
                         PromptPresetsSettingsPage(settings: settings)
+                    }
+                case .externalAsk:
+                    ScrollView {
+                        ExternalAskSettingsPage(settings: settings)
                     }
                 case .selectionAssistant:
                     SelectionAssistantSettingsPage(

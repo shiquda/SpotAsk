@@ -60,26 +60,32 @@ enum InAppShortcutOperation: String, CaseIterable, Codable, Hashable, Identifiab
     var id: String { rawValue }
 }
 
-/// A shortcut target is either an application operation or one concrete prompt preset.
+/// A shortcut target is either an application operation, a prompt preset, or a Quick Action.
 enum InAppShortcutTarget: Hashable, Codable, Identifiable, Sendable {
     case operation(InAppShortcutOperation)
     case promptPreset(UUID)
+    case quickAction(UUID)
 
     private enum CodingKeys: String, CodingKey {
         case kind
         case operation
         case promptPresetID
+        case quickActionID
+        case webQuickAskProviderID
     }
 
     private enum Kind: String, Codable {
         case operation
         case promptPreset
+        case quickAction
+        case webQuickAsk
     }
 
     var id: String {
         switch self {
         case let .operation(operation): "operation.\(operation.rawValue)"
         case let .promptPreset(id): "promptPreset.\(id.uuidString.lowercased())"
+        case let .quickAction(id): "quickAction.\(id.uuidString.lowercased())"
         }
     }
 
@@ -90,6 +96,12 @@ enum InAppShortcutTarget: Hashable, Codable, Identifiable, Sendable {
             self = .operation(try container.decode(InAppShortcutOperation.self, forKey: .operation))
         case .promptPreset:
             self = .promptPreset(try container.decode(UUID.self, forKey: .promptPresetID))
+        case .quickAction, .webQuickAsk:
+            if let id = try container.decodeIfPresent(UUID.self, forKey: .quickActionID) {
+                self = .quickAction(id)
+            } else {
+                self = .quickAction(try container.decode(UUID.self, forKey: .webQuickAskProviderID))
+            }
         }
     }
 
@@ -102,6 +114,18 @@ enum InAppShortcutTarget: Hashable, Codable, Identifiable, Sendable {
         case let .promptPreset(id):
             try container.encode(Kind.promptPreset, forKey: .kind)
             try container.encode(id, forKey: .promptPresetID)
+        case let .quickAction(id):
+            try container.encode(Kind.quickAction, forKey: .kind)
+            try container.encode(id, forKey: .quickActionID)
+        }
+    }
+}
+
+extension InAppShortcutTarget {
+    var actionID: UUID? {
+        switch self {
+        case let .quickAction(id): id
+        default: nil
         }
     }
 }
@@ -150,12 +174,20 @@ struct InAppShortcutConfiguration: Codable, Equatable, Sendable {
         try container.encode(disabledTargets, forKey: .disabledTargets)
     }
 
-    func shortcut(for target: InAppShortcutTarget, presets: [PromptPreset]) -> InAppShortcut? {
-        resolvedAssignments(for: presets).first(where: { $0.target == target })?.shortcut
+    func shortcut(
+        for target: InAppShortcutTarget,
+        presets: [PromptPreset],
+        actions: [QuickAction] = []
+    ) -> InAppShortcut? {
+        resolvedAssignments(for: presets, actions: actions).first(where: { $0.target == target })?.shortcut
     }
 
-    func target(for shortcut: InAppShortcut, presets: [PromptPreset]) -> InAppShortcutTarget? {
-        let assignments = resolvedAssignments(for: presets)
+    func target(
+        for shortcut: InAppShortcut,
+        presets: [PromptPreset],
+        actions: [QuickAction] = []
+    ) -> InAppShortcutTarget? {
+        let assignments = resolvedAssignments(for: presets, actions: actions)
         if let exact = assignments.first(where: { $0.shortcut == shortcut }) {
             return exact.target
         }
@@ -171,9 +203,12 @@ struct InAppShortcutConfiguration: Codable, Equatable, Sendable {
         return nil
     }
 
-    func resolvedAssignments(for presets: [PromptPreset]) -> [InAppShortcutAssignment] {
-        let defaults = Self.defaultAssignments(for: presets)
-        let available = Self.availableTargets(for: presets)
+    func resolvedAssignments(
+        for presets: [PromptPreset],
+        actions: [QuickAction] = []
+    ) -> [InAppShortcutAssignment] {
+        let defaults = Self.defaultAssignments(for: presets, actions: actions)
+        let available = Self.existingTargets(for: presets, actions: actions)
         var assignments = defaults.filter { !disabledTargets.contains($0.target) }
         for override in overrides where available.contains(override.target) {
             assignments.removeAll { $0.target == override.target }
@@ -185,73 +220,90 @@ struct InAppShortcutConfiguration: Codable, Equatable, Sendable {
     mutating func assign(
         _ shortcut: InAppShortcut,
         to target: InAppShortcutTarget,
-        presets: [PromptPreset]
+        presets: [PromptPreset],
+        actions: [QuickAction] = []
     ) -> InAppShortcutAssignmentError? {
         guard shortcut.isSupported else { return .unsupportedShortcut }
-        guard Self.availableTargets(for: presets).contains(target) else { return .unavailableTarget }
+        guard Self.existingTargets(for: presets, actions: actions).contains(target) else { return .unavailableTarget }
 
-        var candidate = self
-        candidate.overrides.removeAll { $0.target == target }
-        candidate.disabledTargets.remove(target)
-        if let conflict = candidate.resolvedAssignments(for: presets).first(where: {
-            $0.target != target && $0.shortcut == shortcut
-        }) {
+        let currentAssignments = resolvedAssignments(for: presets, actions: actions)
+        if let conflict = currentAssignments.first(where: { $0.shortcut == shortcut && $0.target != target }) {
             return .duplicateShortcut(conflict.target)
         }
 
         overrides.removeAll { $0.target == target }
         disabledTargets.remove(target)
-        overrides.append(InAppShortcutAssignment(target: target, shortcut: shortcut))
+
+        let defaults = Self.defaultAssignments(for: presets, actions: actions)
+        let defaultAssignment = defaults.first(where: { $0.target == target })
+        if defaultAssignment?.shortcut != shortcut {
+            overrides.append(InAppShortcutAssignment(target: target, shortcut: shortcut))
+        }
         return nil
     }
 
-    mutating func removeShortcut(for target: InAppShortcutTarget, presets: [PromptPreset]) -> InAppShortcutAssignmentError? {
-        guard Self.availableTargets(for: presets).contains(target) else { return .unavailableTarget }
+    mutating func removeShortcut(
+        for target: InAppShortcutTarget,
+        presets: [PromptPreset],
+        actions: [QuickAction] = []
+    ) -> InAppShortcutAssignmentError? {
+        guard Self.existingTargets(for: presets, actions: actions).contains(target) else { return .unavailableTarget }
         overrides.removeAll { $0.target == target }
         disabledTargets.insert(target)
         return nil
     }
 
-    mutating func resetShortcut(for target: InAppShortcutTarget, presets: [PromptPreset]) -> InAppShortcutAssignmentError? {
-        guard Self.availableTargets(for: presets).contains(target) else { return .unavailableTarget }
+    mutating func resetShortcut(
+        for target: InAppShortcutTarget,
+        presets: [PromptPreset],
+        actions: [QuickAction] = []
+    ) -> InAppShortcutAssignmentError? {
+        guard Self.existingTargets(for: presets, actions: actions).contains(target) else { return .unavailableTarget }
         overrides.removeAll { $0.target == target }
         disabledTargets.remove(target)
         return nil
     }
 
     mutating func resetAll() {
-        overrides = []
-        disabledTargets = []
+        overrides.removeAll()
+        disabledTargets.removeAll()
     }
 
-    /// Removes assignments that refer to deleted custom prompts or invalid data.
-    @discardableResult
-    mutating func cleanUp(for presets: [PromptPreset]) -> Bool {
-        let available = Self.availableTargets(for: presets)
+    mutating func cleanUp(
+        for presets: [PromptPreset],
+        actions: [QuickAction] = []
+    ) -> Bool {
+        let existing = Self.existingTargets(for: presets, actions: actions)
         let previous = self
-        disabledTargets.formIntersection(available)
+        disabledTargets.formIntersection(existing)
         var accepted: [InAppShortcutAssignment] = []
-        for assignment in overrides where available.contains(assignment.target) && assignment.shortcut.isSupported {
+        for assignment in overrides where existing.contains(assignment.target) && assignment.shortcut.isSupported {
             var candidate = InAppShortcutConfiguration(overrides: accepted, disabledTargets: disabledTargets)
-            if candidate.assign(assignment.shortcut, to: assignment.target, presets: presets) == nil {
+            if candidate.assign(assignment.shortcut, to: assignment.target, presets: presets, actions: actions) == nil {
                 accepted = candidate.overrides
             }
         }
         overrides = accepted
         return self != previous
     }
-
     private init(overrides: [InAppShortcutAssignment], disabledTargets: Set<InAppShortcutTarget>) {
         self.overrides = overrides
         self.disabledTargets = disabledTargets
     }
 
-    private static func availableTargets(for presets: [PromptPreset]) -> Set<InAppShortcutTarget> {
+    private static func existingTargets(
+        for presets: [PromptPreset],
+        actions: [QuickAction]
+    ) -> Set<InAppShortcutTarget> {
         Set(InAppShortcutOperation.allCases.map(InAppShortcutTarget.operation))
             .union(presets.map { .promptPreset($0.id) })
+            .union(actions.map { .quickAction($0.id) })
     }
 
-    private static func defaultAssignments(for presets: [PromptPreset]) -> [InAppShortcutAssignment] {
+    private static func defaultAssignments(
+        for presets: [PromptPreset],
+        actions: [QuickAction]
+    ) -> [InAppShortcutAssignment] {
         let operations: [(InAppShortcutOperation, InAppShortcut)] = [
             (.focusInput, .command("l")),
             (.regenerateOrRetry, .command("r")),
@@ -261,15 +313,30 @@ struct InAppShortcutConfiguration: Codable, Equatable, Sendable {
             (.zoomIn, .command("=")),
             (.zoomOut, .command("-"))
         ]
-        let operationAssignments = operations.map {
+        var assignments = operations.map {
             InAppShortcutAssignment(target: .operation($0.0), shortcut: $0.1)
         }
-        // The catalog order is the shortcut order. A freshly migrated catalog
-        // starts with the historical four built-ins followed by custom prompts,
-        // preserving existing Command-1 through Command-9 assignments.
-        let promptAssignments = presets.prefix(9).enumerated().map {
-            InAppShortcutAssignment(target: .promptPreset($0.element.id), shortcut: .command("\($0.offset + 1)"))
+        for (index, preset) in presets.enumerated() {
+            let slot = index + 1
+            guard slot <= 9 else { break }
+            assignments.append(
+                InAppShortcutAssignment(
+                    target: .promptPreset(preset.id),
+                    shortcut: .command(String(slot))
+                )
+            )
         }
-        return operationAssignments + promptAssignments
+        let presetSlotCount = min(presets.count, 9)
+        for (index, action) in actions.enumerated() {
+            let slot = presetSlotCount + index + 1
+            guard slot <= 9 else { break }
+            assignments.append(
+                InAppShortcutAssignment(
+                    target: .quickAction(action.id),
+                    shortcut: .command(String(slot))
+                )
+            )
+        }
+        return assignments
     }
 }

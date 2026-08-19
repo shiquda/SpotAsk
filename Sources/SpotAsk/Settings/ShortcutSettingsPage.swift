@@ -40,6 +40,16 @@ struct ShortcutSettingsPage: View {
                 }
             }
 
+            SettingsGroup(title: L10n.string("settings.externalAsk")) {
+                ForEach(settings.enabledQuickActions) { action in
+                    ShortcutSettingsRow(
+                        title: action.displayName,
+                        target: .quickAction(action.id),
+                        settings: settings
+                    )
+                    if action.id != settings.enabledQuickActions.last?.id { Divider() }
+                }
+            }
             HStack {
                 Spacer()
                 Button {
@@ -168,6 +178,8 @@ private struct ShortcutSettingsRow: View {
             operation.title
         case let .promptPreset(id):
             settings.promptPresets.first(where: { $0.id == id })?.title ?? L10n.string("settings.shortcuts")
+        case let .quickAction(id):
+            settings.quickActions.first(where: { $0.id == id })?.displayName ?? L10n.string("settings.externalAsk")
         }
     }
 }

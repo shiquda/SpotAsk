@@ -40,6 +40,10 @@ struct InAppShortcutTests {
         let fixture = makeSettings()
         defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
 
+        // Disable built-in quick actions to isolate prompt preset derived defaults testing
+        fixture.settings.setQuickActionEnabled(id: QuickAction.BuiltInID.chatGPT, isEnabled: false)
+        fixture.settings.setQuickActionEnabled(id: QuickAction.BuiltInID.grok, isEnabled: false)
+
         let custom = (1 ... 6).map {
             PromptPreset(title: "Custom \($0)", instruction: "Instruction \($0)")
         }
@@ -260,6 +264,193 @@ struct InAppShortcutTests {
             keyCode: 53
         ))
         #expect(ShortcutRecorderEventParser.isCancelKey(escape))
+    }
+
+    @Test("Quick Actions receive derived defaults sequential to enabled presets")
+    func quickActionDerivedDefaultsSequentialToPresets() {
+        let fixture = makeSettings()
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+
+        // 4 built-in prompt presets are enabled by default (Command+1...4)
+        // ChatGPT should be Command+5, Grok should be Command+6
+        #expect(fixture.settings.shortcut(for: .quickAction(QuickAction.BuiltInID.chatGPT)) == .command("5"))
+        #expect(fixture.settings.shortcut(for: .quickAction(QuickAction.BuiltInID.grok)) == .command("6"))
+        #expect(fixture.settings.shortcutTarget(for: .command("5")) == .quickAction(QuickAction.BuiltInID.chatGPT))
+        #expect(fixture.settings.shortcutTarget(for: .command("6")) == .quickAction(QuickAction.BuiltInID.grok))
+    }
+
+    @Test("Quick Action reordering updates derived default shortcut numbers")
+    func quickActionReorderingUpdatesDerivedDefaults() {
+        let fixture = makeSettings()
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+
+        // Initially: ChatGPT -> 5, Grok -> 6
+        #expect(fixture.settings.shortcut(for: .quickAction(QuickAction.BuiltInID.chatGPT)) == .command("5"))
+        #expect(fixture.settings.shortcut(for: .quickAction(QuickAction.BuiltInID.grok)) == .command("6"))
+
+        // Move Grok up by -1 to make Grok first in catalog
+        #expect(fixture.settings.moveQuickAction(id: QuickAction.BuiltInID.grok, by: -1))
+        #expect(fixture.settings.shortcut(for: .quickAction(QuickAction.BuiltInID.grok)) == .command("5"))
+        #expect(fixture.settings.shortcut(for: .quickAction(QuickAction.BuiltInID.chatGPT)) == .command("6"))
+        #expect(fixture.settings.shortcutTarget(for: .command("5")) == .quickAction(QuickAction.BuiltInID.grok))
+        #expect(fixture.settings.shortcutTarget(for: .command("6")) == .quickAction(QuickAction.BuiltInID.chatGPT))
+    }
+
+    @Test("Disabling a preset recalculates derived defaults for quick actions")
+    func disablingPresetRecalculatesQuickActionDerivedDefaults() {
+        let fixture = makeSettings()
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+
+        let firstPresetID = PromptPreset.builtIn[0].id
+        fixture.settings.setPromptPresetEnabled(id: firstPresetID, isEnabled: false)
+
+        // Now 3 presets are enabled (Command+1...3) -> ChatGPT is Command+4, Grok is Command+5
+        #expect(fixture.settings.shortcut(for: .quickAction(QuickAction.BuiltInID.chatGPT)) == .command("4"))
+        #expect(fixture.settings.shortcut(for: .quickAction(QuickAction.BuiltInID.grok)) == .command("5"))
+        #expect(fixture.settings.shortcutTarget(for: .command("4")) == .quickAction(QuickAction.BuiltInID.chatGPT))
+        #expect(fixture.settings.shortcutTarget(for: .command("5")) == .quickAction(QuickAction.BuiltInID.grok))
+    }
+
+    @Test("Explicit shortcut assignment on quick action takes priority")
+    func explicitAssignmentOverridesDerivedDefault() {
+        let fixture = makeSettings()
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+
+        let chatGPTTarget = InAppShortcutTarget.quickAction(QuickAction.BuiltInID.chatGPT)
+        let customShortcut = InAppShortcut(key: "g", modifiers: [.command, .option])
+
+        #expect(fixture.settings.assignShortcut(customShortcut, to: chatGPTTarget) == nil)
+        #expect(fixture.settings.shortcut(for: chatGPTTarget) == customShortcut)
+        #expect(fixture.settings.shortcutTarget(for: customShortcut) == chatGPTTarget)
+        // Default Command+5 slot is now free
+        #expect(fixture.settings.shortcutTarget(for: .command("5")) == nil)
+    }
+
+    @Test("Shortcut conflict between preset and quick action returns duplicateShortcut error")
+    func shortcutConflictBetweenPresetAndQuickAction() {
+        let fixture = makeSettings()
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+
+        let presetTarget = InAppShortcutTarget.promptPreset(PromptPreset.builtIn[0].id)
+        let chatGPTTarget = InAppShortcutTarget.quickAction(QuickAction.BuiltInID.chatGPT)
+
+        // Try assigning Command+1 (already held by preset 1) to ChatGPT
+        #expect(
+            fixture.settings.assignShortcut(.command("1"), to: chatGPTTarget) ==
+                .duplicateShortcut(presetTarget)
+        )
+
+        // Try assigning Command+5 (derived default for ChatGPT) to preset 1
+        #expect(
+            fixture.settings.assignShortcut(.command("5"), to: presetTarget) ==
+                .duplicateShortcut(chatGPTTarget)
+        )
+    }
+
+    @Test("Legacy webQuickAsk shortcut JSON decodes to quickAction target")
+    func legacyWebQuickAskShortcutJSONDecodesToQuickAction() throws {
+        let customID = UUID()
+        let legacyJSON = """
+        {
+            "kind": "webQuickAsk",
+            "webQuickAskProviderID": "\(customID.uuidString)"
+        }
+        """
+        let data = legacyJSON.data(using: .utf8)!
+        let target = try JSONDecoder().decode(InAppShortcutTarget.self, from: data)
+        #expect(target == .quickAction(customID))
+    }
+    @Test("Disabling quick action removes active resolution and restores on re-enable")
+    func disablingQuickActionRemovesActiveResolutionAndRestoresOnReEnable() {
+        let fixture = makeSettings()
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+
+        let chatGPTTarget = InAppShortcutTarget.quickAction(QuickAction.BuiltInID.chatGPT)
+        let customShortcut = InAppShortcut(key: "w", modifiers: [.command, .shift])
+
+        #expect(fixture.settings.assignShortcut(customShortcut, to: chatGPTTarget) == nil)
+        #expect(fixture.settings.shortcut(for: chatGPTTarget) == customShortcut)
+        #expect(fixture.settings.shortcutTarget(for: customShortcut) == chatGPTTarget)
+
+        // Disable ChatGPT
+        fixture.settings.setQuickActionEnabled(id: QuickAction.BuiltInID.chatGPT, isEnabled: false)
+        #expect(fixture.settings.shortcut(for: chatGPTTarget) == nil)
+        #expect(fixture.settings.shortcutTarget(for: customShortcut) == nil)
+        #expect(!fixture.settings.shortcutAssignments.contains { $0.target == chatGPTTarget })
+
+        // Reload from UserDefaults: stored assignment must still exist in configuration
+        let reloaded = AppSettings(defaults: fixture.defaults)
+        #expect(reloaded.shortcut(for: chatGPTTarget) == nil)
+        #expect(!reloaded.shortcutAssignments.contains { $0.target == chatGPTTarget })
+
+        // Re-enable ChatGPT: custom assignment should be restored
+        reloaded.setQuickActionEnabled(id: QuickAction.BuiltInID.chatGPT, isEnabled: true)
+        #expect(reloaded.shortcut(for: chatGPTTarget) == customShortcut)
+        #expect(reloaded.shortcutTarget(for: customShortcut) == chatGPTTarget)
+    }
+
+    @Test("Deleting custom quick action cleans up dangling shortcut assignment")
+    func deletingCustomQuickActionCleansUpAssignment() {
+        let fixture = makeSettings()
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+
+        let customAction = QuickAction(
+            name: "Custom Search",
+            kind: .web(urlTemplate: "https://example.com/?q={query}")
+        )
+        #expect(fixture.settings.saveCustomQuickAction(customAction))
+        let target = InAppShortcutTarget.quickAction(customAction.id)
+
+        let customShortcut = InAppShortcut(key: "e", modifiers: [.command, .option])
+        #expect(fixture.settings.assignShortcut(customShortcut, to: target) == nil)
+        #expect(fixture.settings.shortcut(for: target) == customShortcut)
+
+        // Deleting the custom action should clean up its shortcut assignment
+        fixture.settings.deleteCustomQuickAction(id: customAction.id)
+        #expect(fixture.settings.shortcut(for: target) == nil)
+        #expect(fixture.settings.shortcutTarget(for: customShortcut) == nil)
+    }
+
+    @Test("QuickAction target round trips via Codable")
+    func quickActionTargetCodableRoundTrip() throws {
+        let actionID = UUID()
+        let target = InAppShortcutTarget.quickAction(actionID)
+        let encoded = try JSONEncoder().encode(target)
+        let decoded = try JSONDecoder().decode(InAppShortcutTarget.self, from: encoded)
+        #expect(decoded == target)
+        #expect(decoded.id == "quickAction.\(actionID.uuidString.lowercased())")
+    }
+
+    @Test("Legacy shortcut configuration JSON without web targets decodes cleanly")
+    func legacyShortcutConfigurationDecodesCleanly() throws {
+        let legacyJSON = """
+        {
+            "schemaVersion": 1,
+            "overrides": [
+                {
+                    "target": {
+                        "kind": "operation",
+                        "operation": "focusInput"
+                    },
+                    "shortcut": {
+                        "key": "k",
+                        "modifiers": 1
+                    }
+                }
+            ],
+            "disabledTargets": [
+                {
+                    "kind": "operation",
+                    "operation": "zoomIn"
+                }
+            ]
+        }
+        """.data(using: .utf8)!
+
+        let configuration = try JSONDecoder().decode(InAppShortcutConfiguration.self, from: legacyJSON)
+        #expect(configuration.overrides.count == 1)
+        #expect(configuration.disabledTargets.count == 1)
+        #expect(configuration.disabledTargets.contains(.operation(.zoomIn)))
     }
 
     private func keyEvent(key: String, keyCode: UInt16, modifiers: NSEvent.ModifierFlags = [.command]) -> NSEvent? {

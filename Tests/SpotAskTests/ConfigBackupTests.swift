@@ -43,9 +43,18 @@ final class ConfigBackupTests: XCTestCase {
         )
         try source.providerRegistry.replaceCatalog(with: catalog)
         XCTAssertTrue(source.saveCustomPromptPreset(PromptPreset(title: "My Preset", instruction: "Do it")))
+        let customAction = QuickAction(
+            name: "Custom Search",
+            kind: .web(urlTemplate: "https://search.example.com/?q={query}"),
+            symbolName: "magnifyingglass",
+            isEnabled: true
+        )
+        XCTAssertTrue(source.saveCustomQuickAction(customAction))
+        source.setQuickActionEnabled(id: QuickAction.BuiltInID.chatGPT, isEnabled: false)
 
         let backup = try source.makeConfigurationBackup()
         XCTAssertNil(backup.apiKeys)
+        XCTAssertNotNil(backup.quickActionCatalog)
         let data = try JSONEncoder().encode(backup)
         let decoded = try JSONDecoder().decode(SpotAskConfigBackup.self, from: data)
 
@@ -65,6 +74,9 @@ final class ConfigBackupTests: XCTestCase {
         XCTAssertEqual(destination.proxyUsername, "backup-user")
         XCTAssertEqual(destination.providerRegistry.catalog, catalog)
         XCTAssertEqual(destination.promptPresets.first(where: { $0.title == "My Preset" })?.instruction, "Do it")
+        XCTAssertEqual(destination.quickActions.first(where: { $0.id == customAction.id })?.name, "Custom Search")
+        XCTAssertEqual(destination.quickActions.first(where: { $0.id == QuickAction.BuiltInID.chatGPT })?.isEnabled, false)
+        XCTAssertEqual(destination.quickActions.first(where: { $0.id == QuickAction.BuiltInID.grok })?.isEnabled, true)
     }
 
     func testBackupOmitsStoredAccessKeys() throws {
@@ -195,6 +207,227 @@ final class ConfigBackupTests: XCTestCase {
         XCTAssertThrowsError(try AppSettings(defaults: destinationDefaults).applyConfigurationBackup(futureBackup)) { error in
             XCTAssertEqual(error as? SpotAskConfigBackupError, .unsupportedSchemaVersion(99))
         }
+    }
+    func testQuickActionCatalogAndShortcutsRoundTrip() throws {
+        let sourceSuite = "ConfigBackupQuickActionSource.\(UUID().uuidString)"
+        let sourceDefaults = UserDefaults(suiteName: sourceSuite)!
+        defer { sourceDefaults.removePersistentDomain(forName: sourceSuite) }
+        let destinationSuite = "ConfigBackupQuickActionDest.\(UUID().uuidString)"
+        let destinationDefaults = UserDefaults(suiteName: destinationSuite)!
+        defer { destinationDefaults.removePersistentDomain(forName: destinationSuite) }
+
+        let source = AppSettings(defaults: sourceDefaults)
+        let customAction = QuickAction(
+            name: "Perplexity",
+            kind: .web(urlTemplate: "https://perplexity.ai/?q={query}"),
+            symbolName: "sparkle",
+            isEnabled: true
+        )
+        XCTAssertTrue(source.saveCustomQuickAction(customAction))
+        // Reorder: Move custom action up
+        XCTAssertTrue(source.moveQuickAction(id: customAction.id, by: -1))
+        // Disable Grok
+        source.setQuickActionEnabled(id: QuickAction.BuiltInID.grok, isEnabled: false)
+
+        // Assign shortcut to custom quick action target
+        let customTarget = InAppShortcutTarget.quickAction(customAction.id)
+        let customShortcut = InAppShortcut.command("p")
+        XCTAssertNil(source.assignShortcut(customShortcut, to: customTarget))
+        XCTAssertEqual(source.shortcut(for: customTarget), customShortcut)
+
+        let backup = try source.makeConfigurationBackup()
+        let data = try JSONEncoder().encode(backup)
+        let decoded = try JSONDecoder().decode(SpotAskConfigBackup.self, from: data)
+
+        let destination = AppSettings(defaults: destinationDefaults)
+        try destination.applyConfigurationBackup(decoded)
+
+        // Verify order and enabled status restored
+        let restoredActions = destination.quickActions
+        XCTAssertEqual(restoredActions.count, 3)
+        XCTAssertEqual(restoredActions[0].id, QuickAction.BuiltInID.chatGPT)
+        XCTAssertEqual(restoredActions[1].id, customAction.id)
+        XCTAssertEqual(restoredActions[1].name, "Perplexity")
+        XCTAssertEqual(restoredActions[1].kind, .web(urlTemplate: "https://perplexity.ai/?q={query}"))
+        XCTAssertTrue(restoredActions[1].isEnabled)
+        XCTAssertEqual(restoredActions[2].id, QuickAction.BuiltInID.grok)
+        XCTAssertFalse(restoredActions[2].isEnabled)
+
+        // Verify shortcut restored
+        XCTAssertEqual(destination.shortcut(for: customTarget), customShortcut)
+        XCTAssertEqual(destination.shortcutTarget(for: customShortcut), customTarget)
+    }
+
+    func testImportingBackupWithTamperedBuiltInRestoresOfficialDefinition() throws {
+        let destinationSuite = "ConfigBackupTamperedDest.\(UUID().uuidString)"
+        let destinationDefaults = UserDefaults(suiteName: destinationSuite)!
+        defer { destinationDefaults.removePersistentDomain(forName: destinationSuite) }
+
+        let tamperedChatGPT = QuickAction(
+            id: QuickAction.BuiltInID.chatGPT,
+            name: "Tampered ChatGPT",
+            kind: .web(urlTemplate: "https://evil.com/?q={query}"),
+            symbolName: "trash",
+            isBuiltIn: false,
+            isEnabled: false
+        )
+        let tamperedGrok = QuickAction(
+            id: QuickAction.BuiltInID.grok,
+            name: "Tampered Grok",
+            kind: .web(urlTemplate: "https://malicious.com/?q={query}"),
+            symbolName: "gear",
+            isBuiltIn: false,
+            isEnabled: true
+        )
+
+        let provider = ProviderConfiguration(
+            name: "Test Service",
+            address: "https://example.com/v1",
+            addressMode: .baseURL,
+            timeout: 30
+        )
+        let model = ModelConfiguration(
+            displayName: "Test Model",
+            upstreamModelID: "test-model",
+            providerID: provider.id,
+            isStreamingEnabled: false
+        )
+        let backup = SpotAskConfigBackup(
+            general: .init(
+                systemPrompt: "test",
+                contextLimit: 10,
+                retainSession: false,
+                clearInputOnClose: false,
+                confirmBeforeStartingNewConversation: true,
+                escapeStartsNewConversation: false,
+                defaultExpandReasoning: false,
+                renderMath: true,
+                launchAtLogin: false,
+                appearance: "system",
+                fontSize: "standard",
+                chatMessageStyle: "standard",
+                interfaceZoomLevel: "standard",
+                language: "system",
+                hotKeyPreset: "optionSpace",
+                keepWindowOnTop: false,
+                showsMenuBarIcon: true,
+                automaticUpdateCheckEnabled: true,
+                proxyEnabled: false,
+                proxyType: "http",
+                proxyHost: "",
+                proxyPort: 1080,
+                proxyUsername: ""
+            ),
+            promptPresetCatalog: PromptPreset.builtIn,
+            quickActionCatalog: [tamperedGrok, tamperedChatGPT],
+            shortcutConfiguration: InAppShortcutConfiguration(),
+            providerCatalog: ProviderModelCatalog(providers: [provider], models: [model], selectedModelID: model.id)
+        )
+
+        let destination = AppSettings(defaults: destinationDefaults)
+        try destination.applyConfigurationBackup(backup)
+
+        let actions = destination.quickActions
+        XCTAssertEqual(actions.count, 2)
+
+        // Order preserved from backup (Grok first, ChatGPT second)
+        let grok = actions[0]
+        XCTAssertEqual(grok.id, QuickAction.BuiltInID.grok)
+        XCTAssertTrue(grok.isBuiltIn)
+        XCTAssertEqual(grok.kind, .web(urlTemplate: "https://grok.com/?q={query}"))
+        XCTAssertEqual(grok.symbolName, "sparkles")
+        XCTAssertTrue(grok.isEnabled)
+
+        let chatGPT = actions[1]
+        XCTAssertEqual(chatGPT.id, QuickAction.BuiltInID.chatGPT)
+        XCTAssertTrue(chatGPT.isBuiltIn)
+        XCTAssertEqual(chatGPT.kind, .web(urlTemplate: "https://chatgpt.com/?q={query}"))
+        XCTAssertEqual(chatGPT.symbolName, "bubble.left.and.bubble.right")
+        XCTAssertFalse(chatGPT.isEnabled)
+    }
+
+    func testLegacySchema1JSONWithoutQuickActionsDecodesAndDoesNotOverwriteExistingCatalog() throws {
+        let destinationSuite = "ConfigBackupLegacyDest.\(UUID().uuidString)"
+        let destinationDefaults = UserDefaults(suiteName: destinationSuite)!
+        defer { destinationDefaults.removePersistentDomain(forName: destinationSuite) }
+
+        // Set up custom action in destination before import
+        let destination = AppSettings(defaults: destinationDefaults)
+        let existingCustom = QuickAction(
+            name: "Existing Search",
+            kind: .web(urlTemplate: "https://existing.example.com/?q={query}"),
+            symbolName: "globe",
+            isEnabled: true
+        )
+        XCTAssertTrue(destination.saveCustomQuickAction(existingCustom))
+        destination.setQuickActionEnabled(id: QuickAction.BuiltInID.chatGPT, isEnabled: false)
+
+        let provider = ProviderConfiguration(
+            name: "Test Service",
+            address: "https://example.com/v1",
+            addressMode: .baseURL,
+            timeout: 30
+        )
+        let model = ModelConfiguration(
+            displayName: "Test Model",
+            upstreamModelID: "test-model",
+            providerID: provider.id,
+            isStreamingEnabled: false
+        )
+
+        // Construct legacy Schema 1 JSON without `quickActionCatalog`
+        let legacyJSON: [String: Any] = [
+            "schemaVersion": 1,
+            "general": [
+                "systemPrompt": "legacy prompt",
+                "contextLimit": 15,
+                "retainSession": true,
+                "clearInputOnClose": true,
+                "confirmBeforeStartingNewConversation": false,
+                "escapeStartsNewConversation": true,
+                "defaultExpandReasoning": true,
+                "renderMath": false,
+                "launchAtLogin": true,
+                "appearance": "dark",
+                "fontSize": "large",
+                "chatMessageStyle": "im",
+                "interfaceZoomLevel": "large",
+                "language": "zh-Hans",
+                "hotKeyPreset": "commandSpace",
+                "keepWindowOnTop": true,
+                "showsMenuBarIcon": false,
+                "automaticUpdateCheckEnabled": false,
+                "proxyEnabled": false,
+                "proxyType": "http",
+                "proxyHost": "",
+                "proxyPort": 1080,
+                "proxyUsername": ""
+            ],
+            "promptPresetCatalog": try JSONSerialization.jsonObject(with: JSONEncoder().encode(PromptPreset.builtIn)),
+            "shortcutConfiguration": try JSONSerialization.jsonObject(with: JSONEncoder().encode(InAppShortcutConfiguration())),
+            "providerCatalog": try JSONSerialization.jsonObject(with: JSONEncoder().encode(ProviderModelCatalog(
+                providers: [provider],
+                models: [model],
+                selectedModelID: model.id
+            )))
+        ]
+        let data = try JSONSerialization.data(withJSONObject: legacyJSON)
+        let decoded = try JSONDecoder().decode(SpotAskConfigBackup.self, from: data)
+
+        XCTAssertNil(decoded.quickActionCatalog)
+        XCTAssertEqual(decoded.general.systemPrompt, "legacy prompt")
+
+        // Import legacy backup
+        try destination.applyConfigurationBackup(decoded)
+
+        // General settings should be updated
+        XCTAssertEqual(destination.systemPrompt, "legacy prompt")
+        XCTAssertEqual(destination.contextLimit, 15)
+
+        // Existing Quick Action catalog must NOT be overwritten or reset to built-in defaults
+        let currentActions = destination.quickActions
+        XCTAssertTrue(currentActions.contains(where: { $0.id == existingCustom.id }))
+        XCTAssertEqual(currentActions.first(where: { $0.id == QuickAction.BuiltInID.chatGPT })?.isEnabled, false)
     }
 }
 

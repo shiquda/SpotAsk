@@ -32,6 +32,7 @@ struct ChatView: View {
     @State private var copiedMessageID: UUID?
     @State private var copyFeedbackToken = UUID()
     private let selectionReplacementWriter: any SelectionReplacementWriting = AccessibilitySelectionReplacementWriter()
+    @State private var quickActionTrigger: QuickActionTrigger?
 
 
     init(
@@ -73,6 +74,7 @@ struct ChatView: View {
             reasoningToggle.reconcile(messages: viewModel.messages, prefersExpanded: settings.defaultExpandReasoning)
             userMessageExpansionState.reconcile(messages: viewModel.messages, role: .user)
             assistantMessageExpansionState.reconcile(messages: viewModel.messages, role: .assistant)
+            quickActionTrigger?.resetForNewPanelPresentation()
             installShortcutDispatcher()
         }
         .onDisappear {
@@ -227,6 +229,14 @@ struct ChatView: View {
                         onSelect: { applyPreset($0) }
                     )
                     .padding(.top, 10)
+                    if !settings.enabledQuickActions.isEmpty {
+                        QuickActionStripView(
+                            actions: settings.enabledQuickActions,
+                            showsShortcutHints: showsShortcutHints,
+                            shortcutForAction: shortcutHint(for:),
+                            onSelect: { triggerQuickAction(for: $0.id) }
+                        )
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -654,6 +664,8 @@ struct ChatView: View {
             guard let preset = settings.enabledPromptPreset(id: id) else { return false }
             applyPreset(shortcutPresetSelection(current: viewModel.selectedPromptPreset, requested: preset))
             return true
+        case let .quickAction(id):
+            return triggerQuickAction(for: id)
         case let .operation(operation):
             switch operation {
             case .focusInput:
@@ -709,6 +721,30 @@ struct ChatView: View {
 
     private func shortcutHint(for preset: PromptPreset) -> InAppShortcut? {
         shortcutHint(for: .promptPreset(preset.id))
+    }
+
+    private func shortcutHint(for action: QuickAction) -> InAppShortcut? {
+        shortcutHint(for: .quickAction(action.id))
+    }
+
+    private func lazyQuickActionTrigger() -> QuickActionTrigger {
+        if let trigger = quickActionTrigger {
+            return trigger
+        }
+        let trigger = QuickActionTrigger(
+            isSessionEmpty: { viewModel.messages.isEmpty },
+            isGenerating: { isGenerating },
+            currentInput: { viewModel.input },
+            resolveAction: { settings.enabledQuickAction(id: $0) },
+            closePanel: { commandCenter.close() }
+        )
+        quickActionTrigger = trigger
+        return trigger
+    }
+
+    @discardableResult
+    private func triggerQuickAction(for actionID: UUID) -> Bool {
+        lazyQuickActionTrigger().trigger(actionID: actionID)
     }
 
     private func canRetry(userMessage: ChatMessage) -> Bool {
