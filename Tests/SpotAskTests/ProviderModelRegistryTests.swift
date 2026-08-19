@@ -63,7 +63,7 @@ final class ProviderModelRegistryTests: XCTestCase {
         XCTAssertNil(AppSettings(defaults: defaults).providerRegistry.pendingLegacyAPIKeyMigrationProviderID)
     }
 
-    func testSelectionAndDeleteFallbackRefreshLegacySettingsProjection() throws {
+    func testSelectionAndDeleteFallbackRemainInCatalog() throws {
         let (defaults, suiteName) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let settings = AppSettings(defaults: defaults)
@@ -79,20 +79,20 @@ final class ProviderModelRegistryTests: XCTestCase {
 
         try registry.selectModel(id: secondModel.id)
 
-        XCTAssertEqual(settings.baseURL, secondProvider.address)
-        XCTAssertTrue(settings.useFullEndpoint)
-        XCTAssertEqual(settings.model, secondModel.upstreamModelID)
-        XCTAssertFalse(settings.streaming)
-        XCTAssertEqual(settings.timeout, secondProvider.timeout)
+        let selectedCatalog = try XCTUnwrap(registry.catalog)
+        XCTAssertEqual(selectedCatalog.selectedModelID, secondModel.id)
+        XCTAssertEqual(selectedCatalog.models.first(where: { $0.id == secondModel.id }), secondModel)
+        XCTAssertEqual(selectedCatalog.providers.first(where: { $0.id == secondProvider.id }), secondProvider)
 
         try registry.deleteProvider(id: secondProvider.id, keyStore: RecordingProviderKeyStore())
 
-        XCTAssertEqual(registry.catalog?.selectedModelID, originalModel.id)
-        XCTAssertEqual(settings.baseURL, originalCatalog.providers[0].address)
-        XCTAssertEqual(settings.useFullEndpoint, originalCatalog.providers[0].addressMode.usesFullEndpoint)
-        XCTAssertEqual(settings.model, originalModel.upstreamModelID)
-        XCTAssertEqual(settings.streaming, originalModel.isStreamingEnabled)
-        XCTAssertEqual(settings.timeout, originalCatalog.providers[0].timeout)
+        let fallbackCatalog = try XCTUnwrap(registry.catalog)
+        XCTAssertEqual(fallbackCatalog.selectedModelID, originalModel.id)
+        XCTAssertEqual(fallbackCatalog.models.first(where: { $0.id == originalModel.id }), originalModel)
+        XCTAssertEqual(
+            fallbackCatalog.providers.first(where: { $0.id == originalModel.providerID }),
+            originalCatalog.providers.first(where: { $0.id == originalModel.providerID })
+        )
     }
 
     func testCorruptCatalogIsPreservedAndCannotBeOverwritten() throws {

@@ -38,47 +38,19 @@ struct OpenAICompatibleProvider: ChatProvider {
 
     func stream(request: ChatRequest) -> AsyncThrowingStream<ChatStreamEvent, Error> {
         guard request.stream else { return nonStreaming(request: request) }
-        return AsyncThrowingStream { continuation in
-            let task = Task {
-                do {
-                    var urlRequest = try makeURLRequest(for: request)
-                    urlRequest.setValue("text/event-stream", forHTTPHeaderField: "Accept")
-                    let (bytes, httpResponse) = try await transport.streamingResponse(for: urlRequest)
-                    if !(httpResponse.value(forHTTPHeaderField: "Content-Type")?.lowercased().contains("text/event-stream") ?? false) {
-                        let data = try await ChatHTTP.collect(bytes)
-                        let completion = try JSONDecoder().decode(NonStreamingResponse.self, from: data)
-                        for event in completion.events { continuation.yield(event) }
-                        continuation.yield(.completed)
-                        continuation.finish()
-                        return
-                    }
-                    var parser = SSEParser()
-                    var receivedCompletion = false
-                    for try await byte in bytes {
-                        try Task.checkCancellation()
-                        for event in try parser.feed(Data([byte])) {
-                            if case .completed = event { receivedCompletion = true }
-                            continuation.yield(event)
-                        }
-                    }
-                    for event in try parser.finish() {
-                        if case .completed = event { receivedCompletion = true }
-                        continuation.yield(event)
-                    }
-                    if !receivedCompletion { continuation.yield(.completed) }
-                    continuation.finish()
-                } catch is CancellationError {
-                    continuation.finish(throwing: ChatError.cancelled)
-                } catch let error as ChatError {
-                    continuation.finish(throwing: error)
-                } catch let error as URLError {
-                    continuation.finish(throwing: ChatHTTP.mapURLError(error))
-                } catch {
-                    continuation.finish(throwing: error)
-                }
-            }
-            continuation.onTermination = { _ in task.cancel() }
-        }
+        return ChatStreamingDriver.stream(
+            transport: transport,
+            makeRequest: {
+                var urlRequest = try makeURLRequest(for: request)
+                urlRequest.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+                return urlRequest
+            },
+            decodeNonStreaming: { data in
+                try JSONDecoder().decode(NonStreamingResponse.self, from: data).events
+            },
+            decodePayload: SSEParser.parsePayload,
+            mapUnexpectedError: { $0 }
+        )
     }
 
     func testConnection() async throws {

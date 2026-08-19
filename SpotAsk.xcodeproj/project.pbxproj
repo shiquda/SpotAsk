@@ -66,6 +66,26 @@
 		001000000000000000000040 /* AttachmentProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000059 /* AttachmentProcessor.swift */; };
 		001000000000000000000041 /* ProviderIcons in Resources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000005A /* ProviderIcons */; };
 		001000000000000000000042 /* ProviderBrandIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000005B /* ProviderBrandIcon.swift */; };
+		001000000000000000000043 /* ChatStreamingDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000005C /* ChatStreamingDriver.swift */; };
+		001000000000000000000044 /* ChatDisplayPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000005D /* ChatDisplayPolicy.swift */; };
+		001000000000000000000045 /* ReasoningViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000005E /* ReasoningViews.swift */; };
+		001000000000000000000046 /* AssistantMessageRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000005F /* AssistantMessageRow.swift */; };
+		001000000000000000000047 /* ChatChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000060 /* ChatChrome.swift */; };
+		001000000000000000000048 /* ComposerWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000061 /* ComposerWidgets.swift */; };
+		001000000000000000000049 /* UserMessageContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000062 /* UserMessageContentView.swift */; };
+		00100000000000000000004A /* ModelPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000063 /* ModelPickerView.swift */; };
+		00100000000000000000004B /* ProviderSettingsState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000064 /* ProviderSettingsState.swift */; };
+		00100000000000000000004C /* SettingsComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000065 /* SettingsComponents.swift */; };
+		00100000000000000000004D /* ShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000066 /* ShortcutRecorder.swift */; };
+		00100000000000000000004E /* ProviderSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000067 /* ProviderSettingsPage.swift */; };
+		00100000000000000000004F /* SelectionAssistantSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000068 /* SelectionAssistantSettingsPage.swift */; };
+		001000000000000000000050 /* PromptPresetsSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000069 /* PromptPresetsSettingsPage.swift */; };
+		001000000000000000000051 /* ShortcutSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000006A /* ShortcutSettingsPage.swift */; };
+		001000000000000000000052 /* GeneralSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000006B /* GeneralSettingsPage.swift */; };
+		001000000000000000000053 /* GeneralSettingsState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000006C /* GeneralSettingsState.swift */; };
+		001000000000000000000054 /* AppearanceSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000006D /* AppearanceSettingsPage.swift */; };
+		001000000000000000000055 /* AboutSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000006E /* AboutSettingsPage.swift */; };
+		001000000000000000000056 /* SettingsSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000006F /* SettingsSidebar.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -145,6 +165,26 @@
 		002000000000000000000059 /* AttachmentProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Attachments/AttachmentProcessor.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000005A /* ProviderIcons */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Sources/SpotAsk/Resources/ProviderIcons; sourceTree = SOURCE_ROOT; };
 		00200000000000000000005B /* ProviderBrandIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ProviderBrandIcon.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000005C /* ChatStreamingDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/ChatStreamingDriver.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000005D /* ChatDisplayPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatDisplayPolicy.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000005E /* ReasoningViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ReasoningViews.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000005F /* AssistantMessageRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/AssistantMessageRow.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000060 /* ChatChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatChrome.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000061 /* ComposerWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ComposerWidgets.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000062 /* UserMessageContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/UserMessageContentView.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000063 /* ModelPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ModelPickerView.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000064 /* ProviderSettingsState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/ProviderSettingsState.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000065 /* SettingsComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/SettingsComponents.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000066 /* ShortcutRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/ShortcutRecorder.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000067 /* ProviderSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/ProviderSettingsPage.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000068 /* SelectionAssistantSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/SelectionAssistantSettingsPage.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000069 /* PromptPresetsSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/PromptPresetsSettingsPage.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000006A /* ShortcutSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/ShortcutSettingsPage.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000006B /* GeneralSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/GeneralSettingsPage.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000006C /* GeneralSettingsState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/GeneralSettingsState.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000006D /* AppearanceSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/AppearanceSettingsPage.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000006E /* AboutSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/AboutSettingsPage.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000006F /* SettingsSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/SettingsSidebar.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -216,6 +256,26 @@
 				002000000000000000000059 /* AttachmentProcessor.swift */,
 				00200000000000000000005B /* ProviderBrandIcon.swift */,
 				002000000000000000000023 /* Localization.swift */,
+				00200000000000000000005C /* ChatStreamingDriver.swift */,
+				00200000000000000000005D /* ChatDisplayPolicy.swift */,
+				00200000000000000000005E /* ReasoningViews.swift */,
+				00200000000000000000005F /* AssistantMessageRow.swift */,
+				002000000000000000000060 /* ChatChrome.swift */,
+				002000000000000000000061 /* ComposerWidgets.swift */,
+				002000000000000000000062 /* UserMessageContentView.swift */,
+				002000000000000000000063 /* ModelPickerView.swift */,
+				002000000000000000000064 /* ProviderSettingsState.swift */,
+				002000000000000000000065 /* SettingsComponents.swift */,
+				002000000000000000000066 /* ShortcutRecorder.swift */,
+				002000000000000000000067 /* ProviderSettingsPage.swift */,
+				002000000000000000000068 /* SelectionAssistantSettingsPage.swift */,
+				002000000000000000000069 /* PromptPresetsSettingsPage.swift */,
+				00200000000000000000006A /* ShortcutSettingsPage.swift */,
+				00200000000000000000006B /* GeneralSettingsPage.swift */,
+				00200000000000000000006C /* GeneralSettingsState.swift */,
+				00200000000000000000006D /* AppearanceSettingsPage.swift */,
+				00200000000000000000006E /* AboutSettingsPage.swift */,
+				00200000000000000000006F /* SettingsSidebar.swift */,
 			);
 			name = Sources;
 			sourceTree = "<group>";
@@ -372,6 +432,26 @@
 				00100000000000000000003F,
 				001000000000000000000040,
 				001000000000000000000042,
+				001000000000000000000043,
+				001000000000000000000044,
+				001000000000000000000045,
+				001000000000000000000046,
+				001000000000000000000047,
+				001000000000000000000048,
+				001000000000000000000049,
+				00100000000000000000004A,
+				00100000000000000000004B,
+				00100000000000000000004C,
+				00100000000000000000004D,
+				00100000000000000000004E,
+				00100000000000000000004F,
+				001000000000000000000050,
+				001000000000000000000051,
+				001000000000000000000052,
+				001000000000000000000053,
+				001000000000000000000054,
+				001000000000000000000055,
+				001000000000000000000056,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -22,7 +22,7 @@ struct SSEParser: Sendable {
                 events.append(.completed)
                 continue
             }
-            events.append(contentsOf: try parsePayload(String(payload)))
+            events.append(contentsOf: try Self.parsePayload(String(payload)))
         }
         return events
     }
@@ -33,7 +33,7 @@ struct SSEParser: Sendable {
         return try feed(Data())
     }
 
-    private func parsePayload(_ payload: String) throws -> [ChatStreamEvent] {
+    static func parsePayload(_ payload: String) throws -> [ChatStreamEvent] {
         guard let data = payload.data(using: .utf8) else { throw ChatError.decodingFailed }
         let response: StreamResponse
         do {

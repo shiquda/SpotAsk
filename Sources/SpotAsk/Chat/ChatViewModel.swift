@@ -7,12 +7,10 @@ final class ChatViewModel {
     /// How long a conversation can stay idle before it starts over. The prior
     /// conversation remains restorable until the user sends a new question.
     static let staleSessionInterval: TimeInterval = 15 * 60
-
     var messages: [ChatMessage] = []
     var input = ""
     var generationState: GenerationState = .idle
     var error: ChatError?
-    var isSettingsPresented = false
     var selectedPromptPreset: PromptPreset?
     private(set) var activeStreamingAssistantID: UUID?
     private(set) var streamingContent = ""

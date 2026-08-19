@@ -20,8 +20,6 @@ struct SpotAskIntentTests {
             ChatView(
                 viewModel: viewModel,
                 settings: settings,
-                keyStore: EmptyKeyStore(),
-                providerFactory: ImmediateProviderFactory(),
                 commandCenter: commandCenter
             )
         }
@@ -47,8 +45,6 @@ struct SpotAskIntentTests {
             ChatView(
                 viewModel: viewModel,
                 settings: settings,
-                keyStore: EmptyKeyStore(),
-                providerFactory: ImmediateProviderFactory(),
                 commandCenter: commandCenter
             )
         }
@@ -88,8 +84,6 @@ struct SpotAskIntentTests {
             ChatView(
                 viewModel: viewModel,
                 settings: settings,
-                keyStore: EmptyKeyStore(),
-                providerFactory: ImmediateProviderFactory(),
                 commandCenter: commandCenter
             )
         }
@@ -183,8 +177,6 @@ struct SpotAskIntentTests {
             ChatView(
                 viewModel: viewModel,
                 settings: settings,
-                keyStore: EmptyKeyStore(),
-                providerFactory: HoldingProviderFactory(recorder: requestRecorder),
                 commandCenter: commandCenter
             )
         }
@@ -399,6 +391,7 @@ private func makeSettings() -> AppSettings {
     defaults.removePersistentDomain(forName: suiteName)
     return AppSettings(defaults: defaults)
 }
+
 
 @MainActor
 private func waitForGeneration(in viewModel: ChatViewModel) async {

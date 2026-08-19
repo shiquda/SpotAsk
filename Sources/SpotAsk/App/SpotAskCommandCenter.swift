@@ -17,6 +17,7 @@ final class SpotAskCommandCenter {
     private var hasPanelContent = false
     private var pendingActions: [SpotAskCommandAction] = []
     private var actionConsumer: ((SpotAskCommandAction) -> Void)?
+    private var settingsPresenter: (() -> Void)?
 
     init() {}
 
@@ -36,6 +37,10 @@ final class SpotAskCommandCenter {
     func setActionConsumer(_ consumer: @escaping (SpotAskCommandAction) -> Void) {
         actionConsumer = consumer
         showAndDeliverPendingActions()
+    }
+
+    func setSettingsPresenter(_ presenter: @escaping () -> Void) {
+        settingsPresenter = presenter
     }
 
     func open() {
@@ -89,7 +94,11 @@ final class SpotAskCommandCenter {
     }
 
     func showSettings() {
-        enqueue(.showSettings)
+        if let settingsPresenter {
+            settingsPresenter()
+        } else {
+            enqueue(.showSettings)
+        }
     }
 
     private func enqueue(_ action: SpotAskCommandAction) {

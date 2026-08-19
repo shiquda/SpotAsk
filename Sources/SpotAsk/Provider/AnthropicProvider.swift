@@ -42,51 +42,19 @@ struct AnthropicProvider: ChatProvider {
 
     func stream(request: ChatRequest) -> AsyncThrowingStream<ChatStreamEvent, Error> {
         guard request.stream else { return nonStreaming(request: request) }
-        return AsyncThrowingStream { continuation in
-            let task = Task {
-                do {
-                    var urlRequest = try makeURLRequest(for: request, stream: true)
-                    urlRequest.setValue("text/event-stream", forHTTPHeaderField: "Accept")
-                    let (bytes, httpResponse) = try await transport.streamingResponse(for: urlRequest)
-                    if !(httpResponse.value(forHTTPHeaderField: "Content-Type")?.lowercased().contains("text/event-stream") ?? false) {
-                        let data = try await ChatHTTP.collect(bytes)
-                        let completion = try JSONDecoder().decode(AnthropicNonStreamingResponse.self, from: data)
-                        for event in completion.events { continuation.yield(event) }
-                        continuation.yield(.completed)
-                        continuation.finish()
-                        return
-                    }
-                    var parser = AnthropicSSEParser()
-                    var receivedCompletion = false
-                    for try await byte in bytes {
-                        try Task.checkCancellation()
-                        for payload in try parser.feed(Data([byte])) {
-                            for event in try makeStreamEvents(from: payload) {
-                                if case .completed = event { receivedCompletion = true }
-                                continuation.yield(event)
-                            }
-                        }
-                    }
-                    for payload in try parser.finish() {
-                        for event in try makeStreamEvents(from: payload) {
-                            if case .completed = event { receivedCompletion = true }
-                            continuation.yield(event)
-                        }
-                    }
-                    if !receivedCompletion { continuation.yield(.completed) }
-                    continuation.finish()
-                } catch is CancellationError {
-                    continuation.finish(throwing: ChatError.cancelled)
-                } catch let error as ChatError {
-                    continuation.finish(throwing: error)
-                } catch let error as URLError {
-                    continuation.finish(throwing: ChatHTTP.mapURLError(error))
-                } catch {
-                    continuation.finish(throwing: ChatError.decodingFailed)
-                }
-            }
-            continuation.onTermination = { _ in task.cancel() }
-        }
+        return ChatStreamingDriver.stream(
+            transport: transport,
+            makeRequest: {
+                var urlRequest = try makeURLRequest(for: request, stream: true)
+                urlRequest.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+                return urlRequest
+            },
+            decodeNonStreaming: { data in
+                try JSONDecoder().decode(AnthropicNonStreamingResponse.self, from: data).events
+            },
+            decodePayload: makeStreamEvents,
+            mapUnexpectedError: { _ in ChatError.decodingFailed }
+        )
     }
 
     func testConnection() async throws {
@@ -341,29 +309,3 @@ private struct AnthropicNonStreamingResponse: Decodable {
     }
 }
 
-private struct AnthropicSSEParser: Sendable {
-    private var pendingBytes = Data()
-
-    mutating func feed(_ bytes: Data) throws -> [String] {
-        pendingBytes.append(bytes)
-        var payloads: [String] = []
-        while let newline = pendingBytes.firstIndex(of: 0x0A) {
-            var lineData = pendingBytes.prefix(upTo: newline)
-            pendingBytes.removeSubrange(...newline)
-            if lineData.last == 0x0D { lineData.removeLast() }
-            guard !lineData.isEmpty else { continue }
-            guard let line = String(data: lineData, encoding: .utf8) else { throw ChatError.decodingFailed }
-            if line.hasPrefix(":") { continue }
-            guard line.hasPrefix("data:") else { continue }
-            let payload = line.dropFirst(5).trimmingCharacters(in: .whitespaces)
-            if !payload.isEmpty { payloads.append(String(payload)) }
-        }
-        return payloads
-    }
-
-    mutating func finish() throws -> [String] {
-        guard !pendingBytes.isEmpty else { return [] }
-        pendingBytes.append(0x0A)
-        return try feed(Data())
-    }
-}

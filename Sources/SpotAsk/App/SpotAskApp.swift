@@ -104,6 +104,13 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
     private lazy var launchUpdateNotifier = AutomaticUpdateNotifier(settings: settings)
     private var statusBarController: StatusBarController?
     private var entryPresentationCoordinator: AppEntryPresentationCoordinator?
+    private lazy var settingsWindowController = SettingsWindowController(
+        settings: settings,
+        keyStore: keyStore,
+        providerFactory: providerFactory,
+        accessibilityPermissionCoordinator: accessibilityPermissionCoordinator,
+        onClose: {}
+    )
 
     override init() {
         let settings = AppSettings.shared
@@ -130,6 +137,9 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         SpotAskCommandCenter.shared.configure(panelController: panelController)
+        SpotAskCommandCenter.shared.setSettingsPresenter { [weak self] in
+            self?.settingsWindowController.show()
+        }
         statusBarController = StatusBarController(settings: settings)
         entryPresentationCoordinator = AppEntryPresentationCoordinator(
             settings: settings,
@@ -142,9 +152,6 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
             ChatView(
                 viewModel: self.chatViewModel,
                 settings: self.settings,
-                keyStore: self.keyStore,
-                providerFactory: self.providerFactory,
-                accessibilityPermissionCoordinator: self.accessibilityPermissionCoordinator,
                 onDismiss: { SpotAskCommandCenter.shared.close() }
             )
         }
@@ -275,7 +282,6 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
                 Task { @MainActor in
                     guard let self else { return }
                     self.settings.selectionAutoInvokeEnabled.toggle()
-                    NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
                 }
             }
         } catch {

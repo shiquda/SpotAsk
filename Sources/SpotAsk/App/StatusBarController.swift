@@ -121,7 +121,6 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
     @objc private func toggleQuickQuestionMode() {
         settings.selectionAutoInvokeEnabled.toggle()
-        NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
         rebuildMenu()
     }
 }

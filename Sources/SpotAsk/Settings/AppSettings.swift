@@ -335,14 +335,8 @@ final class AppSettings {
     private var inAppShortcutConfiguration: InAppShortcutConfiguration
     private var providerRegistryStorage: ProviderModelRegistry!
     var providerRegistry: ProviderModelRegistry { providerRegistryStorage }
-    private var isApplyingCatalogProjection = false
     var catalogLoadError: ProviderModelCatalogLoadError? { providerRegistry.loadError }
-    var baseURL: String { didSet { defaults.set(baseURL, forKey: Key.baseURL); updateSelectedProviderAddress() } }
-    var useFullEndpoint: Bool { didSet { defaults.set(useFullEndpoint, forKey: Key.useFullEndpoint); updateSelectedProviderAddress() } }
-    var model: String { didSet { defaults.set(model, forKey: Key.model); updateSelectedModel() } }
     var systemPrompt: String { didSet { defaults.set(systemPrompt, forKey: Key.systemPrompt) } }
-    var streaming: Bool { didSet { defaults.set(streaming, forKey: Key.streaming); updateSelectedModel() } }
-    var timeout: Double { didSet { defaults.set(timeout, forKey: Key.timeout); updateSelectedProviderTimeout() } }
     var contextLimit: Int { didSet { defaults.set(contextLimit, forKey: Key.contextLimit) } }
     var retainSession: Bool { didSet { defaults.set(retainSession, forKey: Key.retainSession) } }
     var clearInputOnClose: Bool { didSet { defaults.set(clearInputOnClose, forKey: Key.clearInputOnClose) } }
@@ -395,9 +389,15 @@ final class AppSettings {
             } else {
                 defaults.removeObject(forKey: Key.globalShortcut)
             }
+            NotificationCenter.default.post(name: .spotAskHotKeyChanged, object: nil)
         }
     }
-    var selectionAssistantEnabled: Bool { didSet { defaults.set(selectionAssistantEnabled, forKey: Key.selectionAssistantEnabled) } }
+    var selectionAssistantEnabled: Bool {
+        didSet {
+            defaults.set(selectionAssistantEnabled, forKey: Key.selectionAssistantEnabled)
+            NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+        }
+    }
     var selectionAssistantMode: SelectionAssistantMode { didSet { defaults.set(selectionAssistantMode.rawValue, forKey: Key.selectionAssistantMode) } }
     var selectionHotKeyPreset: SelectionHotKeyPreset { didSet { defaults.set(selectionHotKeyPreset.rawValue, forKey: Key.selectionHotKeyPreset) } }
     var selectionDefaultPromptID: UUID? {
@@ -414,6 +414,7 @@ final class AppSettings {
             } else {
                 defaults.removeObject(forKey: Key.selectionAssistantToggleShortcut)
             }
+            NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
         }
     }
     var selectionActionBarShowsLabels: Bool { didSet { defaults.set(selectionActionBarShowsLabels, forKey: Key.selectionActionBarShowsLabels) } }
@@ -424,7 +425,10 @@ final class AppSettings {
     /// `selectionAutoInvokeDelay` seconds. Defaults off so granting high-impact
     /// accessibility access remains an explicit user decision.
     var selectionAutoInvokeEnabled: Bool {
-        didSet { defaults.set(selectionAutoInvokeEnabled, forKey: Key.selectionAutoInvokeEnabled) }
+        didSet {
+            defaults.set(selectionAutoInvokeEnabled, forKey: Key.selectionAutoInvokeEnabled)
+            NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+        }
     }
     var selectionAutoInvokeScope: SelectionAutoInvokeScope {
         didSet { defaults.set(selectionAutoInvokeScope.rawValue, forKey: Key.selectionAutoInvokeScope) }
@@ -514,12 +518,7 @@ final class AppSettings {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        baseURL = defaults.string(forKey: Key.baseURL) ?? "https://api.openai.com/v1"
-        useFullEndpoint = defaults.object(forKey: Key.useFullEndpoint) as? Bool ?? false
-        model = defaults.string(forKey: Key.model) ?? "gpt-5-mini"
         systemPrompt = defaults.string(forKey: Key.systemPrompt) ?? "You are a helpful assistant."
-        streaming = defaults.object(forKey: Key.streaming) as? Bool ?? true
-        timeout = defaults.object(forKey: Key.timeout) as? Double ?? 60
         contextLimit = defaults.object(forKey: Key.contextLimit) as? Int ?? 20
         retainSession = defaults.bool(forKey: Key.retainSession)
         clearInputOnClose = defaults.object(forKey: Key.clearInputOnClose) as? Bool ?? false
@@ -567,18 +566,13 @@ final class AppSettings {
         providerRegistryStorage = ProviderModelRegistry(
             defaults: defaults,
             legacy: LegacyProviderConfiguration(
-                baseURL: baseURL,
-                useFullEndpoint: useFullEndpoint,
-                model: model,
-                streaming: streaming,
-                timeout: timeout
+                baseURL: defaults.string(forKey: Key.baseURL) ?? "https://api.openai.com/v1",
+                useFullEndpoint: defaults.object(forKey: Key.useFullEndpoint) as? Bool ?? false,
+                model: defaults.string(forKey: Key.model) ?? "gpt-5-mini",
+                streaming: defaults.object(forKey: Key.streaming) as? Bool ?? true,
+                timeout: defaults.object(forKey: Key.timeout) as? Double ?? 60
             )
         )
-        providerRegistryStorage.setCatalogChangeHandler { [weak self] in
-            self?.applyCatalogProjection()
-        }
-        DiagnosticLogStore.shared.setEnabled(diagnosticsEnabled)
-        applyCatalogProjection()
         savePromptPresetCatalog()
         saveCustomPromptPresets()
         cleanUpShortcutAssignments()
@@ -875,50 +869,4 @@ final class AppSettings {
         saveInAppShortcutConfiguration()
     }
 
-    private func applyCatalogProjection() {
-        guard let catalog = providerRegistry.catalog,
-              let selectedModel = catalog.models.first(where: { $0.id == catalog.selectedModelID }),
-              let provider = catalog.providers.first(where: { $0.id == selectedModel.providerID }) else { return }
-        isApplyingCatalogProjection = true
-        baseURL = provider.address
-        useFullEndpoint = provider.addressMode.usesFullEndpoint
-        model = selectedModel.upstreamModelID
-        streaming = selectedModel.isStreamingEnabled
-        timeout = provider.timeout
-        isApplyingCatalogProjection = false
-    }
-
-    // Existing settings controls still edit the selected catalog entries until
-    // a dedicated Provider/Model management UI is added.
-    private func updateSelectedProviderAddress() {
-        guard !isApplyingCatalogProjection,
-              let catalog = providerRegistry.catalog,
-              let model = catalog.models.first(where: { $0.id == catalog.selectedModelID }),
-              var provider = catalog.providers.first(where: { $0.id == model.providerID }) else { return }
-        provider.address = baseURL
-        provider.addressMode = useFullEndpoint ? .fullEndpoint : .baseURL
-        _ = try? providerRegistry.saveProvider(provider)
-    }
-
-    private func updateSelectedProviderTimeout() {
-        guard !isApplyingCatalogProjection,
-              let catalog = providerRegistry.catalog,
-              let model = catalog.models.first(where: { $0.id == catalog.selectedModelID }),
-              var provider = catalog.providers.first(where: { $0.id == model.providerID }) else { return }
-        provider.timeout = timeout
-        _ = try? providerRegistry.saveProvider(provider)
-    }
-
-    private func updateSelectedModel() {
-        guard !isApplyingCatalogProjection,
-              let catalog = providerRegistry.catalog,
-              var selected = catalog.models.first(where: { $0.id == catalog.selectedModelID }) else { return }
-        let previousUpstreamModelID = selected.upstreamModelID
-        selected.upstreamModelID = model
-        if selected.displayName == previousUpstreamModelID || selected.displayName.isEmpty {
-            selected.displayName = model
-        }
-        selected.isStreamingEnabled = streaming
-        _ = try? providerRegistry.saveModel(selected)
-    }
 }

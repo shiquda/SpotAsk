@@ -9,8 +9,8 @@ final class ProviderSettingsStateTests: XCTestCase {
 
         XCTAssertEqual(
             keyStore.readCount,
-            2,
-            "State loads the provider key and the reserved proxy password slot"
+            1,
+            "Provider state loads only the selected service key"
         )
         XCTAssertEqual(state.apiKeyDraft, "saved-key")
         XCTAssertEqual(keyStore.saveCount, 0)
@@ -99,7 +99,7 @@ final class ProviderSettingsStateTests: XCTestCase {
 
     func testProxyPasswordUsesTheReservedCredentialSlot() {
         let keyStore = RecordingKeyStore()
-        let state = makeState(keyStore: keyStore)
+        let state = makeGeneralState(keyStore: keyStore)
 
         state.proxyPasswordDraft = "proxy-secret"
         state.persistProxyPasswordDraft()
@@ -125,7 +125,7 @@ final class ProviderSettingsStateTests: XCTestCase {
 
     func testClearingAllDataDeletesEveryCredentialSlot() {
         let keyStore = RecordingKeyStore()
-        let state = makeState(keyStore: keyStore)
+        let state = makeGeneralState(keyStore: keyStore)
 
         state.clearAllLocalData()
 
@@ -1079,6 +1079,14 @@ final class ProviderSettingsStateTests: XCTestCase {
             keyStore: keyStore,
             providerFactory: NoopProviderFactory(),
             modelDiscovery: modelDiscovery
+        )
+    }
+
+    private func makeGeneralState(keyStore: RecordingKeyStore) -> GeneralSettingsState {
+        GeneralSettingsState(
+            settings: AppSettings(defaults: UserDefaults(suiteName: "ProviderSettingsStateTests.\(UUID().uuidString)")!),
+            keyStore: keyStore,
+            onConfigurationImported: {}
         )
     }
 
