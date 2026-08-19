@@ -24,7 +24,7 @@ features:
     details: Use Spotlight, Siri, Shortcuts, configurable shortcuts, and a menu bar entry that stays out of the way.
 ---
 
-![SpotAsk chat window](/images/spotask-chat.png)
+![SpotAsk question window in light and dark appearance with prompts and External Ask buttons](/images/spotask-chat.png)
 
 ## What SpotAsk is for
 

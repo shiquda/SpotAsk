@@ -24,7 +24,7 @@ features:
     details: 可通过 Spotlight、Siri、快捷指令、可配置快捷键和菜单栏入口快速调用。
 ---
 
-![SpotAsk 对话窗口](/images/spotask-chat.png)
+![SpotAsk 浅色与深色模式下的提问窗口，含提示词和外部提问入口](/images/spotask-chat.png)
 
 ## SpotAsk 适合做什么
 
