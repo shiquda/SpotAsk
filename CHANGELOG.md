@@ -7,9 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-19
+
+### Added
+
+- External Ask: send your question to an outside target from the quick-ask panel, then the panel closes and the target opens. Built in are Ask ChatGPT and Ask Grok, which open in your browser and start answering right away.
+- Add your own External Ask targets: open a web link, open an app's link, or run a command such as `omp {query}` in Terminal. Choose an icon, reorder, and toggle each target.
+- A master switch for External Ask in settings, on by default.
+- Brand icons for external targets and custom prompt presets you create.
+- Config backups now include your External Ask targets and stay compatible with older backups.
+
 ### Fixed
 
 - After a local reinstall, the selection assistant asks you to allow the current install to read selected text again.
+- The quick-ask panel starts a fresh conversation after a period of inactivity.
 
 ## [0.1.6] - 2026-08-12
 
