@@ -148,14 +148,72 @@ struct PromptPresetTests {
         #expect(message.reasoningCompletedAt == nil)
     }
 
-    @Test("Prompt presets have stable message icons")
+    @Test("Prompt presets have stable message icons and support custom symbols")
     func promptPresetSymbolNames() {
         #expect(PromptPreset.builtIn[0].symbolName == "character.bubble")
         #expect(PromptPreset.builtIn[1].symbolName == "doc.text.magnifyingglass")
         #expect(PromptPreset.builtIn[2].symbolName == "list.bullet.rectangle")
         #expect(PromptPreset(title: "Custom", instruction: "Do it").symbolName == "sparkles")
+        #expect(PromptPreset(title: "Custom", instruction: "Do it", customSymbolName: "globe").symbolName == "globe")
+        #expect(PromptPreset(title: "Custom", instruction: "Do it", customSymbolName: "invalid-symbol-name-12345").symbolName == "sparkles")
     }
 
+    @Test("Custom prompt preset symbol name round-trips via Codable")
+    func customPromptPresetSymbolNameCodableRoundTrip() throws {
+        let preset = PromptPreset(title: "Custom", instruction: "Do it", customSymbolName: "bolt")
+        let data = try JSONEncoder().encode(preset)
+        let decoded = try JSONDecoder().decode(PromptPreset.self, from: data)
+        #expect(decoded.customSymbolName == "bolt")
+        #expect(decoded.symbolName == "bolt")
+    }
+
+    @Test("Legacy JSON without customSymbolName decodes to nil and falls back to sparkles")
+    func legacyPromptPresetDecodingFallsBackToSparkles() throws {
+        let json = """
+        {
+            "id": "\(UUID().uuidString)",
+            "title": "Legacy",
+            "instruction": "Do legacy thing",
+            "isBuiltIn": false,
+            "isEnabled": true
+        }
+        """.data(using: .utf8)!
+        let decoded = try JSONDecoder().decode(PromptPreset.self, from: json)
+        #expect(decoded.customSymbolName == nil)
+        #expect(decoded.symbolName == "sparkles")
+    }
+
+    @Test("Built-in presets ignore customSymbolName and keep fixed symbol")
+    func builtInPresetIgnoresCustomSymbolName() {
+        let builtInID = PromptPreset.builtIn[0].id
+        let preset = PromptPreset(id: builtInID, title: "Translate", instruction: "Translate", customSymbolName: "globe", isBuiltIn: true)
+        #expect(preset.customSymbolName == nil)
+        #expect(preset.symbolName == "character.bubble")
+    }
+
+    @Test("saveCustomPromptPreset persists custom symbol name and rejects invalid symbols")
+    func saveCustomPromptPresetSavesAndValidatesSymbolName() {
+        let suiteName = "PromptPresetTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let settings = AppSettings(defaults: defaults)
+        let validPreset = PromptPreset(title: "Valid Symbol", instruction: "Do it", customSymbolName: "globe")
+        #expect(settings.saveCustomPromptPreset(validPreset))
+
+        let reloaded = AppSettings(defaults: defaults)
+        let saved = reloaded.customPromptPresets.first(where: { $0.id == validPreset.id })
+        #expect(saved?.customSymbolName == "globe")
+        #expect(saved?.symbolName == "globe")
+
+        let invalidPreset = PromptPreset(id: validPreset.id, title: "Invalid Symbol", instruction: "Do it", customSymbolName: "totally-fake-symbol-not-exist")
+        #expect(settings.saveCustomPromptPreset(invalidPreset))
+
+        let reloadedAfterInvalid = AppSettings(defaults: defaults)
+        let savedAfterInvalid = reloadedAfterInvalid.customPromptPresets.first(where: { $0.id == validPreset.id })
+        #expect(savedAfterInvalid?.customSymbolName == nil)
+        #expect(savedAfterInvalid?.symbolName == "sparkles")
+    }
     @Test("Prompt position accessibility text formats numeric positions")
     func promptPositionAccessibilityTextUsesNumericArguments() {
         #expect(L10n.string("settings.promptPosition", language: .english, arguments: [2, 5]) == "2 of 5")

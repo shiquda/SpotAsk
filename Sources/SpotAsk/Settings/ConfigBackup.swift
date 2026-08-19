@@ -31,6 +31,7 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
     let schemaVersion: Int
     var general: General
     var promptPresetCatalog: [PromptPreset]
+    var quickActionCatalog: [QuickAction]?
     var shortcutConfiguration: InAppShortcutConfiguration
     var providerCatalog: ProviderModelCatalog
     var apiKeys: [String: String]?
@@ -39,6 +40,7 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
         schemaVersion: Int = Self.currentSchemaVersion,
         general: General,
         promptPresetCatalog: [PromptPreset],
+        quickActionCatalog: [QuickAction]? = nil,
         shortcutConfiguration: InAppShortcutConfiguration,
         providerCatalog: ProviderModelCatalog,
         apiKeys: [String: String]? = nil
@@ -46,6 +48,7 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
         self.schemaVersion = schemaVersion
         self.general = general
         self.promptPresetCatalog = promptPresetCatalog
+        self.quickActionCatalog = quickActionCatalog
         self.shortcutConfiguration = shortcutConfiguration
         self.providerCatalog = providerCatalog
         self.apiKeys = apiKeys
@@ -56,9 +59,26 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
         schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? Self.currentSchemaVersion
         general = try container.decode(General.self, forKey: .general)
         promptPresetCatalog = try container.decode([PromptPreset].self, forKey: .promptPresetCatalog)
+        if let actions = try container.decodeIfPresent([QuickAction].self, forKey: .quickActionCatalog) {
+            quickActionCatalog = actions
+        } else if let legacyActions = try container.decodeIfPresent([QuickAction].self, forKey: .webQuickAskProviderCatalog) {
+            quickActionCatalog = legacyActions
+        } else {
+            quickActionCatalog = nil
+        }
         shortcutConfiguration = try container.decode(InAppShortcutConfiguration.self, forKey: .shortcutConfiguration)
         providerCatalog = try container.decode(ProviderModelCatalog.self, forKey: .providerCatalog)
         apiKeys = try container.decodeIfPresent([String: String].self, forKey: .apiKeys)
+    }
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(schemaVersion, forKey: .schemaVersion)
+        try container.encode(general, forKey: .general)
+        try container.encode(promptPresetCatalog, forKey: .promptPresetCatalog)
+        try container.encodeIfPresent(quickActionCatalog, forKey: .quickActionCatalog)
+        try container.encode(shortcutConfiguration, forKey: .shortcutConfiguration)
+        try container.encode(providerCatalog, forKey: .providerCatalog)
+        try container.encodeIfPresent(apiKeys, forKey: .apiKeys)
     }
 
     struct General: Codable, Equatable, Sendable {
@@ -91,6 +111,8 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
         case schemaVersion
         case general
         case promptPresetCatalog
+        case quickActionCatalog
+        case webQuickAskProviderCatalog
         case shortcutConfiguration
         case providerCatalog
         case apiKeys
