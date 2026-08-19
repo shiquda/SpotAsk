@@ -67,7 +67,7 @@ struct SelectionAssistantCoordinatorTests {
     func missingPermissionDoesNotReadAndDoesNotRepeatRecovery() {
         let settings = makeSettings()
         let checker = SelectionPermissionChecker(isTrusted: false)
-        let permissionCoordinator = AccessibilityPermissionCoordinator(permissionChecker: checker)
+        let permissionCoordinator = makePermissionCoordinator(checker: checker)
         let reader = SelectionReaderStub()
         let overlay = SelectionOverlayStub()
         let coordinator = SelectionAssistantCoordinator(
@@ -84,14 +84,14 @@ struct SelectionAssistantCoordinatorTests {
 
         #expect(reader.promptRequests.isEmpty)
         #expect(overlay.permissionDeniedCount == 1)
-        #expect(checker.requests == [false, false, true, false])
+        #expect(checker.requests == [false, false, false, true, false])
     }
 
     @Test("An allowed permission reads selected text without requesting another prompt")
     func allowedPermissionReadsSilently() async {
         let settings = makeSettings()
         let checker = SelectionPermissionChecker(isTrusted: true)
-        let permissionCoordinator = AccessibilityPermissionCoordinator(permissionChecker: checker)
+        let permissionCoordinator = makePermissionCoordinator(checker: checker)
         let reader = SelectionReaderStub(snapshot: sampleSnapshot)
         let overlay = SelectionOverlayStub()
         let coordinator = SelectionAssistantCoordinator(
@@ -117,7 +117,7 @@ struct SelectionAssistantCoordinatorTests {
     func choosingActionUsesCapturedSelection() async {
         let settings = makeSettings()
         let checker = SelectionPermissionChecker(isTrusted: true)
-        let permissionCoordinator = AccessibilityPermissionCoordinator(permissionChecker: checker)
+        let permissionCoordinator = makePermissionCoordinator(checker: checker)
         let reader = SelectionReaderStub(snapshot: sampleSnapshot)
         let overlay = SelectionOverlayStub()
         let coordinator = SelectionAssistantCoordinator(
@@ -257,12 +257,22 @@ struct SelectionAssistantCoordinatorTests {
             settings: settings,
             reader: reader,
             applicationProvider: ForegroundSelectionApplicationStub(source: sampleSnapshot.source),
-            permissionCoordinator: AccessibilityPermissionCoordinator(
-                permissionChecker: SelectionPermissionChecker(isTrusted: true)
+            permissionCoordinator: makePermissionCoordinator(
+                checker: SelectionPermissionChecker(isTrusted: true)
             ),
             settingsOpener: SelectionSettingsOpenerStub(),
             commandCenter: SpotAskCommandCenter(),
             overlay: overlay
+        )
+    }
+
+    private func makePermissionCoordinator(
+        checker: SelectionPermissionChecker
+    ) -> AccessibilityPermissionCoordinator {
+        AccessibilityPermissionCoordinator(
+            permissionChecker: checker,
+            identityProvider: SelectionIdentityProvider(),
+            identityStore: MemorySelectionGrantIdentityStore()
         )
     }
 
@@ -292,6 +302,15 @@ private final class SelectionPermissionChecker: AccessibilityPermissionChecking,
         requests.append(prompt)
         return isTrusted
     }
+}
+
+private struct SelectionIdentityProvider: CodeSigningIdentityProviding {
+    func currentIdentity() -> String? { "selection-test-hash" }
+}
+
+private final class MemorySelectionGrantIdentityStore: AccessibilityGrantIdentityStoring {
+    var lastTrustedIdentity: String?
+    var lastResetIdentity: String?
 }
 
 private final class SelectionReaderStub: SelectedTextReading, @unchecked Sendable {

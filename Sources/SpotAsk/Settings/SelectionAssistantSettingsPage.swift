@@ -21,16 +21,14 @@ struct SelectionAssistantSettingsPage: View {
                     }
                 if settings.selectionAssistantEnabled {
                     SettingsFieldRow(label: L10n.string("settings.selectionAssistantPermissionStatus")) {
-                        Text(permissionCoordinator.status == .allowed
-                             ? L10n.string("settings.selectionAssistantPermissionAllowed")
-                             : L10n.string("settings.selectionAssistantPermissionNotAllowed"))
-                        .foregroundStyle(permissionCoordinator.status == .allowed ? .green : .secondary)
+                        Text(permissionStatusTitle)
+                            .foregroundStyle(permissionStatusColor)
                     }
-                    Text(L10n.string("settings.selectionAssistantPermissionDescription"))
+                    Text(permissionStatusDescription)
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                     HStack(spacing: 10) {
-                        if permissionCoordinator.status == .notAllowed {
+                        if permissionCoordinator.status != .allowed {
                             Button(L10n.string("settings.selectionAssistantPermissionAuthorize")) {
                                 permissionCoordinator.requestPermissionFromSettings()
                             }
@@ -111,6 +109,36 @@ struct SelectionAssistantSettingsPage: View {
         }
     }
 
+    private var permissionStatusTitle: String {
+        switch permissionCoordinator.status {
+        case .allowed:
+            L10n.string("settings.selectionAssistantPermissionAllowed")
+        case .notAllowed:
+            L10n.string("settings.selectionAssistantPermissionNotAllowed")
+        case .needsReauthorization:
+            L10n.string("settings.selectionAssistantPermissionNeedsReauthorization")
+        }
+    }
+
+    private var permissionStatusDescription: String {
+        switch permissionCoordinator.status {
+        case .needsReauthorization:
+            L10n.string("settings.selectionAssistantPermissionNeedsReauthorizationDescription")
+        case .allowed, .notAllowed:
+            L10n.string("settings.selectionAssistantPermissionDescription")
+        }
+    }
+
+    private var permissionStatusColor: Color {
+        switch permissionCoordinator.status {
+        case .allowed:
+            .green
+        case .needsReauthorization:
+            .orange
+        case .notAllowed:
+            .secondary
+        }
+    }
 }
 
 private struct SelectionApplicationOption: Identifiable, Hashable {

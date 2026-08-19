@@ -387,6 +387,9 @@
 "settings.selectionAssistantPermissionStatus" = "当前状态";
 "settings.selectionAssistantPermissionAllowed" = "已允许";
 "settings.selectionAssistantPermissionNotAllowed" = "未允许";
+"settings.selectionAssistantPermissionNeedsReauthorization" = "需要重新允许";
+"settings.selectionAssistantPermissionNeedsReauthorizationDescription" = "当前安装需要重新允许后，才能读取你选中的文字。请在系统设置中打开 SpotAsk，然后回到这里。";
+"settings.selectionAssistantPermissionNeedsReauthorizationNotice" = "请重新允许这个安装的 SpotAsk 读取选中的文字。";
 "settings.selectionAssistantPermissionDescription" = "用于读取你主动选中的文字，便于快速翻译、总结或提问。";
 "settings.selectionAssistantPermissionAuthorize" = "请求授权";
 "settings.selectionAssistantPermissionRefresh" = "刷新状态";

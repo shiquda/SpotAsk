@@ -182,6 +182,8 @@ The script reports `L10n.string` keys missing from `Localizable.strings`, locali
 
 The selection assistant reads selected text through the macOS Accessibility API. When a user enables the feature in Settings, the app requests permission once; reads run on a background queue. See `research/macos-accessibility-permission-guidance.md` for details.
 
+Local Release rebuilds change the code signature even when the Developer ID stays the same. Accessibility permission is bound to that signature, so System Settings can still show SpotAsk as allowed while the new process cannot read selected text. At launch the app records the current code-directory hash, clears a leftover Accessibility grant with `tccutil` when the hash no longer matches a previously trusted install, and asks the user to allow the current install again.
+
 ## Release checklist
 
 1. Update `CHANGELOG.md`: rename `## [Unreleased]` to the new version with today's date, then open a fresh `## [Unreleased]` section.

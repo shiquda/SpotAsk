@@ -126,7 +126,10 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         let sessionStore = SessionStore()
         self.providerFactory = providerFactory
         self.sessionStore = sessionStore
-        self.accessibilityPermissionCoordinator = AccessibilityPermissionCoordinator()
+        self.accessibilityPermissionCoordinator = AccessibilityPermissionCoordinator(
+            grantResetter: MacOSAccessibilityGrantResetter(),
+            featureEnabled: { settings.selectionAssistantEnabled }
+        )
         self.chatViewModel = ChatViewModel(
             settings: settings,
             providerFactory: providerFactory,
@@ -173,6 +176,7 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
             StatusToastCenter.shared.show(L10n.string("settings.shortcutInvalid"), isError: true)
         }
         registerSelectionHotKeyIfNeeded()
+        presentAccessibilityReauthorizationIfNeeded()
         NotificationCenter.default.addObserver(self, selector: #selector(reconfigureGlobalHotKey), name: .spotAskHotKeyChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(reconfigureSelectionHotKey), name: .spotAskSelectionAssistantChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(refreshAccessibilityPermission), name: NSApplication.didBecomeActiveNotification, object: nil)
@@ -213,6 +217,22 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func refreshAccessibilityPermission() {
         accessibilityPermissionCoordinator.refresh()
+    }
+
+    private func presentAccessibilityReauthorizationIfNeeded() {
+        guard settings.selectionAssistantEnabled,
+              accessibilityPermissionCoordinator.status == .needsReauthorization else { return }
+        StatusToastCenter.shared.show(
+            L10n.string("settings.selectionAssistantPermissionNeedsReauthorizationNotice"),
+            actionTitle: L10n.string("settings.selectionAssistantPermissionAuthorize"),
+            duration: StatusToastCenter.actionDisplayDuration
+        ) { [weak self] in
+            self?.accessibilityPermissionCoordinator.requestPermissionFromSettings()
+            MacOSAccessibilityPermissionSettingsOpener().openAccessibilitySettings()
+        }
+        if accessibilityPermissionCoordinator.clearedStaleGrant {
+            MacOSAccessibilityPermissionSettingsOpener().openAccessibilitySettings()
+        }
     }
 
     private func scheduleAutomaticUpdateCheck() {

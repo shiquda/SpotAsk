@@ -387,6 +387,9 @@
 "settings.selectionAssistantPermissionStatus" = "Status";
 "settings.selectionAssistantPermissionAllowed" = "Erlaubt";
 "settings.selectionAssistantPermissionNotAllowed" = "Nicht erlaubt";
+"settings.selectionAssistantPermissionNeedsReauthorization" = "Erneut erlauben";
+"settings.selectionAssistantPermissionNeedsReauthorizationDescription" = "Diese Installation braucht die Erlaubnis erneut, bevor ausgewählter Text gelesen werden kann. Schalte SpotAsk in den Systemeinstellungen ein und kehre dann hierher zurück.";
+"settings.selectionAssistantPermissionNeedsReauthorizationNotice" = "Erlaube dieser Installation von SpotAsk erneut, ausgewählten Text zu lesen.";
 "settings.selectionAssistantPermissionDescription" = "Wird verwendet, um ausgewählten Text zu lesen, damit du schnell übersetzen, zusammenfassen oder fragen kannst.";
 "settings.selectionAssistantPermissionAuthorize" = "Autorisierung anfordern";
 "settings.selectionAssistantPermissionRefresh" = "Status aktualisieren";

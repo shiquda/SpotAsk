@@ -387,6 +387,9 @@
 "settings.selectionAssistantPermissionStatus" = "ステータス";
 "settings.selectionAssistantPermissionAllowed" = "許可";
 "settings.selectionAssistantPermissionNotAllowed" = "未許可";
+"settings.selectionAssistantPermissionNeedsReauthorization" = "再許可が必要";
+"settings.selectionAssistantPermissionNeedsReauthorizationDescription" = "このインストールでは、選択したテキストを読む前に再許可が必要です。システム設定で SpotAsk をオンにしてから、ここに戻ってください。";
+"settings.selectionAssistantPermissionNeedsReauthorizationNotice" = "このインストールの SpotAsk に、選択テキストの読み取りを再許可してください。";
 "settings.selectionAssistantPermissionDescription" = "選択したテキストを読み取り、すばやく翻訳、要約、質問できるようにするために使用します。";
 "settings.selectionAssistantPermissionAuthorize" = "許可をリクエスト";
 "settings.selectionAssistantPermissionRefresh" = "ステータスを更新";

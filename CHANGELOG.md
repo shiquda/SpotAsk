@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- After a local reinstall, the selection assistant asks you to allow the current install to read selected text again.
+
 ## [0.1.6] - 2026-08-12
 
 ### Added

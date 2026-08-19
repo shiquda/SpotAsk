@@ -387,6 +387,9 @@
 "settings.selectionAssistantPermissionStatus" = "Статус";
 "settings.selectionAssistantPermissionAllowed" = "Разрешено";
 "settings.selectionAssistantPermissionNotAllowed" = "Не разрешено";
+"settings.selectionAssistantPermissionNeedsReauthorization" = "Нужно разрешить снова";
+"settings.selectionAssistantPermissionNeedsReauthorizationDescription" = "Этой установке снова нужно разрешение, чтобы читать выделенный текст. Включите SpotAsk в системных настройках и вернитесь сюда.";
+"settings.selectionAssistantPermissionNeedsReauthorizationNotice" = "Снова разрешите этой установке SpotAsk читать выделенный текст.";
 "settings.selectionAssistantPermissionDescription" = "Используется для чтения выделенного текста, чтобы быстро переводить, кратко излагать или задавать вопросы.";
 "settings.selectionAssistantPermissionAuthorize" = "Запросить разрешение";
 "settings.selectionAssistantPermissionRefresh" = "Обновить статус";
