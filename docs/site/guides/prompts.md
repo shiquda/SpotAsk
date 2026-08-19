@@ -40,4 +40,4 @@ Settings > **Prompts** also has **Custom Instructions**. This is a system-level 
 
 When the Selection Assistant uses **Run default action**, the default is the first enabled prompt unless you choose a different one in Settings > **Selection Assistant**.
 
-Related: [Selection Assistant](/guides/selection-assistant), [Spotlight, Siri & Shortcuts](/guides/macos-integration)
+Related: [Selection Assistant](/guides/selection-assistant), [Spotlight, Siri & Shortcuts](/guides/macos-integration), [External Ask](/guides/external-ask)

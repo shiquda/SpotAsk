@@ -40,4 +40,4 @@ description: 使用内置提示词、创建自定义提示词，并为重复工�
 
 当划词助手使用“直接执行默认动作”时，默认使用第一个已启用提示词，除非你在设置 > **划词助手**中指定了其他提示词。
 
-相关：[划词助手](/zh-CN/guides/selection-assistant)、[Spotlight、Siri 与快捷指令](/zh-CN/guides/macos-integration)
+相关：[划词助手](/zh-CN/guides/selection-assistant)、[Spotlight、Siri 与快捷指令](/zh-CN/guides/macos-integration)、[外部提问](/zh-CN/guides/external-ask)

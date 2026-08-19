@@ -11,6 +11,7 @@ description: A compact reference for SpotAsk settings sections, default shortcut
 | --- | --- |
 | Services | AI service formats, addresses, access keys, timeouts, models, model discovery |
 | Prompts | Built-in prompts, custom prompts, order, enabled state, custom instructions |
+| External Ask | External targets, order, enabled state, the feature switch, custom entries |
 | Selection Assistant | Permission, trigger mode, default action, auto-show, app scope, delay |
 | Shortcuts | Global hotkey and shortcuts used while the SpotAsk window is open |
 | General | Language, launch behavior, session retention, proxy, diagnostics, local data |
@@ -35,7 +36,7 @@ description: A compact reference for SpotAsk settings sections, default shortcut
 | Add a line break | `⇧ + ↩` |
 | Stop generating | `⎋` |
 
-Prompt shortcuts depend on prompt order and which prompts are enabled. In-app shortcuts can be reassigned or cleared in Settings.
+Prompt shortcuts depend on prompt order and which prompts are enabled. In-app shortcuts can be reassigned or cleared in Settings. Numbers after the enabled prompts continue to enabled [External Ask](/guides/external-ask) entries.
 
 ## Supported attachment types
 
