@@ -60,6 +60,7 @@ const englishSidebar = [
     items: [
       { text: 'Getting Started', link: '/getting-started' },
       { text: 'Explore SpotAsk', link: '/explore' },
+      { text: 'Design Philosophy', link: '/philosophy' },
       { text: 'Privacy & Local Data', link: '/privacy' }
     ]
   },
@@ -94,6 +95,7 @@ const chineseSidebar = [
     items: [
       { text: '快速开始', link: '/zh-CN/getting-started' },
       { text: '探索 SpotAsk', link: '/zh-CN/explore' },
+      { text: '设计理念', link: '/zh-CN/philosophy' },
       { text: '隐私与本地数据', link: '/zh-CN/privacy' }
     ]
   },
@@ -195,6 +197,7 @@ export default defineConfig({
         nav: [
           { text: 'Getting Started', link: '/getting-started' },
           { text: 'Explore', link: '/explore' },
+          { text: 'Philosophy', link: '/philosophy' },
           { text: 'Guides', link: '/guides/connect-openai-compatible' },
           { text: 'Troubleshooting', link: '/troubleshooting' },
           { text: 'Reference', link: '/reference' }
@@ -224,6 +227,7 @@ export default defineConfig({
         nav: [
           { text: '快速开始', link: '/zh-CN/getting-started' },
           { text: '能力地图', link: '/zh-CN/explore' },
+          { text: '设计理念', link: '/zh-CN/philosophy' },
           { text: '指南', link: '/zh-CN/guides/connect-openai-compatible' },
           { text: '故障排查', link: '/zh-CN/troubleshooting' },
           { text: '参考', link: '/zh-CN/reference' }

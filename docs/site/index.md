@@ -1,6 +1,10 @@
 ---
 layout: home
 
+title: SpotAsk
+titleTemplate: Fast macOS AI Assistant for Quick Questions & Selected Text
+description: SpotAsk is a free, open-source macOS menu-bar AI assistant for quick questions and text actions. Bring your own OpenAI-compatible or Anthropic API key — your data stays on your Mac.
+
 hero:
   name: SpotAsk
   text: Docs
@@ -26,9 +30,15 @@ features:
 
 ![SpotAsk question window in light and dark appearance with prompts and External Ask buttons](/images/spotask-chat.png)
 
+## What is SpotAsk
+
+SpotAsk is a free, open-source macOS menu-bar AI assistant built for lightweight questions. Press one hotkey — `Option + Space` by default — and a focused question window appears over whatever you are doing. Ask, read the answer, copy what you need, press `Esc`, and you are back to your work as if nothing interrupted it.
+
+It works with the AI services you already pay for: connect any OpenAI-compatible or Anthropic API, keep the access key in your Mac's Keychain, and switch models whenever you need to. There is no account system, no telemetry, and nothing in between you and your provider — and at under 10&nbsp;MB, SpotAsk stays out of the way by design.
+
 ## What SpotAsk is for
 
-SpotAsk is designed for quick, focused work: ask a question, run a prompt on selected text, copy the answer, and return to what you were doing. It is not a full AI workspace.
+SpotAsk is designed for quick, focused work: ask a question, run a prompt on selected text, copy the answer, and return to what you were doing. It is not a full AI workspace — [its design philosophy](/philosophy) explains why staying small is a feature, not a limitation.
 
 The quickest way to see the two core workflows is to watch the GIFs below. The hotkey workflow opens a chat window from any app. The selection workflow shows actions next to text you select in Safari, Notes, or other apps.
 

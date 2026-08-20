@@ -1,6 +1,10 @@
 ---
 layout: home
 
+title: SpotAsk
+titleTemplate: macOS 快速 AI 提问与划词助手
+description: SpotAsk 是免费开源的 macOS 菜单栏 AI 助手，专为轻量提问和划词文本处理设计。使用你自己的 OpenAI 兼容或 Anthropic API 密钥，数据只保存在本机。
+
 hero:
   name: SpotAsk
   text: 文档
@@ -26,9 +30,15 @@ features:
 
 ![SpotAsk 浅色与深色模式下的提问窗口，含提示词和外部提问入口](/images/spotask-chat.png)
 
+## SpotAsk 是什么
+
+SpotAsk 是一款免费开源的 macOS 菜单栏 AI 助手，专为轻量提问设计。按一个快捷键——默认 `Option + Space`——一个专注的提问窗口就会浮现在当前工作之上。提问、看回答、复制需要的内容、按 `Esc` 关闭，你就回到了原来的工作，仿佛什么都没有中断过。
+
+它连接你已经在付费的 AI 服务：支持任意 OpenAI 兼容或 Anthropic API，访问密钥保存在 Mac 的钥匙串里，模型随时可切换。没有账号系统，没有遥测，你和你的服务商之间没有中间环节——整个应用不到 10MB，从设计上就不打扰你。
+
 ## SpotAsk 适合做什么
 
-SpotAsk 面向快速、专注的任务：提问、对选中文字执行提示词、复制回答，然后回到原来的工作场景。它不是完整的 AI 工作台。
+SpotAsk 面向快速、专注的任务：提问、对选中文字执行提示词、复制回答，然后回到原来的工作场景。它不是完整的 AI 工作台——[设计理念](/zh-CN/philosophy)解释了为什么"保持小"是功能，而不是限制。
 
 两个最常用的流程可以直接看下面的动图：快捷键流程从任意应用中呼出对话窗口；划词流程在 Safari、备忘录等应用中显示操作条。
 

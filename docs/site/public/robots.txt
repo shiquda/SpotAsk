@@ -1,0 +1,52 @@
+# SpotAsk documentation — crawler policy.
+# All search engines and AI crawlers are welcome; clean Markdown mirrors of
+# every page live under /SpotAsk/markdown/ and the LLM-oriented index is at
+# /SpotAsk/llms.txt.
+
+User-agent: *
+Allow: /
+
+# Explicitly welcome AI / LLM crawlers (GEO).
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: GoogleOther
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://shiquda.github.io/SpotAsk/sitemap.xml
