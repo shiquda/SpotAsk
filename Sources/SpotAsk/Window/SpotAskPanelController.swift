@@ -5,6 +5,18 @@ enum SpotAskPanelFadeMetrics {
     static let duration: TimeInterval = 0.15
 }
 
+enum SpotAskPanelPresentation {
+    /// Unpinned windows must not join all Spaces. WindowServer composites
+    /// `canJoinAllSpaces` windows above the Space-switch animation, so a
+    /// panel sitting behind another app flashes to the front, then drops back.
+    static func collectionBehavior(keepWindowOnTop: Bool) -> NSWindow.CollectionBehavior {
+        if keepWindowOnTop {
+            return [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
+        }
+        return [.moveToActiveSpace, .managed, .fullScreenAuxiliary]
+    }
+}
+
 @MainActor
 protocol SpotAskPanelFadeTarget: AnyObject {
     var isVisible: Bool { get }
@@ -218,7 +230,6 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
         settings.appearance.apply(to: panel)
         applyWindowLevel(panel)
         panel.hidesOnDeactivate = false
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         panel.minSize = NSSize(width: 364, height: 320)
         panel.delegate = self
         if let contentBuilder {
@@ -243,6 +254,9 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
         guard let panel else { return }
         panel.level = settings.keepWindowOnTop ? .floating : .normal
         panel.isFloatingPanel = settings.keepWindowOnTop
+        panel.collectionBehavior = SpotAskPanelPresentation.collectionBehavior(
+            keepWindowOnTop: settings.keepWindowOnTop
+        )
     }
 
     @objc private func applyCurrentAppearance() {

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The ask window no longer jumps in front during Space switching when Keep window on top is off.
+
 ## [0.2.0] - 2026-08-19
 
 ### Added
