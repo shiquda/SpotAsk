@@ -1167,7 +1167,7 @@ private actor ControlledModelDiscovery: ProviderModelDiscovering {
     func waitForCallCount(_ expectedCount: Int) async -> Bool {
         for _ in 0 ..< 100 {
             if pendingCalls.count >= expectedCount { return true }
-            await Task.yield()
+            try? await Task.sleep(nanoseconds: 10_000_000)
         }
         return false
     }
