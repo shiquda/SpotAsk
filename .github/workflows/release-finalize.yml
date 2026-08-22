@@ -79,3 +79,61 @@ jobs:
 
           gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
           echo "Published notarized release $RELEASE_TAG"
+      - name: Update Homebrew Cask
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=${RELEASE_TAG#v}
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git rebase origin/main
+
+          release_dir="$RUNNER_TEMP/homebrew-$RELEASE_TAG"
+          mkdir -p "$release_dir"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --dir "$release_dir" \
+            --pattern "SpotAsk-${version}-*.dmg"
+
+          arm64_dmg="$release_dir/SpotAsk-${version}-arm64.dmg"
+          x86_64_dmg="$release_dir/SpotAsk-${version}-x86_64.dmg"
+          test -f "$arm64_dmg"
+          test -f "$x86_64_dmg"
+          arm64_sha=$(shasum -a 256 "$arm64_dmg" | awk '{print $1}')
+          x86_64_sha=$(shasum -a 256 "$x86_64_dmg" | awk '{print $1}')
+
+          cat > Casks/spotask.rb <<EOF
+          cask "spotask" do
+            version "${version}"
+
+            on_arm do
+              sha256 "${arm64_sha}"
+
+              url "https://github.com/shiquda/SpotAsk/releases/download/v#{version}/SpotAsk-#{version}-arm64.dmg"
+            end
+            on_intel do
+              sha256 "${x86_64_sha}"
+
+              url "https://github.com/shiquda/SpotAsk/releases/download/v#{version}/SpotAsk-#{version}-x86_64.dmg"
+            end
+
+            name "SpotAsk"
+            desc "Ask an AI assistant from your menu bar"
+            homepage "https://github.com/shiquda/SpotAsk"
+
+            depends_on macos: :sequoia
+
+            app "SpotAsk.app"
+          end
+          EOF
+
+          git add Casks/spotask.rb
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "chore: update Homebrew cask for ${RELEASE_TAG}"
+          git push origin HEAD:main

@@ -60,7 +60,14 @@ SpotAsk 围绕两个日常场景设计，先看看它们怎么用：
 
 ## 下载
 
-请从 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases) 下载与你的 Mac 匹配的软件包：
+使用 Homebrew 安装：
+
+```sh
+brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
+brew install --cask shiquda/spotask/spotask
+```
+
+或者从 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases) 下载与你的 Mac 匹配的软件包：
 
 - **Apple silicon** — M 系列芯片的 Mac 请选择名称带 `arm64` 的 DMG。
 - **Intel** — Intel 芯片的 Mac 请选择名称带 `x86_64` 的 DMG。

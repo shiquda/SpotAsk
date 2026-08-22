@@ -60,7 +60,14 @@ SpotAsk is built around two everyday flows. Watch how each one works before you 
 
 ## Download
 
-Download the matching package from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases):
+Install with Homebrew:
+
+```sh
+brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
+brew install --cask shiquda/spotask/spotask
+```
+
+Or download the matching package from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases):
 
 - **Apple silicon** — choose the `arm64` DMG for M-series Macs.
 - **Intel** — choose the `x86_64` DMG for Intel Macs.

@@ -18,7 +18,14 @@ SpotAsk runs as a native macOS menu bar app. After you connect an AI service, th
 
 ## Install SpotAsk
 
-Download the matching package from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases):
+Install with Homebrew:
+
+```sh
+brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
+brew install --cask shiquda/spotask/spotask
+```
+
+Or download the matching package from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases):
 
 - **Apple silicon** Macs use the `arm64` DMG.
 - **Intel** Macs use the `x86_64` DMG.
