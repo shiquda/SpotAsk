@@ -45,6 +45,7 @@ Once installed, visiting ChatGPT with a `?q=` parameter will automatically trigg
 omp {query}
 ```
 
+![SpotAsk routing a question to a local CLI agent in Terminal](/images/spotask-external.gif)
 ## Add your own
 
 1. Open Settings > **External Ask**.

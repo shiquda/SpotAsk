@@ -41,11 +41,13 @@ Press one hotkey — `Option + Space` by default — and a focused question wind
 
 There is no account system, no telemetry, and nothing between you and your AI provider. When you close the window (`Esc`), SpotAsk is done and gone — leaving your workspace clean and uninterrupted.
 
-The quickest way to see the two core workflows is to watch the GIFs below. The hotkey workflow opens a chat window from any app. The selection workflow shows actions next to text you select in Safari, Notes, or other apps.
+The quickest way to see the core workflows is to watch the GIFs below. The hotkey workflow opens a chat window from any app; the selection workflow shows actions next to text you select; and External Ask routes queries to local CLI agents and external tools in one click.
 
 ![Quick chat with the default hotkey](/images/spotask-hotkey.gif)
 
 ![Quick actions on selected text](/images/spotask-selection.gif)
+
+![1-click query routing to CLI agents and external tools](/images/spotask-external.gif)
 
 ## Next steps
 

@@ -45,6 +45,7 @@ ChatGPT 官方网页的默认行为是**预填**问题，需要手动点击发�
 omp {query}
 ```
 
+![SpotAsk 一键唤起本地终端 CLI Agent](/images/spotask-external.gif)
 ## 添加自己的条目
 
 1. 打开设置 > **外部提问**。

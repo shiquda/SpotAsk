@@ -42,19 +42,28 @@
 
 SpotAsk 围绕 **“先提问再分流（Ask first. Decide where it goes after.）”** 与 **“问完就走（Done and gone）”** 设计——保持日常 AI 交互轻量、键盘优先且零心智负担。
 
-先看看两个最常用的日常场景：
+### 1. 核心交互：快捷呼出、即问即走
+
+按全局快捷键（默认 `Option + Space`）随时随地呼出提问窗口，输入问题即可获取流式回答，完成后按 `Esc` 秒级关闭。
+
+<p align="center">
+  <img src="images/spotask-hotkey.gif" width="480" alt="按快捷键呼出 SpotAsk 对话窗口，获取流式回答并一键关闭">
+</p>
+
+### 2. 高频扩展：全局划词与一键分流
+
 <table>
   <tr>
-    <td width="50%" align="center"><strong>快速对话</strong></td>
     <td width="50%" align="center"><strong>划词即问</strong></td>
+    <td width="50%" align="center"><strong>一键分流 (CLI Agent 与外部工具)</strong></td>
   </tr>
   <tr>
-    <td width="50%" align="center"><img src="images/spotask-hotkey.gif" width="480" alt="按快捷键呼出 SpotAsk 对话窗口"></td>
     <td width="50%" align="center"><img src="images/spotask-selection.gif" width="480" alt="SpotAsk 在其他应用中选中文字时出现的快捷操作条"></td>
+    <td width="50%" align="center"><img src="images/spotask-external.gif" width="480" alt="SpotAsk 一键唤起本地终端 CLI Agent"></td>
   </tr>
   <tr>
-    <td width="50%" align="center">按 Option + Space 呼出对话窗口，输入问题即可获取流式回答。</td>
-    <td width="50%" align="center">在任意应用中选中文字，使用浮动操作条快速翻译、解释或执行自定义提示词。</td>
+    <td width="50%" align="center">在任意应用中选中文字，使用浮动操作条快速翻译、解释、润色或执行自定义提示词。</td>
+    <td width="50%" align="center">按快捷键一键将问题派发给本地终端 Agent（如 omp）或网页端 AI，无需消耗 API Token。</td>
   </tr>
 </table>
 

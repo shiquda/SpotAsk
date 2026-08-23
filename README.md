@@ -41,19 +41,28 @@
 
 SpotAsk is designed around **"Ask first. Decide where it goes after"** and **"Done and gone"** — keeping everyday AI interactions lightweight, keyboard-first, and zero-overhead.
 
-Watch the two core everyday flows:
+### 1. Core interaction: Summon, ask, and close
+
+Press your global hotkey (default `Option + Space`) to summon the question window from anywhere, get streaming answers directly in the window, and press `Esc` to instantly close it when done.
+
+<p align="center">
+  <img src="images/spotask-hotkey.gif" width="480" alt="SpotAsk chat window summoned with a hotkey, streaming answers, and closing with Escape">
+</p>
+
+### 2. Everyday extensions: Selection assistant & External routing
+
 <table>
   <tr>
-    <td width="50%" align="center"><strong>Quick chat</strong></td>
     <td width="50%" align="center"><strong>Ask about selected text</strong></td>
+    <td width="50%" align="center"><strong>External Ask (CLI agents & tools)</strong></td>
   </tr>
   <tr>
-    <td width="50%" align="center"><img src="images/spotask-hotkey.gif" width="480" alt="SpotAsk chat window summoned with a hotkey"></td>
     <td width="50%" align="center"><img src="images/spotask-selection.gif" width="480" alt="SpotAsk quick action bar next to selected text in another app"></td>
+    <td width="50%" align="center"><img src="images/spotask-external.gif" width="480" alt="SpotAsk routing a question to a local CLI agent in Terminal"></td>
   </tr>
   <tr>
-    <td width="50%" align="center">Press Option + Space to summon the chat window, type your question, and get streaming answers.</td>
-    <td width="50%" align="center">Select text in any app to trigger the quick action bar for instant translation, explanation, or custom prompts.</td>
+    <td width="50%" align="center">Select text in any app to trigger the floating action bar for instant translation, explanation, or custom prompts.</td>
+    <td width="50%" align="center">Press a shortcut to hand off questions to local CLI agents (e.g. omp) or web AI platforms in 1 click without API keys.</td>
   </tr>
 </table>
 
