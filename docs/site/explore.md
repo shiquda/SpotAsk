@@ -20,6 +20,12 @@ Select text in Safari, Notes, or another app, then trigger SpotAsk with the sele
 The quick actions can translate, explain, summarize, polish, or run a custom prompt. You can also choose a direct mode that runs the default action immediately.
 
 - [Selection Assistant guide](/guides/selection-assistant)
+## Route questions with External Ask
+
+Handoff queries to browser targets (ChatGPT, Perplexity, Grok), native URI applications, or local terminal CLI agents with one click without consuming API tokens or saving history.
+
+- [External Ask guide](/guides/external-ask)
+
 
 ## Switch providers and models
 

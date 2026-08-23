@@ -20,6 +20,12 @@ description: SpotAsk 的能力地图：提问、划词、模型、附件、提�
 快捷操作可以翻译、解释、总结、润色或执行自定义提示词。你也可以选择“直接执行默认动作”模式。
 
 - [划词助手指南](/zh-CN/guides/selection-assistant)
+## 一键外部路由（外部提问）
+
+一键将问题分流至网页端（ChatGPT、Perplexity、Grok）、支持 URI 调用的原生客户端或本地终端 CLI Agent，不消耗 API Token、不保存多余历史。
+
+- [外部提问指南](/zh-CN/guides/external-ask)
+
 
 ## 切换服务与模型
 

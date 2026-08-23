@@ -2,13 +2,13 @@
 layout: home
 
 title: SpotAsk
-titleTemplate: macOS 快速 AI 提问与划词助手
-description: SpotAsk 是免费开源的 macOS 菜单栏 AI 助手，专为轻量提问和划词文本处理设计。使用你自己的 OpenAI 兼容或 Anthropic API 密钥，数据只保存在本机。
+titleTemplate: "原生 macOS AI 助手与查询路由器"
+description: "SpotAsk 是一款免费开源的 macOS 菜单栏 AI 助手与查询路由器。快捷键秒级唤起——支持应用内 BYOK 极速回答，或一键路由分发至 ChatGPT、Perplexity 及终端 CLI Agent。"
 
 hero:
   name: SpotAsk
   text: 文档
-  tagline: 快速提问、划词处理、随时切换模型，并使用你自己的 AI 服务的原生 macOS 菜单栏助手。
+  tagline: "先提问，去向随心。原生 macOS 菜单栏 AI 助手与查询路由器。"
   actions:
     - theme: brand
       text: 快速开始
@@ -18,27 +18,28 @@ hero:
       link: /zh-CN/explore/
 
 features:
-  - title: 随时快速提问
-    details: 按一个快捷键呼出专注的提问窗口，得到回答、复制所需内容后关闭，继续回到原来的任务。
-  - title: 处理选中的文字
-    details: 在其他应用中选中文字，用操作条翻译、解释、总结、润色，或执行你自己的提示词。
-  - title: 使用自己的 AI 服务
-    details: 连接 OpenAI 兼容或 Anthropic 服务，访问密钥保存在这台 Mac 上，并可按需切换模型。
-  - title: 融入 macOS
-    details: 可通过 Spotlight、Siri、快捷指令、可配置快捷键和菜单栏入口快速调用。
+  - title: "先提问，随心分流"
+    details: "按快捷键秒级呼出窗口，写下问题并自由选择：直接应用内 BYOK 流式回答，或一键分发至 ChatGPT、Perplexity 与终端 Agent。"
+  - title: "选中文本即刻处理"
+    details: "在任意应用中选中文字，在就近操作条中一键翻译、解释、总结、润色，或执行自定义提示词。"
+  - title: "自带密钥 (BYOK)，隐私留在本机"
+    details: "直连 OpenAI 兼容或 Anthropic 服务。密钥保存在本机系统钥匙串中，无中间服务器，无遥测。"
+  - title: "原生轻量，克制无扰"
+    details: "体积不到 10 MB，原生 Swift/SwiftUI 构建，全键盘驱动，与 Spotlight、Siri 及快捷指令深度集成。"
 ---
 
 ![SpotAsk 浅色与深色模式下的提问窗口，含提示词和外部提问入口](/images/spotask-chat.png)
 
 ## SpotAsk 是什么
 
-SpotAsk 是一款免费开源的 macOS 菜单栏 AI 助手，专为轻量提问设计。按一个快捷键——默认 `Option + Space`——一个专注的提问窗口就会浮现在当前工作之上。提问、看回答、复制需要的内容、按 `Esc` 关闭，你就回到了原来的工作，仿佛什么都没有中断过。
+SpotAsk 是一款免费开源的 macOS 菜单栏 AI 助手与查询路由器，建立在一个极简的前提之上：**“先提问，去向随心（Ask first. Decide where it goes after.）”**。
 
-它连接你已经在付费的 AI 服务：支持任意 OpenAI 兼容或 Anthropic API，访问密钥保存在 Mac 的钥匙串里，模型随时可切换。没有账号系统，没有遥测，你和你的服务商之间没有中间环节——整个应用不到 10MB，从设计上就不打扰你。
+按一个快捷键——默认 `Option + Space`——一个专注的提问窗口就会浮现在当前屏幕之上。在灵感或疑问闪现的当下立刻捕获它，然后自由决定如何处理：
 
-## SpotAsk 适合做什么
+1. **应用内极速回答**：使用你配置的 AI 模型（BYOK）直接在当前小窗内获取快速流式解答。
+2. **一键外部路由（External Ask）**：一键将问题无损派发给网页端（ChatGPT、Perplexity、Grok）、原生 URI 应用或本地终端 CLI Agent，不消耗 API Token，不残留多余对话历史。
 
-SpotAsk 面向快速、专注的任务：提问、对选中文字执行提示词、复制回答，然后回到原来的工作场景。它不是完整的 AI 工作台——[设计理念](/zh-CN/philosophy)解释了为什么"保持小"是功能，而不是限制。
+没有账号体系，没有遥测，你和你的模型服务商之间没有任何中间商。按 `Esc` 关闭窗口即彻底结束——“问完就走”，零心智负担。
 
 两个最常用的流程可以直接看下面的动图：快捷键流程从任意应用中呼出对话窗口；划词流程在 Safari、备忘录等应用中显示操作条。
 

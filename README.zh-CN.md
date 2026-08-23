@@ -5,7 +5,7 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  一款原生 macOS 菜单栏 AI 助手。按快捷键快速呼出、随时提问；也可以在 Safari、备忘录等应用中选中文字，一键翻译、解释、总结或润色——使用你自己的 AI 服务（BYOK）。
+  一款原生 macOS 菜单栏 AI 助手与查询路由器。按快捷键秒级呼出、随时提问——支持使用自己的 AI 服务（BYOK）极速获取应用内回答，或一键将问题路由分发至 ChatGPT、Perplexity、本地终端 Agent 等外部工具。
 </p>
 
 <p align="center">
@@ -28,6 +28,8 @@
 
 ## 主要功能
 
+- **先有问题，去向随心（Ask First, Route After）** — 在灵感或疑问出现的第一秒迅速捕获；既可在应用内极速流式解答，也可无缝分流至外部平台。
+- **一键外部路由（External Ask）** — 一键将问题分发给网页端（ChatGPT、Perplexity、Grok）、原生 URI 应用或本地终端 CLI Agent，不消耗 API Token、不保存多余历史。
 - **随时随地提问** — 按 Option + Space（可自定义）呼出专注的对话窗口，即开即用。
 - **选中文字即问** — 在 Safari、备忘录或其他 macOS 应用中选中文字，操作条会出现在选中内容旁边，一键翻译、解释、总结、润色或执行自定义提示词。
 - **随时切换模型** — 在对话窗口直接切换任意服务商的模型，只影响当前对话，不修改默认设置。
@@ -39,10 +41,11 @@
 - **8 种界面语言** — 简体中文、English、Español、Deutsch、日本語、Français、Português、Русский。
 - **融入 macOS 系统** — 通过 Spotlight、Siri 和快捷指令直接提问、开始新对话或执行提示词。
 
-## 典型用例
+## 核心哲学与典型用例
 
-SpotAsk 围绕两个日常场景设计，先看看它们怎么用：
+SpotAsk 围绕 **“先提问再分流（Ask first. Decide where it goes after.）”** 与 **“问完就走（Done and gone）”** 设计——保持日常 AI 交互轻量、键盘优先且零心智负担。
 
+先看看两个最常用的日常场景：
 <table>
   <tr>
     <td width="50%" align="center"><strong>快速对话</strong></td>

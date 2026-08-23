@@ -5,7 +5,7 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  A native macOS menu-bar AI assistant. Quickly summon it with a hotkey to ask anything from anywhere, or select text in Safari, Notes, and other apps to translate, explain, summarize, or polish it — with your own AI service (BYOK).
+  A native macOS menu-bar AI assistant & query router. Ask instantly with a hotkey — get fast in-app answers with your own AI service (BYOK) or route queries to ChatGPT, Perplexity, and CLI agents in 1 click.
 </p>
 
 <p align="center">
@@ -28,7 +28,9 @@
 
 ## What SpotAsk does
 
-- **Ask from anywhere** — press Option + Space (customizable) to open a focused chat window, ready for a question.
+- **Ask first. Decide where it goes after** — capture questions the moment they appear; get direct in-app streaming answers, or route queries to external tools without friction.
+- **Route queries in 1 click (External Ask)** — hand off questions to web platforms (ChatGPT, Perplexity, Grok), URI-compatible macOS apps, or local CLI agents without consuming API tokens or saving history.
+- **Ask from anywhere** — press Option + Space (customizable) to open a focused question window, ready for input.
 - **Select text in other apps** — highlight text in Safari, Notes, or other macOS apps; translate, explain, summarize, polish, or run a custom prompt from the quick action bar that appears next to your selection.
 - **Switch models anytime** — change the model for the current conversation right from the window, without touching your default in Settings.
 - **Control thinking per model** — disable thinking or choose a level, and add custom request fields for provider-specific options.
@@ -39,10 +41,11 @@
 - **8 interface languages** — English, 简体中文, Español, Deutsch, 日本語, Français, Português, Русский.
 - **Work with macOS** — ask a question, start a new conversation, or run a prompt from Spotlight, Siri, or Shortcuts.
 
-## Typical use cases
+## Core philosophy & typical use cases
 
-SpotAsk is built around two everyday flows. Watch how each one works before you start:
+SpotAsk is designed around **"Ask first. Decide where it goes after"** and **"Done and gone"** — keeping everyday AI interactions lightweight, keyboard-first, and zero-overhead.
 
+Watch the two core everyday flows:
 <table>
   <tr>
     <td width="50%" align="center"><strong>Quick chat</strong></td>
