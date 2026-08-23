@@ -31,6 +31,12 @@ Each External Ask entry is one of three action types.
 | Ask Grok | `https://grok.com/?q={query}` |
 | Ask Perplexity | `https://www.perplexity.ai/search?q={query}` |
 
+::: tip Auto-submitting in ChatGPT with a userscript
+By default, ChatGPT only **pre-fills** the query in the composer and requires clicking send manually. If you want ChatGPT to **pre-fill and automatically submit** the question upon opening, you can install this userscript:
+- **[ChatGPT URL Prompt Auto Submit](https://greasyfork.org/en/scripts/592577-chatgpt-url-prompt-auto-submit)** (Greasy Fork)
+
+Once installed, visiting ChatGPT with a `?q=` parameter will automatically trigger the submit button as soon as the composer is ready.
+:::
 **Open an app** sends the question to another app on your Mac through the link format that app provides, for example a notes app that accepts `quicknote://new?text={query}`.
 
 **Terminal command** runs a command in Terminal with your question filled in, such as:

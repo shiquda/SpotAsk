@@ -31,6 +31,12 @@ SpotAsk 会把问题交给这个 AI，并立即关闭窗口。输入为空时不
 | 问 Grok | `https://grok.com/?q={query}` |
 | 问 Perplexity | `https://www.perplexity.ai/search?q={query}` |
 
+::: tip 搭配脚本实现 ChatGPT 自动发送
+ChatGPT 官方网页的默认行为是**预填**问题，需要手动点击发送。如果你希望跳转后**预填并自动发送**，可以安装油猴用户脚本：
+- **[ChatGPT URL Prompt Auto Submit](https://greasyfork.org/zh-CN/scripts/592577-chatgpt-url-prompt-auto-submit)**（Greasy Fork）
+
+安装该脚本后，通过链接携带 `?q=` 打开 ChatGPT 时，脚本会在输入框就绪后自动点击发送。
+:::
 **打开应用**：通过应用提供的链接格式把问题发送给 Mac 上的其他应用，例如支持 `quicknote://new?text={query}` 的笔记应用。
 
 **终端命令**：在终端中运行一条命令，并把问题填进去，例如：

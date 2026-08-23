@@ -27,7 +27,6 @@
 
 ## What SpotAsk does
 
-- **Featherweight pure native** — built entirely in Swift and AppKit; cold-starts instantly, idles quietly in the menu bar, and uses minimal memory.
 - **Route queries in 1 click (External Ask)** — hand off questions to 3 concrete destinations without consuming API tokens or saving history:
   - **Web platforms** — launch queries directly in ChatGPT, Perplexity, Grok, and more.
   - **Desktop apps** — trigger installed desktop applications via custom URI schemes.
@@ -36,6 +35,7 @@
 - **Selection assistant** — highlight text in Safari, Notes, Xcode, or any other app; translate, explain, summarize, polish, or run custom prompts from a floating quick action bar.
 - **Ask with attachments** — paste screenshots or drop in images, text, and code files; follow-up questions seamlessly retain the attached context.
 - **Prompt presets & shortcuts** — built-in prompts for everyday workflows plus custom prompt creation; record custom shortcuts for every frequent action.
+- **Featherweight pure native** — built entirely in Swift and AppKit; cold-starts instantly, idles quietly in the menu bar, and uses minimal memory.
 
 ## Core philosophy & typical use cases
 
