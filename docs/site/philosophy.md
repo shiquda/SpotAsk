@@ -15,9 +15,8 @@ A common experience: you have a question, and before you can ask it you first de
 
 SpotAsk flips the order. You write the question down first — in a window that is always one hotkey away — and only then decide who answers it:
 
-- Ask the configured lightweight model directly.
-- Use **External Ask** to hand the question to ChatGPT, Grok, any app, or a terminal command, via URLs, URI schemes, or shell commands.
-
+- Ask the configured model directly with streaming answers (BYOK).
+- Use **External Ask** to hand the question to 3 destinations: web platforms (ChatGPT, Perplexity, Grok), desktop apps via URI schemes, or local CLI agents in Terminal.
 The question is captured at the moment it appears; the routing decision can wait.
 
 ## Lightweight by intention
@@ -26,9 +25,9 @@ SpotAsk deliberately does not try to be an all-in-one AI workspace. Tasks that n
 
 Staying narrow is what keeps the app fast:
 
-- The whole app is under 10&nbsp;MB.
-- It lives in the menu bar and stays out of the way until summoned.
-- Closing the window ends the interaction completely — no tabs, no inbox, nothing calling you back.
+- Pure Swift & AppKit — installer is ~10 MB with zero Electron or Chromium runtime.
+- It lives quietly in the menu bar and stays out of the way until summoned.
+- Closing the window (`Esc`) ends the interaction completely — no tabs, no inbox, nothing calling you back.
 
 The goal is that after you close the window, it is as if SpotAsk never appeared: you are simply back in your original context with an answer.
 

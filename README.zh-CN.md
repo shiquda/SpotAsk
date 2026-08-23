@@ -5,7 +5,7 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  一款原生 macOS 菜单栏 AI 助手与查询路由器。按快捷键秒级呼出、随时提问——支持使用自己的 AI 服务（BYOK）极速获取应用内回答，或一键将问题路由分发至 ChatGPT、Perplexity、本地终端 Agent 等外部工具。
+  一款原生 macOS 菜单栏 AI 助手与查询路由器。按快捷键秒级呼出、随时提问——支持使用自己的 AI 服务（BYOK）极速获取应用内回答，或一键将问题发给 ChatGPT、本地终端 Agent 等外部工具。
 </p>
 
 <p align="center">
@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  原生 macOS 应用 · 隐私优先 · macOS 15+ · 支持 Apple silicon 和 Intel · AGPL-3.0
+  纯 Swift 构建 · 安装包约 10MB · 无 Electron · 隐私优先 · macOS 15+ · 支持 Apple silicon 与 Intel · AGPL-3.0
 </p>
 
 <p align="center">
@@ -28,18 +28,15 @@
 
 ## 主要功能
 
-- **先有问题，去向随心（Ask First, Route After）** — 在灵感或疑问出现的第一秒迅速捕获；既可在应用内极速流式解答，也可无缝分流至外部平台。
-- **一键外部路由（External Ask）** — 一键将问题分发给网页端（ChatGPT、Perplexity、Grok）、原生 URI 应用或本地终端 CLI Agent，不消耗 API Token、不保存多余历史。
-- **随时随地提问** — 按 Option + Space（可自定义）呼出专注的对话窗口，即开即用。
-- **选中文字即问** — 在 Safari、备忘录或其他 macOS 应用中选中文字，操作条会出现在选中内容旁边，一键翻译、解释、总结、润色或执行自定义提示词。
-- **随时切换模型** — 在对话窗口直接切换任意服务商的模型，只影响当前对话，不修改默认设置。
-- **按模型控制思考** — 关闭思考或设置思考等级，并可用自定义请求字段适配服务商专属参数。
-- **贴图提问** — 直接粘贴截图、拖入图片或文本/代码文件，把附件作为本次提问的上下文；后续追问会自动带上之前的附件。
-- **按需复制内容** — 一键复制完整回答，也可以单独复制代码块。
-- **常用任务一键完成** — 内置翻译、解释、总结、润色四组提示词，也可以创建自己的提示词用于重复工作。
-- **自定义快捷键** — 全局热键可选预设，也可以录制自己的快捷键，用于对话、划词助手和常用操作。
-- **8 种界面语言** — 简体中文、English、Español、Deutsch、日本語、Français、Português、Русский。
-- **融入 macOS 系统** — 通过 Spotlight、Siri 和快捷指令直接提问、开始新对话或执行提示词。
+- **极致轻量纯原生** — 纯 Swift 与 AppKit 构建，毫秒级冷启动，静默常驻菜单栏，内存占用极低。
+- **一键分流三大出口 (External Ask)** — 将问题一键无缝分发至 3 类目标，不消耗 API Token、不留多余历史：
+  - **网页端平台** — 直接在 ChatGPT、Perplexity、Grok 等网页端展开深入搜索或对话。
+  - **桌面端应用** — 通过自定义 URI 协议唤起已安装的桌面工具。
+  - **终端与 CLI Agent** — 直接在 macOS 终端中唤醒本地 Agent。
+- **全局快捷键秒级捕获** — 按 `Option + Space`（可自定义）随时随地呼出专注提问窗口，使用你自己的 API 密钥（BYOK）极速流式作答，不需要时按 `Esc` 一键关闭窗口。
+- **全局划词即问** — 在 Safari、备忘录、Xcode 等任意应用中选中文字，浮动操作条即刻就近出现，一键翻译、解释、总结、润色或执行自定义提示词。
+- **多模态与贴图提问** — 直接粘贴截图、拖入图片或代码文本文件，后续追问自动保留附件上下文。
+- **预设提示词与快捷键** — 内置常用生产力提示词，支持自定义扩展；每个常用动作均可录制专属快捷键。
 
 ## 核心哲学与典型用例
 
@@ -56,8 +53,8 @@ SpotAsk 围绕 **“先提问再分流（Ask first. Decide where it goes after.�
     <td width="50%" align="center"><img src="images/spotask-selection.gif" width="480" alt="SpotAsk 在其他应用中选中文字时出现的快捷操作条"></td>
   </tr>
   <tr>
-    <td width="50%" align="center">按你的快捷键（默认 Option + Space）呼出对话窗口，随时提问。</td>
-    <td width="50%" align="center">在 Safari、备忘录或其他应用中选中文字，使用操作条翻译、解释、总结、润色或执行自定义提示词。</td>
+    <td width="50%" align="center">按 Option + Space 呼出对话窗口，输入问题即可获取流式回答。</td>
+    <td width="50%" align="center">在任意应用中选中文字，使用浮动操作条快速翻译、解释或执行自定义提示词。</td>
   </tr>
 </table>
 
@@ -96,11 +93,10 @@ brew install --cask shiquda/spotask/spotask
 **构建和运行**
 
 ```sh
-./Scripts/make-app-bundle.sh
-open build/SpotAsk.app
+./Scripts/install-debug-app.sh
 ```
 
-启动后 SpotAsk 会出现在菜单栏中，不在程序坞显示图标。
+启动后 SpotAsk Debug 会出现在菜单栏中。它使用独立的 App Identity，其 macOS 权限不会覆盖官方发布版本。应用不在程序坞显示图标。
 
 ### 启用系统联动
 
@@ -127,7 +123,7 @@ Personal Team 构建仅适合个人使用，并且可能需要定期重新构建
 ## 日常使用
 
 | 操作 | 方式 |
-|---|---|
+| --- | --- |
 | 打开对话窗口 | 点击菜单栏图标，或按你配置的快捷键（默认 Option + Space） |
 | 发送问题 | 输入问题后按 Return |
 | 换行 | Shift + Return |

@@ -22,7 +22,7 @@ The quick actions can translate, explain, summarize, polish, or run a custom pro
 - [Selection Assistant guide](/guides/selection-assistant)
 ## Route questions with External Ask
 
-Handoff queries to browser targets (ChatGPT, Perplexity, Grok), native URI applications, or local terminal CLI agents with one click without consuming API tokens or saving history.
+Handoff queries to web platforms (ChatGPT, Perplexity, Grok), desktop apps via custom URI schemes, or local terminal CLI agents with one click without consuming API tokens or saving history.
 
 - [External Ask guide](/guides/external-ask)
 

@@ -22,7 +22,7 @@ description: SpotAsk 的能力地图：提问、划词、模型、附件、提�
 - [划词助手指南](/zh-CN/guides/selection-assistant)
 ## 一键外部路由（外部提问）
 
-一键将问题分流至网页端（ChatGPT、Perplexity、Grok）、支持 URI 调用的原生客户端或本地终端 CLI Agent，不消耗 API Token、不保存多余历史。
+一键将问题分流至网页端平台（ChatGPT、Perplexity、Grok）、桌面端应用（URI 协议）或本地终端 CLI Agent，不消耗 API Token、不保存多余历史。
 
 - [外部提问指南](/zh-CN/guides/external-ask)
 

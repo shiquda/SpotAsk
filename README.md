@@ -5,8 +5,7 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  A native macOS menu-bar AI assistant & query router. Ask instantly with a hotkey — get fast in-app answers with your own AI service (BYOK) or route queries to ChatGPT, Perplexity, and CLI agents in 1 click.
-</p>
+  A native macOS menu-bar AI assistant & query router. Ask instantly with a hotkey — get fast in-app answers with your own AI service (BYOK) or route queries to ChatGPT, local CLI agents, and other external tools in 1 click.
 
 <p align="center">
   <a href="https://github.com/shiquda/SpotAsk/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/shiquda/SpotAsk?display_name=tag&sort=semver"></a>
@@ -15,7 +14,7 @@
 </p>
 
 <p align="center">
-  Native macOS app · Privacy-first · macOS 15+ · Apple silicon and Intel · AGPL-3.0
+  Pure Swift · ~10 MB installer · No Electron · Privacy-first · macOS 15+ · Apple silicon & Intel · AGPL-3.0
 </p>
 
 <p align="center">
@@ -28,18 +27,15 @@
 
 ## What SpotAsk does
 
-- **Ask first. Decide where it goes after** — capture questions the moment they appear; get direct in-app streaming answers, or route queries to external tools without friction.
-- **Route queries in 1 click (External Ask)** — hand off questions to web platforms (ChatGPT, Perplexity, Grok), URI-compatible macOS apps, or local CLI agents without consuming API tokens or saving history.
-- **Ask from anywhere** — press Option + Space (customizable) to open a focused question window, ready for input.
-- **Select text in other apps** — highlight text in Safari, Notes, or other macOS apps; translate, explain, summarize, polish, or run a custom prompt from the quick action bar that appears next to your selection.
-- **Switch models anytime** — change the model for the current conversation right from the window, without touching your default in Settings.
-- **Control thinking per model** — disable thinking or choose a level, and add custom request fields for provider-specific options.
-- **Ask with attachments** — paste a screenshot, or drop in images and text/code files; follow-up questions keep the earlier context.
-- **Copy what you need** — grab the full answer or individual code blocks in one click.
-- **Automate repeated tasks** — built-in prompts for translate, explain, summarize, and polish; create your own for repeated workflows.
-- **Customize shortcuts** — choose a global hotkey preset or record your own shortcuts for chat, the selection assistant, and common actions.
-- **8 interface languages** — English, 简体中文, Español, Deutsch, 日本語, Français, Português, Русский.
-- **Work with macOS** — ask a question, start a new conversation, or run a prompt from Spotlight, Siri, or Shortcuts.
+- **Featherweight pure native** — built entirely in Swift and AppKit; cold-starts instantly, idles quietly in the menu bar, and uses minimal memory.
+- **Route queries in 1 click (External Ask)** — hand off questions to 3 concrete destinations without consuming API tokens or saving history:
+  - **Web platforms** — launch queries directly in ChatGPT, Perplexity, Grok, and more.
+  - **Desktop apps** — trigger installed desktop applications via custom URI schemes.
+  - **Terminal & CLI agents** — wake up local CLI agents directly in Terminal.
+- **Instant hotkey capture** — press `Option + Space` (customizable) to summon a focused input window from anywhere; get direct streaming answers using your own API key (BYOK), or press `Esc` to instantly close the window when done.
+- **Selection assistant** — highlight text in Safari, Notes, Xcode, or any other app; translate, explain, summarize, polish, or run custom prompts from a floating quick action bar.
+- **Ask with attachments** — paste screenshots or drop in images, text, and code files; follow-up questions seamlessly retain the attached context.
+- **Prompt presets & shortcuts** — built-in prompts for everyday workflows plus custom prompt creation; record custom shortcuts for every frequent action.
 
 ## Core philosophy & typical use cases
 
@@ -56,8 +52,8 @@ Watch the two core everyday flows:
     <td width="50%" align="center"><img src="images/spotask-selection.gif" width="480" alt="SpotAsk quick action bar next to selected text in another app"></td>
   </tr>
   <tr>
-    <td width="50%" align="center">Press your hotkey (default Option + Space) to summon the chat window and ask anything.</td>
-    <td width="50%" align="center">Select text in Safari, Notes, or other apps, then use the quick action bar to translate, explain, summarize, polish, or run a custom prompt.</td>
+    <td width="50%" align="center">Press Option + Space to summon the chat window, type your question, and get streaming answers.</td>
+    <td width="50%" align="center">Select text in any app to trigger the quick action bar for instant translation, explanation, or custom prompts.</td>
   </tr>
 </table>
 

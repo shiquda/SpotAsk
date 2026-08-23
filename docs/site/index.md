@@ -3,7 +3,7 @@ layout: home
 
 title: SpotAsk
 titleTemplate: "Native macOS AI Assistant & Query Router"
-description: "SpotAsk is a free, open-source macOS menu-bar AI assistant and query router. Ask instantly with a hotkey — get fast in-app BYOK answers or route queries to ChatGPT, Perplexity, and CLI agents in 1 click."
+description: "SpotAsk is a free, open-source macOS menu-bar AI assistant and query router. Ask instantly with a hotkey — get fast in-app BYOK answers or route queries to ChatGPT, local CLI agents, and other external tools in 1 click."
 
 hero:
   name: SpotAsk
@@ -19,13 +19,13 @@ hero:
 
 features:
   - title: "Ask first, route anywhere"
-    details: "Summon instantly with one hotkey, type your question, and choose: stream an in-app BYOK answer or route to ChatGPT, Perplexity, and CLI agents in 1 click."
+    details: "Summon instantly with one hotkey, type your question, and choose: stream an in-app BYOK answer or route to web platforms, desktop apps, and CLI agents in 1 click."
   - title: "Work with selected text"
     details: "Select text in any macOS app and translate, explain, summarize, polish, or run custom prompts from the inline action bar."
   - title: "Bring your own AI service (BYOK)"
     details: "Connect OpenAI-compatible or Anthropic endpoints. Access keys stay encrypted on your Mac with zero telemetry or middle servers."
-  - title: "Lightweight & native"
-    details: "Under 10 MB, native Swift/SwiftUI, keyboard-first, and integrates seamlessly with Spotlight, Siri, and Shortcuts."
+  - title: "Lightweight & pure native"
+    details: "~10 MB installer, pure Swift/AppKit, zero Electron runtime, keyboard-first with Esc-to-close, and instant cold launch."
 ---
 
 ![SpotAsk question window in light and dark appearance with prompts and External Ask buttons](/images/spotask-chat.png)
@@ -37,7 +37,7 @@ SpotAsk is a free, open-source macOS menu-bar AI assistant and query router buil
 Press one hotkey — `Option + Space` by default — and a focused question window appears instantly over whatever you are doing. Write down your thought while it is fresh, then choose how to handle it:
 
 1. **In-app quick answers**: Get rapid streaming replies using your own configured AI model (BYOK).
-2. **1-click query routing (External Ask)**: Dispatch your query to web platforms (ChatGPT, Perplexity, Grok), native URI apps, or local CLI agents without consuming API tokens or saving history.
+2. **1-click query routing (External Ask)**: Dispatch your query to 3 concrete destinations — web platforms (ChatGPT, Perplexity, Grok), desktop apps via URI schemes, or local CLI agents in Terminal — without consuming API tokens or saving history.
 
 There is no account system, no telemetry, and nothing between you and your AI provider. When you close the window (`Esc`), SpotAsk is done and gone — leaving your workspace clean and uninterrupted.
 
