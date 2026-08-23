@@ -691,7 +691,7 @@ final class ProviderSettingsStateTests: XCTestCase {
 
     // MARK: - Connection test with draft values
 
-    func testConnectionTestUsesDraftValues() throws {
+    func testConnectionTestUsesDraftValues() async throws {
         let (defaults, suiteName) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let settings = AppSettings(defaults: defaults)
@@ -713,19 +713,7 @@ final class ProviderSettingsStateTests: XCTestCase {
         state.draftProviderTimeout = 88
         state.apiKeyDraft = "draft-test-key"
         state.testConnection()
-
-        // Wait for async testConnection to complete
-        let expectation = XCTestExpectation(description: "connection test completes")
-        Task {
-            // Poll until test completes or timeout
-            var attempts = 0
-            while state.isTesting && attempts < 50 {
-                try? await Task.sleep(nanoseconds: 100_000_000)
-                attempts += 1
-            }
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 5.0)
+        await waitUntil(!state.isTesting, "Timed out waiting for connection test")
 
         let captured = recordingFactory.capturedTarget
         XCTAssertNotNil(captured, "Factory should have received a target from testConnection")
@@ -738,7 +726,7 @@ final class ProviderSettingsStateTests: XCTestCase {
         }
     }
 
-    func testModelTestUsesRequestedModelNotTheFirstProviderModel() throws {
+    func testModelTestUsesRequestedModelNotTheFirstProviderModel() async throws {
         let (defaults, suiteName) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let settings = AppSettings(defaults: defaults)
@@ -760,23 +748,13 @@ final class ProviderSettingsStateTests: XCTestCase {
         )
 
         state.testConnection(modelID: secondModel.id)
-
-        let expectation = XCTestExpectation(description: "model test completes")
-        Task {
-            var attempts = 0
-            while state.isTesting && attempts < 50 {
-                try? await Task.sleep(nanoseconds: 100_000_000)
-                attempts += 1
-            }
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 5.0)
+        await waitUntil(!state.isTesting, "Timed out waiting for connection test")
 
         XCTAssertEqual(recordingFactory.capturedTarget?.upstreamModelID, "second-model")
         XCTAssertEqual(recordingFactory.capturedTarget?.providerID, provider.id)
     }
 
-    func testConnectionTestWithoutKeyShowsMissingAPIKeyError() throws {
+    func testConnectionTestWithoutKeyShowsMissingAPIKeyError() async throws {
         let (defaults, suiteName) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let settings = AppSettings(defaults: defaults)
@@ -788,25 +766,14 @@ final class ProviderSettingsStateTests: XCTestCase {
 
         state.apiKeyDraft = ""  // No key
         state.testConnection()
-
-        // Wait for async testConnection to complete
-        let expectation = XCTestExpectation(description: "connection test completes")
-        Task {
-            var attempts = 0
-            while state.isTesting && attempts < 50 {
-                try? await Task.sleep(nanoseconds: 100_000_000)
-                attempts += 1
-            }
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 5.0)
+        await waitUntil(!state.isTesting, "Timed out waiting for connection test")
 
         XCTAssertTrue(state.statusIsError, "Should show error when no API key provided")
         XCTAssertTrue(state.status.contains("key") || state.status.contains("Key") || state.status.contains("密钥"),
                       "Error message should indicate missing key, got: \(state.status)")
     }
 
-    func testModelTestErrorShowsServerDetail() throws {
+    func testModelTestErrorShowsServerDetail() async throws {
         let (defaults, suiteName) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let settings = AppSettings(defaults: defaults)
@@ -819,17 +786,7 @@ final class ProviderSettingsStateTests: XCTestCase {
         )
 
         state.testConnection(modelID: model.id)
-
-        let expectation = XCTestExpectation(description: "model test completes")
-        Task {
-            var attempts = 0
-            while state.isTesting && attempts < 50 {
-                try? await Task.sleep(nanoseconds: 100_000_000)
-                attempts += 1
-            }
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 5.0)
+        await waitUntil(!state.isTesting, "Timed out waiting for connection test")
 
         XCTAssertTrue(state.statusIsError)
         XCTAssertTrue(state.status.contains("Invalid API key provided"))
@@ -1090,12 +1047,20 @@ final class ProviderSettingsStateTests: XCTestCase {
         )
     }
 
-    private func waitForModelRefresh(_ state: ProviderSettingsState) async {
+    private func waitUntil(_ condition: @autoclosure () -> Bool, _ message: String) async {
+        for _ in 0 ..< 20 {
+            if condition() { return }
+            await Task.yield()
+        }
         for _ in 0 ..< 100 {
-            if !state.isRefreshingModels { return }
+            if condition() { return }
             try? await Task.sleep(nanoseconds: 10_000_000)
         }
-        XCTFail("Timed out waiting for model refresh")
+        XCTFail(message)
+    }
+
+    private func waitForModelRefresh(_ state: ProviderSettingsState) async {
+        await waitUntil(!state.isRefreshingModels, "Timed out waiting for model refresh")
     }
 
     private func makeDefaults() -> (UserDefaults, String) {
@@ -1165,6 +1130,10 @@ private actor ControlledModelDiscovery: ProviderModelDiscovering {
     }
 
     func waitForCallCount(_ expectedCount: Int) async -> Bool {
+        for _ in 0 ..< 20 {
+            if pendingCalls.count >= expectedCount { return true }
+            await Task.yield()
+        }
         for _ in 0 ..< 100 {
             if pendingCalls.count >= expectedCount { return true }
             try? await Task.sleep(nanoseconds: 10_000_000)

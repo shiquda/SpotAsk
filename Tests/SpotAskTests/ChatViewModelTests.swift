@@ -945,9 +945,13 @@ final class ChatViewModelTests: XCTestCase {
     }
 
     private func waitForState(_ viewModel: ChatViewModel, _ state: GenerationState) async {
-        for _ in 0 ..< 100 {
+        for _ in 0 ..< 20 {
             if viewModel.generationState == state { return }
-            try? await Task.sleep(for: .milliseconds(10))
+            await Task.yield()
+        }
+        for _ in 0 ..< 200 {
+            if viewModel.generationState == state { return }
+            try? await Task.sleep(for: .milliseconds(2))
         }
         XCTFail("Timed out waiting for \(state)")
     }

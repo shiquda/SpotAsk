@@ -221,9 +221,13 @@ struct PromptPresetTests {
     }
 
     private func waitForIdle(_ viewModel: ChatViewModel) async {
-        for _ in 0 ..< 100 {
+        for _ in 0 ..< 20 {
             if viewModel.generationState == .idle { return }
-            try? await Task.sleep(for: .milliseconds(10))
+            await Task.yield()
+        }
+        for _ in 0 ..< 200 {
+            if viewModel.generationState == .idle { return }
+            try? await Task.sleep(for: .milliseconds(2))
         }
         Issue.record("Timed out waiting for the request to finish")
     }

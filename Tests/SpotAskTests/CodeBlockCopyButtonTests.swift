@@ -22,7 +22,7 @@ final class CodeBlockCopyButtonTests: XCTestCase {
         window.makeKeyAndOrderFront(nil)
         window.layoutIfNeeded()
         hosting.layoutSubtreeIfNeeded()
-        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        waitForHostedCopyButtons(hosting, count: 1)
 
         let button = descendants(of: hosting).first { $0 is NSButton } as? NSButton
         let overlay = descendants(of: hosting).first {
@@ -71,7 +71,7 @@ final class CodeBlockCopyButtonTests: XCTestCase {
         window.makeKeyAndOrderFront(nil)
         window.layoutIfNeeded()
         hosting.layoutSubtreeIfNeeded()
-        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        waitForHostedCopyButtons(hosting, count: 2)
 
         let buttons = descendants(of: hosting)
             .compactMap { $0 as? NSButton }
@@ -89,6 +89,20 @@ final class CodeBlockCopyButtonTests: XCTestCase {
             let copied = NSPasteboard.general.string(forType: .string)
             XCTAssertTrue(copied?.contains(expectedFragments[index]) == true)
         }
+    }
+
+    @MainActor
+    private func waitForHostedCopyButtons(_ hosting: NSView, count: Int) {
+        let deadline = Date().addingTimeInterval(0.2)
+        repeat {
+            hosting.window?.layoutIfNeeded()
+            hosting.layoutSubtreeIfNeeded()
+            let buttons = descendants(of: hosting).compactMap { $0 as? NSButton }
+            if buttons.count >= count {
+                return
+            }
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.005))
+        } while Date() < deadline
     }
 
     @MainActor
