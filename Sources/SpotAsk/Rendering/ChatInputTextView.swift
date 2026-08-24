@@ -115,7 +115,8 @@ struct ChatInputTextView: NSViewRepresentable {
         let editorOwnsDraft = ChatInputSynchronization.shouldPreserveFocusedDraft(
             isGenerating: isGenerating,
             isFirstResponder: scrollView.window?.firstResponder === textView,
-            isModelTextEmpty: text.isEmpty
+            isModelTextEmpty: text.isEmpty,
+            isMarkedText: textView.hasMarkedText()
         )
         if textView.string != text && !editorOwnsDraft {
             let selectedRange = textView.selectedRange()
@@ -146,6 +147,7 @@ struct ChatInputTextView: NSViewRepresentable {
             guard let textView = notification.object as? NSTextView else { return }
             parent.text = textView.string
             updateHeightIfNeeded(of: textView)
+            textView.scrollRangeToVisible(textView.selectedRange())
         }
 
         func textDidBeginEditing(_ notification: Notification) {
@@ -204,6 +206,12 @@ struct ChatInputTextView: NSViewRepresentable {
             let onlyGrewAtMaxHeight = isAtMaxHeight && textLength > lastMeasuredTextLength
             let widthUnchanged = abs(width - lastMeasuredWidth) < 0.5
             if onlyGrewAtMaxHeight, widthUnchanged {
+                // Keep TextKit's layout current even when the outer editor has
+                // reached its cap; otherwise inserted lines can remain hidden
+                // until the composition or paste operation finishes.
+                textView.layoutManager?.ensureLayout(for: textContainer)
+                lastMeasuredTextLength = textLength
+                textView.scrollRangeToVisible(textView.selectedRange())
                 return
             }
             updateHeight(of: textView)
@@ -230,9 +238,10 @@ enum ChatInputSynchronization {
     static func shouldPreserveFocusedDraft(
         isGenerating: Bool,
         isFirstResponder: Bool,
-        isModelTextEmpty: Bool = false
+        isModelTextEmpty: Bool = false,
+        isMarkedText: Bool = false
     ) -> Bool {
-        isGenerating && isFirstResponder && !isModelTextEmpty
+        isMarkedText || (isGenerating && isFirstResponder && !isModelTextEmpty)
     }
 }
 

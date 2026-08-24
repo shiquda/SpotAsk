@@ -3,7 +3,7 @@ import XCTest
 
 @MainActor
 final class ChatViewModelTests: XCTestCase {
-    func testFocusedComposerPreservesDraftOnlyDuringGeneration() {
+    func testFocusedComposerPreservesDraftOnlyDuringGenerationOrMarkedText() {
         XCTAssertTrue(ChatInputSynchronization.shouldPreserveFocusedDraft(isGenerating: true, isFirstResponder: true))
         XCTAssertFalse(ChatInputSynchronization.shouldPreserveFocusedDraft(isGenerating: true, isFirstResponder: false))
         XCTAssertFalse(ChatInputSynchronization.shouldPreserveFocusedDraft(isGenerating: false, isFirstResponder: true))
@@ -11,6 +11,11 @@ final class ChatViewModelTests: XCTestCase {
             isGenerating: true,
             isFirstResponder: true,
             isModelTextEmpty: true
+        ))
+        XCTAssertTrue(ChatInputSynchronization.shouldPreserveFocusedDraft(
+            isGenerating: false,
+            isFirstResponder: false,
+            isMarkedText: true
         ))
     }
 
