@@ -735,6 +735,7 @@ struct ChatView: View {
             isSessionEmpty: { viewModel.messages.isEmpty },
             isGenerating: { isGenerating },
             currentInput: { viewModel.input },
+            clearInput: { viewModel.input = "" },
             resolveAction: { settings.enabledQuickAction(id: $0) },
             closePanel: { commandCenter.close() }
         )

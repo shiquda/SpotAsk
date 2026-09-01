@@ -22,6 +22,7 @@ struct QuickActionTriggerTests {
         isSessionEmpty: @escaping () -> Bool = { true },
         isGenerating: @escaping () -> Bool = { false },
         input: @escaping () -> String = { "test query" },
+        clearInput: @escaping () -> Void = {},
         resolveAction: @escaping (UUID) -> QuickAction? = { id in
             QuickAction.builtIn.first(where: { $0.id == id && $0.isEnabled })
         },
@@ -32,6 +33,7 @@ struct QuickActionTriggerTests {
             isSessionEmpty: isSessionEmpty,
             isGenerating: isGenerating,
             currentInput: input,
+            clearInput: clearInput,
             resolveAction: resolveAction,
             closePanel: onClose,
             executor: executor
@@ -246,5 +248,55 @@ struct QuickActionTriggerTests {
         #expect(trigger.trigger(actionID: chatGPTID) == true)
         #expect(executor.performedActions.count == 2)
         #expect(closedCount == 2)
+    }
+
+    @Test("Successful quick action trigger clears input and closes panel")
+    func successfulTriggerClearsInput() {
+        var inputState = "how does external jump work?"
+        var clearCount = 0
+        var closedCount = 0
+        let executor = FakeActionExecutor()
+
+        let (trigger, _) = makeTrigger(
+            input: { inputState },
+            clearInput: {
+                clearCount += 1
+                inputState = ""
+            },
+            onClose: { closedCount += 1 },
+            executor: executor
+        )
+
+        let result = trigger.trigger(actionID: QuickAction.BuiltInID.chatGPT)
+        #expect(result == true)
+        #expect(clearCount == 1)
+        #expect(inputState.isEmpty)
+        #expect(closedCount == 1)
+        #expect(executor.performedActions.count == 1)
+    }
+
+    @Test("Failed or rejected quick action trigger does not clear input")
+    func failedTriggerDoesNotClearInput() {
+        var inputState = "preserve this question"
+        var clearCount = 0
+        var closedCount = 0
+        let executor = FakeActionExecutor()
+        executor.shouldSucceed = false
+
+        let (trigger, _) = makeTrigger(
+            input: { inputState },
+            clearInput: {
+                clearCount += 1
+                inputState = ""
+            },
+            onClose: { closedCount += 1 },
+            executor: executor
+        )
+
+        let result = trigger.trigger(actionID: QuickAction.BuiltInID.chatGPT)
+        #expect(result == false)
+        #expect(clearCount == 0)
+        #expect(inputState == "preserve this question")
+        #expect(closedCount == 0)
     }
 }

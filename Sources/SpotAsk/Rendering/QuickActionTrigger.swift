@@ -67,10 +67,10 @@ final class QuickActionTrigger {
     let isSessionEmpty: () -> Bool
     let isGenerating: () -> Bool
     let currentInput: () -> String
+    let clearInput: () -> Void
     let resolveAction: (UUID) -> QuickAction?
     let closePanel: () -> Void
     let executor: any QuickActionExecuting
-
     private(set) var isExecutingQuickAction: Bool = false
     private nonisolated(unsafe) var panelShowObserver: (any NSObjectProtocol)?
 
@@ -78,6 +78,7 @@ final class QuickActionTrigger {
         isSessionEmpty: @escaping () -> Bool,
         isGenerating: @escaping () -> Bool,
         currentInput: @escaping () -> String,
+        clearInput: @escaping () -> Void = {},
         resolveAction: @escaping (UUID) -> QuickAction?,
         closePanel: @escaping () -> Void,
         executor: any QuickActionExecuting = DefaultQuickActionExecutor(),
@@ -86,6 +87,7 @@ final class QuickActionTrigger {
         self.isSessionEmpty = isSessionEmpty
         self.isGenerating = isGenerating
         self.currentInput = currentInput
+        self.clearInput = clearInput
         self.resolveAction = resolveAction
         self.closePanel = closePanel
         self.executor = executor
@@ -167,7 +169,8 @@ final class QuickActionTrigger {
             return false
         }
 
-        // 10. 如果 executor 返回 true：调用 closePanel()，本次面板展示期间保持 duplicate-trigger guard
+        // 10. 如果 executor 返回 true：清除输入框，调用 closePanel()，本次面板展示期间保持 duplicate-trigger guard
+        clearInput()
         closePanel()
         return true
     }
