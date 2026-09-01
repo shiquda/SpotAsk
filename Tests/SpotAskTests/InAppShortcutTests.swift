@@ -272,10 +272,15 @@ struct InAppShortcutTests {
         defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
 
         // 4 built-in prompt presets are enabled by default (Command+1...4)
-        // ChatGPT should be Command+5, Grok should be Command+6
+        // ChatGPT is enabled by default (Command+5), Grok is disabled by default (nil)
         #expect(fixture.settings.shortcut(for: .quickAction(QuickAction.BuiltInID.chatGPT)) == .command("5"))
-        #expect(fixture.settings.shortcut(for: .quickAction(QuickAction.BuiltInID.grok)) == .command("6"))
+        #expect(fixture.settings.shortcut(for: .quickAction(QuickAction.BuiltInID.grok)) == nil)
         #expect(fixture.settings.shortcutTarget(for: .command("5")) == .quickAction(QuickAction.BuiltInID.chatGPT))
+        #expect(fixture.settings.shortcutTarget(for: .command("6")) == nil)
+
+        // When Grok is enabled, it receives Command+6
+        fixture.settings.setQuickActionEnabled(id: QuickAction.BuiltInID.grok, isEnabled: true)
+        #expect(fixture.settings.shortcut(for: .quickAction(QuickAction.BuiltInID.grok)) == .command("6"))
         #expect(fixture.settings.shortcutTarget(for: .command("6")) == .quickAction(QuickAction.BuiltInID.grok))
     }
 
@@ -283,6 +288,7 @@ struct InAppShortcutTests {
     func quickActionReorderingUpdatesDerivedDefaults() {
         let fixture = makeSettings()
         defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+        fixture.settings.setQuickActionEnabled(id: QuickAction.BuiltInID.grok, isEnabled: true)
 
         // Initially: ChatGPT -> 5, Grok -> 6
         #expect(fixture.settings.shortcut(for: .quickAction(QuickAction.BuiltInID.chatGPT)) == .command("5"))
@@ -303,6 +309,7 @@ struct InAppShortcutTests {
 
         let firstPresetID = PromptPreset.builtIn[0].id
         fixture.settings.setPromptPresetEnabled(id: firstPresetID, isEnabled: false)
+        fixture.settings.setQuickActionEnabled(id: QuickAction.BuiltInID.grok, isEnabled: true)
 
         // Now 3 presets are enabled (Command+1...3) -> ChatGPT is Command+4, Grok is Command+5
         #expect(fixture.settings.shortcut(for: .quickAction(QuickAction.BuiltInID.chatGPT)) == .command("4"))

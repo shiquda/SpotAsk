@@ -169,7 +169,7 @@ struct QuickAction: Identifiable, Codable, Equatable, Sendable {
                 kind: .web(urlTemplate: "https://grok.com/?q={query}"),
                 symbolName: "sparkles",
                 isBuiltIn: true,
-                isEnabled: true
+                isEnabled: false
             )
         ]
     }

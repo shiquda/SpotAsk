@@ -4,7 +4,7 @@ import Testing
 
 @MainActor
 struct QuickActionCatalogTests {
-    @Test("Fresh install initializes default ChatGPT and Grok actions enabled")
+    @Test("Fresh install initializes default ChatGPT enabled and Grok disabled")
     func freshInstallLoadsDefaultBuiltInCatalog() {
         let suiteName = "QuickActionCatalogTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
@@ -17,7 +17,7 @@ struct QuickActionCatalogTests {
             QuickAction.BuiltInID.chatGPT,
             QuickAction.BuiltInID.grok
         ])
-        #expect(settings.enabledQuickActions.count == 2)
+        #expect(settings.enabledQuickActions.count == 1)
         #expect(settings.customQuickActions.isEmpty)
 
         let chatGPT = settings.quickActions[0]
@@ -29,7 +29,7 @@ struct QuickActionCatalogTests {
 
         let grok = settings.quickActions[1]
         #expect(grok.isBuiltIn == true)
-        #expect(grok.isEnabled == true)
+        #expect(grok.isEnabled == false)
         #expect(grok.kind == .web(urlTemplate: "https://grok.com/?q={query}"))
         #expect(grok.symbolName == "sparkles")
         #expect(grok.displayName == L10n.string("externalAsk.askGrok"))
@@ -100,7 +100,7 @@ struct QuickActionCatalogTests {
 
         let settings = AppSettings(defaults: defaults)
         #expect(settings.quickActions.count == 3) // ChatGPT + Custom + auto-appended Grok
-        #expect(settings.enabledQuickActions.count == 3)
+        #expect(settings.enabledQuickActions.count == 2)
 
         let custom = settings.quickActions.first { $0.id == customID }
         #expect(custom?.name == "Legacy Web")

@@ -51,6 +51,7 @@ final class ConfigBackupTests: XCTestCase {
         )
         XCTAssertTrue(source.saveCustomQuickAction(customAction))
         source.setQuickActionEnabled(id: QuickAction.BuiltInID.chatGPT, isEnabled: false)
+        source.setQuickActionEnabled(id: QuickAction.BuiltInID.grok, isEnabled: true)
 
         let backup = try source.makeConfigurationBackup()
         XCTAssertNil(backup.apiKeys)
