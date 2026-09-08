@@ -125,25 +125,9 @@ enum SpotAskURLRouter {
 
 struct SpotAskURLDelivery {
     private(set) var openedFromURL = false
-    private var lastURL: URL?
-    private var lastInstant: ContinuousClock.Instant?
 
     mutating func markOpenedFromURL() {
         openedFromURL = true
-    }
-
-    mutating func take(
-        _ url: URL,
-        now: ContinuousClock.Instant = .now,
-        coalesceFor: Duration = .seconds(1)
-    ) -> URL? {
-        openedFromURL = true
-        if let lastURL, lastURL == url, let lastInstant, now - lastInstant < coalesceFor {
-            return nil
-        }
-        self.lastURL = url
-        self.lastInstant = now
-        return url
     }
 }
 

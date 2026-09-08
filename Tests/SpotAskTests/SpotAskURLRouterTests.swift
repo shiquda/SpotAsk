@@ -68,26 +68,13 @@ struct SpotAskURLRouterTests {
         #expect(!shouldOpenPanelOnLaunch(silentLaunch: true, openedFromURL: true))
     }
 
-    @Test func deliveryCoalescesDuplicateURLsInsideWindow() {
+    @Test func deliveryMarksOpenedFromURL() {
         var delivery = SpotAskURLDelivery()
-        let url = URL(string: "spotask://ask?q=hello")!
-        let start = ContinuousClock.Instant.now
-
-        #expect(delivery.take(url, now: start) == url)
-        #expect(delivery.take(url, now: start.advanced(by: .milliseconds(200))) == nil)
-        #expect(delivery.take(url, now: start.advanced(by: .seconds(2))) == url)
+        #expect(!delivery.openedFromURL)
+        delivery.markOpenedFromURL()
         #expect(delivery.openedFromURL)
     }
 
-    @Test func deliveryDoesNotCoalesceDifferentURLs() {
-        var delivery = SpotAskURLDelivery()
-        let open = URL(string: "spotask://open")!
-        let ask = URL(string: "spotask://ask?q=hello")!
-        let now = ContinuousClock.Instant.now
-
-        #expect(delivery.take(open, now: now) == open)
-        #expect(delivery.take(ask, now: now) == ask)
-    }
 
     @Test @MainActor func warmAskDispatchesToReadyCommandCenter() {
         let commandCenter = SpotAskCommandCenter()

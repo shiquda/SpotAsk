@@ -78,9 +78,6 @@ struct SpotAskApp: App {
     var body: some Scene {
         Settings {
             EmptyView()
-                .onOpenURL { url in
-                    appDelegate.handleIncomingURLs([url])
-                }
         }
         // Settings are presented by SettingsWindowController. Replacing
         // the system command prevents its empty Settings scene from also
@@ -219,7 +216,7 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         handleIncomingURLs(urls)
     }
 
-    func handleIncomingURLs(_ urls: [URL]) {
+    private func handleIncomingURLs(_ urls: [URL]) {
         if !isLaunchFinished {
             pendingLaunchURLs.append(contentsOf: urls)
             if urls.contains(where: { SpotAskURLRouter.parse($0) != nil }) {
@@ -228,9 +225,9 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         for url in urls {
-            guard SpotAskURLRouter.parse(url) != nil else { continue }
-            guard urlDelivery.take(url) != nil else { continue }
-            SpotAskURLRouter.handle(url)
+            if SpotAskURLRouter.handle(url) {
+                urlDelivery.markOpenedFromURL()
+            }
         }
     }
 
