@@ -380,6 +380,14 @@
 "settings.selectionAssistantModeActionBar" = "Afficher les actions rapides";
 "settings.selectionAssistantAutoShow" = "Afficher les actions rapides après la sélection";
 "settings.selectionAssistantActionLabels" = "Afficher les libellés à côté des icônes";
+"settings.selectionAssistantShowsExternalAsk" = "Afficher External Ask dans la barre de sélection";
+"settings.selectionAssistantShowsExternalAskDescription" = "Les actions et l’ordre suivent les réglages External Ask";
+"selection.actionBar.more" = "Plus";
+"selection.actionBar.moreAccessibility" = "Autres actions de sélection";
+"selection.actionBar.externalAskAccessibility" = "External Ask : %@";
+"selection.actionBar.kind.web" = "Question web";
+"selection.actionBar.kind.uriScheme" = "Lien d’app";
+"selection.actionBar.kind.terminal" = "Commande Terminal";
 "settings.selectionAssistantAutoShowDelay" = "Attendre";
 "settings.selectionAssistantAutoShowDelayUnit" = "s";
 "settings.selectionAssistantDefaultAction" = "Action par défaut";

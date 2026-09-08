@@ -238,6 +238,102 @@ struct SelectionAssistantCoordinatorTests {
         #expect(overlay.hasActionHandler)
     }
 
+    @Test("Action bar receives enabled External Ask actions by default")
+    func actionBarIncludesEnabledQuickActionsByDefault() async {
+        let settings = makeSettings()
+        let overlay = SelectionOverlayStub()
+        let coordinator = makeCoordinator(settings: settings, reader: SelectionReaderStub(snapshot: sampleSnapshot), overlay: overlay)
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where overlay.quickActions.isEmpty {
+            await Task.yield()
+        }
+
+        #expect(overlay.quickActions.map(\.id) == settings.enabledQuickActions.map(\.id))
+        #expect(!overlay.quickActions.isEmpty)
+    }
+
+    @Test("Hiding External Ask in the action bar restores preset-only actions")
+    func hidingExternalAskOmitsQuickActions() async {
+        let settings = makeSettings()
+        settings.selectionActionBarShowsExternalAsk = false
+        let overlay = SelectionOverlayStub()
+        let coordinator = makeCoordinator(settings: settings, reader: SelectionReaderStub(snapshot: sampleSnapshot), overlay: overlay)
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+
+        #expect(overlay.quickActions.isEmpty)
+        #expect(overlay.hasActionHandler)
+    }
+
+    @Test("Disabling External Ask omits quick actions from the action bar")
+    func disablingExternalAskOmitsQuickActions() async {
+        let settings = makeSettings()
+        settings.externalAskEnabled = false
+        let overlay = SelectionOverlayStub()
+        let coordinator = makeCoordinator(settings: settings, reader: SelectionReaderStub(snapshot: sampleSnapshot), overlay: overlay)
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+
+        #expect(overlay.quickActions.isEmpty)
+    }
+
+    @Test("Choosing an External Ask action injects selected text into the executor")
+    func choosingQuickActionExecutesWithSelectedText() async {
+        let settings = makeSettings()
+        let overlay = SelectionOverlayStub()
+        let executor = RecordingQuickActionExecutor()
+        let coordinator = makeCoordinator(
+            settings: settings,
+            reader: SelectionReaderStub(snapshot: sampleSnapshot),
+            overlay: overlay,
+            executor: executor
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where overlay.quickActions.isEmpty {
+            await Task.yield()
+        }
+        overlay.chooseFirstQuickAction()
+
+        #expect(overlay.hideCount == 1)
+        #expect(executor.performed.count == 1)
+        #expect(overlay.messages.isEmpty)
+        guard case let .url(url) = executor.performed.first else {
+            Issue.record("expected a URL quick action")
+            return
+        }
+        #expect(url.absoluteString.contains("Selected%20text") || url.absoluteString.contains("Selected text"))
+    }
+
+    @Test("A failed External Ask action shows the temporary failure message")
+    func failedQuickActionShowsTemporaryFailure() async {
+        let settings = makeSettings()
+        let overlay = SelectionOverlayStub()
+        let executor = RecordingQuickActionExecutor(result: false)
+        let coordinator = makeCoordinator(
+            settings: settings,
+            reader: SelectionReaderStub(snapshot: sampleSnapshot),
+            overlay: overlay,
+            executor: executor
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where overlay.quickActions.isEmpty {
+            await Task.yield()
+        }
+        overlay.chooseFirstQuickAction()
+
+        #expect(overlay.hideCount == 1)
+        #expect(overlay.messages == [.temporaryFailure])
+    }
+
     private func makeSettings() -> AppSettings {
         let suiteName = "SelectionAssistantCoordinatorTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
@@ -251,7 +347,8 @@ struct SelectionAssistantCoordinatorTests {
     private func makeCoordinator(
         settings: AppSettings,
         reader: any SelectedTextReading,
-        overlay: SelectionOverlayStub = SelectionOverlayStub()
+        overlay: SelectionOverlayStub = SelectionOverlayStub(),
+        executor: any QuickActionExecuting = DefaultQuickActionExecutor()
     ) -> SelectionAssistantCoordinator {
         SelectionAssistantCoordinator(
             settings: settings,
@@ -262,7 +359,8 @@ struct SelectionAssistantCoordinatorTests {
             ),
             settingsOpener: SelectionSettingsOpenerStub(),
             commandCenter: SpotAskCommandCenter(),
-            overlay: overlay
+            overlay: overlay,
+            executor: executor
         )
     }
 
@@ -369,27 +467,56 @@ private struct ForegroundSelectionApplicationStub: ForegroundSelectionApplicatio
 private final class SelectionOverlayStub: SelectionOverlayControlling {
     private(set) var permissionDeniedCount = 0
     private(set) var hideCount = 0
+    private(set) var messages: [SelectionFeedback] = []
+    private(set) var quickActions: [QuickAction] = []
     private var presets: [PromptPreset] = []
     private var actionHandler: ((PromptPreset) -> Void)?
+    private var quickActionHandler: ((QuickAction) -> Void)?
 
     var hasActionHandler: Bool { actionHandler != nil }
 
     func showActions(
         snapshot: SelectedTextSnapshot,
         presets: [PromptPreset],
+        quickActions: [QuickAction],
         showsLabels: Bool,
-        onSelect: @escaping (PromptPreset) -> Void
+        shortcutForPreset: @escaping (PromptPreset) -> InAppShortcut?,
+        shortcutForAction: @escaping (QuickAction) -> InAppShortcut?,
+        onSelect: @escaping (PromptPreset) -> Void,
+        onSelectQuickAction: @escaping (QuickAction) -> Void
     ) {
         self.presets = presets
+        self.quickActions = quickActions
         actionHandler = onSelect
+        quickActionHandler = onSelectQuickAction
     }
-    func showMessage(_ message: SelectionFeedback) {}
+    func showMessage(_ message: SelectionFeedback) { messages.append(message) }
     func showPermissionDenied(openSettings: @escaping () -> Void) { permissionDeniedCount += 1 }
     func hide() { hideCount += 1 }
 
     func chooseFirstAction() {
         guard let preset = presets.first else { return }
         actionHandler?(preset)
+    }
+
+    func chooseFirstQuickAction() {
+        guard let action = quickActions.first else { return }
+        quickActionHandler?(action)
+    }
+}
+
+@MainActor
+private final class RecordingQuickActionExecutor: QuickActionExecuting, @unchecked Sendable {
+    var result: Bool
+    private(set) var performed: [ResolvedQuickAction] = []
+
+    init(result: Bool = true) {
+        self.result = result
+    }
+
+    func perform(_ resolved: ResolvedQuickAction) -> Bool {
+        performed.append(resolved)
+        return result
     }
 }
 

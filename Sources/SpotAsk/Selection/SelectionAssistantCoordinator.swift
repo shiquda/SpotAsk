@@ -10,6 +10,7 @@ final class SelectionAssistantCoordinator {
     private let settingsOpener: any AccessibilityPermissionSettingsOpening
     private let commandCenter: SpotAskCommandCenter
     private let overlay: any SelectionOverlayControlling
+    private let executor: any QuickActionExecuting
     private var triggerToken = 0
     private var snapshot: SelectedTextSnapshot?
     private var hasShownPermissionRecovery = false
@@ -22,7 +23,8 @@ final class SelectionAssistantCoordinator {
         permissionCoordinator: AccessibilityPermissionCoordinator,
         settingsOpener: any AccessibilityPermissionSettingsOpening = MacOSAccessibilityPermissionSettingsOpener(),
         commandCenter: SpotAskCommandCenter = .shared,
-        overlay: any SelectionOverlayControlling
+        overlay: any SelectionOverlayControlling,
+        executor: any QuickActionExecuting = DefaultQuickActionExecutor()
     ) {
         self.settings = settings
         self.reader = reader
@@ -31,6 +33,7 @@ final class SelectionAssistantCoordinator {
         self.settingsOpener = settingsOpener
         self.commandCenter = commandCenter
         self.overlay = overlay
+        self.executor = executor
     }
 
     func trigger() {
@@ -88,11 +91,22 @@ final class SelectionAssistantCoordinator {
                 } else {
                     overlay.showActions(
                         snapshot: current,
-                        presets: Array(settings.enabledPromptPresets.prefix(4)),
-                        showsLabels: settings.selectionActionBarShowsLabels
-                    ) { [weak self] preset in
-                        self?.apply(preset: preset)
-                    }
+                        presets: settings.enabledPromptPresets,
+                        quickActions: selectionActionBarQuickActions,
+                        showsLabels: settings.selectionActionBarShowsLabels,
+                        shortcutForPreset: { [settings] preset in
+                            settings.shortcut(for: .promptPreset(preset.id))
+                        },
+                        shortcutForAction: { [settings] action in
+                            settings.shortcut(for: .quickAction(action.id))
+                        },
+                        onSelect: { [weak self] preset in
+                            self?.apply(preset: preset)
+                        },
+                        onSelectQuickAction: { [weak self] action in
+                            self?.apply(quickAction: action)
+                        }
+                    )
                 }
             } catch let error as SelectionReadingError {
                 guard token == triggerToken else { return }
@@ -109,6 +123,26 @@ final class SelectionAssistantCoordinator {
         overlay.hide()
         self.snapshot = nil
         commandCenter.ask(snapshot.text, promptPreset: settings.enabledPromptPreset(id: preset.id), selectionSnapshot: snapshot)
+    }
+
+    private var selectionActionBarQuickActions: [QuickAction] {
+        guard settings.selectionActionBarShowsExternalAsk else { return [] }
+        return settings.enabledQuickActions
+    }
+
+    private func apply(quickAction: QuickAction) {
+        guard let snapshot else { return }
+        overlay.hide()
+        self.snapshot = nil
+        guard settings.externalAskEnabled,
+              settings.selectionActionBarShowsExternalAsk,
+              let action = settings.enabledQuickAction(id: quickAction.id),
+              let resolved = ResolvedQuickAction.resolve(action, query: snapshot.text),
+              executor.perform(resolved)
+        else {
+            overlay.showMessage(.temporaryFailure)
+            return
+        }
     }
 }
 
@@ -133,8 +167,12 @@ protocol SelectionOverlayControlling: AnyObject {
     func showActions(
         snapshot: SelectedTextSnapshot,
         presets: [PromptPreset],
+        quickActions: [QuickAction],
         showsLabels: Bool,
-        onSelect: @escaping (PromptPreset) -> Void
+        shortcutForPreset: @escaping (PromptPreset) -> InAppShortcut?,
+        shortcutForAction: @escaping (QuickAction) -> InAppShortcut?,
+        onSelect: @escaping (PromptPreset) -> Void,
+        onSelectQuickAction: @escaping (QuickAction) -> Void
     )
     func showMessage(_ message: SelectionFeedback)
     func showPermissionDenied(openSettings: @escaping () -> Void)

@@ -380,6 +380,14 @@
 "settings.selectionAssistantModeActionBar" = "Show quick actions";
 "settings.selectionAssistantAutoShow" = "Show quick actions after selecting text";
 "settings.selectionAssistantActionLabels" = "Show labels beside icons";
+"settings.selectionAssistantShowsExternalAsk" = "Show External Ask in the selection action bar";
+"settings.selectionAssistantShowsExternalAskDescription" = "Shown actions and order follow the External Ask settings";
+"selection.actionBar.more" = "More";
+"selection.actionBar.moreAccessibility" = "More selection actions";
+"selection.actionBar.externalAskAccessibility" = "External Ask: %@";
+"selection.actionBar.kind.web" = "Web question";
+"selection.actionBar.kind.uriScheme" = "App link";
+"selection.actionBar.kind.terminal" = "Terminal command";
 "settings.selectionAssistantAutoShowDelay" = "Wait";
 "settings.selectionAssistantAutoShowDelayUnit" = "sec";
 "settings.selectionAssistantDefaultAction" = "Default action";

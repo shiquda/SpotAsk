@@ -51,6 +51,11 @@ struct SelectionAssistantSettingsPage: View {
                     if settings.selectionAssistantMode == .actionBar {
                         SettingsToggleRow(label: L10n.string("settings.selectionAssistantAutoShow"), isOn: Bindable(settings).selectionAutoInvokeEnabled)
                         SettingsToggleRow(label: L10n.string("settings.selectionAssistantActionLabels"), isOn: Bindable(settings).selectionActionBarShowsLabels)
+                        SettingsToggleRow(
+                            label: L10n.string("settings.selectionAssistantShowsExternalAsk"),
+                            description: L10n.string("settings.selectionAssistantShowsExternalAskDescription"),
+                            isOn: Bindable(settings).selectionActionBarShowsExternalAsk
+                        )
                         if settings.selectionAutoInvokeEnabled {
                             SettingsFieldRow(label: L10n.string("settings.selectionAssistantAutoShowScope")) {
                                 Picker(L10n.string("settings.selectionAssistantAutoShowScope"), selection: Bindable(settings).selectionAutoInvokeScope) {
