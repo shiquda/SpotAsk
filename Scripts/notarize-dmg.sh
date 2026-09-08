@@ -7,7 +7,7 @@ TEAM_ID=${SPOTASK_NOTARY_TEAM_ID:-}
 PASSWORD=${SPOTASK_NOTARY_PASSWORD:-}
 
 usage() {
-    printf '%s\n' "Usage: $0 submit DMG | info SUBMISSION_ID | log SUBMISSION_ID [OUTPUT_PATH] | staple DMG"
+    printf '%s\n' "Usage: $0 submit DMG [--wait|--no-wait] | info SUBMISSION_ID | log SUBMISSION_ID [OUTPUT_PATH] | staple DMG"
 }
 
 run_notarytool() {
@@ -35,7 +35,19 @@ command=${1:-}
 case "$command" in
     submit)
         DMG_PATH=${2:?"submit requires a DMG path"}
-        run_notarytool submit "$DMG_PATH" --no-wait --output-format json
+        shift 2 || true
+        WAIT_FLAG="--wait"
+        for arg in "$@"; do
+            case "$arg" in
+                --no-wait) WAIT_FLAG="--no-wait" ;;
+                --wait) WAIT_FLAG="--wait" ;;
+            esac
+        done
+        if [ "$WAIT_FLAG" = "--wait" ]; then
+            run_notarytool submit "$DMG_PATH" --wait --timeout 30m
+        else
+            run_notarytool submit "$DMG_PATH" --no-wait --output-format json
+        fi
         ;;
     info)
         SUBMISSION_ID=${2:?"info requires a submission ID"}
