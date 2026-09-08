@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Existing v* tag to publish or replace
+        description: Existing v* tag to publish as a draft-then-release, or recover Cask from a published release
         required: true
         type: string
 
@@ -29,8 +29,6 @@ jobs:
       SPOTASK_NOTARY_PASSWORD: ${{ secrets.APPLE_NOTARIZATION_APP_PASSWORD }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          ref: ${{ inputs.release_tag || github.ref }}
       - name: Resolve release tag
         env:
           REQUESTED_TAG: ${{ inputs.release_tag }}
@@ -45,13 +43,60 @@ jobs:
             *) echo "Release tag must start with v" >&2; exit 1 ;;
           esac
           echo "RELEASE_TAG=$release_tag" >> "$GITHUB_ENV"
+      - name: Stage release helpers from the workflow commit
+        run: |
+          set -eu
+          helper_dir="$RUNNER_TEMP/release-helpers"
+          mkdir -p "$helper_dir"
+          cp Scripts/notarize-dmg.sh \
+            Scripts/publish-github-release.sh \
+            Scripts/release-notes-from-changelog.sh \
+            "$helper_dir/"
+          chmod +x "$helper_dir"/*
+          if ! grep -q 'WAIT_FLAG' "$helper_dir/notarize-dmg.sh"; then
+            echo "Workflow helpers do not support notarize --wait" >&2
+            exit 1
+          fi
+          echo "RELEASE_HELPER_DIR=$helper_dir" >> "$GITHUB_ENV"
+      - name: Check out the release tag for app sources
+        run: |
+          set -eu
+          git fetch --force origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+          git checkout --detach "$RELEASE_TAG"
+          cp "$RELEASE_HELPER_DIR/notarize-dmg.sh" Scripts/notarize-dmg.sh
+          cp "$RELEASE_HELPER_DIR/publish-github-release.sh" Scripts/publish-github-release.sh
+          cp "$RELEASE_HELPER_DIR/release-notes-from-changelog.sh" Scripts/release-notes-from-changelog.sh
+          chmod +x Scripts/notarize-dmg.sh Scripts/publish-github-release.sh Scripts/release-notes-from-changelog.sh
+          if ! grep -q 'WAIT_FLAG' Scripts/notarize-dmg.sh; then
+            echo "Restored notarize helper still lacks --wait; refusing to publish $RELEASE_TAG" >&2
+            exit 1
+          fi
       - name: Confirm release tag matches the app version
         run: |
           app_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
           tag_version=${RELEASE_TAG#v}
           test "$tag_version" = "$app_version"
           echo "APP_VERSION=$app_version" >> "$GITHUB_ENV"
+      - name: Inspect existing GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          if release_json=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft 2>/dev/null); then
+            is_draft=$(printf '%s' "$release_json" | jq -r '.isDraft')
+            if [ "$is_draft" = true ]; then
+              echo "Found draft release $RELEASE_TAG"
+              echo "RELEASE_STATE=draft" >> "$GITHUB_ENV"
+            else
+              echo "Release $RELEASE_TAG is already published; skipping rebuild and reusing published assets for Cask recovery."
+              echo "RELEASE_STATE=published" >> "$GITHUB_ENV"
+            fi
+          else
+            echo "No existing GitHub Release for $RELEASE_TAG"
+            echo "RELEASE_STATE=missing" >> "$GITHUB_ENV"
+          fi
       - name: Configure Apple Developer signing
+        if: env.RELEASE_STATE != 'published'
         run: |
           set -eu
           test -n "$APPLE_CERTIFICATE_BASE64"
@@ -88,10 +133,13 @@ jobs:
           echo "SPOTASK_REQUIRE_DEVELOPER_ID=1" >> "$GITHUB_ENV"
           echo "SPOTASK_REQUIRE_NOTARIZATION=0" >> "$GITHUB_ENV"
       - name: Build arm64 DMG
+        if: env.RELEASE_STATE != 'published'
         run: ./Scripts/make-release-dmg.sh --arch arm64 --output dist
       - name: Build x86_64 DMG
+        if: env.RELEASE_STATE != 'published'
         run: ./Scripts/make-release-dmg.sh --arch x86_64 --output dist
       - name: Notarize and staple DMGs
+        if: env.RELEASE_STATE != 'published'
         run: |
           set -euo pipefail
           arm64_dmg="dist/SpotAsk-${APP_VERSION}-arm64.dmg"
@@ -110,34 +158,34 @@ jobs:
           ./Scripts/notarize-dmg.sh staple "$arm64_dmg"
           ./Scripts/notarize-dmg.sh staple "$x86_64_dmg"
       - name: Create checksums
-        run: shasum -a 256 dist/*.dmg > "dist/SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt"
+        if: env.RELEASE_STATE != 'published'
+        run: |
+          set -eu
+          (
+            cd dist
+            shasum -a 256 SpotAsk-*.dmg > "SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt"
+          )
       - name: Generate release notes from CHANGELOG
+        if: env.RELEASE_STATE != 'published'
         run: |
           set -eu
           ./Scripts/release-notes-from-changelog.sh "$RELEASE_TAG" > "$RUNNER_TEMP/release-notes.md"
           test -s "$RUNNER_TEMP/release-notes.md"
           echo "RELEASE_NOTES_FILE=$RUNNER_TEMP/release-notes.md" >> "$GITHUB_ENV"
       - name: Publish GitHub Release
+        if: env.RELEASE_STATE != 'published'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -eu
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes-file "$RELEASE_NOTES_FILE" --draft=false
-            gh release upload "$RELEASE_TAG" \
-              "dist/SpotAsk-${APP_VERSION}-arm64.dmg" \
-              "dist/SpotAsk-${APP_VERSION}-x86_64.dmg" \
-              "dist/SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt" \
-              --clobber
-          else
-            gh release create "$RELEASE_TAG" \
-              "dist/SpotAsk-${APP_VERSION}-arm64.dmg" \
-              "dist/SpotAsk-${APP_VERSION}-x86_64.dmg" \
-              "dist/SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt" \
-              --verify-tag \
-              --title "$RELEASE_TAG" \
-              --notes-file "$RELEASE_NOTES_FILE"
-          fi
+          ./Scripts/publish-github-release.sh \
+            --tag "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --notes "$RELEASE_NOTES_FILE" \
+            -- \
+            "dist/SpotAsk-${APP_VERSION}-arm64.dmg" \
+            "dist/SpotAsk-${APP_VERSION}-x86_64.dmg" \
+            "dist/SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt"
       - name: Update Homebrew Cask
         env:
           GH_TOKEN: ${{ github.token }}
@@ -146,8 +194,14 @@ jobs:
           set -euo pipefail
           version=${APP_VERSION}
 
-          arm64_dmg="dist/SpotAsk-${version}-arm64.dmg"
-          x86_64_dmg="dist/SpotAsk-${version}-x86_64.dmg"
+          release_dir="$RUNNER_TEMP/homebrew-$RELEASE_TAG"
+          mkdir -p "$release_dir"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --dir "$release_dir" \
+            --pattern "SpotAsk-${version}-*.dmg"
+
+          arm64_dmg="$release_dir/SpotAsk-${version}-arm64.dmg"
+          x86_64_dmg="$release_dir/SpotAsk-${version}-x86_64.dmg"
           test -f "$arm64_dmg"
           test -f "$x86_64_dmg"
           arm64_sha=$(shasum -a 256 "$arm64_dmg" | awk '{print $1}')
@@ -156,7 +210,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
-          git checkout -B main origin/main
+          git checkout -f -B main origin/main
 
           cat > Casks/spotask.rb <<EOF
           cask "spotask" do

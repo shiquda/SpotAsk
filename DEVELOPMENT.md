@@ -130,7 +130,9 @@ Add these secrets to **Settings > Secrets and variables > Actions** (or to the `
 | `APPLE_NOTARIZATION_TEAM_ID` | `6UR4V5Z3N7` |
 | `APPLE_NOTARIZATION_APP_PASSWORD` | app-specific password created above |
 
-The Release workflow runs automatically on tag push (`v*`) or manual `workflow_dispatch`. It imports the Developer ID certificate into a temporary Keychain, builds both signed DMGs (`arm64` and `x86_64`), submits them concurrently to Apple Notary Service with `notarytool submit --wait`, staples the notarization tickets, computes SHA-256 checksums, publishes the GitHub Release with changelog notes, and updates the Homebrew Cask formula on `main` in a single run.
+The Release workflow runs automatically on tag push (`v*`) or manual `workflow_dispatch`. It imports the Developer ID certificate into a temporary Keychain, builds both signed DMGs (`arm64` and `x86_64`), submits them concurrently to Apple Notary Service with `notarytool submit --wait --timeout 30m`, staples the notarization tickets, writes basename SHA-256 checksums, publishes the GitHub Release from a draft only after those assets are uploaded, and updates the Homebrew Cask formula on `main` from the published DMGs. Workflow helpers (`Scripts/notarize-dmg.sh` and the publish script) are taken from the workflow commit, not the app tag, so manually publishing an older tag still waits for notarization.
+
+The 30-minute `--timeout` only ends local polling. Apple Notary Service can keep processing after the runner gives up, so a timeout is not a rejection and there is no promised wall-clock time to publication. If the wait times out or a later step fails, the GitHub Release stays missing or draft. Re-run the same tag with `workflow_dispatch`: a published release is never overwritten (Cask recovery reuses the published DMGs); a missing or draft release rebuilds, resubmits, and publishes only after a complete upload. `shasum -a 256 -c SpotAsk-vX.Y.Z-SHA256SUMS.txt` is expected to work in the same directory as the downloaded DMGs.
 
 ## Project layout
 
