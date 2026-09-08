@@ -10,6 +10,7 @@ final class SelectionAssistantCoordinator {
     private let settingsOpener: any AccessibilityPermissionSettingsOpening
     private let commandCenter: SpotAskCommandCenter
     private let overlay: any SelectionOverlayControlling
+    private let executor: any QuickActionExecuting
     private var triggerToken = 0
     private var snapshot: SelectedTextSnapshot?
     private var hasShownPermissionRecovery = false
@@ -22,7 +23,8 @@ final class SelectionAssistantCoordinator {
         permissionCoordinator: AccessibilityPermissionCoordinator,
         settingsOpener: any AccessibilityPermissionSettingsOpening = MacOSAccessibilityPermissionSettingsOpener(),
         commandCenter: SpotAskCommandCenter = .shared,
-        overlay: any SelectionOverlayControlling
+        overlay: any SelectionOverlayControlling,
+        executor: any QuickActionExecuting = DefaultQuickActionExecutor()
     ) {
         self.settings = settings
         self.reader = reader
@@ -31,6 +33,7 @@ final class SelectionAssistantCoordinator {
         self.settingsOpener = settingsOpener
         self.commandCenter = commandCenter
         self.overlay = overlay
+        self.executor = executor
     }
 
     func trigger() {
@@ -86,13 +89,19 @@ final class SelectionAssistantCoordinator {
                     if let preset { commandCenter.ask(current.text, promptPreset: preset, selectionSnapshot: current) }
                     else { commandCenter.compose(current.text) }
                 } else {
+                    let presets = Array(settings.enabledPromptPresets.prefix(4))
+                    let externalAsks = selectionExternalAsks()
+                    guard !presets.isEmpty || !externalAsks.isEmpty else { return }
                     overlay.showActions(
                         snapshot: current,
-                        presets: Array(settings.enabledPromptPresets.prefix(4)),
-                        showsLabels: settings.selectionActionBarShowsLabels
-                    ) { [weak self] preset in
-                        self?.apply(preset: preset)
-                    }
+                        presets: presets,
+                        externalAsks: externalAsks,
+                        showsLabels: settings.selectionActionBarShowsLabels,
+                        onSelectPreset: { [weak self] preset in self?.apply(preset: preset) },
+                        onSelectExternalAsk: { [weak self] action in
+                            self?.performExternalAsk(action, snapshot: current)
+                        }
+                    )
                 }
             } catch let error as SelectionReadingError {
                 guard token == triggerToken else { return }
@@ -104,11 +113,28 @@ final class SelectionAssistantCoordinator {
         }
     }
 
+    private func selectionExternalAsks() -> [QuickAction] {
+        guard settings.selectionActionBarShowsExternalAsk else { return [] }
+        return Array(settings.enabledQuickActions.prefix(3))
+    }
+
     private func apply(preset: PromptPreset) {
         guard let snapshot else { return }
         overlay.hide()
         self.snapshot = nil
         commandCenter.ask(snapshot.text, promptPreset: settings.enabledPromptPreset(id: preset.id), selectionSnapshot: snapshot)
+    }
+
+    private func performExternalAsk(_ action: QuickAction, snapshot: SelectedTextSnapshot) {
+        overlay.hide()
+        self.snapshot = nil
+        guard let resolved = QuickActionBuilder.resolve(action, query: snapshot.text) else {
+            overlay.showMessage(.temporaryFailure)
+            return
+        }
+        if !executor.perform(resolved) {
+            overlay.showMessage(.temporaryFailure)
+        }
     }
 }
 
@@ -133,8 +159,10 @@ protocol SelectionOverlayControlling: AnyObject {
     func showActions(
         snapshot: SelectedTextSnapshot,
         presets: [PromptPreset],
+        externalAsks: [QuickAction],
         showsLabels: Bool,
-        onSelect: @escaping (PromptPreset) -> Void
+        onSelectPreset: @escaping (PromptPreset) -> Void,
+        onSelectExternalAsk: @escaping (QuickAction) -> Void
     )
     func showMessage(_ message: SelectionFeedback)
     func showPermissionDenied(openSettings: @escaping () -> Void)

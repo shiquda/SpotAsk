@@ -380,6 +380,7 @@
 "settings.selectionAssistantModeActionBar" = "クイックアクションを表示";
 "settings.selectionAssistantAutoShow" = "テキスト選択後にクイックアクションを表示";
 "settings.selectionAssistantActionLabels" = "アイコンの横にラベルを表示";
+"settings.selectionAssistantActionExternalAsk" = "選択アクションバーに External Ask を表示";
 "settings.selectionAssistantAutoShowDelay" = "待機";
 "settings.selectionAssistantAutoShowDelayUnit" = "秒";
 "settings.selectionAssistantDefaultAction" = "既定のアクション";

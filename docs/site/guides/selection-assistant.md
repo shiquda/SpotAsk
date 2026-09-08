@@ -20,7 +20,7 @@ SpotAsk requests this permission only when you enable the feature. It uses the p
 
 **Run default action** sends the selected text directly to the default prompt you choose.
 
-**Show quick actions** displays the action bar next to the selection. You can also enable labels beside the action icons.
+**Show quick actions** displays the action bar next to the selection. Prompt actions come first; enabled External Ask actions follow after a divider. You can hide External Ask from the bar, and you can show labels beside the action icons.
 
 ## Automatic display
 

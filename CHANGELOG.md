@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+### Added
+
+- The selection action bar can show enabled External Ask actions next to prompt presets, so selected text can go to a browser, app link, or Terminal command in one click.
+
 ### Fixed
 
 - The ask window no longer jumps in front during Space switching when Keep window on top is off.

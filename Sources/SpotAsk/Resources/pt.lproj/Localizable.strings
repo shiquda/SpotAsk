@@ -380,6 +380,7 @@
 "settings.selectionAssistantModeActionBar" = "Mostrar ações rápidas";
 "settings.selectionAssistantAutoShow" = "Mostrar ações rápidas após selecionar texto";
 "settings.selectionAssistantActionLabels" = "Mostrar rótulos ao lado dos ícones";
+"settings.selectionAssistantActionExternalAsk" = "Mostrar External Ask na barra de seleção";
 "settings.selectionAssistantAutoShowDelay" = "Aguardar";
 "settings.selectionAssistantAutoShowDelayUnit" = "s";
 "settings.selectionAssistantDefaultAction" = "Ação padrão";

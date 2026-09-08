@@ -159,6 +159,9 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
             )
         }
         let overlay = SelectionOverlayController()
+        overlay.shortcutForQuickAction = { [settings] id in
+            settings.shortcut(for: .quickAction(id))
+        }
         selectionOverlay = overlay
         selectionCoordinator = SelectionAssistantCoordinator(
             settings: settings,

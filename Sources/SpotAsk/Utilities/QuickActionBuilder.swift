@@ -141,4 +141,15 @@ enum QuickActionBuilder {
         guard !trimmed.isEmpty else { return nil }
         return trimmed
     }
+
+    /// Resolves a Quick Action against selected or typed text.
+    /// Returns `nil` for empty/whitespace queries or invalid templates.
+    static func resolve(_ action: QuickAction, query: String) -> ResolvedQuickAction? {
+        switch action.kind {
+        case let .web(template), let .uriScheme(template):
+            makeURL(template: template, query: query).map { .url($0) }
+        case let .terminal(template):
+            makeTerminalCommand(template: template, query: query).map { .terminalCommand($0) }
+        }
+    }
 }

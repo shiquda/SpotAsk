@@ -17,6 +17,8 @@ External Ask buttons sit below the built-in prompts in a new, empty question win
 
 SpotAsk hands the question to that AI and closes the window. If the input is empty, nothing happens.
 
+The same enabled actions also appear on the selection assistant action bar, so you can send selected text to ChatGPT, a terminal command, or an app link without opening the ask window. Turn that off in Settings > **Selection Assistant** if you only want External Ask in the ask window.
+
 External Ask does not use your configured AI services, and nothing is added to your conversation history.
 
 ## Action types

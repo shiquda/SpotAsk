@@ -238,6 +238,182 @@ struct SelectionAssistantCoordinatorTests {
         #expect(overlay.hasActionHandler)
     }
 
+    @Test("Manual trigger skips empty selection text")
+    func manualTriggerSkipsEmptySelectionText() async {
+        let overlay = SelectionOverlayStub()
+        let reader = SelectionReaderStub(snapshot: makeSnapshot(text: " \n\t "))
+        let coordinator = makeCoordinator(settings: makeSettings(), reader: reader, overlay: overlay)
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where reader.promptRequests.isEmpty {
+            await Task.yield()
+        }
+
+        #expect(reader.promptRequests == [false])
+        #expect(!overlay.hasActionHandler)
+    }
+
+    @Test("Action bar includes enabled External Ask actions")
+    func actionBarIncludesEnabledExternalAsks() async {
+        let settings = makeSettings()
+        let overlay = SelectionOverlayStub()
+        let coordinator = makeCoordinator(
+            settings: settings,
+            reader: SelectionReaderStub(snapshot: sampleSnapshot),
+            overlay: overlay
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+
+        #expect(overlay.shownExternalAsks.map(\.id) == [QuickAction.BuiltInID.chatGPT])
+        #expect(!overlay.shownPresets.isEmpty)
+    }
+
+    @Test("Action bar hides External Ask when the selection switch is off")
+    func actionBarHidesExternalAskWhenSelectionSwitchOff() async {
+        let settings = makeSettings()
+        settings.selectionActionBarShowsExternalAsk = false
+        let overlay = SelectionOverlayStub()
+        let coordinator = makeCoordinator(
+            settings: settings,
+            reader: SelectionReaderStub(snapshot: sampleSnapshot),
+            overlay: overlay
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+
+        #expect(overlay.shownExternalAsks.isEmpty)
+        #expect(!overlay.shownPresets.isEmpty)
+    }
+
+    @Test("Action bar hides External Ask when the master switch is off")
+    func actionBarHidesExternalAskWhenMasterSwitchOff() async {
+        let settings = makeSettings()
+        settings.externalAskEnabled = false
+        let overlay = SelectionOverlayStub()
+        let coordinator = makeCoordinator(
+            settings: settings,
+            reader: SelectionReaderStub(snapshot: sampleSnapshot),
+            overlay: overlay
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+
+        #expect(overlay.shownExternalAsks.isEmpty)
+    }
+
+    @Test("Action bar shows at most three External Ask actions")
+    func actionBarCapsExternalAsksAtThree() async {
+        let settings = makeSettings()
+        settings.setQuickActionEnabled(id: QuickAction.BuiltInID.grok, isEnabled: true)
+        #expect(settings.saveCustomQuickAction(QuickAction(
+            name: "Perplexity",
+            kind: .web(urlTemplate: "https://www.perplexity.ai/search?q={query}")
+        )))
+        #expect(settings.saveCustomQuickAction(QuickAction(
+            name: "Phind",
+            kind: .web(urlTemplate: "https://www.phind.com/search?q={query}")
+        )))
+        let overlay = SelectionOverlayStub()
+        let coordinator = makeCoordinator(
+            settings: settings,
+            reader: SelectionReaderStub(snapshot: sampleSnapshot),
+            overlay: overlay
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+
+        #expect(overlay.shownExternalAsks.count == 3)
+        #expect(overlay.shownExternalAsks.map(\.id) == Array(settings.enabledQuickActions.prefix(3).map(\.id)))
+    }
+
+    @Test("Choosing External Ask substitutes the captured query and hides the overlay")
+    func choosingExternalAskSubstitutesQuery() async {
+        let overlay = SelectionOverlayStub()
+        let executor = RecordingQuickActionExecutor()
+        let snapshot = makeSnapshot(text: "hello 世界 & =\n")
+        let coordinator = makeCoordinator(
+            settings: makeSettings(),
+            reader: SelectionReaderStub(snapshot: snapshot),
+            overlay: overlay,
+            executor: executor
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+        overlay.chooseFirstExternalAsk()
+
+        #expect(overlay.hideCount == 1)
+        #expect(overlay.messages.isEmpty)
+        #expect(executor.performed == [
+            .url(URL(string: "https://chatgpt.com/?q=hello%20%E4%B8%96%E7%95%8C%20%26%20%3D")!)
+        ])
+    }
+
+    @Test("Choosing a terminal External Ask shell-escapes the captured query")
+    func choosingTerminalExternalAskEscapesQuery() async {
+        let settings = makeSettings()
+        let terminal = QuickAction(
+            name: "OMP",
+            kind: .terminal(commandTemplate: "omp {query}")
+        )
+        #expect(settings.saveCustomQuickAction(terminal))
+        settings.setQuickActionEnabled(id: QuickAction.BuiltInID.chatGPT, isEnabled: false)
+        let overlay = SelectionOverlayStub()
+        let executor = RecordingQuickActionExecutor()
+        let coordinator = makeCoordinator(
+            settings: settings,
+            reader: SelectionReaderStub(snapshot: makeSnapshot(text: "don't fail")),
+            overlay: overlay,
+            executor: executor
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+        overlay.chooseFirstExternalAsk()
+
+        #expect(executor.performed == [.terminalCommand("omp 'don'\\''t fail'")])
+        #expect(overlay.hideCount == 1)
+    }
+
+    @Test("A failed External Ask shows a temporary failure after closing the bar")
+    func failedExternalAskShowsTemporaryFailure() async {
+        let overlay = SelectionOverlayStub()
+        let executor = RecordingQuickActionExecutor()
+        executor.result = false
+        let coordinator = makeCoordinator(
+            settings: makeSettings(),
+            reader: SelectionReaderStub(snapshot: sampleSnapshot),
+            overlay: overlay,
+            executor: executor
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+        overlay.chooseFirstExternalAsk()
+
+        #expect(overlay.hideCount == 1)
+        #expect(overlay.messages == [.temporaryFailure])
+    }
+
     private func makeSettings() -> AppSettings {
         let suiteName = "SelectionAssistantCoordinatorTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
@@ -251,7 +427,8 @@ struct SelectionAssistantCoordinatorTests {
     private func makeCoordinator(
         settings: AppSettings,
         reader: any SelectedTextReading,
-        overlay: SelectionOverlayStub = SelectionOverlayStub()
+        overlay: SelectionOverlayStub = SelectionOverlayStub(),
+        executor: any QuickActionExecuting = RecordingQuickActionExecutor()
     ) -> SelectionAssistantCoordinator {
         SelectionAssistantCoordinator(
             settings: settings,
@@ -262,7 +439,8 @@ struct SelectionAssistantCoordinatorTests {
             ),
             settingsOpener: SelectionSettingsOpenerStub(),
             commandCenter: SpotAskCommandCenter(),
-            overlay: overlay
+            overlay: overlay,
+            executor: executor
         )
     }
 
@@ -369,27 +547,50 @@ private struct ForegroundSelectionApplicationStub: ForegroundSelectionApplicatio
 private final class SelectionOverlayStub: SelectionOverlayControlling {
     private(set) var permissionDeniedCount = 0
     private(set) var hideCount = 0
-    private var presets: [PromptPreset] = []
-    private var actionHandler: ((PromptPreset) -> Void)?
+    private(set) var messages: [SelectionFeedback] = []
+    private(set) var shownPresets: [PromptPreset] = []
+    private(set) var shownExternalAsks: [QuickAction] = []
+    private var presetHandler: ((PromptPreset) -> Void)?
+    private var externalAskHandler: ((QuickAction) -> Void)?
 
-    var hasActionHandler: Bool { actionHandler != nil }
+    var hasActionHandler: Bool { presetHandler != nil || externalAskHandler != nil }
 
     func showActions(
         snapshot: SelectedTextSnapshot,
         presets: [PromptPreset],
+        externalAsks: [QuickAction],
         showsLabels: Bool,
-        onSelect: @escaping (PromptPreset) -> Void
+        onSelectPreset: @escaping (PromptPreset) -> Void,
+        onSelectExternalAsk: @escaping (QuickAction) -> Void
     ) {
-        self.presets = presets
-        actionHandler = onSelect
+        shownPresets = presets
+        shownExternalAsks = externalAsks
+        presetHandler = onSelectPreset
+        externalAskHandler = onSelectExternalAsk
     }
-    func showMessage(_ message: SelectionFeedback) {}
+    func showMessage(_ message: SelectionFeedback) { messages.append(message) }
     func showPermissionDenied(openSettings: @escaping () -> Void) { permissionDeniedCount += 1 }
     func hide() { hideCount += 1 }
 
     func chooseFirstAction() {
-        guard let preset = presets.first else { return }
-        actionHandler?(preset)
+        guard let preset = shownPresets.first else { return }
+        presetHandler?(preset)
+    }
+
+    func chooseFirstExternalAsk() {
+        guard let action = shownExternalAsks.first else { return }
+        externalAskHandler?(action)
+    }
+}
+
+@MainActor
+private final class RecordingQuickActionExecutor: QuickActionExecuting, @unchecked Sendable {
+    var result = true
+    private(set) var performed: [ResolvedQuickAction] = []
+
+    func perform(_ resolved: ResolvedQuickAction) -> Bool {
+        performed.append(resolved)
+        return result
     }
 }
 

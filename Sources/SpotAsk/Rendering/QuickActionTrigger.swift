@@ -137,21 +137,7 @@ final class QuickActionTrigger {
         let input = currentInput()
 
         // 6. 根据 kind 解析 resolved action (空 query / 无效模板会返回 nil，自然 no-op)
-        let resolved: ResolvedQuickAction?
-        switch action.kind {
-        case let .web(urlTemplate), let .uriScheme(urlTemplate):
-            if let url = QuickActionBuilder.makeURL(template: urlTemplate, query: input) {
-                resolved = .url(url)
-            } else {
-                resolved = nil
-            }
-        case let .terminal(commandTemplate):
-            if let cmd = QuickActionBuilder.makeTerminalCommand(template: commandTemplate, query: input) {
-                resolved = .terminalCommand(cmd)
-            } else {
-                resolved = nil
-            }
-        }
+        let resolved = QuickActionBuilder.resolve(action, query: input)
 
         guard let target = resolved else {
             return false

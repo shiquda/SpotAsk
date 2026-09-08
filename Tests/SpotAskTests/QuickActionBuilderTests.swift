@@ -104,6 +104,26 @@ struct QuickActionBuilderTests {
         #expect(url?.host == "chatgpt.com")
     }
 
+    @Test("Encodes internal newlines and trims surrounding whitespace")
+    func testMakeURLNewlines() {
+        let template = "https://example.com/?q={query}"
+        let url = QuickActionBuilder.makeURL(template: template, query: "  hello\nworld\n  ")
+        #expect(url?.absoluteString == "https://example.com/?q=hello%0Aworld")
+    }
+
+    @Test("Resolves web, URI scheme, and terminal actions from a query")
+    func testResolveKinds() {
+        let query = "hello world"
+        let web = QuickAction(name: "Web", kind: .web(urlTemplate: "https://example.com/?q={query}"))
+        let uri = QuickAction(name: "URI", kind: .uriScheme(urlTemplate: "app://ask?q={query}"))
+        let terminal = QuickAction(name: "CLI", kind: .terminal(commandTemplate: "omp {query}"))
+
+        #expect(QuickActionBuilder.resolve(web, query: query) == .url(URL(string: "https://example.com/?q=hello%20world")!))
+        #expect(QuickActionBuilder.resolve(uri, query: query) == .url(URL(string: "app://ask?q=hello%20world")!))
+        #expect(QuickActionBuilder.resolve(terminal, query: query) == .terminalCommand("omp 'hello world'"))
+        #expect(QuickActionBuilder.resolve(web, query: "  \n") == nil)
+    }
+
     // MARK: - Shell Escaping & Terminal Command Builder Tests
 
     @Test("Shell escaping handles spaces, quotes, and special characters")
@@ -129,6 +149,15 @@ struct QuickActionBuilderTests {
         let chineseInput = "写一个快速排序"
         let cmdChinese = QuickActionBuilder.makeTerminalCommand(template: "llm ask {query}", query: chineseInput)
         #expect(cmdChinese == "llm ask '写一个快速排序'")
+    }
+
+    @Test("makeTerminalCommand preserves internal newlines inside shell quotes")
+    func testMakeTerminalCommandNewlines() {
+        let cmd = QuickActionBuilder.makeTerminalCommand(
+            template: "omp {query}",
+            query: "hello\nworld"
+        )
+        #expect(cmd == "omp 'hello\nworld'")
     }
 
     @Test("makeTerminalCommand returns nil for empty query or missing placeholder")
