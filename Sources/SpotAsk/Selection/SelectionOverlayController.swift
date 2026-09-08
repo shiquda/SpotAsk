@@ -330,7 +330,7 @@ private final class OverlayButtonTarget: NSObject {
 }
 
 struct SelectionActionBarLayout: Equatable {
-    static let maxTotalActions = 6
+    static let maxTotalActions = 8
     static let maxTotalWidth: CGFloat = 400
     static let minExternalAskWidth: CGFloat = 48
     static let controlSize = NSSize(width: 28, height: 28)

@@ -307,23 +307,25 @@ struct SelectionAssistantCoordinatorTests {
         #expect(overlay.quickActions.isEmpty)
     }
 
-    @Test("Action bar keeps prompts and folds trailing External Ask at a combined cap of 6")
-    func actionBarCapsCombinedActionsAtSixPreferringPresets() async {
+    @Test("Action bar keeps prompts and folds trailing External Ask at a combined cap of 8")
+    func actionBarCapsCombinedActionsAtEightPreferringPresets() async {
         let settings = makeSettings()
         #expect(settings.saveCustomPromptPreset(PromptPreset(title: "Custom A", instruction: "Do A")))
         #expect(settings.saveCustomPromptPreset(PromptPreset(title: "Custom B", instruction: "Do B")))
+        #expect(settings.saveCustomPromptPreset(PromptPreset(title: "Custom C", instruction: "Do C")))
+        #expect(settings.saveCustomPromptPreset(PromptPreset(title: "Custom D", instruction: "Do D")))
         settings.setQuickActionEnabled(id: QuickAction.BuiltInID.grok, isEnabled: true)
         let overlay = SelectionOverlayStub()
         let coordinator = makeCoordinator(settings: settings, reader: SelectionReaderStub(snapshot: sampleSnapshot), overlay: overlay)
 
         coordinator.trigger()
-        for _ in 0 ..< 20 where overlay.shownPresets.count < 6 {
+        for _ in 0 ..< 20 where overlay.shownPresets.count < 8 {
             await Task.yield()
         }
 
-        #expect(overlay.shownPresets.count == 6)
+        #expect(overlay.shownPresets.count == 8)
         #expect(overlay.quickActions.isEmpty)
-        #expect(overlay.shownPresets.map(\.id) == Array(settings.enabledPromptPresets.prefix(6)).map(\.id))
+        #expect(overlay.shownPresets.map(\.id) == Array(settings.enabledPromptPresets.prefix(8)).map(\.id))
     }
 
     @Test("Disabling External Ask omits quick actions from the action bar")

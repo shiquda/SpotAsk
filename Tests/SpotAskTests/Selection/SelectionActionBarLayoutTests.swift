@@ -33,35 +33,35 @@ struct SelectionActionBarLayoutTests {
         #expect(layout.size.width <= 400)
     }
 
-    @Test("Combined cap is 6 actions and keeps presets over External Ask")
+    @Test("Combined cap is 8 actions and keeps presets over External Ask")
     func combinedCapKeepsPresetsAndFoldsTrailingExternalAsks() {
-        let sixPresets = (1...8).map { preset("Preset \($0)") }
+        let eightPresets = (1...10).map { preset("Preset \($0)") }
         let fiveActions = (1...5).map { action("Action \($0)") }
         let overflow = SelectionActionBarLayout.make(
-            presets: sixPresets,
+            presets: eightPresets,
             externalAsks: fiveActions,
             showsLabels: false
         )
-        #expect(overflow.visiblePresets.count == 6)
+        #expect(overflow.visiblePresets.count == 8)
         #expect(overflow.visibleExternalAsks.isEmpty)
         #expect(!overflow.showsDivider)
 
         let mixed = SelectionActionBarLayout.make(
-            presets: Array(sixPresets.prefix(4)),
+            presets: Array(eightPresets.prefix(4)),
             externalAsks: fiveActions,
             showsLabels: false
         )
         #expect(mixed.visiblePresets.count == 4)
-        #expect(mixed.visibleExternalAsks.count == 2)
+        #expect(mixed.visibleExternalAsks.count == 4)
         #expect(mixed.showsDivider)
 
         let asksOnly = SelectionActionBarLayout.make(
             presets: [],
-            externalAsks: fiveActions + [action("Action 6"), action("Action 7")],
+            externalAsks: fiveActions + [action("Action 6"), action("Action 7"), action("Action 8"), action("Action 9")],
             showsLabels: false
         )
         #expect(asksOnly.visiblePresets.isEmpty)
-        #expect(asksOnly.visibleExternalAsks.count == 6)
+        #expect(asksOnly.visibleExternalAsks.count == 8)
         #expect(!asksOnly.showsDivider)
     }
 
