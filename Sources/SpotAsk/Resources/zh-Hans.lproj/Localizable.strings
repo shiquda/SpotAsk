@@ -380,6 +380,7 @@
 "settings.selectionAssistantModeActionBar" = "显示快捷操作";
 "settings.selectionAssistantAutoShow" = "选中文字后自动显示快捷操作";
 "settings.selectionAssistantActionLabels" = "在图标旁显示文字";
+"settings.selectionAssistantActionExternalAsk" = "在划词动作栏中显示外部提问";
 "settings.selectionAssistantShowsExternalAsk" = "在划词动作栏中显示外部提问";
 "settings.selectionAssistantShowsExternalAskDescription" = "显示的动作与顺序沿用「外部提问」设置";
 "selection.actionBar.more" = "更多";

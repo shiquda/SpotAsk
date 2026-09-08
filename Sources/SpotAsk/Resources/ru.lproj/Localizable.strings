@@ -380,6 +380,7 @@
 "settings.selectionAssistantModeActionBar" = "Показать быстрые действия";
 "settings.selectionAssistantAutoShow" = "Показывать быстрые действия после выделения";
 "settings.selectionAssistantActionLabels" = "Показывать подписи рядом со значками";
+"settings.selectionAssistantActionExternalAsk" = "Показывать External Ask на панели выделения";
 "settings.selectionAssistantShowsExternalAsk" = "Показывать External Ask на панели выделения";
 "settings.selectionAssistantShowsExternalAskDescription" = "Состав и порядок действий берутся из настроек External Ask";
 "selection.actionBar.more" = "Ещё";

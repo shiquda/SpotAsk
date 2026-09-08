@@ -380,6 +380,7 @@
 "settings.selectionAssistantModeActionBar" = "Afficher les actions rapides";
 "settings.selectionAssistantAutoShow" = "Afficher les actions rapides après la sélection";
 "settings.selectionAssistantActionLabels" = "Afficher les libellés à côté des icônes";
+"settings.selectionAssistantActionExternalAsk" = "Afficher External Ask dans la barre de sélection";
 "settings.selectionAssistantShowsExternalAsk" = "Afficher External Ask dans la barre de sélection";
 "settings.selectionAssistantShowsExternalAskDescription" = "Les actions et l’ordre suivent les réglages External Ask";
 "selection.actionBar.more" = "Plus";

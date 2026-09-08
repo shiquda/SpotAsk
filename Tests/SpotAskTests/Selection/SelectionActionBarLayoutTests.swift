@@ -4,105 +4,122 @@ import Testing
 
 @Suite("Selection action bar layout")
 struct SelectionActionBarLayoutTests {
-    @Test("Presets only omit the External Ask separator")
-    func presetsOnlyOmitSeparator() {
+    @Test("Presets only omit the External Ask divider")
+    func presetsOnlyOmitDivider() {
         let layout = SelectionActionBarLayout.make(
             presets: [preset("Translate"), preset("Explain")],
-            quickActions: [],
+            externalAsks: [],
             showsLabels: false
         )
         #expect(layout.visiblePresets.count == 2)
-        #expect(layout.visibleQuickActions.isEmpty)
-        #expect(!layout.showsSeparator)
-        #expect(!layout.showsMore)
-        #expect(layout.size.width == 8 + 28 + 2 + 28)
-        #expect(layout.size.height == 36)
+        #expect(layout.visibleExternalAsks.isEmpty)
+        #expect(!layout.showsDivider)
+        #expect(layout.size.width == 66.0)
+        #expect(layout.size.height == 36.0)
     }
 
-    @Test("External Ask actions sit behind a 13pt separator")
-    func compactExternalAskUsesSeparator() {
+    @Test("External Asks sit behind a 9pt divider (1pt line + 4pt margins)")
+    func compactExternalAskUsesDivider() {
         let layout = SelectionActionBarLayout.make(
             presets: [preset("Translate"), preset("Explain")],
-            quickActions: [action("ChatGPT"), action("Grok"), action("Terminal")],
+            externalAsks: [action("ChatGPT"), action("Grok"), action("Terminal")],
             showsLabels: false
         )
-        #expect(layout.showsSeparator)
-        #expect(!layout.showsMore)
-        #expect(layout.visibleQuickActions.count == 3)
-        #expect(layout.size.width == 8 + 58 + 13 + 88)
+        #expect(layout.showsDivider)
+        #expect(layout.visiblePresets.count == 2)
+        #expect(layout.visibleExternalAsks.count == 3)
+        // insets (8) + presets (28*2 + 2 = 58) + divider (9) + external asks (28*3 + 4 = 88) = 163
+        #expect(layout.size.width == 163.0)
+        #expect(layout.size.width <= 400)
     }
 
-    @Test("A fifth External Ask action folds into More")
-    func fifthQuickActionFoldsIntoMore() {
+    @Test("Caps at 4 presets and 3 External Asks")
+    func capsAtFourPresetsAndThreeExternalAsks() {
+        let presets = (1...6).map { preset("Preset \($0)") }
         let actions = (1...5).map { action("Action \($0)") }
         let layout = SelectionActionBarLayout.make(
-            presets: [preset("Translate")],
-            quickActions: actions,
+            presets: presets,
+            externalAsks: actions,
             showsLabels: false
         )
-        #expect(layout.visibleQuickActions.map(\.name) == ["Action 1", "Action 2", "Action 3", "Action 4"])
-        #expect(layout.overflowQuickActions.map(\.name) == ["Action 5"])
-        #expect(layout.showsMore)
-        #expect(layout.showsSeparator)
+        #expect(layout.visiblePresets.count == 4)
+        #expect(layout.visibleExternalAsks.count == 3)
+        #expect(layout.showsDivider)
     }
 
-    @Test("Labeled mode stays at or under 480pt by folding External Ask first")
-    func labeledModeFoldsExternalAskToFit() {
+    @Test("Divider is omitted when presets are empty")
+    func emptyPresetsOmitsDivider() {
+        let layout = SelectionActionBarLayout.make(
+            presets: [],
+            externalAsks: [action("ChatGPT")],
+            showsLabels: false
+        )
+        #expect(!layout.showsDivider)
+        #expect(layout.visiblePresets.isEmpty)
+        #expect(layout.visibleExternalAsks.count == 1)
+    }
+
+    @Test("Labeled mode caps total width at 400pt by truncating External Ask")
+    func labeledModeCapsWidthAt400ptByTruncating() {
         let presets = [
-            preset("Translate Selected Text Now"),
-            preset("Explain Selected Text Now"),
-            preset("Summarize Selected Text Now"),
-            preset("Polish Selected Text Now")
+            preset("Translate"),
+            preset("Explain")
         ]
         let actions = [
-            action("Ask ChatGPT About This Selection"),
-            action("Ask Grok About This Selection"),
-            action("Open Custom App With Selection"),
-            action("Run Terminal Command With Selection")
+            action("Ask ChatGPT A Very Long Question That Exceeds Normal Length"),
+            action("Ask Grok A Very Long Question That Exceeds Normal Length"),
+            action("Run Terminal Command A Very Long Question That Exceeds Normal Length")
         ]
         let layout = SelectionActionBarLayout.make(
             presets: presets,
-            quickActions: actions,
+            externalAsks: actions,
             showsLabels: true
         )
-        #expect(layout.size.width <= 480)
-        #expect(layout.visiblePresets.count == 4)
-        #expect(layout.visibleQuickActions.count < 4 || layout.overflowQuickActions.isEmpty)
-        #expect(layout.overflowPresets.isEmpty)
-        #expect(layout.showsMore)
-    }
-
-    @Test("Extreme labeled overflow folds presets only after External Ask is gone")
-    func labeledModeFoldsPresetsAfterExternalAsk() {
-        let presets = (1...4).map { preset(String(repeating: "PresetTitle", count: $0 + 3)) }
-        let actions = (1...4).map { action(String(repeating: "ExternalAskTitle", count: $0 + 3)) }
-        let layout = SelectionActionBarLayout.make(
-            presets: presets,
-            quickActions: actions,
-            showsLabels: true
-        )
-        #expect(layout.size.width <= 480)
-        if !layout.visibleQuickActions.isEmpty {
-            #expect(layout.overflowPresets.isEmpty)
+        #expect(layout.size.width <= 400)
+        #expect(layout.visiblePresets.count == 2)
+        // Should truncate titles to fit within 400pt
+        for width in layout.visibleExternalAskWidths {
+            #expect(width >= 48)
         }
     }
 
-    @Test("Tooltips include type and shortcut for External Ask")
-    func tooltipIncludesKindAndShortcut() {
+    @Test("Extreme labeled overflow drops trailing External Ask buttons while keeping presets")
+    func labeledModeDropsTrailingExternalAsksWhenMin48Exceeds() {
+        let presets = [
+            preset("A Very Long Prompt Preset Title That Consumes A Lot Of Space"),
+            preset("Another Extremely Long Prompt Preset Title In The Selection Bar"),
+            preset("Third Long Prompt Preset Title Taking Remaining Width In Bar")
+        ]
+        let actions = [
+            action("Action 1"),
+            action("Action 2"),
+            action("Action 3")
+        ]
+        let layout = SelectionActionBarLayout.make(
+            presets: presets,
+            externalAsks: actions,
+            showsLabels: true
+        )
+        #expect(layout.size.width <= 400)
+        #expect(layout.visiblePresets.count == 3)
+        // External asks should be dropped to 0 or 1 to fit under 400
+        #expect(layout.visibleExternalAsks.count < 3)
+    }
+
+    @Test("Tooltips append tab-separated shortcut when assigned")
+    func tooltipAppendsTabSeparatedShortcut() {
         let shortcut = InAppShortcut.commandShift("1")
         #expect(
             SelectionActionBarLayout.tooltip(
                 name: "Ask ChatGPT",
-                kind: "网页提问",
                 shortcut: shortcut
-            ) == "Ask ChatGPT — 网页提问（⌘⇧1）"
+            ) == "Ask ChatGPT\t⌘⇧1"
         )
         #expect(
             SelectionActionBarLayout.tooltip(
                 name: "Translate",
-                kind: nil,
-                shortcut: shortcut
-            ) == "Translate（⌘⇧1）"
+                shortcut: nil
+            ) == "Translate"
         )
     }
 

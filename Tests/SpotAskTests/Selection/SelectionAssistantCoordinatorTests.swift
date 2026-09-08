@@ -238,7 +238,7 @@ struct SelectionAssistantCoordinatorTests {
         #expect(overlay.hasActionHandler)
     }
 
-    @Test("Action bar receives enabled External Ask actions by default")
+    @Test("Action bar receives enabled External Ask actions by default (up to 3)")
     func actionBarIncludesEnabledQuickActionsByDefault() async {
         let settings = makeSettings()
         let overlay = SelectionOverlayStub()
@@ -249,7 +249,7 @@ struct SelectionAssistantCoordinatorTests {
             await Task.yield()
         }
 
-        #expect(overlay.quickActions.map(\.id) == settings.enabledQuickActions.map(\.id))
+        #expect(overlay.quickActions.map(\.id) == Array(settings.enabledQuickActions.prefix(3)).map(\.id))
         #expect(!overlay.quickActions.isEmpty)
     }
 
@@ -478,17 +478,15 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
     func showActions(
         snapshot: SelectedTextSnapshot,
         presets: [PromptPreset],
-        quickActions: [QuickAction],
+        externalAsks: [QuickAction],
         showsLabels: Bool,
-        shortcutForPreset: @escaping (PromptPreset) -> InAppShortcut?,
-        shortcutForAction: @escaping (QuickAction) -> InAppShortcut?,
-        onSelect: @escaping (PromptPreset) -> Void,
-        onSelectQuickAction: @escaping (QuickAction) -> Void
+        onSelectPreset: @escaping (PromptPreset) -> Void,
+        onSelectExternalAsk: @escaping (QuickAction) -> Void
     ) {
         self.presets = presets
-        self.quickActions = quickActions
-        actionHandler = onSelect
-        quickActionHandler = onSelectQuickAction
+        self.quickActions = externalAsks
+        actionHandler = onSelectPreset
+        quickActionHandler = onSelectExternalAsk
     }
     func showMessage(_ message: SelectionFeedback) { messages.append(message) }
     func showPermissionDenied(openSettings: @escaping () -> Void) { permissionDeniedCount += 1 }

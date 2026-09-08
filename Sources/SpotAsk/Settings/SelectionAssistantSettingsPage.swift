@@ -52,8 +52,7 @@ struct SelectionAssistantSettingsPage: View {
                         SettingsToggleRow(label: L10n.string("settings.selectionAssistantAutoShow"), isOn: Bindable(settings).selectionAutoInvokeEnabled)
                         SettingsToggleRow(label: L10n.string("settings.selectionAssistantActionLabels"), isOn: Bindable(settings).selectionActionBarShowsLabels)
                         SettingsToggleRow(
-                            label: L10n.string("settings.selectionAssistantShowsExternalAsk"),
-                            description: L10n.string("settings.selectionAssistantShowsExternalAskDescription"),
+                            label: L10n.string("settings.selectionAssistantActionExternalAsk"),
                             isOn: Bindable(settings).selectionActionBarShowsExternalAsk
                         )
                         if settings.selectionAutoInvokeEnabled {
