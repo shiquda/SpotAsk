@@ -75,7 +75,6 @@ struct SpotAskURLRouterTests {
         #expect(delivery.openedFromURL)
     }
 
-
     @Test @MainActor func warmAskDispatchesToReadyCommandCenter() {
         let commandCenter = SpotAskCommandCenter()
         let panel = PanelControllerSpy()
@@ -147,6 +146,37 @@ struct SpotAskURLRouterTests {
 
         #expect(recorder.actions == [.focusInput])
         #expect(panel.didShow)
+    }
+
+    @Test @MainActor func rapidIndependentTogglesRestoreVisibility() {
+        let commandCenter = SpotAskCommandCenter()
+        let panel = PanelControllerSpy()
+        commandCenter.configure(panelController: panel)
+        commandCenter.setPanelContent { EmptyView() }
+        commandCenter.setActionConsumer { _ in }
+
+        SpotAskURLRouter.perform(.open, using: commandCenter)
+        #expect(panel.isVisible)
+
+        let toggle = URL(string: "spotask://toggle")!
+        #expect(SpotAskURLRouter.handle(toggle, using: commandCenter))
+        #expect(!panel.isVisible)
+        #expect(SpotAskURLRouter.handle(toggle, using: commandCenter))
+        #expect(panel.isVisible)
+    }
+
+    @Test @MainActor func rapidIndependentAsksBothDispatch() {
+        let commandCenter = SpotAskCommandCenter()
+        let panel = PanelControllerSpy()
+        let recorder = ActionRecorder()
+        commandCenter.configure(panelController: panel)
+        commandCenter.setPanelContent { EmptyView() }
+        commandCenter.setActionConsumer { recorder.actions.append($0) }
+
+        let ask = URL(string: "spotask://ask?q=hello")!
+        #expect(SpotAskURLRouter.handle(ask, using: commandCenter))
+        #expect(SpotAskURLRouter.handle(ask, using: commandCenter))
+        #expect(recorder.actions == [.ask("hello", nil), .ask("hello", nil)])
     }
 }
 
