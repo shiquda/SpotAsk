@@ -99,6 +99,7 @@ struct SelectionActionBarLayoutTests {
         for width in layout.visibleExternalAskWidths {
             #expect(width >= 48)
         }
+        expectButtonsStayInsidePanel(layout)
     }
 
     @Test("Extreme labeled overflow drops trailing External Ask buttons while keeping presets")
@@ -122,6 +123,7 @@ struct SelectionActionBarLayoutTests {
         #expect(layout.visiblePresets.count == 3)
         // External asks should be dropped to 0 or 1 to fit under 400
         #expect(layout.visibleExternalAsks.count < 3)
+        expectButtonsStayInsidePanel(layout)
     }
 
     @Test("Tooltips append tab-separated shortcut when assigned")
@@ -141,11 +143,81 @@ struct SelectionActionBarLayoutTests {
         )
     }
 
+    @Test("Labeled long prompts stay inside the 400pt panel and remain clickable")
+    func labeledLongPromptsStayInsidePanel() {
+        let presets = [
+            preset("A Very Long Prompt Preset Title That Consumes A Lot Of Space"),
+            preset("Another Extremely Long Prompt Preset Title In The Selection Bar"),
+            preset("Third Long Prompt Preset Title Taking Remaining Width In Bar")
+        ]
+        let layout = SelectionActionBarLayout.make(
+            presets: presets,
+            externalAsks: [],
+            showsLabels: true
+        )
+        #expect(layout.visiblePresets.count == 3)
+        #expect(layout.visibleExternalAsks.isEmpty)
+        expectButtonsStayInsidePanel(layout)
+        let frames = layout.placedItems.map(\.frame)
+        #expect(frames.count == 3)
+        #expect(frames.allSatisfy { $0.maxX <= SelectionActionBarLayout.maxTotalWidth })
+        #expect(frames.allSatisfy { $0.width > 0 })
+    }
+
+    @Test("Eight labeled prompts stay inside 400pt")
+    func eightLabeledPromptsStayInsidePanel() {
+        let presets = (1...8).map { preset("Labeled Prompt Title Number \($0) With Extra Words") }
+        let layout = SelectionActionBarLayout.make(
+            presets: presets,
+            externalAsks: [],
+            showsLabels: true
+        )
+        #expect(layout.visiblePresets.count == 8)
+        expectButtonsStayInsidePanel(layout)
+    }
+
+    @Test("Eight labeled mixed actions keep prompts and fit the panel")
+    func eightLabeledMixedActionsStayInsidePanel() {
+        let presets = (1...5).map { preset("Prompt \($0) With A Long Visible Title") }
+        let actions = (1...5).map { action("External Ask Target \($0) With A Long Name") }
+        let layout = SelectionActionBarLayout.make(
+            presets: presets,
+            externalAsks: actions,
+            showsLabels: true
+        )
+        #expect(layout.visiblePresets.count == 5)
+        #expect(layout.visibleExternalAsks.count <= 3)
+        expectButtonsStayInsidePanel(layout)
+    }
+
     private func preset(_ title: String) -> PromptPreset {
         PromptPreset(title: title, instruction: "Do it")
     }
 
     private func action(_ name: String) -> QuickAction {
         QuickAction(name: name, kind: .web(urlTemplate: "https://example.com/?q={query}"))
+    }
+
+    private func expectButtonsStayInsidePanel(_ layout: SelectionActionBarLayout) {
+        #expect(layout.size.width <= SelectionActionBarLayout.maxTotalWidth)
+        #expect(layout.visiblePresets.count == layout.visiblePresetWidths.count)
+        #expect(layout.visibleExternalAsks.count == layout.visibleExternalAskWidths.count)
+        let panel = NSRect(origin: .zero, size: layout.size)
+        let inset = SelectionActionBarLayout.contentInset
+        for item in layout.placedItems {
+            let frame = item.frame
+            #expect(frame.width > 0)
+            #expect(frame.minX >= 0)
+            #expect(frame.maxX <= panel.maxX + 0.001)
+            #expect(frame.minY >= 0)
+            #expect(frame.maxY <= panel.maxY + 0.001)
+            switch item {
+            case .preset, .externalAsk:
+                #expect(frame.minX >= inset - 0.001)
+                #expect(frame.maxX <= panel.maxX - inset + 0.001)
+            case .divider:
+                break
+            }
+        }
     }
 }

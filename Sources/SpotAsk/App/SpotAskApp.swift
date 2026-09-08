@@ -249,6 +249,7 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func reconfigureSelectionHotKey() {
         registerSelectionHotKeyIfNeeded()
+        selectionCoordinator?.handleSettingsChanged()
     }
 
     @objc private func refreshAccessibilityPermission() {

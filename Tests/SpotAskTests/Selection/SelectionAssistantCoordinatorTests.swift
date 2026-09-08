@@ -393,6 +393,93 @@ struct SelectionAssistantCoordinatorTests {
         #expect(overlay.messages == [.temporaryFailure])
     }
 
+    @Test("An empty follow-up read hides the bar and blocks stale External Ask")
+    func emptyFollowUpReadInvalidatesPresentedActions() async {
+        let settings = makeSettings()
+        let overlay = SelectionOverlayStub()
+        let executor = RecordingQuickActionExecutor()
+        let reader = SelectionReaderStub(snapshot: sampleSnapshot)
+        let coordinator = makeCoordinator(
+            settings: settings,
+            reader: reader,
+            overlay: overlay,
+            executor: executor
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where overlay.quickActions.isEmpty {
+            await Task.yield()
+        }
+        #expect(overlay.hasActionHandler)
+
+        reader.snapshot = makeSnapshot(text: " \n ")
+        coordinator.trigger()
+        for _ in 0 ..< 200 where overlay.hasActionHandler {
+            await Task.yield()
+        }
+
+        #expect(!overlay.hasActionHandler)
+        overlay.chooseFirstQuickAction()
+        #expect(executor.performed.isEmpty)
+    }
+
+    @Test("A failed follow-up read hides the bar and drops the snapshot")
+    func failedFollowUpReadInvalidatesPresentedActions() async {
+        let settings = makeSettings()
+        let overlay = SelectionOverlayStub()
+        let executor = RecordingQuickActionExecutor()
+        let reader = SelectionReaderStub(snapshot: sampleSnapshot)
+        let coordinator = makeCoordinator(
+            settings: settings,
+            reader: reader,
+            overlay: overlay,
+            executor: executor
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where overlay.quickActions.isEmpty {
+            await Task.yield()
+        }
+        #expect(overlay.hasActionHandler)
+
+        reader.error = SelectionReadingError.noSelection
+        coordinator.trigger()
+        for _ in 0 ..< 200 where overlay.messages.isEmpty {
+            await Task.yield()
+        }
+
+        #expect(!overlay.hasActionHandler)
+        #expect(overlay.messages == [.noSelection])
+        overlay.chooseFirstQuickAction()
+        #expect(executor.performed.isEmpty)
+    }
+
+    @Test("Disabling the assistant hides an existing action bar")
+    func disablingAssistantHidesActionBar() async {
+        let settings = makeSettings()
+        let overlay = SelectionOverlayStub()
+        let executor = RecordingQuickActionExecutor()
+        let coordinator = makeCoordinator(
+            settings: settings,
+            reader: SelectionReaderStub(snapshot: sampleSnapshot),
+            overlay: overlay,
+            executor: executor
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where overlay.quickActions.isEmpty {
+            await Task.yield()
+        }
+        #expect(overlay.hasActionHandler)
+
+        settings.selectionAssistantEnabled = false
+        coordinator.handleSettingsChanged()
+
+        #expect(!overlay.hasActionHandler)
+        overlay.chooseFirstQuickAction()
+        #expect(executor.performed.isEmpty)
+    }
+
     private func makeSettings() -> AppSettings {
         let suiteName = "SelectionAssistantCoordinatorTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
@@ -471,7 +558,8 @@ private final class MemorySelectionGrantIdentityStore: AccessibilityGrantIdentit
 }
 
 private final class SelectionReaderStub: SelectedTextReading, @unchecked Sendable {
-    let snapshot: SelectedTextSnapshot
+    var snapshot: SelectedTextSnapshot
+    var error: (any Error)?
     private(set) var promptRequests: [Bool] = []
 
     init(snapshot: SelectedTextSnapshot = .init(
@@ -485,6 +573,7 @@ private final class SelectionReaderStub: SelectedTextReading, @unchecked Sendabl
 
     func readSelection(promptForPermission: Bool) async throws -> SelectedTextSnapshot {
         promptRequests.append(promptForPermission)
+        if let error { throw error }
         return snapshot
     }
 }
@@ -549,7 +638,13 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
     }
     func showMessage(_ message: SelectionFeedback) { messages.append(message) }
     func showPermissionDenied(openSettings: @escaping () -> Void) { permissionDeniedCount += 1 }
-    func hide() { hideCount += 1 }
+    func hide() {
+        hideCount += 1
+        actionHandler = nil
+        quickActionHandler = nil
+        shownPresets = []
+        quickActions = []
+    }
 
     func chooseFirstAction() {
         guard let preset = shownPresets.first else { return }

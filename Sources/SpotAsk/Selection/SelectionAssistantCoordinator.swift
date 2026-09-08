@@ -63,8 +63,12 @@ final class SelectionAssistantCoordinator {
     }
 
     private func trigger(showsFeedback: Bool, requiresConfirmedSelection: Bool = false) {
-        guard settings.selectionAssistantEnabled else { return }
+        guard settings.selectionAssistantEnabled else {
+            cancelInFlightAndDiscardPresentedSelection()
+            return
+        }
         guard permissionCoordinator.requestPermissionForSelectionAssistant() == .allowed else {
+            discardPresentedSelection()
             guard showsFeedback, !hasShownPermissionRecovery else { return }
             hasShownPermissionRecovery = true
             overlay.showPermissionDenied { [weak self] in
@@ -81,8 +85,14 @@ final class SelectionAssistantCoordinator {
                 let current = try await reader.readSelection(promptForPermission: false)
                 guard token == triggerToken else { return }
                 // An empty or whitespace-only selection must not wake the assistant.
-                guard !current.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-                guard !requiresConfirmedSelection || current.isConfirmedSelection else { return }
+                guard !current.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    discardPresentedSelection()
+                    return
+                }
+                guard !requiresConfirmedSelection || current.isConfirmedSelection else {
+                    discardPresentedSelection()
+                    return
+                }
                 snapshot = current
                 if settings.selectionAssistantMode == .direct {
                     let preset = settings.selectionPromptPreset()
@@ -91,7 +101,10 @@ final class SelectionAssistantCoordinator {
                 } else {
                     let presets = selectionActionBarPresets
                     let externalAsks = selectionActionBarExternalAsks
-                    guard !presets.isEmpty || !externalAsks.isEmpty else { return }
+                    guard !presets.isEmpty || !externalAsks.isEmpty else {
+                        discardPresentedSelection()
+                        return
+                    }
                     overlay.showActions(
                         snapshot: current,
                         presets: presets,
@@ -113,12 +126,35 @@ final class SelectionAssistantCoordinator {
                 }
             } catch let error as SelectionReadingError {
                 guard token == triggerToken else { return }
+                snapshot = nil
+                overlay.hide()
                 if showsFeedback { overlay.showMessage(error.feedbackMessage) }
             } catch {
                 guard token == triggerToken else { return }
+                snapshot = nil
+                overlay.hide()
                 if showsFeedback { overlay.showMessage(.temporaryFailure) }
             }
         }
+    }
+
+    func handleSettingsChanged() {
+        guard settings.selectionAssistantEnabled else {
+            cancelInFlightAndDiscardPresentedSelection()
+            return
+        }
+    }
+
+    private func cancelInFlightAndDiscardPresentedSelection() {
+        triggerToken += 1
+        automaticTriggerTask?.cancel()
+        automaticTriggerTask = nil
+        discardPresentedSelection()
+    }
+
+    private func discardPresentedSelection() {
+        snapshot = nil
+        overlay.hide()
     }
 
     private func apply(preset: PromptPreset) {
