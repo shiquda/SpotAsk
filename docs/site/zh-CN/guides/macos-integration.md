@@ -1,11 +1,11 @@
 ---
 title: Spotlight、Siri 与快捷指令
-description: 通过 Spotlight、Siri 和快捷指令使用 SpotAsk 操作。
+description: 通过 Spotlight、Siri、快捷指令或 spotask:// 链接使用 SpotAsk。
 ---
 
 # Spotlight、Siri 与快捷指令
 
-官方 SpotAsk 发布版本会注册 macOS 可以暴露给 Spotlight、Siri 和快捷指令的应用操作。
+官方 SpotAsk 发布版本会注册 macOS 可以暴露给 Spotlight、Siri 和快捷指令的应用操作，并注册 `spotask://` URL scheme，供 Alfred、Raycast、终端脚本和快捷指令调用。
 
 ## 可用操作
 
@@ -25,6 +25,26 @@ description: 通过 Spotlight、Siri 和快捷指令使用 SpotAsk 操作。
 ## 快捷指令
 
 打开“快捷指令”App，搜索 SpotAsk 操作。可以单独添加一个操作并填写内容，也可以构建更复杂的快捷指令，把文本、问题或其他快捷指令的输出传给 SpotAsk。
+
+## URL scheme
+
+可以从其他应用、快捷指令或终端打开这些链接。问题中的空格和其他特殊字符需要做百分号编码。
+
+| URL | 作用 |
+| --- | --- |
+| `spotask://open` | 打开提问窗口 |
+| `spotask://ask?q=Your%20question` | 填入问题并发送 |
+| `spotask://ask?q=Your%20question&submit=false` | 只填入问题，不发送 |
+| `spotask://toggle` | 显示或隐藏提问窗口 |
+| `spotask://settings` | 打开设置 |
+
+在终端中：
+
+```sh
+open "spotask://ask?q=What%20is%20Swift%20concurrency"
+```
+
+如果 SpotAsk 尚未运行，该链接会先启动应用再执行命令；如果已经在菜单栏运行，则立即执行。
 
 ## 自行构建
 

@@ -47,7 +47,7 @@ Use the built-in Translate, Explain, Summarize, and Polish prompts, or create yo
 
 ## Use SpotAsk with macOS
 
-Open SpotAsk, ask a question, start a new conversation, or run a prompt from Spotlight, Siri, or Shortcuts.
+Open SpotAsk, ask a question, start a new conversation, or run a prompt from Spotlight, Siri, Shortcuts, or a `spotask://` URL.
 
 - [Spotlight, Siri & Shortcuts guide](/guides/macos-integration)
 

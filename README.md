@@ -80,7 +80,7 @@ Or download the matching package from [GitHub Releases](https://github.com/shiqu
 - **Apple silicon** — choose the `arm64` DMG for M-series Macs.
 - **Intel** — choose the `x86_64` DMG for Intel Macs.
 
-The packages are signed with a Developer ID and notarized by Apple, so macOS can verify them on first launch without a manual confirmation. The official release supports SpotAsk from Spotlight, Siri, or Shortcuts. To build a custom version instead, follow [Build with system integrations](#build-with-system-integrations).
+The packages are signed with a Developer ID and notarized by Apple, so macOS can verify them on first launch without a manual confirmation. The official release supports SpotAsk from Spotlight, Siri, Shortcuts, or `spotask://` URLs. To build a custom version instead, follow [Build with system integrations](#build-with-system-integrations).
 
 ## Documentation
 
