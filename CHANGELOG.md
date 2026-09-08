@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- The selection action bar can show External Ask targets beside prompt presets. A settings toggle controls this and is on by default.
+- The selection action bar can show External Ask targets beside prompt presets. Separate toggles hide prompts or External Ask (both on by default). Up to six actions share the bar.
 
 ### Fixed
 

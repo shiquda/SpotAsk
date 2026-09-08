@@ -381,6 +381,8 @@
 "settings.selectionAssistantAutoShow" = "Mostrar acciones rápidas al seleccionar texto";
 "settings.selectionAssistantActionLabels" = "Mostrar etiquetas junto a los iconos";
 "settings.selectionAssistantActionExternalAsk" = "Mostrar External Ask en la barra de selección";
+"settings.selectionAssistantActionPrompts" = "Mostrar prompts en la barra de selección";
+"settings.selectionAssistantActionBarCrowdingHint" = "Con muchas acciones, la barra puede resultar demasiado larga. Quite las que no use, o desactive «Mostrar etiquetas junto a los iconos» para ver solo iconos.";
 "settings.selectionAssistantShowsExternalAsk" = "Mostrar External Ask en la barra de selección";
 "settings.selectionAssistantShowsExternalAskDescription" = "Las acciones y el orden siguen los ajustes de External Ask";
 "selection.actionBar.more" = "Más";

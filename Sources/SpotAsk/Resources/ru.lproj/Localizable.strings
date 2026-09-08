@@ -381,6 +381,8 @@
 "settings.selectionAssistantAutoShow" = "Показывать быстрые действия после выделения";
 "settings.selectionAssistantActionLabels" = "Показывать подписи рядом со значками";
 "settings.selectionAssistantActionExternalAsk" = "Показывать External Ask на панели выделения";
+"settings.selectionAssistantActionPrompts" = "Показывать подсказки на панели выделения";
+"settings.selectionAssistantActionBarCrowdingHint" = "При большом числе действий панель может стать слишком длинной. Уберите редко используемые действия или отключите «Показывать подписи рядом со значками», чтобы оставить только значки.";
 "settings.selectionAssistantShowsExternalAsk" = "Показывать External Ask на панели выделения";
 "settings.selectionAssistantShowsExternalAskDescription" = "Состав и порядок действий берутся из настроек External Ask";
 "selection.actionBar.more" = "Ещё";

@@ -238,7 +238,7 @@ struct SelectionAssistantCoordinatorTests {
         #expect(overlay.hasActionHandler)
     }
 
-    @Test("Action bar receives enabled External Ask actions by default (up to 3)")
+    @Test("Action bar receives enabled External Ask actions by default")
     func actionBarIncludesEnabledQuickActionsByDefault() async {
         let settings = makeSettings()
         let overlay = SelectionOverlayStub()
@@ -249,8 +249,9 @@ struct SelectionAssistantCoordinatorTests {
             await Task.yield()
         }
 
-        #expect(overlay.quickActions.map(\.id) == Array(settings.enabledQuickActions.prefix(3)).map(\.id))
+        #expect(overlay.quickActions.map(\.id) == settings.enabledQuickActions.map(\.id))
         #expect(!overlay.quickActions.isEmpty)
+        #expect(!overlay.shownPresets.isEmpty)
     }
 
     @Test("Hiding External Ask in the action bar restores preset-only actions")
@@ -267,6 +268,62 @@ struct SelectionAssistantCoordinatorTests {
 
         #expect(overlay.quickActions.isEmpty)
         #expect(overlay.hasActionHandler)
+    }
+
+    @Test("Hiding prompts in the action bar restores External Ask-only actions")
+    func hidingPromptsOmitsPresetActions() async {
+        let settings = makeSettings()
+        settings.selectionActionBarShowsPrompts = false
+        let overlay = SelectionOverlayStub()
+        let coordinator = makeCoordinator(settings: settings, reader: SelectionReaderStub(snapshot: sampleSnapshot), overlay: overlay)
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+
+        #expect(overlay.shownPresets.isEmpty)
+        #expect(!overlay.quickActions.isEmpty)
+        #expect(overlay.hasActionHandler)
+    }
+
+    @Test("Hiding prompts and External Ask does not show the action bar")
+    func hidingBothGroupsSkipsTheActionBar() async {
+        let settings = makeSettings()
+        settings.selectionActionBarShowsPrompts = false
+        settings.selectionActionBarShowsExternalAsk = false
+        let reader = SelectionReaderStub(snapshot: sampleSnapshot)
+        let overlay = SelectionOverlayStub()
+        let coordinator = makeCoordinator(settings: settings, reader: reader, overlay: overlay)
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where reader.promptRequests.isEmpty {
+            await Task.yield()
+        }
+
+        #expect(reader.promptRequests == [false])
+        #expect(!overlay.hasActionHandler)
+        #expect(overlay.shownPresets.isEmpty)
+        #expect(overlay.quickActions.isEmpty)
+    }
+
+    @Test("Action bar keeps prompts and folds trailing External Ask at a combined cap of 6")
+    func actionBarCapsCombinedActionsAtSixPreferringPresets() async {
+        let settings = makeSettings()
+        #expect(settings.saveCustomPromptPreset(PromptPreset(title: "Custom A", instruction: "Do A")))
+        #expect(settings.saveCustomPromptPreset(PromptPreset(title: "Custom B", instruction: "Do B")))
+        settings.setQuickActionEnabled(id: QuickAction.BuiltInID.grok, isEnabled: true)
+        let overlay = SelectionOverlayStub()
+        let coordinator = makeCoordinator(settings: settings, reader: SelectionReaderStub(snapshot: sampleSnapshot), overlay: overlay)
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where overlay.shownPresets.count < 6 {
+            await Task.yield()
+        }
+
+        #expect(overlay.shownPresets.count == 6)
+        #expect(overlay.quickActions.isEmpty)
+        #expect(overlay.shownPresets.map(\.id) == Array(settings.enabledPromptPresets.prefix(6)).map(\.id))
     }
 
     @Test("Disabling External Ask omits quick actions from the action bar")
@@ -469,7 +526,7 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
     private(set) var hideCount = 0
     private(set) var messages: [SelectionFeedback] = []
     private(set) var quickActions: [QuickAction] = []
-    private var presets: [PromptPreset] = []
+    private(set) var shownPresets: [PromptPreset] = []
     private var actionHandler: ((PromptPreset) -> Void)?
     private var quickActionHandler: ((QuickAction) -> Void)?
 
@@ -483,7 +540,7 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
         onSelectPreset: @escaping (PromptPreset) -> Void,
         onSelectExternalAsk: @escaping (QuickAction) -> Void
     ) {
-        self.presets = presets
+        shownPresets = presets
         self.quickActions = externalAsks
         actionHandler = onSelectPreset
         quickActionHandler = onSelectExternalAsk
@@ -493,7 +550,7 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
     func hide() { hideCount += 1 }
 
     func chooseFirstAction() {
-        guard let preset = presets.first else { return }
+        guard let preset = shownPresets.first else { return }
         actionHandler?(preset)
     }
 

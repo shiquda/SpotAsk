@@ -89,10 +89,13 @@ final class SelectionAssistantCoordinator {
                     if let preset { commandCenter.ask(current.text, promptPreset: preset, selectionSnapshot: current) }
                     else { commandCenter.compose(current.text) }
                 } else {
+                    let presets = selectionActionBarPresets
+                    let externalAsks = selectionActionBarExternalAsks
+                    guard !presets.isEmpty || !externalAsks.isEmpty else { return }
                     overlay.showActions(
                         snapshot: current,
-                        presets: Array(settings.enabledPromptPresets.prefix(4)),
-                        externalAsks: selectionActionBarExternalAsks,
+                        presets: presets,
+                        externalAsks: externalAsks,
                         showsLabels: settings.selectionActionBarShowsLabels,
                         shortcutForPreset: { [settings] preset in
                             settings.shortcut(for: .promptPreset(preset.id))
@@ -125,11 +128,17 @@ final class SelectionAssistantCoordinator {
         commandCenter.ask(snapshot.text, promptPreset: settings.enabledPromptPreset(id: preset.id), selectionSnapshot: snapshot)
     }
 
+    private var selectionActionBarPresets: [PromptPreset] {
+        guard settings.selectionActionBarShowsPrompts else { return [] }
+        return Array(settings.enabledPromptPresets.prefix(SelectionActionBarLayout.maxTotalActions))
+    }
+
     private var selectionActionBarExternalAsks: [QuickAction] {
         guard settings.externalAskEnabled,
               settings.selectionActionBarShowsExternalAsk
         else { return [] }
-        return Array(settings.enabledQuickActions.prefix(3))
+        let remaining = max(0, SelectionActionBarLayout.maxTotalActions - selectionActionBarPresets.count)
+        return Array(settings.enabledQuickActions.prefix(remaining))
     }
 
     private func performExternalAsk(_ action: QuickAction, snapshot: SelectedTextSnapshot) {

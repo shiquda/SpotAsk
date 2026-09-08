@@ -330,8 +330,7 @@ private final class OverlayButtonTarget: NSObject {
 }
 
 struct SelectionActionBarLayout: Equatable {
-    static let maxPresets = 4
-    static let maxExternalAsks = 3
+    static let maxTotalActions = 6
     static let maxTotalWidth: CGFloat = 400
     static let minExternalAskWidth: CGFloat = 48
     static let controlSize = NSSize(width: 28, height: 28)
@@ -373,8 +372,9 @@ struct SelectionActionBarLayout: Equatable {
         externalAsks: [QuickAction],
         showsLabels: Bool
     ) -> SelectionActionBarLayout {
-        let cappedPresets = Array(presets.prefix(maxPresets))
-        let cappedExternalAsks = Array(externalAsks.prefix(maxExternalAsks))
+        let cappedPresets = Array(presets.prefix(maxTotalActions))
+        let remainingSlots = max(0, maxTotalActions - cappedPresets.count)
+        let cappedExternalAsks = Array(externalAsks.prefix(remainingSlots))
 
         if !showsLabels {
             var chosenExternalAsks = cappedExternalAsks

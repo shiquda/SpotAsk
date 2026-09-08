@@ -381,6 +381,8 @@
 "settings.selectionAssistantAutoShow" = "Schnellaktionen nach Textauswahl anzeigen";
 "settings.selectionAssistantActionLabels" = "Beschriftungen neben Symbolen anzeigen";
 "settings.selectionAssistantActionExternalAsk" = "External Ask in der Auswahlleiste anzeigen";
+"settings.selectionAssistantActionPrompts" = "Prompts in der Auswahlleiste anzeigen";
+"settings.selectionAssistantActionBarCrowdingHint" = "Bei vielen Aktionen kann die Leiste zu lang werden. Entfernen Sie selten genutzte Aktionen, oder deaktivieren Sie „Beschriftungen neben Symbolen anzeigen“, um nur Symbole zu zeigen.";
 "settings.selectionAssistantShowsExternalAsk" = "External Ask in der Auswahlleiste anzeigen";
 "settings.selectionAssistantShowsExternalAskDescription" = "Angezeigte Aktionen und Reihenfolge folgen den External-Ask-Einstellungen";
 "selection.actionBar.more" = "Mehr";

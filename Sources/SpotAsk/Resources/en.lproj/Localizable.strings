@@ -381,6 +381,8 @@
 "settings.selectionAssistantAutoShow" = "Show quick actions after selecting text";
 "settings.selectionAssistantActionLabels" = "Show labels beside icons";
 "settings.selectionAssistantActionExternalAsk" = "Show External Ask in the selection action bar";
+"settings.selectionAssistantActionPrompts" = "Show prompts in the selection action bar";
+"settings.selectionAssistantActionBarCrowdingHint" = "The action bar may get too long when there are many actions. Remove unused ones, or turn off “Show labels beside icons” to show icons only.";
 "settings.selectionAssistantShowsExternalAsk" = "Show External Ask in the selection action bar";
 "settings.selectionAssistantShowsExternalAskDescription" = "Shown actions and order follow the External Ask settings";
 "selection.actionBar.more" = "More";
