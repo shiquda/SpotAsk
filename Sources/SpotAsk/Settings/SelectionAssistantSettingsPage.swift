@@ -51,6 +51,19 @@ struct SelectionAssistantSettingsPage: View {
                     if settings.selectionAssistantMode == .actionBar {
                         SettingsToggleRow(label: L10n.string("settings.selectionAssistantAutoShow"), isOn: Bindable(settings).selectionAutoInvokeEnabled)
                         SettingsToggleRow(label: L10n.string("settings.selectionAssistantActionLabels"), isOn: Bindable(settings).selectionActionBarShowsLabels)
+                        SettingsToggleRow(
+                            label: L10n.string("settings.selectionAssistantActionPrompts"),
+                            isOn: Bindable(settings).selectionActionBarShowsPrompts
+                        )
+                        SettingsToggleRow(
+                            label: L10n.string("settings.selectionAssistantActionExternalAsk"),
+                            isOn: Bindable(settings).selectionActionBarShowsExternalAsk
+                        )
+                        if showsActionBarCrowdingHint {
+                            Text(L10n.string("settings.selectionAssistantActionBarCrowdingHint"))
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                        }
                         if settings.selectionAutoInvokeEnabled {
                             SettingsFieldRow(label: L10n.string("settings.selectionAssistantAutoShowScope")) {
                                 Picker(L10n.string("settings.selectionAssistantAutoShowScope"), selection: Bindable(settings).selectionAutoInvokeScope) {
@@ -118,6 +131,10 @@ struct SelectionAssistantSettingsPage: View {
         case .needsReauthorization:
             L10n.string("settings.selectionAssistantPermissionNeedsReauthorization")
         }
+    }
+
+    private var showsActionBarCrowdingHint: Bool {
+        settings.enabledPromptPresets.count + settings.enabledQuickActions.count > 4
     }
 
     private var permissionStatusDescription: String {

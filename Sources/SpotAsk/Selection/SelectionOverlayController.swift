@@ -2,11 +2,6 @@ import AppKit
 
 @MainActor
 final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
-    private static let controlSize = NSSize(width: 28, height: 28)
-    private static let contentInset: CGFloat = 4
-    private static let controlSpacing: CGFloat = 2
-    private static let labelFontSize: CGFloat = 12
-
     private var panel: NSPanel?
     private var dismissWorkItem: DispatchWorkItem?
     private var buttonTargets: [OverlayButtonTarget] = []
@@ -16,45 +11,120 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
     func showActions(
         snapshot: SelectedTextSnapshot,
         presets: [PromptPreset],
+        externalAsks: [QuickAction],
         showsLabels: Bool,
-        onSelect: @escaping (PromptPreset) -> Void
+        onSelectPreset: @escaping (PromptPreset) -> Void,
+        onSelectExternalAsk: @escaping (QuickAction) -> Void
     ) {
-        let size = actionBarSize(for: presets, showsLabels: showsLabels)
+        showActions(
+            snapshot: snapshot,
+            presets: presets,
+            externalAsks: externalAsks,
+            showsLabels: showsLabels,
+            shortcutForPreset: nil,
+            shortcutForExternalAsk: nil,
+            onSelectPreset: onSelectPreset,
+            onSelectExternalAsk: onSelectExternalAsk
+        )
+    }
+
+    func showActions(
+        snapshot: SelectedTextSnapshot,
+        presets: [PromptPreset],
+        externalAsks: [QuickAction],
+        showsLabels: Bool,
+        shortcutForPreset: ((PromptPreset) -> InAppShortcut?)?,
+        shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?,
+        onSelectPreset: @escaping (PromptPreset) -> Void,
+        onSelectExternalAsk: @escaping (QuickAction) -> Void
+    ) {
+        let layout = SelectionActionBarLayout.make(
+            presets: presets,
+            externalAsks: externalAsks,
+            showsLabels: showsLabels
+        )
+
+        let size = layout.size
         let content = makeContainer(size: size)
-        var cursorX = Self.contentInset
-        buttonTargets = presets.map { preset in
-            let target = OverlayButtonTarget { onSelect(preset) }
-            let width = showsLabels ? Self.actionButtonWidth(for: preset.title) : Self.controlSize.width
-            let button = NSButton(frame: NSRect(
+        var cursorX = SelectionActionBarLayout.contentInset
+        buttonTargets = []
+
+        func placeButton(width: CGFloat, configure: (NSRect) -> NSButton) {
+            let frame = NSRect(
                 x: cursorX,
-                y: Self.contentInset,
+                y: SelectionActionBarLayout.contentInset,
                 width: width,
-                height: Self.controlSize.height
-            ))
-            cursorX += width + Self.controlSpacing
-            if let image = NSImage(systemSymbolName: preset.symbolName, accessibilityDescription: preset.title) {
-                button.image = image.withSymbolConfiguration(.init(pointSize: showsLabels ? 13 : 15, weight: .regular))
-            }
-            if showsLabels {
-                button.title = preset.title
-                button.font = .systemFont(ofSize: Self.labelFontSize)
-                button.imagePosition = .imageLeading
-                button.imageHugsTitle = true
-                button.alignment = .left
-            } else {
-                button.imagePosition = .imageOnly
-            }
-            button.isBordered = false
-            button.contentTintColor = .labelColor
-            button.toolTip = preset.title
-            button.target = target
-            button.action = #selector(OverlayButtonTarget.invoke)
-            button.setAccessibilityLabel(preset.title)
-            content.addSubview(button)
-            return target
+                height: SelectionActionBarLayout.controlSize.height
+            )
+            content.addSubview(configure(frame))
+            cursorX += width
         }
+
+        func placeGroupSpacing() {
+            cursorX += SelectionActionBarLayout.controlSpacing
+        }
+
+        for (index, preset) in layout.visiblePresets.enumerated() {
+            if index > 0 { placeGroupSpacing() }
+            let width = layout.visiblePresetWidths[index]
+            let target = OverlayButtonTarget { onSelectPreset(preset) }
+            buttonTargets.append(target)
+            placeButton(width: width) { frame in
+                makeActionButton(
+                    frame: frame,
+                    title: preset.title,
+                    symbolName: preset.symbolName,
+                    brandSlug: nil,
+                    showsLabels: showsLabels,
+                    toolTip: SelectionActionBarLayout.tooltip(
+                        name: preset.title,
+                        shortcut: shortcutForPreset?(preset)
+                    ),
+                    accessibilityLabel: preset.title,
+                    target: target
+                )
+            }
+        }
+
+        if layout.showsDivider {
+            cursorX += SelectionActionBarLayout.dividerMargin
+            let divider = NSView(frame: NSRect(
+                x: cursorX,
+                y: (size.height - SelectionActionBarLayout.dividerHeight) / 2,
+                width: SelectionActionBarLayout.dividerWidth,
+                height: SelectionActionBarLayout.dividerHeight
+            ))
+            divider.wantsLayer = true
+            divider.layer?.backgroundColor = NSColor.separatorColor.cgColor
+            divider.setAccessibilityElement(false)
+            content.addSubview(divider)
+            cursorX += SelectionActionBarLayout.dividerWidth + SelectionActionBarLayout.dividerMargin
+        }
+
+        for (index, action) in layout.visibleExternalAsks.enumerated() {
+            if index > 0 { placeGroupSpacing() }
+            let width = layout.visibleExternalAskWidths[index]
+            let target = OverlayButtonTarget { onSelectExternalAsk(action) }
+            buttonTargets.append(target)
+            placeButton(width: width) { frame in
+                makeActionButton(
+                    frame: frame,
+                    title: action.displayName,
+                    symbolName: action.symbolName,
+                    brandSlug: action.brandIconSlug,
+                    showsLabels: showsLabels,
+                    toolTip: SelectionActionBarLayout.tooltip(
+                        name: action.displayName,
+                        shortcut: shortcutForExternalAsk?(action)
+                    ),
+                    accessibilityLabel: L10n.string("selection.actionBar.externalAskAccessibility", action.displayName),
+                    target: target
+                )
+            }
+        }
+
         present(content: content, size: size, anchor: snapshot.anchor)
-        scheduleDismiss(after: 8)
+        scheduleDismiss(after: SelectionActionBarLayout.actionBarDismissDelay)
     }
 
     func showMessage(_ message: SelectionFeedback) {
@@ -143,22 +213,56 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
         return label
     }
 
-    private func actionBarSize(for presets: [PromptPreset], showsLabels: Bool) -> NSSize {
-        let widths = presets.map { showsLabels ? Self.actionButtonWidth(for: $0.title) : Self.controlSize.width }
-        let controlsWidth = widths.reduce(0, +)
-        let spacingWidth = CGFloat(max(0, widths.count - 1)) * Self.controlSpacing
-        return NSSize(
-            width: max(44, controlsWidth + spacingWidth + Self.contentInset * 2),
-            height: Self.controlSize.height + Self.contentInset * 2
-        )
+    private func makeActionButton(
+        frame: NSRect,
+        title: String,
+        symbolName: String,
+        brandSlug: String?,
+        showsLabels: Bool,
+        toolTip: String,
+        accessibilityLabel: String,
+        target: OverlayButtonTarget
+    ) -> NSButton {
+        let button = NSButton(frame: frame)
+        let iconPointSize = showsLabels
+            ? SelectionActionBarLayout.labeledIconSize
+            : SelectionActionBarLayout.compactIconSize
+
+        if let brandImage = brandImage(for: brandSlug, pointSize: showsLabels ? 13 : SelectionActionBarLayout.compactBrandIconSize) {
+            button.image = brandImage
+        } else if let symbol = NSImage(systemSymbolName: symbolName, accessibilityDescription: accessibilityLabel) {
+            button.image = symbol.withSymbolConfiguration(.init(pointSize: iconPointSize, weight: .regular))
+        }
+
+        if showsLabels {
+            button.title = title
+            button.font = .systemFont(ofSize: SelectionActionBarLayout.labelFontSize)
+            button.imagePosition = .imageLeading
+            button.imageHugsTitle = true
+            button.alignment = .left
+            button.lineBreakMode = .byTruncatingTail
+        } else {
+            button.title = ""
+            button.imagePosition = .imageOnly
+        }
+
+        button.isBordered = false
+        button.contentTintColor = .labelColor
+        button.toolTip = toolTip
+        button.target = target
+        button.action = #selector(OverlayButtonTarget.invoke)
+        button.setAccessibilityLabel(accessibilityLabel)
+        return button
     }
 
-    private static func actionButtonWidth(for title: String) -> CGFloat {
-        let textWidth = (title as NSString).size(
-            withAttributes: [.font: NSFont.systemFont(ofSize: labelFontSize)]
-        ).width
-        // image + image-to-title gap + leading/trailing padding
-        return ceil(textWidth) + 13 + 4 + 10
+    private func brandImage(for slug: String?, pointSize: CGFloat) -> NSImage? {
+        guard let slug else { return nil }
+        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        guard let image = ProviderBrandIcon.image(for: slug, dark: isDark) else { return nil }
+        let resized = image.copy() as? NSImage ?? image
+        resized.size = NSSize(width: pointSize, height: pointSize)
+        resized.isTemplate = false
+        return resized
     }
 
     private func makePanel(size: NSSize) -> NSPanel {
@@ -211,7 +315,6 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
         guard let visible = screen?.visibleFrame else { return point }
         return NSPoint(x: min(max(point.x, visible.minX + 8), visible.maxX - size.width - 8), y: min(max(point.y, visible.minY + 8), visible.maxY - size.height - 8))
     }
-
 }
 
 private final class OverlayButtonTarget: NSObject {
@@ -223,6 +326,158 @@ private final class OverlayButtonTarget: NSObject {
 
     @objc func invoke() {
         handler()
+    }
+}
+
+struct SelectionActionBarLayout: Equatable {
+    static let maxTotalActions = 8
+    static let maxTotalWidth: CGFloat = 400
+    static let minExternalAskWidth: CGFloat = 48
+    static let controlSize = NSSize(width: 28, height: 28)
+    static let contentInset: CGFloat = 4
+    static let controlSpacing: CGFloat = 2
+    static let dividerWidth: CGFloat = 1
+    static let dividerHeight: CGFloat = 18
+    static let dividerMargin: CGFloat = 4
+    static let dividerOccupiedWidth: CGFloat = dividerWidth + dividerMargin * 2 // 9 pt
+    static let labelFontSize: CGFloat = 12
+    static let compactIconSize: CGFloat = 15
+    static let compactBrandIconSize: CGFloat = 16
+    static let labeledIconSize: CGFloat = 13
+    static let actionBarDismissDelay: TimeInterval = 8
+    static let minimumSize = NSSize(width: 44, height: 36)
+
+    var visiblePresets: [PromptPreset]
+    var visiblePresetWidths: [CGFloat]
+    var visibleExternalAsks: [QuickAction]
+    var visibleExternalAskWidths: [CGFloat]
+    var showsDivider: Bool
+    var size: NSSize
+
+    static func buttonWidth(for title: String) -> CGFloat {
+        let textWidth = (title as NSString).size(
+            withAttributes: [.font: NSFont.systemFont(ofSize: labelFontSize)]
+        ).width
+        return ceil(textWidth) + 27
+    }
+
+    static func tooltip(name: String, shortcut: InAppShortcut?) -> String {
+        guard let shortcut else { return name }
+        let labels = InAppShortcutDisplay.labels(for: shortcut).joined()
+        return "\(name)\t\(labels)"
+    }
+
+    static func make(
+        presets: [PromptPreset],
+        externalAsks: [QuickAction],
+        showsLabels: Bool
+    ) -> SelectionActionBarLayout {
+        let cappedPresets = Array(presets.prefix(maxTotalActions))
+        let remainingSlots = max(0, maxTotalActions - cappedPresets.count)
+        let cappedExternalAsks = Array(externalAsks.prefix(remainingSlots))
+
+        if !showsLabels {
+            var chosenExternalAsks = cappedExternalAsks
+            func compactWidth(pCount: Int, eCount: Int) -> CGFloat {
+                let pWidth = pCount > 0 ? CGFloat(pCount) * controlSize.width + CGFloat(pCount - 1) * controlSpacing : 0
+                let eWidth = eCount > 0 ? CGFloat(eCount) * controlSize.width + CGFloat(eCount - 1) * controlSpacing : 0
+                let div = (pCount > 0 && eCount > 0) ? dividerOccupiedWidth : 0
+                return contentInset * 2 + pWidth + div + eWidth
+            }
+
+            while !chosenExternalAsks.isEmpty && compactWidth(pCount: cappedPresets.count, eCount: chosenExternalAsks.count) > maxTotalWidth {
+                chosenExternalAsks.removeLast()
+            }
+
+            let showsDivider = !cappedPresets.isEmpty && !chosenExternalAsks.isEmpty
+            let totalWidth = compactWidth(pCount: cappedPresets.count, eCount: chosenExternalAsks.count)
+            return SelectionActionBarLayout(
+                visiblePresets: cappedPresets,
+                visiblePresetWidths: Array(repeating: controlSize.width, count: cappedPresets.count),
+                visibleExternalAsks: chosenExternalAsks,
+                visibleExternalAskWidths: Array(repeating: controlSize.width, count: chosenExternalAsks.count),
+                showsDivider: showsDivider,
+                size: NSSize(width: max(minimumSize.width, totalWidth), height: minimumSize.height)
+            )
+        }
+
+        let presetWidths = cappedPresets.map { buttonWidth(for: $0.title) }
+        let pGroupWidth: CGFloat
+        if presetWidths.isEmpty {
+            pGroupWidth = 0
+        } else {
+            pGroupWidth = presetWidths.reduce(0, +) + CGFloat(presetWidths.count - 1) * controlSpacing
+        }
+
+        let hasPresets = !cappedPresets.isEmpty
+        var finalExternalAsks: [QuickAction] = []
+        var finalExternalAskWidths: [CGFloat] = []
+
+        if !cappedExternalAsks.isEmpty {
+            let availableForEA = maxTotalWidth - (contentInset * 2) - pGroupWidth - (hasPresets ? dividerOccupiedWidth : 0)
+            if availableForEA >= minExternalAskWidth {
+                for k in stride(from: cappedExternalAsks.count, through: 1, by: -1) {
+                    let candidates = Array(cappedExternalAsks.prefix(k))
+                    let naturalWidths = candidates.map { buttonWidth(for: $0.displayName) }
+                    let spacingTotal = CGFloat(k - 1) * controlSpacing
+                    let minRequired = CGFloat(k) * minExternalAskWidth + spacingTotal
+
+                    if availableForEA >= minRequired {
+                        let naturalTotal = naturalWidths.reduce(0, +) + spacingTotal
+                        if naturalTotal <= availableForEA {
+                            finalExternalAsks = candidates
+                            finalExternalAskWidths = naturalWidths
+                            break
+                        } else {
+                            let availableForButtons = availableForEA - spacingTotal
+                            var low: CGFloat = minExternalAskWidth
+                            var high: CGFloat = naturalWidths.max() ?? minExternalAskWidth
+                            var bestCap: CGFloat = minExternalAskWidth
+                            for _ in 0..<15 {
+                                let mid = (low + high) / 2
+                                let sum = naturalWidths.map { min($0, mid) }.reduce(0, +)
+                                if sum <= availableForButtons {
+                                    bestCap = mid
+                                    low = mid
+                                } else {
+                                    high = mid
+                                }
+                            }
+                            finalExternalAsks = candidates
+                            finalExternalAskWidths = naturalWidths.map { floor(min($0, bestCap)) }
+                            break
+                        }
+                    }
+                }
+            }
+        }
+
+        let showsDivider = !cappedPresets.isEmpty && !finalExternalAsks.isEmpty
+        let eaGroupWidth: CGFloat
+        if finalExternalAskWidths.isEmpty {
+            eaGroupWidth = 0
+        } else {
+            eaGroupWidth = finalExternalAskWidths.reduce(0, +) + CGFloat(finalExternalAskWidths.count - 1) * controlSpacing
+        }
+
+        var totalWidth = contentInset * 2 + pGroupWidth
+        if showsDivider {
+            totalWidth += dividerOccupiedWidth + eaGroupWidth
+        } else {
+            totalWidth += eaGroupWidth
+        }
+
+        return SelectionActionBarLayout(
+            visiblePresets: cappedPresets,
+            visiblePresetWidths: presetWidths,
+            visibleExternalAsks: finalExternalAsks,
+            visibleExternalAskWidths: finalExternalAskWidths,
+            showsDivider: showsDivider,
+            size: NSSize(
+                width: max(minimumSize.width, min(maxTotalWidth, totalWidth)),
+                height: max(minimumSize.height, controlSize.height + contentInset * 2)
+            )
+        )
     }
 }
 

@@ -348,6 +348,8 @@ final class AppSettings {
         static let selectionAutoInvokeBlacklist = "selectionAutoInvokeBlacklist"
         static let selectionAutoInvokeWhitelist = "selectionAutoInvokeWhitelist"
         static let selectionActionBarShowsLabels = "selectionActionBarShowsLabels"
+        static let selectionActionBarShowsPrompts = "selectionActionBarShowsPrompts"
+        static let selectionActionBarShowsExternalAsk = "selectionActionBarShowsExternalAsk"
         static let automaticUpdateCheckEnabled = "automaticUpdateCheckEnabled"
         static let quickActionCatalog = "webQuickAskProviderCatalog"
         static let externalAskEnabled = "webQuickAskEnabled"
@@ -440,6 +442,8 @@ final class AppSettings {
         }
     }
     var selectionActionBarShowsLabels: Bool { didSet { defaults.set(selectionActionBarShowsLabels, forKey: Key.selectionActionBarShowsLabels) } }
+    var selectionActionBarShowsPrompts: Bool { didSet { defaults.set(selectionActionBarShowsPrompts, forKey: Key.selectionActionBarShowsPrompts) } }
+    var selectionActionBarShowsExternalAsk: Bool { didSet { defaults.set(selectionActionBarShowsExternalAsk, forKey: Key.selectionActionBarShowsExternalAsk) } }
     var automaticUpdateCheckEnabled: Bool {
         didSet { defaults.set(automaticUpdateCheckEnabled, forKey: Key.automaticUpdateCheckEnabled) }
     }
@@ -605,6 +609,8 @@ final class AppSettings {
         selectionAutoInvokeBlacklist = defaults.stringArray(forKey: Key.selectionAutoInvokeBlacklist) ?? []
         selectionAutoInvokeWhitelist = defaults.stringArray(forKey: Key.selectionAutoInvokeWhitelist) ?? []
         selectionActionBarShowsLabels = defaults.object(forKey: Key.selectionActionBarShowsLabels) as? Bool ?? true
+        selectionActionBarShowsPrompts = defaults.object(forKey: Key.selectionActionBarShowsPrompts) as? Bool ?? true
+        selectionActionBarShowsExternalAsk = defaults.object(forKey: Key.selectionActionBarShowsExternalAsk) as? Bool ?? true
         automaticUpdateCheckEnabled = defaults.object(forKey: Key.automaticUpdateCheckEnabled) as? Bool ?? true
         selectionAutoInvokeDelay = SelectionAutoInvokeDelay.normalized(
             defaults.object(forKey: Key.selectionAutoInvokeDelay) as? Double ?? SelectionAutoInvokeDelay.defaultValue

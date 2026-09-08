@@ -380,6 +380,17 @@
 "settings.selectionAssistantModeActionBar" = "Mostrar ações rápidas";
 "settings.selectionAssistantAutoShow" = "Mostrar ações rápidas após selecionar texto";
 "settings.selectionAssistantActionLabels" = "Mostrar rótulos ao lado dos ícones";
+"settings.selectionAssistantActionExternalAsk" = "Mostrar External Ask na barra de seleção";
+"settings.selectionAssistantActionPrompts" = "Mostrar prompts na barra de seleção";
+"settings.selectionAssistantActionBarCrowdingHint" = "Com muitas ações, a barra pode ficar longa demais. Remova as pouco usadas ou desative «Mostrar rótulos ao lado dos ícones» para ver só os ícones.";
+"settings.selectionAssistantShowsExternalAsk" = "Mostrar External Ask na barra de seleção";
+"settings.selectionAssistantShowsExternalAskDescription" = "As ações e a ordem seguem as definições de External Ask";
+"selection.actionBar.more" = "Mais";
+"selection.actionBar.moreAccessibility" = "Mais ações de seleção";
+"selection.actionBar.externalAskAccessibility" = "External Ask: %@";
+"selection.actionBar.kind.web" = "Pergunta na web";
+"selection.actionBar.kind.uriScheme" = "Ligação de app";
+"selection.actionBar.kind.terminal" = "Comando do Terminal";
 "settings.selectionAssistantAutoShowDelay" = "Aguardar";
 "settings.selectionAssistantAutoShowDelayUnit" = "s";
 "settings.selectionAssistantDefaultAction" = "Ação padrão";

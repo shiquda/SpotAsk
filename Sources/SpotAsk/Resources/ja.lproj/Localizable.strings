@@ -380,6 +380,17 @@
 "settings.selectionAssistantModeActionBar" = "クイックアクションを表示";
 "settings.selectionAssistantAutoShow" = "テキスト選択後にクイックアクションを表示";
 "settings.selectionAssistantActionLabels" = "アイコンの横にラベルを表示";
+"settings.selectionAssistantActionExternalAsk" = "選択アクションバーに External Ask を表示";
+"settings.selectionAssistantActionPrompts" = "選択アクションバーにプロンプトを表示";
+"settings.selectionAssistantActionBarCrowdingHint" = "動作が多いとアクションバーが長くなりすぎることがあります。使わない動作を削除するか、「アイコンの横にラベルを表示」をオフにしてアイコンのみにしてください。";
+"settings.selectionAssistantShowsExternalAsk" = "選択アクションバーに External Ask を表示";
+"settings.selectionAssistantShowsExternalAskDescription" = "表示する操作と順序は External Ask の設定に従います";
+"selection.actionBar.more" = "その他";
+"selection.actionBar.moreAccessibility" = "その他の選択アクション";
+"selection.actionBar.externalAskAccessibility" = "External Ask：%@";
+"selection.actionBar.kind.web" = "ウェブ質問";
+"selection.actionBar.kind.uriScheme" = "アプリリンク";
+"selection.actionBar.kind.terminal" = "ターミナルコマンド";
 "settings.selectionAssistantAutoShowDelay" = "待機";
 "settings.selectionAssistantAutoShowDelayUnit" = "秒";
 "settings.selectionAssistantDefaultAction" = "既定のアクション";

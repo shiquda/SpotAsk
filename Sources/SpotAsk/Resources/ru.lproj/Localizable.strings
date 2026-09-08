@@ -380,6 +380,17 @@
 "settings.selectionAssistantModeActionBar" = "Показать быстрые действия";
 "settings.selectionAssistantAutoShow" = "Показывать быстрые действия после выделения";
 "settings.selectionAssistantActionLabels" = "Показывать подписи рядом со значками";
+"settings.selectionAssistantActionExternalAsk" = "Показывать External Ask на панели выделения";
+"settings.selectionAssistantActionPrompts" = "Показывать подсказки на панели выделения";
+"settings.selectionAssistantActionBarCrowdingHint" = "При большом числе действий панель может стать слишком длинной. Уберите редко используемые действия или отключите «Показывать подписи рядом со значками», чтобы оставить только значки.";
+"settings.selectionAssistantShowsExternalAsk" = "Показывать External Ask на панели выделения";
+"settings.selectionAssistantShowsExternalAskDescription" = "Состав и порядок действий берутся из настроек External Ask";
+"selection.actionBar.more" = "Ещё";
+"selection.actionBar.moreAccessibility" = "Другие действия выделения";
+"selection.actionBar.externalAskAccessibility" = "External Ask: %@";
+"selection.actionBar.kind.web" = "Веб-вопрос";
+"selection.actionBar.kind.uriScheme" = "Ссылка приложения";
+"selection.actionBar.kind.terminal" = "Команда терминала";
 "settings.selectionAssistantAutoShowDelay" = "Подождать";
 "settings.selectionAssistantAutoShowDelayUnit" = "с";
 "settings.selectionAssistantDefaultAction" = "Действие по умолчанию";

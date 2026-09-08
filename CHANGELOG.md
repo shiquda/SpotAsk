@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The selection action bar can show External Ask targets beside prompt presets. Separate toggles hide prompts or External Ask (both on by default). Up to eight actions share the bar.
+
 ### Fixed
 
 - The ask window no longer jumps in front during Space switching when Keep window on top is off.
+- Settings switch labels use the available row width instead of the 134pt control column, so longer copy is no longer truncated.
+- The Selection Assistant settings page scrolls when its controls no longer fit the window.
 
 ## [0.2.0] - 2026-08-19
 

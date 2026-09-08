@@ -109,12 +109,14 @@ struct SettingsView: View {
                         ExternalAskSettingsPage(settings: settings)
                     }
                 case .selectionAssistant:
-                    SelectionAssistantSettingsPage(
-                        settings: settings,
-                        permissionCoordinator: accessibilityPermissionCoordinator,
-                        settingsOpener: accessibilitySettingsOpener,
-                        onOpenShortcuts: { selectedSection = .shortcuts }
-                    )
+                    ScrollView {
+                        SelectionAssistantSettingsPage(
+                            settings: settings,
+                            permissionCoordinator: accessibilityPermissionCoordinator,
+                            settingsOpener: accessibilitySettingsOpener,
+                            onOpenShortcuts: { selectedSection = .shortcuts }
+                        )
+                    }
                 case .shortcuts:
                     ScrollView {
                         ShortcutSettingsPage(settings: settings)
