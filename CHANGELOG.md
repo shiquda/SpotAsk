@@ -7,13 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-08
+
 ### Added
 
 - The selection action bar can show External Ask targets beside prompt presets. Separate toggles hide prompts or External Ask (both on by default). Up to eight actions share the bar.
 - Open SpotAsk from Alfred, Raycast, Shortcuts, or the terminal with `spotask://` URLs: `open`, `ask?q=`, `toggle`, and `settings`.
+- Homebrew Cask distribution: install and update SpotAsk directly via `brew install --cask spotask`.
+
+### Changed
+
+- Ask Grok quick action is now disabled by default on fresh installations.
 
 ### Fixed
 
+- Input field text is properly cleared after triggering an External Ask quick action.
+- Preserve composed and multiline input during keyboard navigation and submission.
 - The ask window no longer jumps in front during Space switching when Keep window on top is off.
 - Settings switch labels use the available row width instead of the 134pt control column, so longer copy is no longer truncated.
 - The Selection Assistant settings page scrolls when its controls no longer fit the window.
@@ -117,7 +126,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provider cards can be expanded and collapsed reliably.
 - Thinking expansion behavior: when enabled, thinking stays expanded during reasoning and collapses for the final answer; when disabled, it stays collapsed.
 
-[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/shiquda/SpotAsk/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/shiquda/SpotAsk/compare/v0.1.6...v0.2.0
 [0.1.6]: https://github.com/shiquda/SpotAsk/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/shiquda/SpotAsk/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/shiquda/SpotAsk/compare/v0.1.3...v0.1.4
