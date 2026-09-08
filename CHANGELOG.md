@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - The ask window no longer jumps in front during Space switching when Keep window on top is off.
+- Settings switch labels use the available row width instead of the 134pt control column, so longer copy is no longer truncated.
 
 ## [0.2.0] - 2026-08-19
 

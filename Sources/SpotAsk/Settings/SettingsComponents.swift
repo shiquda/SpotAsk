@@ -99,21 +99,24 @@ struct SettingsToggleRow: View {
     @Binding var isOn: Bool
 
     var body: some View {
-        SettingsLabeledRow(label: label) {
-            HStack(spacing: 14) {
+        HStack(alignment: .center, spacing: 0) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .fixedSize(horizontal: false, vertical: true)
                 if let description {
                     Text(description)
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                Toggle("", isOn: $isOn)
-                    .toggleStyle(.switch)
-                    .labelsHidden()
-                    .accessibilityLabel(label)
             }
-            .frame(maxWidth: .infinity, alignment: .trailing)
+            .layoutPriority(1)
+            Spacer(minLength: 16)
+            Toggle("", isOn: $isOn)
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .fixedSize()
+                .accessibilityLabel(label)
         }
     }
 }
