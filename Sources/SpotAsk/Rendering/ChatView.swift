@@ -918,12 +918,20 @@ struct ChatView: View {
     private func composeQuestion(_ question: String, promptPreset: PromptPreset?) {
         let trimmed = question.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            inputFocused = true
+            focusInput()
             return
         }
         viewModel.selectedPromptPreset = promptPreset.flatMap(settings.promptPresetAllowedForUse)
         viewModel.input = trimmed
-        inputFocused = true
+        focusInput()
+        if let textView = composerTextView.textView {
+            if textView.string != trimmed {
+                textView.string = trimmed
+            }
+            let targetLocation = (trimmed as NSString).length
+            textView.setSelectedRange(NSRange(location: targetLocation, length: 0))
+            textView.scrollRangeToVisible(NSRange(location: targetLocation, length: 0))
+        }
     }
 
     private func scrollToBottom(using proxy: ScrollViewProxy) {
