@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - The selection action bar can show External Ask targets beside prompt presets. Separate toggles hide prompts or External Ask (both on by default). Up to eight actions share the bar.
+- Open SpotAsk from Alfred, Raycast, Shortcuts, or the terminal with `spotask://` URLs: `open`, `ask?q=`, `toggle`, and `settings`.
 
 ### Fixed
 

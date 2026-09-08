@@ -76,13 +76,15 @@ struct SpotAskApp: App {
     @NSApplicationDelegateAdaptor(SpotAskAppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        Settings { EmptyView() }
-            // Settings are presented by SettingsWindowController. Replacing
-            // the system command prevents its empty Settings scene from also
-            // opening when the in-app Command-comma shortcut is used.
-            .commands {
-                CommandGroup(replacing: .appSettings) { }
-            }
+        Settings {
+            EmptyView()
+        }
+        // Settings are presented by SettingsWindowController. Replacing
+        // the system command prevents its empty Settings scene from also
+        // opening when the in-app Command-comma shortcut is used.
+        .commands {
+            CommandGroup(replacing: .appSettings) { }
+        }
     }
 }
 
@@ -111,6 +113,9 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         accessibilityPermissionCoordinator: accessibilityPermissionCoordinator,
         onClose: {}
     )
+    private var urlDelivery = SpotAskURLDelivery()
+    private var isLaunchFinished = false
+    private var pendingLaunchURLs: [URL] = []
 
     override init() {
         let settings = AppSettings.shared
@@ -183,8 +188,12 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         SpotAskShortcuts.updateAppShortcutParameters()
         DiagnosticLogStore.shared.setEnabled(settings.diagnosticsEnabled)
         DiagnosticLogStore.shared.record("app-launch")
-        if !settings.silentLaunch {
-            SpotAskCommandCenter.shared.open()
+        isLaunchFinished = true
+        let urlsOpenedAtLaunch = pendingLaunchURLs
+        pendingLaunchURLs.removeAll()
+        handleIncomingURLs(urlsOpenedAtLaunch)
+        DispatchQueue.main.async { [weak self] in
+            self?.presentInitialPanelIfNeeded()
         }
         scheduleAutomaticUpdateCheck()
     }
@@ -201,6 +210,33 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         handleDockReopen(hasVisibleWindows: flag) {
             SpotAskCommandCenter.shared.open()
         }
+    }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        handleIncomingURLs(urls)
+    }
+
+    private func handleIncomingURLs(_ urls: [URL]) {
+        if !isLaunchFinished {
+            pendingLaunchURLs.append(contentsOf: urls)
+            if urls.contains(where: { SpotAskURLRouter.parse($0) != nil }) {
+                urlDelivery.markOpenedFromURL()
+            }
+            return
+        }
+        for url in urls {
+            if SpotAskURLRouter.handle(url) {
+                urlDelivery.markOpenedFromURL()
+            }
+        }
+    }
+
+    private func presentInitialPanelIfNeeded() {
+        guard shouldOpenPanelOnLaunch(
+            silentLaunch: settings.silentLaunch,
+            openedFromURL: urlDelivery.openedFromURL
+        ) else { return }
+        SpotAskCommandCenter.shared.open()
     }
 
     @objc private func reconfigureGlobalHotKey() {

@@ -81,7 +81,7 @@ brew install --cask shiquda/spotask/spotask
 - **Apple silicon** — M 系列芯片的 Mac 请选择名称带 `arm64` 的 DMG。
 - **Intel** — Intel 芯片的 Mac 请选择名称带 `x86_64` 的 DMG。
 
-软件包已使用 Apple Developer ID 签名并通过 Apple 公证，首次打开时无需在 macOS 中手动确认。官方发布版本可直接通过 Spotlight、Siri 或快捷指令调用 SpotAsk；如需自行构建，请按下方[启用系统联动](#启用系统联动)说明操作。
+软件包已使用 Apple Developer ID 签名并通过 Apple 公证，首次打开时无需在 macOS 中手动确认。官方发布版本可直接通过 Spotlight、Siri、快捷指令或 `spotask://` 链接调用 SpotAsk；如需自行构建，请按下方[启用系统联动](#启用系统联动)说明操作。
 
 ## 文档
 

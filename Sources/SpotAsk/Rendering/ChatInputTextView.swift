@@ -54,6 +54,8 @@ struct ChatInputTextView: NSViewRepresentable {
             coordinator.updateHeightIfNeeded(of: textView)
         }
         textView.string = text
+        let initialLocation = (text as NSString).length
+        textView.setSelectedRange(NSRange(location: initialLocation, length: 0))
         textView.font = .preferredFont(forTextStyle: .body)
         textView.textColor = .labelColor
         textView.backgroundColor = .clear
@@ -119,9 +121,10 @@ struct ChatInputTextView: NSViewRepresentable {
             isMarkedText: textView.hasMarkedText()
         )
         if textView.string != text && !editorOwnsDraft {
-            let selectedRange = textView.selectedRange()
             textView.string = text
-            textView.setSelectedRange(NSRange(location: min(selectedRange.location, (text as NSString).length), length: 0))
+            let targetLocation = (text as NSString).length
+            textView.setSelectedRange(NSRange(location: targetLocation, length: 0))
+            textView.scrollRangeToVisible(NSRange(location: targetLocation, length: 0))
             context.coordinator.updateHeightIfNeeded(of: textView)
         }
 

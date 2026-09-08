@@ -90,6 +90,7 @@
 		001000000000000000000054 /* AppearanceSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000006D /* AppearanceSettingsPage.swift */; };
 		001000000000000000000055 /* AboutSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000006E /* AboutSettingsPage.swift */; };
 		001000000000000000000056 /* SettingsSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000006F /* SettingsSidebar.swift */; };
+		001000000000000000000057 /* SpotAskURLRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000070 /* SpotAskURLRouter.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -193,6 +194,7 @@
 		00200000000000000000006D /* AppearanceSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/AppearanceSettingsPage.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000006E /* AboutSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/AboutSettingsPage.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000006F /* SettingsSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/SettingsSidebar.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000070 /* SpotAskURLRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/App/SpotAskURLRouter.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -211,6 +213,7 @@
 			children = (
 				002000000000000000000001 /* SpotAskApp.swift */,
 				002000000000000000000002 /* SpotAskCommandCenter.swift */,
+				002000000000000000000070 /* SpotAskURLRouter.swift */,
 				002000000000000000000003 /* StatusBarController.swift */,
 				002000000000000000000004 /* ChatModels.swift */,
 				002000000000000000000005 /* ChatViewModel.swift */,
@@ -464,6 +467,7 @@
 				001000000000000000000054,
 				001000000000000000000055,
 				001000000000000000000056,
+				001000000000000000000057,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -47,7 +47,7 @@ SpotAsk 维护一组 AI 服务和模型。你可以在设置中修改默认模�
 
 ## 使用 macOS 系统能力
 
-通过 Spotlight、Siri 或快捷指令打开 SpotAsk、提问、开始新对话或执行提示词。
+通过 Spotlight、Siri、快捷指令或 `spotask://` 链接打开 SpotAsk、提问、开始新对话或执行提示词。
 
 - [Spotlight、Siri 与快捷指令指南](/zh-CN/guides/macos-integration)
 

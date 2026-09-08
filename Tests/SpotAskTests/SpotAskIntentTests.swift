@@ -59,6 +59,62 @@ struct SpotAskIntentTests {
         #expect(panel.composerIsFirstResponder)
     }
 
+    @Test @MainActor func coldStartComposePlacesCaretAtTheEndOfInput() async {
+        let commandCenter = SpotAskCommandCenter()
+        let panel = HostingPanelController()
+        let settings = makeSettings()
+        let viewModel = ChatViewModel(
+            settings: settings,
+            providerFactory: ImmediateProviderFactory(),
+            sessionStore: SessionStore(bundleIdentifier: "SpotAskIntentTests.\(UUID().uuidString)")
+        )
+
+        commandCenter.compose("hello")
+        commandCenter.configure(panelController: panel)
+        commandCenter.setPanelContent {
+            ChatView(
+                viewModel: viewModel,
+                settings: settings,
+                commandCenter: commandCenter
+            )
+        }
+
+        await panel.waitForComposerFocus()
+
+        #expect(panel.composerIsFirstResponder)
+        #expect(panel.composerTextView?.string == "hello")
+        #expect(panel.composerTextView?.selectedRange() == NSRange(location: 5, length: 0))
+    }
+
+    @Test @MainActor func warmStartComposePlacesCaretAtTheEndOfInput() async {
+        let commandCenter = SpotAskCommandCenter()
+        let panel = HostingPanelController()
+        let settings = makeSettings()
+        let viewModel = ChatViewModel(
+            settings: settings,
+            providerFactory: ImmediateProviderFactory(),
+            sessionStore: SessionStore(bundleIdentifier: "SpotAskIntentTests.\(UUID().uuidString)")
+        )
+
+        commandCenter.open()
+        commandCenter.configure(panelController: panel)
+        commandCenter.setPanelContent {
+            ChatView(
+                viewModel: viewModel,
+                settings: settings,
+                commandCenter: commandCenter
+            )
+        }
+
+        await panel.waitForComposerFocus()
+
+        commandCenter.compose("world")
+
+        #expect(panel.composerIsFirstResponder)
+        #expect(panel.composerTextView?.string == "world")
+        #expect(panel.composerTextView?.selectedRange() == NSRange(location: 5, length: 0))
+    }
+
     @Test @MainActor func coldStartAskStartsFreshAfterAnIdleConversation() async {
         let commandCenter = SpotAskCommandCenter()
         let panel = HostingPanelController()
@@ -347,6 +403,10 @@ private final class HostingPanelController: SpotAskPanelControlling {
     var composerIsFirstResponder: Bool {
         guard let firstResponder = window?.firstResponder as? NSTextView else { return false }
         return hostingView?.contains(firstResponder) == true
+    }
+
+    var composerTextView: NSTextView? {
+        hostingView?.firstDescendant(of: NSTextView.self)
     }
 
     func waitForComposer() async {
