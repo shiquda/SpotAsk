@@ -281,9 +281,61 @@ grep -q -- '--wait' "$XCRUN_LOG" || fail "restored helper did not wait"
 grep -q -- '--no-wait' "$XCRUN_LOG" && fail "restored helper used --no-wait"
 pass "workflow helpers wait even when the app tag has the old notarize script"
 
+# --- Homebrew cask updates open a PR instead of pushing to main ---
+OPEN_CASK_PR="$ROOT_DIR/Scripts/open-homebrew-cask-pr.sh"
+cask_bin="$WORK_DIR/cask-bin"
+cask_log="$WORK_DIR/cask-commands.log"
+mkdir -p "$cask_bin"
+cat > "$cask_bin/git" <<'EOF'
+#!/bin/sh
+printf '%s\n' "git $*" >> "$CASK_LOG"
+exit 0
+EOF
+cat > "$cask_bin/gh" <<'EOF'
+#!/bin/sh
+printf '%s\n' "gh $*" >> "$CASK_LOG"
+case "$1 $2" in
+"pr list")
+    if [ "${CASK_EXISTING_PR-}" = 1 ]; then
+        printf '12\n'
+    fi
+    ;;
+"pr view")
+    printf 'https://github.com/shiquda/SpotAsk/pull/12\n'
+    ;;
+"pr create")
+    printf 'https://github.com/shiquda/SpotAsk/pull/13\n'
+    ;;
+esac
+exit 0
+EOF
+chmod +x "$cask_bin/git" "$cask_bin/gh"
+
+: > "$cask_log"
+CASK_LOG="$cask_log" PATH="$cask_bin:$PATH" \
+    RELEASE_TAG=v0.2.2 GITHUB_REPOSITORY=shiquda/SpotAsk \
+    "$OPEN_CASK_PR" >/dev/null
+grep -q 'git push --force-with-lease origin HEAD:refs/heads/chore/homebrew-cask-v0.2.2' "$cask_log" || fail "cask helper did not push the cask branch"
+grep -q 'HEAD:main' "$cask_log" && fail "cask helper still pushed to main"
+grep -q 'gh pr create ' "$cask_log" || fail "cask helper did not open a PR"
+pass "new Homebrew cask update opens a PR"
+
+: > "$cask_log"
+CASK_EXISTING_PR=1 CASK_LOG="$cask_log" PATH="$cask_bin:$PATH" \
+    RELEASE_TAG=v0.2.2 GITHUB_REPOSITORY=shiquda/SpotAsk \
+    "$OPEN_CASK_PR" >/dev/null
+grep -q 'gh pr create ' "$cask_log" && fail "cask helper opened a duplicate PR"
+grep -q 'gh pr view 12 ' "$cask_log" || fail "cask helper did not reuse the open PR"
+pass "existing Homebrew cask PR is reused"
+
+grep -q 'git push origin HEAD:main' "$ROOT_DIR/.github/workflows/release.yml" && fail "Release workflow still pushes the cask to main"
+grep -q 'open-homebrew-cask-pr.sh' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release workflow does not call the cask PR helper"
+grep -q 'pull-requests: write' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release workflow cannot open cask PRs"
+
 # --- script syntax ---
 /bin/sh -n "$PUBLISH"
 /bin/sh -n "$NOTARIZE"
+/bin/sh -n "$OPEN_CASK_PR"
 /bin/sh -n "$ROOT_DIR/Scripts/make-release-dmg.sh"
 /bin/sh -n "$ROOT_DIR/Scripts/test-release-workflow.sh"
 pass "release scripts parse"

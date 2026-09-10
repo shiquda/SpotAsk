@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: release-${{ inputs.release_tag || github.ref_name }}
@@ -51,6 +52,7 @@ jobs:
           cp Scripts/notarize-dmg.sh \
             Scripts/publish-github-release.sh \
             Scripts/release-notes-from-changelog.sh \
+            Scripts/open-homebrew-cask-pr.sh \
             "$helper_dir/"
           chmod +x "$helper_dir"/*
           if ! grep -q 'WAIT_FLAG' "$helper_dir/notarize-dmg.sh"; then
@@ -188,7 +190,7 @@ jobs:
             "dist/SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt"
       - name: Update Homebrew Cask
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.CASK_GITHUB_TOKEN || github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -243,4 +245,4 @@ jobs:
             exit 0
           fi
           git commit -m "chore: update Homebrew cask for ${RELEASE_TAG}"
-          git push origin HEAD:main
+          "$RELEASE_HELPER_DIR/open-homebrew-cask-pr.sh"
