@@ -281,9 +281,74 @@ grep -q -- '--wait' "$XCRUN_LOG" || fail "restored helper did not wait"
 grep -q -- '--no-wait' "$XCRUN_LOG" && fail "restored helper used --no-wait"
 pass "workflow helpers wait even when the app tag has the old notarize script"
 
+# --- Homebrew cask pushes to main with an admin PAT ---
+PUSH_CASK="$ROOT_DIR/Scripts/push-homebrew-cask.sh"
+if CASK_GITHUB_TOKEN= "$PUSH_CASK" 2>"$WORK_DIR/cask-missing.err"; then
+    fail "cask helper accepted an empty token"
+fi
+grep -q 'CASK_GITHUB_TOKEN is required' "$WORK_DIR/cask-missing.err" || fail "empty token did not fail-fast"
+pass "missing CASK_GITHUB_TOKEN fails before push"
+
+cask_origin="$WORK_DIR/cask-origin.git"
+cask_work="$WORK_DIR/cask-work"
+git init --bare "$cask_origin" >/dev/null
+git init -b main "$cask_work" >/dev/null
+git -C "$cask_work" config user.name "cask-test"
+git -C "$cask_work" config user.email "cask-test@example.com"
+mkdir -p "$cask_work/Casks"
+printf 'v1\n' > "$cask_work/Casks/spotask.rb"
+git -C "$cask_work" add Casks/spotask.rb
+git -C "$cask_work" commit -m "cask v1" >/dev/null
+git -C "$cask_work" remote add origin "$cask_origin"
+(
+    cd "$cask_work"
+    CASK_GITHUB_TOKEN=test-token "$PUSH_CASK"
+) >/dev/null
+test "$(git --git-dir="$cask_origin" log -1 --format=%s refs/heads/main)" = "cask v1" || fail "cask helper did not push HEAD to origin main"
+pass "cask helper pushes HEAD to origin main"
+
+printf 'v2\n' > "$cask_work/Casks/spotask.rb"
+git -C "$cask_work" add Casks/spotask.rb
+git -C "$cask_work" commit -m "cask v2" >/dev/null
+(
+    cd "$cask_work"
+    CASK_GITHUB_TOKEN=test-token "$PUSH_CASK"
+) >/dev/null
+test "$(git --git-dir="$cask_origin" log -1 --format=%s refs/heads/main)" = "cask v2" || fail "second cask push did not update origin main"
+pass "repeat cask push updates origin main without force"
+
+real_git=$(command -v git)
+gitbin="$WORK_DIR/gitbin"
+mkdir -p "$gitbin"
+cat > "$gitbin/git" <<EOF
+#!/bin/sh
+printf '%s\n' "\$*" >> "$WORK_DIR/cask-git.args"
+exec "$real_git" "\$@"
+EOF
+chmod +x "$gitbin/git"
+: > "$WORK_DIR/cask-git.args"
+git -C "$cask_work" config http.https://github.com/.extraheader "AUTHORIZATION: basic CHECKOUTTOKEN"
+(
+    cd "$cask_work"
+    PATH="$gitbin:$PATH" CASK_GITHUB_TOKEN=test-token "$PUSH_CASK"
+) >/dev/null
+test -z "$(git -C "$cask_work" config --get http.https://github.com/.extraheader || true)" || fail "checkout extraheader still set after cask push"
+grep -F 'http.https://github.com/.extraheader=AUTHORIZATION: bearer test-token' "$WORK_DIR/cask-git.args" >/dev/null \
+    || fail "push did not use URL-scoped PAT extraheader"
+grep -F 'AUTHORIZATION: basic CHECKOUTTOKEN' "$WORK_DIR/cask-git.args" >/dev/null \
+    && fail "push still passed the checkout extraheader"
+pass "cask helper drops checkout credentials and pushes with the PAT"
+
+grep -q 'open-homebrew-cask-pr.sh' "$ROOT_DIR/.github/workflows/release.yml" && fail "Release workflow still opens a Homebrew cask PR"
+grep -q 'push-homebrew-cask.sh' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release workflow does not call the cask push helper"
+grep -q 'secrets.CASK_GITHUB_TOKEN || github.token' "$ROOT_DIR/.github/workflows/release.yml" && fail "CASK_GITHUB_TOKEN still falls back to GITHUB_TOKEN"
+grep -q 'persist-credentials: false' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release checkout still persists GITHUB_TOKEN credentials"
+
+
 # --- script syntax ---
 /bin/sh -n "$PUBLISH"
 /bin/sh -n "$NOTARIZE"
+/bin/sh -n "$PUSH_CASK"
 /bin/sh -n "$ROOT_DIR/Scripts/make-release-dmg.sh"
 /bin/sh -n "$ROOT_DIR/Scripts/test-release-workflow.sh"
 pass "release scripts parse"

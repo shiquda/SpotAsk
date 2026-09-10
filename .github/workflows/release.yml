@@ -29,6 +29,8 @@ jobs:
       SPOTASK_NOTARY_PASSWORD: ${{ secrets.APPLE_NOTARIZATION_APP_PASSWORD }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
       - name: Resolve release tag
         env:
           REQUESTED_TAG: ${{ inputs.release_tag }}
@@ -51,6 +53,7 @@ jobs:
           cp Scripts/notarize-dmg.sh \
             Scripts/publish-github-release.sh \
             Scripts/release-notes-from-changelog.sh \
+            Scripts/push-homebrew-cask.sh \
             "$helper_dir/"
           chmod +x "$helper_dir"/*
           if ! grep -q 'WAIT_FLAG' "$helper_dir/notarize-dmg.sh"; then
@@ -189,6 +192,7 @@ jobs:
       - name: Update Homebrew Cask
         env:
           GH_TOKEN: ${{ github.token }}
+          CASK_GITHUB_TOKEN: ${{ secrets.CASK_GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
@@ -243,4 +247,4 @@ jobs:
             exit 0
           fi
           git commit -m "chore: update Homebrew cask for ${RELEASE_TAG}"
-          git push origin HEAD:main
+          "$RELEASE_HELPER_DIR/push-homebrew-cask.sh"
