@@ -129,7 +129,7 @@ Add these secrets to **Settings > Secrets and variables > Actions** (or to the `
 | `APPLE_NOTARIZATION_APPLE_ID` | paid Apple ID used for notarization |
 | `APPLE_NOTARIZATION_TEAM_ID` | `6UR4V5Z3N7` |
 | `APPLE_NOTARIZATION_APP_PASSWORD` | app-specific password created above |
-| `CASK_GITHUB_TOKEN` | repository **admin** classic PAT (`repo`). Required. The Homebrew cask step pushes `Casks/spotask.rb` to `main`; GitHub Actions cannot bypass this repo's required `arm64`/`x86_64` checks. |
+| `CASK_GITHUB_TOKEN` | **Required**, on the `release` environment. Fine-grained PAT limited to this repo with **Contents: Read and write** (or classic `public_repo`). Token owner must be a repo admin so the Homebrew step can bypass required `arm64`/`x86_64` checks. Do not use `GITHUB_TOKEN`; GitHub Actions cannot bypass this ruleset. |
 
 The Release workflow runs automatically on tag push (`v*`) or manual `workflow_dispatch`. It imports the Developer ID certificate into a temporary Keychain, builds both signed DMGs (`arm64` and `x86_64`), submits them concurrently to Apple Notary Service with `notarytool submit --wait --timeout 30m`, staples the notarization tickets, writes basename SHA-256 checksums, publishes the GitHub Release from a draft only after those assets are uploaded, and pushes the Homebrew Cask formula to `main` with `CASK_GITHUB_TOKEN`. Workflow helpers (`Scripts/notarize-dmg.sh` and the publish script) are taken from the workflow commit, not the app tag, so manually publishing an older tag still waits for notarization.
 
