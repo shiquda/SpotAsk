@@ -39,6 +39,43 @@ struct SpotAskPanelFadeCoordinatorTests {
         #expect(target.orderOutCount == 0)
         #expect(target.requestedValues == [1, 0, 1])
     }
+
+    @Test("hide posts spotAskPanelDidHide notification when animation completes")
+    func hidePostsNotificationOnComplete() {
+        let target = FadeTarget()
+        let coordinator = SpotAskPanelFadeCoordinator()
+        let box = NotifiedBox()
+        let observer = NotificationCenter.default.addObserver(
+            forName: .spotAskPanelDidHide,
+            object: nil,
+            queue: .main
+        ) { _ in box.notified = true }
+        defer { NotificationCenter.default.removeObserver(observer) }
+
+        coordinator.show(target)
+        coordinator.hide(target)
+        #expect(!box.notified)
+
+        target.completeLatestAnimation()
+        #expect(box.notified)
+    }
+
+    @Test("hide posts spotAskPanelDidHide immediately when target is not visible")
+    func hidePostsNotificationImmediatelyWhenNotVisible() {
+        let target = FadeTarget()
+        let coordinator = SpotAskPanelFadeCoordinator()
+        let box = NotifiedBox()
+        let observer = NotificationCenter.default.addObserver(
+            forName: .spotAskPanelDidHide,
+            object: nil,
+            queue: .main
+        ) { _ in box.notified = true }
+        defer { NotificationCenter.default.removeObserver(observer) }
+
+        target.isVisible = false
+        coordinator.hide(target)
+        #expect(box.notified)
+    }
 }
 
 @MainActor
@@ -65,8 +102,11 @@ private final class FadeTarget: SpotAskPanelFadeTarget {
         requestedValues.append(value)
         completions.append(completion)
     }
-
     func completeLatestAnimation() {
         completions.removeLast()()
     }
+}
+
+private final class NotifiedBox: @unchecked Sendable {
+    var notified = false
 }
