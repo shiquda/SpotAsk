@@ -52,6 +52,7 @@ final class SpotAskPanelFadeCoordinator {
             cancelCurrentAnimation()
             target.alphaValue = 1
             target.orderOut(nil)
+            NotificationCenter.default.post(name: .spotAskPanelDidHide, object: nil)
             return
         }
         beginAnimation(target, to: 0, direction: .hiding)
@@ -99,6 +100,7 @@ final class SpotAskPanelFadeCoordinator {
         animatedTarget = nil
         target.orderOut(nil)
         target.alphaValue = 1
+        NotificationCenter.default.post(name: .spotAskPanelDidHide, object: nil)
     }
 }
 
@@ -108,6 +110,8 @@ extension Notification.Name {
     /// Posted every time the quick-ask panel is presented (including re-shows
     /// that reuse the existing view, where SwiftUI `onAppear` does not fire).
     static let spotAskPanelDidShow = Notification.Name("com.spotask.panel-did-show")
+    /// Posted whenever the quick-ask panel is hidden / ordered out.
+    static let spotAskPanelDidHide = Notification.Name("com.spotask.panel-did-hide")
 }
 
 @MainActor
