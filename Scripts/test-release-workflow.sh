@@ -281,61 +281,50 @@ grep -q -- '--wait' "$XCRUN_LOG" || fail "restored helper did not wait"
 grep -q -- '--no-wait' "$XCRUN_LOG" && fail "restored helper used --no-wait"
 pass "workflow helpers wait even when the app tag has the old notarize script"
 
-# --- Homebrew cask updates open a PR instead of pushing to main ---
-OPEN_CASK_PR="$ROOT_DIR/Scripts/open-homebrew-cask-pr.sh"
-cask_bin="$WORK_DIR/cask-bin"
-cask_log="$WORK_DIR/cask-commands.log"
-mkdir -p "$cask_bin"
-cat > "$cask_bin/git" <<'EOF'
-#!/bin/sh
-printf '%s\n' "git $*" >> "$CASK_LOG"
-exit 0
-EOF
-cat > "$cask_bin/gh" <<'EOF'
-#!/bin/sh
-printf '%s\n' "gh $*" >> "$CASK_LOG"
-case "$1 $2" in
-"pr list")
-    if [ "${CASK_EXISTING_PR-}" = 1 ]; then
-        printf '12\n'
-    fi
-    ;;
-"pr view")
-    printf 'https://github.com/shiquda/SpotAsk/pull/12\n'
-    ;;
-"pr create")
-    printf 'https://github.com/shiquda/SpotAsk/pull/13\n'
-    ;;
-esac
-exit 0
-EOF
-chmod +x "$cask_bin/git" "$cask_bin/gh"
+# --- Homebrew cask pushes to main with an admin PAT ---
+PUSH_CASK="$ROOT_DIR/Scripts/push-homebrew-cask.sh"
+if CASK_GITHUB_TOKEN= "$PUSH_CASK" 2>"$WORK_DIR/cask-missing.err"; then
+    fail "cask helper accepted an empty token"
+fi
+grep -q 'CASK_GITHUB_TOKEN is required' "$WORK_DIR/cask-missing.err" || fail "empty token did not fail-fast"
+pass "missing CASK_GITHUB_TOKEN fails before push"
 
-: > "$cask_log"
-CASK_LOG="$cask_log" PATH="$cask_bin:$PATH" \
-    RELEASE_TAG=v0.2.2 GITHUB_REPOSITORY=shiquda/SpotAsk \
-    "$OPEN_CASK_PR" >/dev/null
-grep -q 'git push --force-with-lease origin HEAD:refs/heads/chore/homebrew-cask-v0.2.2' "$cask_log" || fail "cask helper did not push the cask branch"
-grep -q 'HEAD:main' "$cask_log" && fail "cask helper still pushed to main"
-grep -q 'gh pr create ' "$cask_log" || fail "cask helper did not open a PR"
-pass "new Homebrew cask update opens a PR"
+cask_origin="$WORK_DIR/cask-origin.git"
+cask_work="$WORK_DIR/cask-work"
+git init --bare "$cask_origin" >/dev/null
+git init -b main "$cask_work" >/dev/null
+git -C "$cask_work" config user.name "cask-test"
+git -C "$cask_work" config user.email "cask-test@example.com"
+mkdir -p "$cask_work/Casks"
+printf 'v1\n' > "$cask_work/Casks/spotask.rb"
+git -C "$cask_work" add Casks/spotask.rb
+git -C "$cask_work" commit -m "cask v1" >/dev/null
+git -C "$cask_work" remote add origin "$cask_origin"
+(
+    cd "$cask_work"
+    CASK_GITHUB_TOKEN=test-token "$PUSH_CASK"
+) >/dev/null
+test "$(git --git-dir="$cask_origin" log -1 --format=%s)" = "cask v1" || fail "cask helper did not push HEAD to origin main"
+pass "cask helper pushes HEAD to origin main"
 
-: > "$cask_log"
-CASK_EXISTING_PR=1 CASK_LOG="$cask_log" PATH="$cask_bin:$PATH" \
-    RELEASE_TAG=v0.2.2 GITHUB_REPOSITORY=shiquda/SpotAsk \
-    "$OPEN_CASK_PR" >/dev/null
-grep -q 'gh pr create ' "$cask_log" && fail "cask helper opened a duplicate PR"
-grep -q 'gh pr view 12 ' "$cask_log" || fail "cask helper did not reuse the open PR"
-pass "existing Homebrew cask PR is reused"
+printf 'v2\n' > "$cask_work/Casks/spotask.rb"
+git -C "$cask_work" add Casks/spotask.rb
+git -C "$cask_work" commit -m "cask v2" >/dev/null
+(
+    cd "$cask_work"
+    CASK_GITHUB_TOKEN=test-token "$PUSH_CASK"
+) >/dev/null
+test "$(git --git-dir="$cask_origin" log -1 --format=%s)" = "cask v2" || fail "second cask push did not update origin main"
+pass "repeat cask push updates origin main without force"
 
-grep -q 'git push origin HEAD:main' "$ROOT_DIR/.github/workflows/release.yml" && fail "Release workflow still pushes the cask to main"
-grep -q 'open-homebrew-cask-pr.sh' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release workflow does not call the cask PR helper"
-grep -q 'pull-requests: write' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release workflow cannot open cask PRs"
+grep -q 'open-homebrew-cask-pr.sh' "$ROOT_DIR/.github/workflows/release.yml" && fail "Release workflow still opens a Homebrew cask PR"
+grep -q 'push-homebrew-cask.sh' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release workflow does not call the cask push helper"
+grep -q 'secrets.CASK_GITHUB_TOKEN || github.token' "$ROOT_DIR/.github/workflows/release.yml" && fail "CASK_GITHUB_TOKEN still falls back to GITHUB_TOKEN"
 
 # --- script syntax ---
 /bin/sh -n "$PUBLISH"
 /bin/sh -n "$NOTARIZE"
-/bin/sh -n "$OPEN_CASK_PR"
+/bin/sh -n "$PUSH_CASK"
 /bin/sh -n "$ROOT_DIR/Scripts/make-release-dmg.sh"
 /bin/sh -n "$ROOT_DIR/Scripts/test-release-workflow.sh"
 pass "release scripts parse"
