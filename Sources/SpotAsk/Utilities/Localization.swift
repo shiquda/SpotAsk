@@ -1,6 +1,9 @@
 import Foundation
 
 enum L10n {
+    private static let cacheLock = NSLock()
+    nonisolated(unsafe) private static var bundleCache: [AppLanguage: Bundle] = [:]
+
     private static var bundle: Bundle {
         #if SWIFT_PACKAGE
         .module
@@ -26,6 +29,13 @@ enum L10n {
             return bundle
         }
 
+        cacheLock.lock()
+        if let cached = bundleCache[language] {
+            cacheLock.unlock()
+            return cached
+        }
+        cacheLock.unlock()
+
         let localizedResourceURL = try? FileManager.default
             .contentsOfDirectory(at: resourceURL, includingPropertiesForKeys: nil)
             .first {
@@ -37,6 +47,10 @@ enum L10n {
               let localizedBundle = Bundle(url: localizedResourceURL) else {
             return bundle
         }
+
+        cacheLock.lock()
+        bundleCache[language] = localizedBundle
+        cacheLock.unlock()
 
         return localizedBundle
     }
