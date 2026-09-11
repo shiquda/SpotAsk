@@ -14,7 +14,10 @@ struct SettingsPageHeader: View {
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 40, height: 40)
-                .background(section.tint, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .background(
+                    LinearGradient(colors: section.tintGradient, startPoint: .top, endPoint: .bottom),
+                    in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                )
             Text(section.title)
                 .font(.system(size: 27, weight: .bold))
         }

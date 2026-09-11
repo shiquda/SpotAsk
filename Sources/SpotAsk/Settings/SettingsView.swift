@@ -127,6 +127,23 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         case .about: .purple
         }
     }
+
+    /// LookAway-style icon tiles fade from a lighter tone at the top to a
+    /// deeper tone at the bottom. The stops are sampled from the LookAway
+    /// reference the user endorsed: warm hues (pink → red → orange → amber)
+    /// flowing down the sidebar instead of cool system colors.
+    var tintGradient: [Color] {
+        switch self {
+        case .provider: [Color(red: 0.98, green: 0.42, blue: 0.85), Color(red: 0.88, green: 0.20, blue: 0.63)]  // LookAway pink #F96BD8→#E134A1
+        case .prompts: [Color(red: 0.99, green: 0.36, blue: 0.67), Color(red: 0.91, green: 0.24, blue: 0.58)]   // #FC5CAB→#E83E94
+        case .externalAsk: [Color(red: 0.99, green: 0.38, blue: 0.58), Color(red: 0.90, green: 0.27, blue: 0.50)] // #FC6194→#E64580
+        case .selectionAssistant: [Color(red: 0.98, green: 0.43, blue: 0.43), Color(red: 0.89, green: 0.33, blue: 0.35)] // #FA6E6E→#E35459
+        case .shortcuts: [Color(red: 0.96, green: 0.50, blue: 0.24), Color(red: 0.85, green: 0.42, blue: 0.19)] // #F5803D→#D96B30
+        case .general: [Color(red: 1.00, green: 0.62, blue: 0.09), Color(red: 0.85, green: 0.52, blue: 0.01)]   // #FE9E17→#D98502
+        case .appearance: [Color(red: 0.98, green: 0.67, blue: 0.00), Color(red: 0.88, green: 0.58, blue: 0.00)] // #FAAB00→#E19400
+        case .about: [Color(red: 0.87, green: 0.71, blue: 0.19), Color(red: 0.72, green: 0.58, blue: 0.13)]     // #DEB531→#B89421
+        }
+    }
 }
 
 struct SettingsGroupTarget: Hashable {
