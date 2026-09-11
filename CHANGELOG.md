@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-09-11
+
 ### Fixed
 
 - Global Shortcut can be cleared in Settings so SpotAsk no longer occupies a system hotkey. Existing installs keep their current shortcut, including the default Option+Space.
@@ -137,8 +139,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provider cards can be expanded and collapsed reliably.
 - Thinking expansion behavior: when enabled, thinking stays expanded during reasoning and collapses for the final answer; when disabled, it stays collapsed.
 
-[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.2.2...HEAD
-[0.2.2]: https://github.com/shiquda/SpotAsk/compare/v0.2.1...v0.2.2
+[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/shiquda/SpotAsk/compare/v0.2.2...v0.2.3
 [0.2.1]: https://github.com/shiquda/SpotAsk/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/shiquda/SpotAsk/compare/v0.1.6...v0.2.0
 [0.1.6]: https://github.com/shiquda/SpotAsk/compare/v0.1.5...v0.1.6
