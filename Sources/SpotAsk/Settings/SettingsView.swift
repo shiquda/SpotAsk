@@ -65,10 +65,27 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         }
     }
 
+    /// The settings window can be localized to Chinese or English while the
+    /// query arrives in the other language, so the section filter carries the
+    /// matching localized title in both languages. The content index below
+    /// applies the same treatment to every group and field label.
+    private var additionalSearchTitles: [String] {
+        switch self {
+        case .provider: ["服务设置", "Provider"]
+        case .prompts: ["提示词", "Prompts"]
+        case .externalAsk: ["外部提问", "External Ask"]
+        case .selectionAssistant: ["划词助手", "Selection Assistant"]
+        case .shortcuts: ["快捷键", "Shortcuts"]
+        case .general: ["通用", "General"]
+        case .appearance: ["外观", "Appearance"]
+        case .about: ["关于", "About"]
+        }
+    }
+
     func matches(searchText: String) -> Bool {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !query.isEmpty else { return true }
-        return ([title, group.title] + searchTerms).contains { term in
+        return ([title, group.title] + searchTerms + additionalSearchTitles).contains { term in
             term.lowercased().contains(query)
         }
     }
@@ -129,49 +146,68 @@ struct SettingsSearchResult: Identifiable, Hashable {
 enum SettingsSearchIndex {
     private struct Entry {
         let section: SettingsSection
-        let anchor: String
         let titleKey: String
         let labelKeys: [String]
     }
 
     // Keep this list beside the settings pages: labels are localization keys,
     // so search follows the language currently shown by the settings window.
+    // Only groups that always render on their page belong here — conditional
+    // groups such as the model detail form (no model selected by default) must
+    // not be exposed, or a result click would scroll to nothing.
     private static let entries: [Entry] = [
-        Entry(section: .provider, anchor: "providerInfo", titleKey: "settings.providerInfo", labelKeys: ["settings.providerName", "settings.providerFormat", "settings.serviceAddress", "settings.addressMode", "settings.responseTimeout"]),
-        Entry(section: .provider, anchor: "accessKey", titleKey: "settings.accessKey", labelKeys: ["settings.accessKey"]),
-        Entry(section: .provider, anchor: "availableModels", titleKey: "settings.availableModels", labelKeys: ["settings.modelRefreshDescription"]),
-        Entry(section: .provider, anchor: "modelInfo", titleKey: "settings.modelInfo", labelKeys: ["settings.displayName", "settings.upstreamModelID", "settings.service", "settings.streaming", "settings.requestCompatibilityProfile", "settings.thinkingMode", "settings.customRequestParameters"]),
-        Entry(section: .prompts, anchor: "savedPrompts", titleKey: "settings.savedPrompts", labelKeys: ["settings.promptCatalogDescription"]),
-        Entry(section: .prompts, anchor: "customInstruction", titleKey: "settings.customInstruction", labelKeys: ["settings.customInstruction"]),
-        Entry(section: .externalAsk, anchor: "externalAsk", titleKey: "settings.externalAsk", labelKeys: ["settings.externalAskEnabled", "settings.promptCatalogDescription"]),
-        Entry(section: .selectionAssistant, anchor: "selectionAssistant", titleKey: "settings.selectionAssistant", labelKeys: ["settings.selectionAssistantEnabled", "settings.selectionAssistantPermissionStatus", "settings.selectionAssistantMode", "settings.selectionAssistantAutoShow", "settings.selectionAssistantActionLabels", "settings.selectionAssistantActionPrompts", "settings.selectionAssistantActionExternalAsk", "settings.selectionAssistantAutoShowScope", "settings.selectionAssistantAutoShowDelay", "settings.selectionAssistantDefaultAction", "settings.selectionAssistantAutoShowApps"]),
-        Entry(section: .shortcuts, anchor: "shortcutActions", titleKey: "settings.shortcutActions", labelKeys: ["settings.selectionAssistantToggleShortcut"]),
-        Entry(section: .shortcuts, anchor: "shortcutPrompts", titleKey: "settings.shortcutPrompts", labelKeys: ["settings.promptCatalogDescription"]),
-        Entry(section: .shortcuts, anchor: "shortcutExternalAsk", titleKey: "settings.externalAsk", labelKeys: ["settings.externalAsk"]),
-        Entry(section: .general, anchor: "language", titleKey: "settings.language", labelKeys: ["settings.language"]),
-        Entry(section: .general, anchor: "behavior", titleKey: "settings.behavior", labelKeys: ["settings.globalShortcut", "settings.launchAtLogin", "settings.silentLaunch", "settings.showMenuBarIcon", "settings.restoreSession", "settings.clearInputOnClose", "settings.confirmBeforeStartingNewConversation", "settings.escapeStartsNewConversation", "settings.defaultExpandReasoning", "settings.windowOnTop", "settings.contextLimit"]),
-        Entry(section: .general, anchor: "proxy", titleKey: "settings.proxy", labelKeys: ["settings.proxyEnabled", "settings.proxyType", "settings.proxyHost", "settings.proxyPort", "settings.proxyUsername", "settings.proxyPassword"]),
-        Entry(section: .general, anchor: "diagnostics", titleKey: "settings.diagnostics", labelKeys: ["settings.diagnosticsEnabled"]),
-        Entry(section: .general, anchor: "localData", titleKey: "settings.localData", labelKeys: ["settings.localDataDescription"]),
-        Entry(section: .general, anchor: "configuration", titleKey: "settings.configuration", labelKeys: ["settings.configurationDescription"]),
-        Entry(section: .appearance, anchor: "reading", titleKey: "settings.reading", labelKeys: ["settings.appearance", "settings.chatMessageStyle", "settings.renderMath", "settings.fontSize"]),
-        Entry(section: .about, anchor: "aboutInfo", titleKey: "SpotAsk", labelKeys: ["settings.version", "settings.source", "settings.userGuide"]),
-        Entry(section: .about, anchor: "updates", titleKey: "settings.updates", labelKeys: ["settings.autoCheckForUpdates", "settings.checkForUpdates"])
+        Entry(section: .provider, titleKey: "settings.providerInfo", labelKeys: ["settings.providerName", "settings.providerFormat", "settings.serviceAddress", "settings.addressMode", "settings.responseTimeout"]),
+        Entry(section: .provider, titleKey: "settings.accessKey", labelKeys: ["settings.accessKey"]),
+        Entry(section: .provider, titleKey: "settings.availableModels", labelKeys: ["settings.modelRefreshDescription"]),
+        Entry(section: .prompts, titleKey: "settings.savedPrompts", labelKeys: ["settings.promptCatalogDescription"]),
+        Entry(section: .prompts, titleKey: "settings.customInstruction", labelKeys: ["settings.customInstruction"]),
+        Entry(section: .externalAsk, titleKey: "settings.externalAsk", labelKeys: ["settings.externalAskEnabled", "settings.promptCatalogDescription"]),
+        Entry(section: .selectionAssistant, titleKey: "settings.selectionAssistant", labelKeys: ["settings.selectionAssistantEnabled", "settings.selectionAssistantPermissionStatus", "settings.selectionAssistantMode", "settings.selectionAssistantAutoShow", "settings.selectionAssistantActionLabels", "settings.selectionAssistantActionPrompts", "settings.selectionAssistantActionExternalAsk", "settings.selectionAssistantAutoShowScope", "settings.selectionAssistantAutoShowDelay", "settings.selectionAssistantDefaultAction", "settings.selectionAssistantAutoShowApps"]),
+        Entry(section: .shortcuts, titleKey: "settings.shortcutActions", labelKeys: ["settings.selectionAssistantToggleShortcut"]),
+        Entry(section: .shortcuts, titleKey: "settings.shortcutPrompts", labelKeys: ["settings.promptCatalogDescription"]),
+        Entry(section: .shortcuts, titleKey: "settings.externalAsk", labelKeys: ["settings.externalAsk"]),
+        Entry(section: .general, titleKey: "settings.language", labelKeys: ["settings.language"]),
+        Entry(section: .general, titleKey: "settings.behavior", labelKeys: ["settings.globalShortcut", "settings.launchAtLogin", "settings.silentLaunch", "settings.showMenuBarIcon", "settings.restoreSession", "settings.clearInputOnClose", "settings.confirmBeforeStartingNewConversation", "settings.escapeStartsNewConversation", "settings.defaultExpandReasoning", "settings.windowOnTop", "settings.contextLimit"]),
+        Entry(section: .general, titleKey: "settings.proxy", labelKeys: ["settings.proxyEnabled", "settings.proxyType", "settings.proxyHost", "settings.proxyPort", "settings.proxyUsername", "settings.proxyPassword"]),
+        Entry(section: .general, titleKey: "settings.diagnostics", labelKeys: ["settings.diagnosticsEnabled"]),
+        Entry(section: .general, titleKey: "settings.localData", labelKeys: ["settings.localDataDescription"]),
+        Entry(section: .general, titleKey: "settings.configuration", labelKeys: ["settings.configurationDescription"]),
+        Entry(section: .appearance, titleKey: "settings.reading", labelKeys: ["settings.appearance", "settings.chatMessageStyle", "settings.renderMath", "settings.fontSize"]),
+        Entry(section: .about, titleKey: "SpotAsk", labelKeys: ["settings.version", "settings.source", "settings.userGuide"]),
+        Entry(section: .about, titleKey: "settings.updates", labelKeys: ["settings.autoCheckForUpdates", "settings.checkForUpdates"])
     ]
 
-    static func results(for searchText: String) -> [SettingsSearchResult] {
+    /// Settings can be displayed in Chinese or English while the query arrives
+    /// in the other language, so titles and labels are matched against the
+    /// current UI language plus both fallback locales.
+    private static let searchableLanguages: [AppLanguage] = [.simplifiedChinese, .english]
+
+    static func results(
+        for searchText: String,
+        include: ((SettingsSection, String) -> Bool)? = nil
+    ) -> [SettingsSearchResult] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !query.isEmpty else { return [] }
+        let currentLanguage = AppLanguage.current
+        let languages = ([currentLanguage] + searchableLanguages).reduce(into: [AppLanguage]()) { list, language in
+            if !list.contains(language) { list.append(language) }
+        }
         let rankedResults: [(offset: Int, result: SettingsSearchResult)] = entries.enumerated().compactMap { offset, entry in
             let title = entry.titleKey == "SpotAsk" ? "SpotAsk" : L10n.string(entry.titleKey)
+            guard include?(entry.section, title) ?? true else { return nil }
             let sectionTitle = entry.section.title
-            let descriptions = entry.labelKeys.map { L10n.string($0) }
+            let titleCandidates = Set(
+                languages.map { (entry.titleKey == "SpotAsk" ? "SpotAsk" : L10n.string(entry.titleKey, language: $0)).lowercased() }
+            )
+            let descriptionCandidates = Set(
+                languages.flatMap { language in entry.labelKeys.map { L10n.string($0, language: language).lowercased() } }
+            )
             let matchPriority: Int
-            if title.lowercased().contains(query) {
+            if titleCandidates.contains(where: { $0.contains(query) }) {
                 matchPriority = 0
             } else if sectionTitle.lowercased().contains(query) {
                 matchPriority = 1
-            } else if descriptions.contains(where: { $0.lowercased().contains(query) }) {
+            } else if descriptionCandidates.contains(where: { $0.contains(query) }) {
                 matchPriority = 2
             } else {
                 return nil
@@ -209,6 +245,10 @@ struct SettingsView: View {
     @State private var searchText = ""
     @State private var pendingGroupTarget: SettingsGroupTarget?
 
+    private var searchResults: [SettingsSearchResult] {
+        SettingsSearchIndex.results(for: searchText, include: isSearchResultReachable)
+    }
+
     private var visibleSections: [SettingsSection] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return Array(SettingsSection.allCases) }
@@ -217,7 +257,7 @@ struct SettingsView: View {
         // label can match even when it is not listed in section.searchTerms;
         // keep that result's destination visible so cross-section navigation
         // cannot fall back to the first unrelated page.
-        let indexedSections = SettingsSearchIndex.results(for: query).map(\.target.section)
+        let indexedSections = searchResults.map(\.target.section)
         let sections = SettingsSection.allCases.filter {
             $0.matches(searchText: query) || indexedSections.contains($0)
         }
@@ -266,6 +306,7 @@ struct SettingsView: View {
                 searchText: $searchText,
                 settings: settings,
                 visibleSections: visibleSections,
+                searchResults: searchResults,
                 onSelectResult: { result in
                     selectedSection = result.target.section
                     pendingGroupTarget = result.target
@@ -339,6 +380,16 @@ struct SettingsView: View {
             StatusToastOverlay()
                 .padding(.top, 36)
         }
+    }
+
+    /// The available-models group only renders when the selected provider
+    /// supports model refresh; everything else in the index always renders on
+    /// its page, so every exposed result can actually scroll somewhere.
+    private func isSearchResultReachable(section: SettingsSection, anchor: String) -> Bool {
+        if section == .provider, anchor == L10n.string("settings.availableModels") {
+            return providerState.selectedProviderSupportsModelRefresh
+        }
+        return true
     }
 }
 

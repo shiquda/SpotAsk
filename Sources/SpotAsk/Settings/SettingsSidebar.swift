@@ -16,12 +16,11 @@ struct SettingsSidebar: View {
     @Binding var searchText: String
     let settings: AppSettings
     let visibleSections: [SettingsSection]
+    /// Results are computed by the parent so they reflect which groups can
+    /// actually render (e.g. available models only when refresh is supported).
+    let searchResults: [SettingsSearchResult]
     let onSelectResult: (SettingsSearchResult) -> Void
     @FocusState private var focusedSection: SettingsSection?
-
-    private var searchResults: [SettingsSearchResult] {
-        SettingsSearchIndex.results(for: searchText)
-    }
 
     private var sectionsByGroup: [(SettingsSectionGroup, [SettingsSection])] {
         SettingsSectionGroup.allCases.compactMap { group in
