@@ -84,7 +84,10 @@ struct SettingsSidebar: View {
                                         .font(.system(size: 10, weight: .semibold))
                                         .foregroundStyle(.white)
                                         .frame(width: 20, height: 20)
-                                        .background(result.target.section.tint, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+                                        .background(
+                                            LinearGradient(colors: result.target.section.tintGradient, startPoint: .top, endPoint: .bottom),
+                                            in: RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                        )
                                     VStack(alignment: .leading, spacing: 1) {
                                         Text(result.title).font(.system(size: 13, weight: .medium)).foregroundStyle(.primary).lineLimit(1)
                                         Text(result.sectionTitle).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
@@ -121,7 +124,11 @@ struct SettingsSidebar: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: section.symbol).font(.system(size: 12, weight: .semibold)).foregroundStyle(.white)
-                    .frame(width: 24, height: 24).background(section.tint, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .frame(width: 24, height: 24)
+                    .background(
+                        LinearGradient(colors: section.tintGradient, startPoint: .top, endPoint: .bottom),
+                        in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    )
                 Text(section.title).font(.system(size: 13, weight: selection == section ? .semibold : .regular)).foregroundStyle(.primary)
                 Spacer(minLength: 0)
             }

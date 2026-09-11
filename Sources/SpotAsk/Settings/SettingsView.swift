@@ -127,6 +127,23 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         case .about: .purple
         }
     }
+
+    /// LookAway-style icon tiles fade from a lighter tone at the top to a
+    /// deeper tone at the bottom, which keeps the tiles vivid without reading
+    /// as flat color blocks. Sections within one group stay in the same hue
+    /// family so the sidebar reads as grouped gradients.
+    var tintGradient: [Color] {
+        switch self {
+        case .provider: [Color(red: 0.45, green: 0.82, blue: 0.96), Color(red: 0.10, green: 0.55, blue: 0.78)]
+        case .prompts: [Color(red: 0.45, green: 0.90, blue: 0.72), Color(red: 0.08, green: 0.62, blue: 0.45)]
+        case .externalAsk: [Color(red: 0.48, green: 0.72, blue: 1.00), Color(red: 0.12, green: 0.42, blue: 0.92)]
+        case .selectionAssistant: [Color(red: 0.40, green: 0.88, blue: 0.82), Color(red: 0.05, green: 0.60, blue: 0.60)]
+        case .shortcuts: [Color(red: 1.00, green: 0.72, blue: 0.40), Color(red: 0.90, green: 0.45, blue: 0.10)]
+        case .general: [Color(red: 0.72, green: 0.72, blue: 0.76), Color(red: 0.42, green: 0.42, blue: 0.48)]
+        case .appearance: [Color(red: 0.68, green: 0.62, blue: 1.00), Color(red: 0.42, green: 0.32, blue: 0.88)]
+        case .about: [Color(red: 0.82, green: 0.58, blue: 1.00), Color(red: 0.58, green: 0.25, blue: 0.85)]
+        }
+    }
 }
 
 struct SettingsGroupTarget: Hashable {
