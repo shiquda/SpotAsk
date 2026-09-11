@@ -33,7 +33,7 @@ If refresh fails, verify the service address and access key first. If your provi
 
 ## Global shortcut conflicts
 
-If another app uses the same global hotkey, choose a different preset or record a different shortcut in Settings > **Shortcuts**. The in-app shortcuts are separate from the global hotkey.
+If another app uses the same global hotkey, record a different shortcut in Settings > **General**, or clear **Global Shortcut** if you open SpotAsk from the menu bar or a URL. In-app shortcuts are separate from the global hotkey.
 
 ## SpotAsk says it cannot read saved service settings
 

@@ -30,7 +30,7 @@ struct GeneralSettingsPage: View {
                 SettingsFieldRow(label: L10n.string("settings.globalShortcut")) {
                     HStack(spacing: 8) {
                         ShortcutRecorder(
-                            shortcut: settings.globalShortcut ?? .init(key: " ", modifiers: .option),
+                            shortcut: settings.globalShortcut,
                             onRecord: { shortcut in
                                 settings.globalShortcut = shortcut
                                 StatusToastCenter.shared.show(L10n.string("settings.shortcutSaved"))
@@ -44,6 +44,17 @@ struct GeneralSettingsPage: View {
 
                         Button {
                             settings.globalShortcut = nil
+                            StatusToastCenter.shared.show(L10n.string("settings.shortcutCleared"))
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
+                        .buttonStyle(.borderless)
+                        .disabled(settings.globalShortcut == nil)
+                        .help(L10n.string("settings.clearShortcut"))
+                        .accessibilityLabel(L10n.string("settings.clearShortcut"))
+
+                        Button {
+                            settings.globalShortcut = settings.hotKeyPreset.shortcut
                             StatusToastCenter.shared.show(L10n.string("settings.shortcutRestored"))
                         } label: {
                             Image(systemName: "arrow.counterclockwise")

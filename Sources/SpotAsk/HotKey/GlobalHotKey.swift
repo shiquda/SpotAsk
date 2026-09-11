@@ -10,7 +10,13 @@ final class GlobalHotKey {
     static let defaultKeyCode = UInt32(kVK_Space)
     static let defaultModifiers = UInt32(optionKey)
 
+    enum Registration: Equatable {
+        case none
+        case carbon(keyCode: UInt32, modifiers: UInt32)
+    }
+
     static let signature: OSType = 0x5350_4153 // "SPAS"
+
     private let identifier: UInt32
 
     private var eventHandler: EventHandlerRef?
@@ -79,6 +85,15 @@ final class GlobalHotKey {
 
     static func matchesEvent(signature: OSType, identifier: UInt32, expectedIdentifier: UInt32) -> Bool {
         signature == Self.signature && identifier == expectedIdentifier
+    }
+
+    static func registration(for shortcut: InAppShortcut?) -> Registration {
+        guard let shortcut,
+              shortcut.isSupportedGlobalShortcut,
+              let configuration = configuration(for: shortcut) else {
+            return .none
+        }
+        return .carbon(keyCode: configuration.keyCode, modifiers: configuration.modifiers)
     }
 
     static func configuration(for shortcut: InAppShortcut) -> (keyCode: UInt32, modifiers: UInt32)? {
