@@ -34,6 +34,7 @@ struct ChatView: View {
     private let selectionReplacementWriter: any SelectionReplacementWriting = AccessibilitySelectionReplacementWriter()
     @State private var quickActionTrigger: QuickActionTrigger?
 
+    @State private var isPanelVisible = true
 
     init(
         viewModel: ChatViewModel,
@@ -68,6 +69,9 @@ struct ChatView: View {
             }
         }
         .onAppear {
+            if let window = chatWindowReference.window {
+                isPanelVisible = window.isVisible
+            }
             inputFocused = true
             viewModel.prepareNewConversationAfterInactivity()
             commandCenter.setActionConsumer(handleCommandAction)
@@ -81,6 +85,7 @@ struct ChatView: View {
             pendingScrollTask?.cancel()
             shortcutDispatcher?.stop()
             shortcutDispatcher = nil
+            isPanelVisible = false
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { notification in
             if (notification.object as? NSWindow) === chatWindowReference.window {
@@ -89,6 +94,17 @@ struct ChatView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
             showsShortcutHints = false
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .spotAskPanelDidShow)) { _ in
+            isPanelVisible = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .spotAskPanelDidHide)) { _ in
+            isPanelVisible = false
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didChangeOcclusionStateNotification)) { notification in
+            if let window = notification.object as? NSWindow, window === chatWindowReference.window {
+                isPanelVisible = window.occlusionState.contains(.visible) && window.isVisible
+            }
         }
         .onExitCommand(perform: handleEscape)
         .overlay {
@@ -424,7 +440,8 @@ struct ChatView: View {
                     onToggleReasoning: {
                         reasoningToggle.toggleByUser(messageID: message.id)
                     },
-                    onLiveMessageChanged: { reconcileReasoningAfterStreamingUpdate($0) }
+                    onLiveMessageChanged: { reconcileReasoningAfterStreamingUpdate($0) },
+                    isPanelVisible: isPanelVisible,
                 )
             }
         }

@@ -28,6 +28,7 @@ let isExpanded: Bool
 let onToggleExpansion: () -> Void
 let onToggleReasoning: () -> Void
 let onLiveMessageChanged: (ChatMessage) -> Void
+let isPanelVisible: Bool
 
 var body: some View {
     let displayedMessage = viewModel.liveMessage(message)
@@ -103,26 +104,22 @@ private var streamingChunks: [String] {
     return []
 }
 
+private var isStreamingReasoning: Bool {
+    message.state == .streaming && message.reasoningCompletedAt == nil
+}
+
 @ViewBuilder
 private func reasoningSection(message: ChatMessage, reasoning: String) -> some View {
     VStack(alignment: .leading, spacing: 4) {
         Button {
             onToggleReasoning()
         } label: {
-            TimelineView(.periodic(from: .now, by: 0.1)) { context in
-                HStack(spacing: 5) {
-                    Image(systemName: reasoningState.isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.caption.weight(.medium))
-                        .frame(width: 14, height: 14)
-                    Text(reasoningHeaderText(for: message, at: context.date))
-                        .font(.caption.weight(.medium))
-                    if message.state == .streaming, message.reasoningCompletedAt == nil {
-                        ProgressView()
-                            .controlSize(.mini)
-                            .scaleEffect(0.7)
-                    }
+            if isStreamingReasoning && isPanelVisible {
+                TimelineView(.periodic(from: .now, by: 0.1)) { context in
+                    reasoningHeaderContent(for: message, at: context.date)
                 }
-                .foregroundStyle(.secondary)
+            } else {
+                reasoningHeaderContent(for: message, at: .now)
             }
         }
         .buttonStyle(.plain)
@@ -136,6 +133,22 @@ private func reasoningSection(message: ChatMessage, reasoning: String) -> some V
         }
     }
     .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: reasoningState.isExpanded)
+}
+
+private func reasoningHeaderContent(for message: ChatMessage, at now: Date) -> some View {
+    HStack(spacing: 5) {
+        Image(systemName: reasoningState.isExpanded ? "chevron.down" : "chevron.right")
+            .font(.caption.weight(.medium))
+            .frame(width: 14, height: 14)
+        Text(reasoningHeaderText(for: message, at: now))
+            .font(.caption.weight(.medium))
+        if message.state == .streaming, message.reasoningCompletedAt == nil {
+            ProgressView()
+                .controlSize(.mini)
+                .scaleEffect(0.7)
+        }
+    }
+    .foregroundStyle(.secondary)
 }
 
 private func reasoningHeaderText(for message: ChatMessage, at now: Date) -> String {
