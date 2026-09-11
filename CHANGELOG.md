@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.3] - 2026-09-11
 
+### Changed
+
+- Settings now uses a compact grouped sidebar with bilingual content search, keyboard navigation, and search results that jump only to visible controls.
+- The Settings experience has been refreshed with tighter spacing, gradient icon tiles, and more compact page and provider layouts.
+
 ### Fixed
 
 - Global Shortcut can be cleared in Settings so SpotAsk no longer occupies a system hotkey. Existing installs keep their current shortcut, including the default Option+Space.
