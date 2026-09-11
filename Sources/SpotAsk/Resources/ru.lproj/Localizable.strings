@@ -371,6 +371,12 @@
 "settings.upstreamModelID" = "ID модели";
 "settings.useForChat" = "Использовать в чате";
 "settings.selectionAssistant" = "Ассистент выделения";
+"settings.groupCore" = "Основные";
+"settings.groupAutomation" = "Автоматизация";
+"settings.groupApp" = "Приложение";
+"settings.searchPlaceholder" = "Поиск настроек";
+"settings.noSearchResults" = "Подходящих настроек нет";
+"settings.clearSearch" = "Очистить поиск";
 "settings.selectionAssistantDescription" = "Выделите текст в другом приложении и нажмите сочетание выделения, чтобы перевести, кратко изложить или спросить SpotAsk.";
 "settings.selectionAssistantEnabled" = "Включить ассистента выделения";
 "settings.selectionAssistantToggleShortcut" = "Переключить режим быстрого вопроса";

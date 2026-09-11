@@ -371,6 +371,12 @@
 "settings.upstreamModelID" = "Model ID";
 "settings.useForChat" = "Use for Chat";
 "settings.selectionAssistant" = "Selection Assistant";
+"settings.groupCore" = "Core";
+"settings.groupAutomation" = "Automation";
+"settings.groupApp" = "App";
+"settings.searchPlaceholder" = "Search settings";
+"settings.noSearchResults" = "No matching settings";
+"settings.clearSearch" = "Clear Search";
 "settings.selectionAssistantDescription" = "Select text in another app, then press the selection shortcut to translate, summarize, or ask SpotAsk about it.";
 "settings.selectionAssistantEnabled" = "Enable Selection Assistant";
 "settings.selectionAssistantToggleShortcut" = "Toggle Quick Question Mode";

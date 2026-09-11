@@ -18,6 +18,72 @@ struct SettingsLayoutTests {
         #expect(SettingsSection.about.moving(.down) == nil)
         #expect(SettingsSection.provider.moving(.up) == nil)
     }
+    @Test func settingsSearchMatchesSectionsAndMovesWithinFilteredResults() {
+        #expect(SettingsSection.general.matches(searchText: "proxy"))
+        #expect(!SettingsSection.about.matches(searchText: "proxy"))
+        #expect(SettingsSection.provider.moving(.down, within: [.provider, .general]) == .general)
+        #expect(SettingsSection.general.moving(.up, within: [.provider, .general]) == .provider)
+        #expect(SettingsSection.provider.moving(.up, within: [.provider, .general]) == nil)
+    }
+
+    @Test func settingsSearchIndexReturnsContentGroupTargets() {
+        let proxy = SettingsSearchIndex.results(for: "proxy")
+        #expect(proxy.contains { $0.target == SettingsGroupTarget(section: .general, anchor: "Proxy") })
+
+        let language = SettingsSearchIndex.results(for: "language")
+        #expect(language.contains { $0.target.section == .general })
+    }
+    @Test func settingsSearchRanksTitlesBeforeDescriptions() {
+        let prompts = SettingsSearchIndex.results(for: "prompt")
+        #expect(prompts.map(\.matchPriority) == prompts.map(\.matchPriority).sorted())
+
+        let promptShortcutIndex = prompts.firstIndex {
+            $0.target.section == .shortcuts && $0.title == L10n.string("settings.shortcutPrompts")
+        }
+        let descriptionIndex = prompts.firstIndex { $0.target.section == .externalAsk }
+        #expect(promptShortcutIndex != nil)
+        #expect(descriptionIndex != nil)
+        if let promptShortcutIndex, let descriptionIndex {
+            #expect(promptShortcutIndex < descriptionIndex)
+        }
+    }
+
+    @Test func settingsSearchMatchesChineseAndEnglishRegardlessOfInterfaceLanguage() {
+        // The proxy group is indexed as "settings.proxy"; the query must hit
+        // whether the UI shows 代理 (zh-Hans) or Proxy (en).
+        for query in ["proxy", "代理"] {
+            let results = SettingsSearchIndex.results(for: query)
+            #expect(results.contains { $0.target.section == .general }, "expected a general-section result for \(query)")
+        }
+
+        // Model details only render while a model is being edited, so the
+        // group must never appear as a search result.
+        for query in ["model details", "模型详情"] {
+            let results = SettingsSearchIndex.results(for: query)
+            #expect(!results.contains { $0.title == L10n.string("settings.modelInfo") }, "modelInfo must not be indexed for \(query)")
+        }
+    }
+    @Test func settingsSearchHidesAvailableModelsWhenProviderCannotRefresh() {
+        let availableModelsTitle = L10n.string("settings.availableModels")
+
+        // The default test provider does not support model refresh, so the
+        // group is not on screen and must not be offered as a jump target,
+        // even when the query hits its description text.
+        let hidden = SettingsSearchIndex.results(for: "models available") { section, anchor in
+            !(section == .provider && anchor == availableModelsTitle)
+        }
+        #expect(!hidden.contains { $0.target.section == .provider && $0.title == availableModelsTitle })
+
+        // Other provider groups stay reachable under the same filter.
+        let providerInfoResults = SettingsSearchIndex.results(for: "service details") { section, anchor in
+            !(section == .provider && anchor == availableModelsTitle)
+        }
+        #expect(providerInfoResults.contains { $0.target.section == .provider && $0.title == L10n.string("settings.providerInfo") })
+
+        // Without the reachability filter the group is found as usual.
+        let unfiltered = SettingsSearchIndex.results(for: "models available")
+        #expect(unfiltered.contains { $0.target.section == .provider && $0.title == availableModelsTitle })
+    }
 
     @Test func providerPageScrollingRevealsBottomControls() throws {
         let fixture = makeWindow(section: .provider)

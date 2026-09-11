@@ -371,6 +371,12 @@
 "settings.upstreamModelID" = "Modell-ID";
 "settings.useForChat" = "Für Chat verwenden";
 "settings.selectionAssistant" = "Auswahlassistent";
+"settings.groupCore" = "Kern";
+"settings.groupAutomation" = "Automatisierung";
+"settings.groupApp" = "App";
+"settings.searchPlaceholder" = "Einstellungen suchen";
+"settings.noSearchResults" = "Keine passenden Einstellungen";
+"settings.clearSearch" = "Suche löschen";
 "settings.selectionAssistantDescription" = "Wähle Text in einer anderen App aus und drücke dann das Auswahlkürzel, um zu übersetzen, zusammenzufassen oder SpotAsk danach zu fragen.";
 "settings.selectionAssistantEnabled" = "Auswahlassistent aktivieren";
 "settings.selectionAssistantToggleShortcut" = "Schnellfragenmodus umschalten";

@@ -371,6 +371,12 @@
 "settings.upstreamModelID" = "模型 ID";
 "settings.useForChat" = "用于对话";
 "settings.selectionAssistant" = "划词助手";
+"settings.groupCore" = "核心";
+"settings.groupAutomation" = "自动化";
+"settings.groupApp" = "应用";
+"settings.searchPlaceholder" = "搜索设置";
+"settings.noSearchResults" = "没有匹配的设置";
+"settings.clearSearch" = "清除搜索";
 "settings.selectionAssistantDescription" = "在其他应用中选中文字后，按下划词快捷键即可翻译、总结或向 SpotAsk 提问。";
 "settings.selectionAssistantEnabled" = "启用划词助手";
 "settings.selectionAssistantToggleShortcut" = "切换快速提问模式";

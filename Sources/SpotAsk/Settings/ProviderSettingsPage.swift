@@ -11,6 +11,8 @@ enum ProviderSettingsIcon {
 struct ProviderSettingsPage: View {
     @Bindable var settings: AppSettings
     @Bindable var state: ProviderSettingsState
+    let searchTarget: SettingsGroupTarget?
+    let onSearchTargetConsumed: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
@@ -21,7 +23,7 @@ struct ProviderSettingsPage: View {
             SettingsPageHeader(section: .provider, settings: settings)
             SettingsCallout(L10n.string("settings.providerDescription"))
 
-            ProviderSettingsList(state: state)
+            ProviderSettingsList(state: state, searchTarget: searchTarget, onSearchTargetConsumed: onSearchTargetConsumed)
         }
         .alert(L10n.string("settings.deleteProviderTitle"), isPresented: Binding(
             get: { state.pendingDeleteProviderID != nil },
@@ -795,44 +797,56 @@ private extension RequestCompatibilityProfile {
     }
 }
 
-// MARK: - Provider Settings List
-
 private struct ProviderSettingsList: View {
     @Bindable var state: ProviderSettingsState
+    let searchTarget: SettingsGroupTarget?
+    let onSearchTargetConsumed: () -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                if state.isCreatingProvider {
-                    NewProviderCard(state: state)
-                }
-
-                if state.providers.isEmpty, !state.isCreatingProvider {
-                    Text(L10n.string("settings.noServices"))
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 36)
-                } else {
-                    ForEach(state.providers) { provider in
-                        ProviderCard(
-                            state: state,
-                            provider: provider,
-                            models: state.modelsForProvider(provider.id)
-                        )
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    if state.isCreatingProvider {
+                        NewProviderCard(state: state)
                     }
-                }
 
-                Button {
-                    state.startNewProvider()
-                } label: {
-                    Label(L10n.string("settings.addProvider"), systemImage: "plus")
+                    if state.providers.isEmpty, !state.isCreatingProvider {
+                        Text(L10n.string("settings.noServices"))
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 36)
+                    } else {
+                        ForEach(state.providers) { provider in
+                            ProviderCard(
+                                state: state,
+                                provider: provider,
+                                models: state.modelsForProvider(provider.id)
+                            )
+                        }
+                    }
+
+                    Button {
+                        state.startNewProvider()
+                    } label: {
+                        Label(L10n.string("settings.addProvider"), systemImage: "plus")
+                    }
+                    .buttonStyle(.bordered)
+                    .padding(.top, 2)
                 }
-                .buttonStyle(.bordered)
-                .padding(.top, 2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, 12)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.bottom, 12)
+            .onAppear { scrollIfNeeded(using: proxy) }
+            .onChange(of: searchTarget) { _, _ in scrollIfNeeded(using: proxy) }
+        }
+    }
+
+    private func scrollIfNeeded(using proxy: ScrollViewProxy) {
+        guard let searchTarget, searchTarget.section == .provider else { return }
+        DispatchQueue.main.async {
+            proxy.scrollTo(searchTarget.anchor, anchor: .top)
+            onSearchTargetConsumed()
         }
     }
 }
