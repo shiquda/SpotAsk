@@ -129,19 +129,19 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
     }
 
     /// LookAway-style icon tiles fade from a lighter tone at the top to a
-    /// deeper tone at the bottom, which keeps the tiles vivid without reading
-    /// as flat color blocks. Sections within one group stay in the same hue
-    /// family so the sidebar reads as grouped gradients.
+    /// deeper tone at the bottom. The stops are sampled from the LookAway
+    /// reference the user endorsed: warm hues (pink → red → orange → amber)
+    /// flowing down the sidebar instead of cool system colors.
     var tintGradient: [Color] {
         switch self {
-        case .provider: [Color(red: 0.45, green: 0.82, blue: 0.96), Color(red: 0.10, green: 0.55, blue: 0.78)]
-        case .prompts: [Color(red: 0.45, green: 0.90, blue: 0.72), Color(red: 0.08, green: 0.62, blue: 0.45)]
-        case .externalAsk: [Color(red: 0.48, green: 0.72, blue: 1.00), Color(red: 0.12, green: 0.42, blue: 0.92)]
-        case .selectionAssistant: [Color(red: 0.40, green: 0.88, blue: 0.82), Color(red: 0.05, green: 0.60, blue: 0.60)]
-        case .shortcuts: [Color(red: 1.00, green: 0.72, blue: 0.40), Color(red: 0.90, green: 0.45, blue: 0.10)]
-        case .general: [Color(red: 0.72, green: 0.72, blue: 0.76), Color(red: 0.42, green: 0.42, blue: 0.48)]
-        case .appearance: [Color(red: 0.68, green: 0.62, blue: 1.00), Color(red: 0.42, green: 0.32, blue: 0.88)]
-        case .about: [Color(red: 0.82, green: 0.58, blue: 1.00), Color(red: 0.58, green: 0.25, blue: 0.85)]
+        case .provider: [Color(red: 0.98, green: 0.42, blue: 0.85), Color(red: 0.88, green: 0.20, blue: 0.63)]  // LookAway pink #F96BD8→#E134A1
+        case .prompts: [Color(red: 0.99, green: 0.36, blue: 0.67), Color(red: 0.91, green: 0.24, blue: 0.58)]   // #FC5CAB→#E83E94
+        case .externalAsk: [Color(red: 0.99, green: 0.38, blue: 0.58), Color(red: 0.90, green: 0.27, blue: 0.50)] // #FC6194→#E64580
+        case .selectionAssistant: [Color(red: 0.98, green: 0.43, blue: 0.43), Color(red: 0.89, green: 0.33, blue: 0.35)] // #FA6E6E→#E35459
+        case .shortcuts: [Color(red: 0.96, green: 0.50, blue: 0.24), Color(red: 0.85, green: 0.42, blue: 0.19)] // #F5803D→#D96B30
+        case .general: [Color(red: 1.00, green: 0.62, blue: 0.09), Color(red: 0.85, green: 0.52, blue: 0.01)]   // #FE9E17→#D98502
+        case .appearance: [Color(red: 0.98, green: 0.67, blue: 0.00), Color(red: 0.88, green: 0.58, blue: 0.00)] // #FAAB00→#E19400
+        case .about: [Color(red: 0.87, green: 0.71, blue: 0.19), Color(red: 0.72, green: 0.58, blue: 0.13)]     // #DEB531→#B89421
         }
     }
 }
