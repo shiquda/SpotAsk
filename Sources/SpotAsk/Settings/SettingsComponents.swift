@@ -44,8 +44,7 @@ struct SettingsGroup<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(title)
-                .font(.system(size: 17, weight: .semibold))
+            Text(title).font(.system(size: 17, weight: .semibold))
             VStack(alignment: .leading, spacing: 13) {
                 content
             }
@@ -54,6 +53,7 @@ struct SettingsGroup<Content: View>: View {
             .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .id(title)
     }
 }
 

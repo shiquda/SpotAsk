@@ -371,6 +371,12 @@
 "settings.upstreamModelID" = "ID do modelo";
 "settings.useForChat" = "Usar no chat";
 "settings.selectionAssistant" = "Assistente de seleção";
+"settings.groupCore" = "Principal";
+"settings.groupAutomation" = "Automação";
+"settings.groupApp" = "App";
+"settings.searchPlaceholder" = "Pesquisar definições";
+"settings.noSearchResults" = "Nenhuma definição correspondente";
+"settings.clearSearch" = "Limpar pesquisa";
 "settings.selectionAssistantDescription" = "Selecione texto em outro app e pressione o atalho de seleção para traduzir, resumir ou perguntar ao SpotAsk.";
 "settings.selectionAssistantEnabled" = "Ativar assistente de seleção";
 "settings.selectionAssistantToggleShortcut" = "Alternar modo de pergunta rápida";

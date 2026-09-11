@@ -371,6 +371,12 @@
 "settings.upstreamModelID" = "モデル ID";
 "settings.useForChat" = "チャットで使用";
 "settings.selectionAssistant" = "選択アシスタント";
+"settings.groupCore" = "コア";
+"settings.groupAutomation" = "自動化";
+"settings.groupApp" = "アプリ";
+"settings.searchPlaceholder" = "設定を検索";
+"settings.noSearchResults" = "一致する設定はありません";
+"settings.clearSearch" = "検索を消去";
 "settings.selectionAssistantDescription" = "他のアプリでテキストを選択し、選択ショートカットを押すと、翻訳、要約、SpotAsk への質問ができます。";
 "settings.selectionAssistantEnabled" = "選択アシスタントを有効化";
 "settings.selectionAssistantToggleShortcut" = "クイック質問モードを切り替え";

@@ -18,6 +18,35 @@ struct SettingsLayoutTests {
         #expect(SettingsSection.about.moving(.down) == nil)
         #expect(SettingsSection.provider.moving(.up) == nil)
     }
+    @Test func settingsSearchMatchesSectionsAndMovesWithinFilteredResults() {
+        #expect(SettingsSection.general.matches(searchText: "proxy"))
+        #expect(!SettingsSection.about.matches(searchText: "proxy"))
+        #expect(SettingsSection.provider.moving(.down, within: [.provider, .general]) == .general)
+        #expect(SettingsSection.general.moving(.up, within: [.provider, .general]) == .provider)
+        #expect(SettingsSection.provider.moving(.up, within: [.provider, .general]) == nil)
+    }
+
+    @Test func settingsSearchIndexReturnsContentGroupTargets() {
+        let proxy = SettingsSearchIndex.results(for: "proxy")
+        #expect(proxy.contains { $0.target == SettingsGroupTarget(section: .general, anchor: "Proxy") })
+
+        let language = SettingsSearchIndex.results(for: "language")
+        #expect(language.contains { $0.target.section == .general })
+    }
+    @Test func settingsSearchRanksTitlesBeforeDescriptions() {
+        let prompts = SettingsSearchIndex.results(for: "prompt")
+        #expect(prompts.map(\.matchPriority) == prompts.map(\.matchPriority).sorted())
+
+        let promptShortcutIndex = prompts.firstIndex {
+            $0.target.section == .shortcuts && $0.title == L10n.string("settings.shortcutPrompts")
+        }
+        let descriptionIndex = prompts.firstIndex { $0.target.section == .externalAsk }
+        #expect(promptShortcutIndex != nil)
+        #expect(descriptionIndex != nil)
+        if let promptShortcutIndex, let descriptionIndex {
+            #expect(promptShortcutIndex < descriptionIndex)
+        }
+    }
 
     @Test func providerPageScrollingRevealsBottomControls() throws {
         let fixture = makeWindow(section: .provider)
