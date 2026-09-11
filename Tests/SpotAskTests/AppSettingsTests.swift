@@ -113,19 +113,50 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(reloaded.proxyUsername, "user")
     }
 
-    func testGlobalShortcutPersistsAndFallsBackToNil() {
+    func testGlobalShortcutDefaultsToPresetAndPersistsClearedState() {
         let suite = "AppSettingsTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
 
-        XCTAssertNil(AppSettings(defaults: defaults).globalShortcut)
+        XCTAssertEqual(AppSettings(defaults: defaults).globalShortcut, HotKeyPreset.optionSpace.shortcut)
 
         let settings = AppSettings(defaults: defaults)
-        settings.globalShortcut = InAppShortcut(key: " ", modifiers: .option)
-        XCTAssertEqual(AppSettings(defaults: defaults).globalShortcut, InAppShortcut(key: " ", modifiers: .option))
+        settings.globalShortcut = InAppShortcut(key: "k", modifiers: .control)
+        XCTAssertEqual(AppSettings(defaults: defaults).globalShortcut, InAppShortcut(key: "k", modifiers: .control))
 
         settings.globalShortcut = nil
         XCTAssertNil(AppSettings(defaults: defaults).globalShortcut)
+        XCTAssertEqual(defaults.data(forKey: "globalShortcut"), Data())
+
+        settings.globalShortcut = HotKeyPreset.optionSpace.shortcut
+        XCTAssertEqual(AppSettings(defaults: defaults).globalShortcut, HotKeyPreset.optionSpace.shortcut)
+    }
+
+    func testMissingGlobalShortcutMigratesFromHotKeyPreset() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        defaults.set(HotKeyPreset.controlSpace.rawValue, forKey: "hotKeyPreset")
+        XCTAssertEqual(AppSettings(defaults: defaults).globalShortcut, HotKeyPreset.controlSpace.shortcut)
+
+        defaults.set(HotKeyPreset.commandShiftSpace.rawValue, forKey: "hotKeyPreset")
+        XCTAssertEqual(AppSettings(defaults: defaults).globalShortcut, HotKeyPreset.commandShiftSpace.shortcut)
+    }
+
+    func testExplicitEmptyGlobalShortcutDoesNotFallBackToPreset() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        defaults.set(Data(), forKey: "globalShortcut")
+        defaults.set(HotKeyPreset.controlSpace.rawValue, forKey: "hotKeyPreset")
+
+        XCTAssertNil(AppSettings(defaults: defaults).globalShortcut)
+        XCTAssertEqual(
+            AppSettings.loadGlobalShortcut(from: defaults, hotKeyPreset: .controlSpace),
+            nil
+        )
     }
 
     func testGlobalShortcutAcceptsSpaceWithModifier() {

@@ -123,6 +123,14 @@ enum HotKeyPreset: String, CaseIterable, Identifiable {
         case .commandShiftSpace: "Command + Shift + Space"
         }
     }
+
+    var shortcut: InAppShortcut {
+        switch self {
+        case .optionSpace: InAppShortcut(key: " ", modifiers: .option)
+        case .controlSpace: InAppShortcut(key: " ", modifiers: .control)
+        case .commandShiftSpace: InAppShortcut(key: " ", modifiers: [.command, .shift])
+        }
+    }
 }
 
 enum SelectionAssistantMode: String, CaseIterable, Identifiable, Codable, Sendable {
@@ -407,11 +415,12 @@ final class AppSettings {
     var hotKeyPreset: HotKeyPreset { didSet { defaults.set(hotKeyPreset.rawValue, forKey: Key.hotKeyPreset) } }
     var globalShortcut: InAppShortcut? {
         didSet {
-            if let globalShortcut,
-               let data = try? JSONEncoder().encode(globalShortcut) {
-                defaults.set(data, forKey: Key.globalShortcut)
+            if let globalShortcut {
+                if let data = try? JSONEncoder().encode(globalShortcut) {
+                    defaults.set(data, forKey: Key.globalShortcut)
+                }
             } else {
-                defaults.removeObject(forKey: Key.globalShortcut)
+                defaults.set(Data(), forKey: Key.globalShortcut)
             }
             NotificationCenter.default.post(name: .spotAskHotKeyChanged, object: nil)
         }
@@ -595,10 +604,9 @@ final class AppSettings {
         chatMessageStyle = ChatMessageStyle(rawValue: defaults.string(forKey: Key.chatMessageStyle) ?? "") ?? .standard
         interfaceZoomLevel = InterfaceZoomLevel(rawValue: defaults.string(forKey: Key.interfaceZoomLevel) ?? "standard") ?? .standard
         language = AppLanguage(rawValue: defaults.string(forKey: Key.language) ?? "system") ?? .system
-        hotKeyPreset = HotKeyPreset(rawValue: defaults.string(forKey: Key.hotKeyPreset) ?? "optionSpace") ?? .optionSpace
-        globalShortcut = defaults.data(forKey: Key.globalShortcut).flatMap {
-            try? JSONDecoder().decode(InAppShortcut.self, from: $0)
-        }
+        let loadedHotKeyPreset = HotKeyPreset(rawValue: defaults.string(forKey: Key.hotKeyPreset) ?? "optionSpace") ?? .optionSpace
+        hotKeyPreset = loadedHotKeyPreset
+        globalShortcut = Self.loadGlobalShortcut(from: defaults, hotKeyPreset: loadedHotKeyPreset)
         selectionAssistantEnabled = defaults.object(forKey: Key.selectionAssistantEnabled) as? Bool ?? false
         selectionAssistantMode = SelectionAssistantMode(rawValue: defaults.string(forKey: Key.selectionAssistantMode) ?? "actionBar") ?? .actionBar
         selectionHotKeyPreset = SelectionHotKeyPreset(rawValue: defaults.string(forKey: Key.selectionHotKeyPreset) ?? "optionShiftSpace") ?? .optionShiftSpace
@@ -637,6 +645,18 @@ final class AppSettings {
         saveQuickActionCatalog()
         saveCustomPromptPresets()
         cleanUpShortcutAssignments()
+    }
+
+    /// Missing key keeps the historical hot-key preset. Empty data is an
+    /// explicit cleared shortcut and must not fall back to Option+Space.
+    static func loadGlobalShortcut(from defaults: UserDefaults, hotKeyPreset: HotKeyPreset) -> InAppShortcut? {
+        guard let data = defaults.data(forKey: Key.globalShortcut) else {
+            return hotKeyPreset.shortcut
+        }
+        if data.isEmpty {
+            return nil
+        }
+        return (try? JSONDecoder().decode(InAppShortcut.self, from: data)) ?? hotKeyPreset.shortcut
     }
 
     func migratePendingLegacyAPIKey(using keyStore: any LegacyAPIKeyMigrating) throws {

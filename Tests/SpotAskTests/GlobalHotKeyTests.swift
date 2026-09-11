@@ -38,4 +38,21 @@ struct GlobalHotKeyTests {
         #expect(configuration?.keyCode == UInt32(kVK_Space))
         #expect(configuration?.modifiers == UInt32(optionKey))
     }
+
+    @Test("Cleared shortcut does not register a Carbon hot key")
+    func clearedShortcutDoesNotRegister() {
+        #expect(GlobalHotKey.registration(for: nil) == .none)
+        #expect(GlobalHotKey.registration(for: InAppShortcut(key: " ", modifiers: [])) == .none)
+    }
+
+    @Test("Valid shortcuts register and can be cleared again")
+    func validShortcutRegistersThenClears() {
+        let optionSpace = GlobalHotKey.registration(for: HotKeyPreset.optionSpace.shortcut)
+        #expect(optionSpace == .carbon(keyCode: UInt32(kVK_Space), modifiers: UInt32(optionKey)))
+
+        let custom = GlobalHotKey.registration(for: InAppShortcut(key: "1", modifiers: [.shift, .control, .option]))
+        #expect(custom == .carbon(keyCode: UInt32(kVK_ANSI_1), modifiers: UInt32(shiftKey | controlKey | optionKey)))
+
+        #expect(GlobalHotKey.registration(for: nil) == .none)
+    }
 }

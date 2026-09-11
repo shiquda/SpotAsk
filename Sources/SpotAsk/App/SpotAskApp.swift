@@ -289,25 +289,13 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func registerGlobalHotKey() throws {
-        if let globalShortcut = settings.globalShortcut,
-           let configuration = GlobalHotKey.configuration(for: globalShortcut) {
-            try globalHotKey.register(keyCode: configuration.keyCode, modifiers: configuration.modifiers) {
+        switch GlobalHotKey.registration(for: settings.globalShortcut) {
+        case .none:
+            globalHotKey.unregister()
+        case let .carbon(keyCode, modifiers):
+            try globalHotKey.register(keyCode: keyCode, modifiers: modifiers) {
                 Task { @MainActor in SpotAskCommandCenter.shared.toggle() }
             }
-            return
-        }
-
-        let configuration: (keyCode: UInt32, modifiers: UInt32)
-        switch settings.hotKeyPreset {
-        case .optionSpace:
-            configuration = (GlobalHotKey.defaultKeyCode, GlobalHotKey.defaultModifiers)
-        case .controlSpace:
-            configuration = (GlobalHotKey.defaultKeyCode, UInt32(controlKey))
-        case .commandShiftSpace:
-            configuration = (GlobalHotKey.defaultKeyCode, UInt32(cmdKey | shiftKey))
-        }
-        try globalHotKey.register(keyCode: configuration.keyCode, modifiers: configuration.modifiers) {
-            Task { @MainActor in SpotAskCommandCenter.shared.toggle() }
         }
     }
 

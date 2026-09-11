@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Global Shortcut can be cleared in Settings so SpotAsk no longer occupies a system hotkey. Existing installs keep their current shortcut, including the default Option+Space.
+
 ## [0.2.1] - 2026-09-08
 
 ### Added

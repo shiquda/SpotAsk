@@ -22,7 +22,7 @@ description: A compact reference for SpotAsk settings sections, default shortcut
 
 | Action | Shortcut |
 | --- | --- |
-| Open or focus the question window | `⌥ + Space` (customizable) |
+| Open or focus the question window | `⌥ + Space` (customizable, can be cleared) |
 | Trigger the selection assistant | `⌥ + ⇧ + Space` |
 | Focus the input | `⌘ + L` |
 | Regenerate or retry | `⌘ + R` |
