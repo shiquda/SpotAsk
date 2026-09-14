@@ -19,6 +19,14 @@
 "chat.goToBottom" = "回到底部";
 "chat.inputAccessibility" = "输入问题";
 "chat.inputPlaceholder" = "输入问题…";
+"atCommand.prompts" = "提示词";
+"atCommand.externalAsk" = "外部提问";
+"atCommand.empty" = "没有匹配 @%@ 的命令";
+"atCommand.emptyEsc" = "Esc";
+"atCommand.accessibilityLabel" = "命令面板";
+"atCommand.pendingPlaceholder" = "输入要交给 %@ 的问题…";
+"atCommand.pendingToast" = "%@ 正在等待问题，按 Return 发送。";
+"atCommand.launchFailed" = "无法打开 %@";
 "chat.newConversation" = "开始新对话";
 "chat.newConversationConfirmMessage" = "当前对话内容将被清除。";
 "chat.newConversationConfirmTitle" = "开始新对话？";

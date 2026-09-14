@@ -33,6 +33,11 @@ struct ChatView: View {
     @State private var copyFeedbackToken = UUID()
     private let selectionReplacementWriter: any SelectionReplacementWriting = AccessibilitySelectionReplacementWriter()
     @State private var quickActionTrigger: QuickActionTrigger?
+    @State private var atCommandState: AtCommandState?
+    @State private var atCommandSuppressed = false
+    @State private var atCommandHighlightedIndex = 0
+    @State private var pendingExternalAsk: QuickAction?
+    @State private var skipEmptyPendingClear = false
 
     @State private var isPanelVisible = true
 
@@ -90,16 +95,19 @@ struct ChatView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { notification in
             if (notification.object as? NSWindow) === chatWindowReference.window {
                 showsShortcutHints = false
+                dismissAtCommandPalette()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
             showsShortcutHints = false
+            dismissAtCommandPalette()
         }
         .onReceive(NotificationCenter.default.publisher(for: .spotAskPanelDidShow)) { _ in
             isPanelVisible = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .spotAskPanelDidHide)) { _ in
             isPanelVisible = false
+            dismissAtCommandPalette()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didChangeOcclusionStateNotification)) { notification in
             if let window = notification.object as? NSWindow, window === chatWindowReference.window {
@@ -136,6 +144,15 @@ struct ChatView: View {
         }
         .onChange(of: settings.promptPresets) { _, _ in
             synchronizeSelectedPromptPreset()
+        }
+        .onChange(of: isPresetPopoverPresented) { _, presented in
+            if presented { dismissAtCommandPalette() }
+        }
+        .onChange(of: inputFocused) { _, focused in
+            if !focused { dismissAtCommandPalette() }
+        }
+        .onChange(of: viewModel.input) { oldValue, newValue in
+            clearPendingExternalAskIfInputEmptied(from: oldValue, to: newValue)
         }
     }
 
@@ -503,7 +520,11 @@ struct ChatView: View {
                         }
                     },
                     onTextViewReady: { composerTextView.textView = $0 },
-                    onRecall: { viewModel.recallLastQuestion() }
+                    onRecall: { viewModel.recallLastQuestion() },
+                    onAtCommandStateChanged: handleAtCommandStateChanged,
+                    isAtPalettePresented: atCommandState != nil,
+                    onAtCommandMoveHighlight: moveAtCommandHighlight,
+                    onAtCommandConfirm: confirmAtCommandSelection
                 )
                 .frame(height: inputHeight)
                 .animation(.easeOut(duration: 0.12), value: inputHeight)
@@ -532,6 +553,10 @@ struct ChatView: View {
                     ShortcutKeycap(shortcut: shortcutHint(for: .operation(.focusInput)))
                         .padding(8)
                 }
+                .overlay(alignment: .top) {
+                    atCommandPaletteOverlay
+                }
+                .zIndex(atCommandState == nil ? 0 : 2)
                 .animation(.easeOut(duration: 0.12), value: inputFocused)
                 ComposerSendButton(
                     isGenerating: isGenerating,
@@ -597,6 +622,9 @@ struct ChatView: View {
     }
 
     private var placeholderText: String {
+        if let pending = pendingExternalAsk {
+            return L10n.string("atCommand.pendingPlaceholder", pending.displayName)
+        }
         guard let preset = viewModel.selectedPromptPreset else {
             return L10n.string("chat.inputPlaceholder")
         }
@@ -640,6 +668,10 @@ struct ChatView: View {
     }
 
     private func sendFromComposer() {
+        if let pending = pendingExternalAsk {
+            launchPendingExternalAsk(pending)
+            return
+        }
         synchronizeSelectedPromptPreset()
         if viewModel.send() {
             scrollFollowState.resumeFollowing()
@@ -819,7 +851,7 @@ struct ChatView: View {
     /// with an empty draft it only selects the preset, swaps the placeholder,
     /// and focuses the input (Return still sends). "直接提问" passes nil and
     /// never sends.
-    private func applyPreset(_ preset: PromptPreset?) {
+    private func applyPreset(_ preset: PromptPreset?, sendIfReady: Bool = true) {
         guard let preset else {
             viewModel.selectedPromptPreset = nil
             inputFocused = true
@@ -832,7 +864,7 @@ struct ChatView: View {
         }
         viewModel.selectedPromptPreset = enabledPreset
         inputFocused = true
-        guard viewModel.canSend else { return }
+        guard sendIfReady, viewModel.canSend else { return }
         sendFromComposer()
     }
 
@@ -862,16 +894,211 @@ struct ChatView: View {
         inputFocused = true
         scrollFollowState.resumeFollowing()
     }
+    private var atCommandPresets: [PromptPreset] {
+        AtCommandMatcher.ranked(
+            settings.enabledPromptPresets,
+            keyword: atCommandState?.keyword ?? ""
+        ) { AtCommandMatcher.searchFields(for: $0) }
+    }
+
+    private var atCommandActions: [QuickAction] {
+        AtCommandMatcher.ranked(
+            settings.enabledQuickActions,
+            keyword: atCommandState?.keyword ?? ""
+        ) { AtCommandMatcher.searchFields(for: $0) }
+    }
+
+    private var atCommandRows: [AtCommandPaletteRow] {
+        atCommandPresets.map(AtCommandPaletteRow.preset) + atCommandActions.map(AtCommandPaletteRow.action)
+    }
+
+    private var atCommandHighlightedID: UUID? {
+        let rows = atCommandRows
+        guard rows.indices.contains(atCommandHighlightedIndex) else { return rows.first?.id }
+        return rows[atCommandHighlightedIndex].id
+    }
+
+    @ViewBuilder
+    private var atCommandPaletteOverlay: some View {
+        if let state = atCommandState {
+            AtCommandPaletteView(
+                keyword: state.keyword,
+                presets: atCommandPresets,
+                actions: atCommandActions,
+                highlightedID: atCommandHighlightedID,
+                onHover: hoverAtCommandRow,
+                onSelectPreset: selectAtCommandPreset,
+                onSelectAction: selectAtCommandAction
+            )
+            .alignmentGuide(.top) { dimensions in
+                dimensions[.bottom] + AtCommandPaletteMetrics.inputGap
+            }
+            .transition(
+                .asymmetric(
+                    insertion: .opacity.combined(with: .offset(y: 4)),
+                    removal: .opacity.combined(with: .offset(y: 4))
+                )
+            )
+            .animation(
+                reduceMotion ? nil : .easeOut(duration: 0.12),
+                value: state.keyword
+            )
+        }
+    }
+
+    private func handleAtCommandStateChanged(_ state: AtCommandState?) {
+        if state == nil {
+            atCommandSuppressed = false
+            atCommandState = nil
+            return
+        }
+        if atCommandSuppressed {
+            atCommandState = nil
+            return
+        }
+        if isPresetPopoverPresented {
+            isPresetPopoverPresented = false
+        }
+        let keywordChanged = atCommandState?.keyword != state?.keyword
+        atCommandState = state
+        if keywordChanged {
+            atCommandHighlightedIndex = 0
+        }
+    }
+
+    private func dismissAtCommandPalette() {
+        guard atCommandState != nil else { return }
+        atCommandSuppressed = true
+        atCommandState = nil
+    }
+
+    private func moveAtCommandHighlight(_ delta: Int) {
+        let count = atCommandRows.count
+        guard count > 0 else { return }
+        atCommandHighlightedIndex = ((atCommandHighlightedIndex + delta) % count + count) % count
+    }
+
+    private func confirmAtCommandSelection() {
+        let rows = atCommandRows
+        guard rows.indices.contains(atCommandHighlightedIndex) else { return }
+        switch rows[atCommandHighlightedIndex] {
+        case let .preset(preset):
+            selectAtCommandPreset(preset)
+        case let .action(action):
+            selectAtCommandAction(action)
+        }
+    }
+
+    private func hoverAtCommandRow(_ id: UUID?) {
+        guard let id, let index = atCommandRows.firstIndex(where: { $0.id == id }) else { return }
+        atCommandHighlightedIndex = index
+    }
+
+    private func selectAtCommandPreset(_ preset: PromptPreset) {
+        deleteActiveAtCommandToken()
+        pendingExternalAsk = nil
+        applyPreset(preset, sendIfReady: false)
+    }
+
+    private func selectAtCommandAction(_ action: QuickAction) {
+        let query = remainingQueryAfterDeletingToken()
+        deleteActiveAtCommandToken()
+        if query.isEmpty {
+            skipEmptyPendingClear = true
+            pendingExternalAsk = action
+            StatusToastCenter.shared.show(L10n.string("atCommand.pendingToast", action.displayName))
+            inputFocused = true
+            return
+        }
+        pendingExternalAsk = nil
+        launchExternalAsk(action, query: query, clearInput: true)
+    }
+
+    private func remainingQueryAfterDeletingToken() -> String {
+        guard let state = atCommandState else {
+            return viewModel.input.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        let ns = viewModel.input as NSString
+        guard state.replacementRange.location != NSNotFound,
+              NSMaxRange(state.replacementRange) <= ns.length else {
+            return viewModel.input.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return ns.replacingCharacters(in: state.replacementRange, with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func deleteActiveAtCommandToken() {
+        guard let state = atCommandState, let textView = composerTextView.textView else {
+            atCommandState = nil
+            return
+        }
+        AtCommandDetector.deleteReplacementRange(state.replacementRange, in: textView)
+        atCommandSuppressed = false
+        atCommandState = nil
+    }
+
+    private func launchPendingExternalAsk(_ action: QuickAction) {
+        let query = viewModel.input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return }
+        pendingExternalAsk = nil
+        launchExternalAsk(action, query: query, clearInput: true)
+    }
+
+    private func launchExternalAsk(_ action: QuickAction, query: String, clearInput: Bool) {
+        guard let current = settings.enabledQuickActions.first(where: { $0.id == action.id }) else {
+            StatusToastCenter.shared.show(L10n.string("atCommand.launchFailed", action.displayName), isError: true)
+            return
+        }
+        if QuickActionLaunch.perform(current, query: query) {
+            if clearInput {
+                if let textView = composerTextView.textView, !textView.string.isEmpty {
+                    textView.string = ""
+                }
+                viewModel.input = ""
+            }
+            inputFocused = true
+        } else {
+            StatusToastCenter.shared.show(L10n.string("atCommand.launchFailed", current.displayName), isError: true)
+        }
+    }
+
+    private func clearPendingExternalAskIfInputEmptied(from oldValue: String, to newValue: String) {
+        if skipEmptyPendingClear {
+            skipEmptyPendingClear = false
+            return
+        }
+        let wasNonempty = !oldValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let isEmpty = newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if wasNonempty, isEmpty {
+            pendingExternalAsk = nil
+        }
+    }
+
     private func handleEscape() {
-        switch chatEscapeAction(
+        let action = chatEscapeAction(
             hasMarkedText: composerHasMarkedText(),
+            isAtPalettePresented: atCommandState != nil,
             isPresetPopoverPresented: isPresetPopoverPresented,
             isModelPickerPresented: isModelPickerPresented,
             isGenerating: isGenerating,
             startsNewConversation: settings.escapeStartsNewConversation,
             hasMessages: !viewModel.messages.isEmpty
-        ) {
+        )
+        switch action {
         case .preserveMarkedText:
+            return
+        case .dismissAtPalette:
+            dismissAtCommandPalette()
+            return
+        case .dismissPresetPopover, .dismissModelPicker, .cancelGeneration, .startNewConversation, .dismissWindow:
+            break
+        }
+        if pendingExternalAsk != nil {
+            pendingExternalAsk = nil
+            return
+        }
+        switch action {
+        case .preserveMarkedText, .dismissAtPalette:
             break
         case .dismissPresetPopover:
             isPresetPopoverPresented = false
