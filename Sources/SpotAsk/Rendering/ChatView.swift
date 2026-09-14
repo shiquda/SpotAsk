@@ -995,71 +995,72 @@ struct ChatView: View {
     }
 
     private func selectAtCommandPreset(_ preset: PromptPreset) {
-        deleteActiveAtCommandToken()
+        guard AtCommandSelection.selectPreset(
+            state: atCommandState,
+            textView: composerTextView.textView
+        ) == .appliedPreset else { return }
+        clearAtCommandTokenState()
         pendingExternalAsk = nil
         applyPreset(preset, sendIfReady: false)
     }
 
     private func selectAtCommandAction(_ action: QuickAction) {
-        let query = remainingQueryAfterDeletingToken()
-        deleteActiveAtCommandToken()
-        if query.isEmpty {
+        applyAtCommandActionOutcome(
+            AtCommandSelection.selectAction(
+                action,
+                state: atCommandState,
+                textView: composerTextView.textView,
+                resolve: resolveEnabledQuickAction
+            )
+        )
+    }
+
+    private func launchPendingExternalAsk(_ action: QuickAction) {
+        applyAtCommandActionOutcome(
+            AtCommandSelection.confirmPending(
+                action,
+                query: viewModel.input,
+                resolve: resolveEnabledQuickAction
+            )
+        )
+    }
+
+    private func resolveEnabledQuickAction(_ id: UUID) -> QuickAction? {
+        settings.enabledQuickActions.first { $0.id == id }
+    }
+
+    private func applyAtCommandActionOutcome(_ outcome: AtCommandSelection.Outcome) {
+        switch outcome {
+        case .rejected, .appliedPreset:
+            return
+        case let .becamePending(action):
+            clearAtCommandTokenState()
             skipEmptyPendingClear = true
             pendingExternalAsk = action
             StatusToastCenter.shared.show(L10n.string("atCommand.pendingToast", action.displayName))
             inputFocused = true
-            return
+        case .launched:
+            clearAtCommandTokenState()
+            pendingExternalAsk = nil
+            if let textView = composerTextView.textView, !textView.string.isEmpty {
+                textView.string = ""
+            }
+            viewModel.input = ""
+            inputFocused = true
+        case let .launchFailed(action):
+            clearAtCommandTokenState()
+            pendingExternalAsk = action
+            StatusToastCenter.shared.show(
+                L10n.string("atCommand.launchFailed", action.displayName),
+                isError: true
+            )
+            inputFocused = true
         }
-        pendingExternalAsk = nil
-        launchExternalAsk(action, query: query, clearInput: true)
     }
 
-    private func remainingQueryAfterDeletingToken() -> String {
-        guard let state = atCommandState else {
-            return viewModel.input.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        let ns = viewModel.input as NSString
-        guard state.replacementRange.location != NSNotFound,
-              NSMaxRange(state.replacementRange) <= ns.length else {
-            return viewModel.input.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        return ns.replacingCharacters(in: state.replacementRange, with: "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private func deleteActiveAtCommandToken() {
-        guard let state = atCommandState, let textView = composerTextView.textView else {
-            atCommandState = nil
-            return
-        }
-        AtCommandDetector.deleteReplacementRange(state.replacementRange, in: textView)
+    private func clearAtCommandTokenState() {
         atCommandSuppressed = false
         atCommandState = nil
-    }
-
-    private func launchPendingExternalAsk(_ action: QuickAction) {
-        let query = viewModel.input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return }
-        pendingExternalAsk = nil
-        launchExternalAsk(action, query: query, clearInput: true)
-    }
-
-    private func launchExternalAsk(_ action: QuickAction, query: String, clearInput: Bool) {
-        guard let current = settings.enabledQuickActions.first(where: { $0.id == action.id }) else {
-            StatusToastCenter.shared.show(L10n.string("atCommand.launchFailed", action.displayName), isError: true)
-            return
-        }
-        if QuickActionLaunch.perform(current, query: query) {
-            if clearInput {
-                if let textView = composerTextView.textView, !textView.string.isEmpty {
-                    textView.string = ""
-                }
-                viewModel.input = ""
-            }
-            inputFocused = true
-        } else {
-            StatusToastCenter.shared.show(L10n.string("atCommand.launchFailed", current.displayName), isError: true)
-        }
     }
 
     private func clearPendingExternalAskIfInputEmptied(from oldValue: String, to newValue: String) {

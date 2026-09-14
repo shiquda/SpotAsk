@@ -88,21 +88,96 @@ enum AtCommandDetector {
         return (text, selectedRange)
     }
 
+    /// Deletes `@keyword` only when `state.replacementRange` still contains that token.
+    /// Returns `false` without mutating the text view when the range is stale, out of
+    /// bounds, or `shouldChangeText` rejects the edit. A successful delete is undoable.
+    @discardableResult
     @MainActor
-    static func deleteReplacementRange(_ range: NSRange, in textView: NSTextView) {
+    static func deleteActiveToken(_ state: AtCommandState, in textView: NSTextView) -> Bool {
+        let range = state.replacementRange
+        let ns = textView.string as NSString
         guard range.location != NSNotFound,
               range.location >= 0,
-              NSMaxRange(range) <= (textView.string as NSString).length else { return }
-        guard textView.shouldChangeText(in: range, replacementString: "") else { return }
+              NSMaxRange(range) <= ns.length else { return false }
+        let expected = "@\(state.keyword)"
+        guard ns.substring(with: range) == expected else { return false }
+        guard textView.shouldChangeText(in: range, replacementString: "") else { return false }
         textView.replaceCharacters(in: range, with: "")
         textView.didChangeText()
         let location = min(range.location, (textView.string as NSString).length)
         textView.setSelectedRange(NSRange(location: location, length: 0))
+        return true
     }
+
 
     private static func isWhitespace(_ ns: NSString, at index: Int) -> Bool {
         let unit = ns.substring(with: NSRange(location: index, length: 1))
         return unit.rangeOfCharacter(from: .whitespacesAndNewlines) != nil
+    }
+}
+
+/// ChatView `@` palette selection path: validate/delete the token, then apply,
+/// pend, or launch. Launch failure keeps the action retryable.
+@MainActor
+enum AtCommandSelection {
+    enum Outcome: Equatable {
+        case rejected
+        case appliedPreset
+        case becamePending(QuickAction)
+        case launched
+        case launchFailed(QuickAction)
+    }
+
+    static func selectPreset(state: AtCommandState?, textView: NSTextView?) -> Outcome {
+        guard let state, let textView,
+              AtCommandDetector.deleteActiveToken(state, in: textView) else {
+            return .rejected
+        }
+        return .appliedPreset
+    }
+
+    static func selectAction(
+        _ action: QuickAction,
+        state: AtCommandState?,
+        textView: NSTextView?,
+        resolve: (UUID) -> QuickAction?,
+        executor: any QuickActionExecuting = DefaultQuickActionExecutor()
+    ) -> Outcome {
+        guard let state, let textView,
+              AtCommandDetector.deleteActiveToken(state, in: textView) else {
+            return .rejected
+        }
+        let query = textView.string.trimmingCharacters(in: .whitespacesAndNewlines)
+        if query.isEmpty {
+            return .becamePending(action)
+        }
+        return launch(action, query: query, resolve: resolve, executor: executor)
+    }
+
+    static func confirmPending(
+        _ action: QuickAction,
+        query: String,
+        resolve: (UUID) -> QuickAction?,
+        executor: any QuickActionExecuting = DefaultQuickActionExecutor()
+    ) -> Outcome {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return .rejected }
+        return launch(action, query: trimmed, resolve: resolve, executor: executor)
+    }
+
+    private static func launch(
+        _ action: QuickAction,
+        query: String,
+        resolve: (UUID) -> QuickAction?,
+        executor: any QuickActionExecuting
+    ) -> Outcome {
+        guard let current = resolve(action.id) else {
+            return .launchFailed(action)
+        }
+        if QuickActionLaunch.perform(current, query: query, executor: executor) {
+            return .launched
+        }
+        return .launchFailed(current)
     }
 }
 
