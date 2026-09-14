@@ -1,23 +1,13 @@
 import SwiftUI
 
 struct SelectionActionBarView: View {
-    var showsChat: Bool = true
     let presets: [PromptPreset]
     let externalAsks: [QuickAction]
-    var onSelectChat: () -> Void = {}
     let onSelectPreset: (PromptPreset) -> Void
     let onSelectExternalAsk: (QuickAction) -> Void
+
     var body: some View {
         HStack(spacing: 2) {
-            if showsChat {
-                Button { onSelectChat() } label: {
-                    Image(systemName: "bubble.left.and.bubble.right")
-                        .frame(width: 28, height: 28)
-                }
-                .buttonStyle(.borderless)
-                .help(L10n.string("selection.actionBar.chatTooltip"))
-                .accessibilityLabel(L10n.string("selection.actionBar.chatTooltip"))
-            }
             ForEach(presets) { preset in
                 Button { onSelectPreset(preset) } label: {
                     Image(systemName: preset.symbolName)
@@ -27,7 +17,7 @@ struct SelectionActionBarView: View {
                 .help(preset.title)
                 .accessibilityLabel(preset.title)
             }
-            if (showsChat || !presets.isEmpty) && !externalAsks.isEmpty {
+            if !presets.isEmpty && !externalAsks.isEmpty {
                 Divider().frame(height: 18).padding(.horizontal, 4)
             }
             ForEach(externalAsks) { action in

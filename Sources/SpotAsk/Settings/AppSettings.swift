@@ -355,7 +355,6 @@ final class AppSettings {
         static let selectionAutoInvokeScope = "selectionAutoInvokeScope"
         static let selectionAutoInvokeBlacklist = "selectionAutoInvokeBlacklist"
         static let selectionAutoInvokeWhitelist = "selectionAutoInvokeWhitelist"
-        static let selectionActionBarShowsChatAction = "selectionActionBarShowsChatAction"
         static let selectionActionBarShowsLabels = "selectionActionBarShowsLabels"
         static let selectionActionBarShowsPrompts = "selectionActionBarShowsPrompts"
         static let selectionActionBarShowsExternalAsk = "selectionActionBarShowsExternalAsk"
@@ -448,12 +447,6 @@ final class AppSettings {
             } else {
                 defaults.removeObject(forKey: Key.selectionAssistantToggleShortcut)
             }
-            NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
-        }
-    }
-    var selectionActionBarShowsChatAction: Bool {
-        didSet {
-            defaults.set(selectionActionBarShowsChatAction, forKey: Key.selectionActionBarShowsChatAction)
             NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
         }
     }
@@ -623,7 +616,6 @@ final class AppSettings {
         selectionAutoInvokeScope = SelectionAutoInvokeScope(rawValue: defaults.string(forKey: Key.selectionAutoInvokeScope) ?? "") ?? .allApps
         selectionAutoInvokeBlacklist = defaults.stringArray(forKey: Key.selectionAutoInvokeBlacklist) ?? []
         selectionAutoInvokeWhitelist = defaults.stringArray(forKey: Key.selectionAutoInvokeWhitelist) ?? []
-        selectionActionBarShowsChatAction = defaults.object(forKey: Key.selectionActionBarShowsChatAction) as? Bool ?? true
         selectionActionBarShowsLabels = defaults.object(forKey: Key.selectionActionBarShowsLabels) as? Bool ?? true
         selectionActionBarShowsPrompts = defaults.object(forKey: Key.selectionActionBarShowsPrompts) as? Bool ?? true
         selectionActionBarShowsExternalAsk = defaults.object(forKey: Key.selectionActionBarShowsExternalAsk) as? Bool ?? true

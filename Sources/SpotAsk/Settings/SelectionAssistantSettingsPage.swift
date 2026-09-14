@@ -52,10 +52,6 @@ struct SelectionAssistantSettingsPage: View {
                         SettingsToggleRow(label: L10n.string("settings.selectionAssistantAutoShow"), isOn: Bindable(settings).selectionAutoInvokeEnabled)
                         SettingsToggleRow(label: L10n.string("settings.selectionAssistantActionLabels"), isOn: Bindable(settings).selectionActionBarShowsLabels)
                         SettingsToggleRow(
-                            label: L10n.string("settings.selectionAssistantActionChat"),
-                            isOn: Bindable(settings).selectionActionBarShowsChatAction
-                        )
-                        SettingsToggleRow(
                             label: L10n.string("settings.selectionAssistantActionPrompts"),
                             isOn: Bindable(settings).selectionActionBarShowsPrompts
                         )
@@ -138,7 +134,7 @@ struct SelectionAssistantSettingsPage: View {
     }
 
     private var showsActionBarCrowdingHint: Bool {
-        (settings.selectionActionBarShowsChatAction ? 1 : 0) + settings.enabledPromptPresets.count + settings.enabledQuickActions.count > 4
+        settings.enabledPromptPresets.count + settings.enabledQuickActions.count > 4
     }
 
     private var permissionStatusDescription: String {
