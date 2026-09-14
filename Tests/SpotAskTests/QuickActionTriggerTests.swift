@@ -64,6 +64,26 @@ struct QuickActionTriggerTests {
         #expect(closedCount == 0)
     }
 
+    @Test("Empty input opens the destination when allowEmptyQuery is true")
+    func emptyInputOpensWhenAllowEmptyQuery() {
+        var inputState = ""
+        var closedCount = 0
+        var cleared = false
+        let (trigger, executor) = makeTrigger(
+            input: { inputState },
+            clearInput: { cleared = true },
+            onClose: { closedCount += 1 }
+        )
+
+        let result = trigger.trigger(actionID: QuickAction.BuiltInID.chatGPT, allowEmptyQuery: true)
+        #expect(result == true)
+        #expect(executor.performedActions == [
+            .url(URL(string: "https://chatgpt.com/?q=")!)
+        ])
+        #expect(closedCount == 1)
+        #expect(cleared)
+    }
+
     @Test("Disabled or nonexistent action ID returns false and does not close panel")
     func invalidOrDisabledActionIDReturnsFalse() {
         var closedCount = 0

@@ -323,13 +323,61 @@ struct AtCommandStateTests {
         #expect(state.filteredItems.isEmpty)
         #expect(state.currentSelectedItem == nil)
     }
+
+    @Test("Marked text freezes an open palette instead of dismissing it")
+    func markedTextFreezesOpenPalette() {
+        let state = AtCommandState()
+        let presets = [
+            PromptPreset(id: UUID(), title: "翻译", instruction: "翻译", customSymbolName: "globe"),
+            PromptPreset(id: UUID(), title: "总结", instruction: "总结", customSymbolName: "text.alignleft")
+        ]
+        state.update(
+            query: AtCommandQuery(triggerLocation: 0, keyword: ""),
+            presets: presets,
+            selectedPresetID: nil,
+            quickActions: [],
+            anchorPoint: .zero
+        )
+        state.selectNext()
+        let frozenQuery = state.query
+        let frozenHighlight = state.highlightedIndex
+
+        state.applyEditorChange(
+            query: nil,
+            hasMarkedText: true,
+            presets: [],
+            selectedPresetID: nil,
+            quickActions: [],
+            anchorPoint: .zero
+        )
+        #expect(state.isPresented)
+        #expect(state.query == frozenQuery)
+        #expect(state.highlightedIndex == frozenHighlight)
+        #expect(state.currentSelectedItem?.title == "总结")
+
+        state.applyEditorChange(
+            query: AtCommandQuery(triggerLocation: 0, keyword: "翻"),
+            hasMarkedText: false,
+            presets: presets,
+            selectedPresetID: nil,
+            quickActions: [],
+            anchorPoint: .zero
+        )
+        #expect(state.isPresented)
+        #expect(state.filteredItems.count == 1)
+        #expect(state.currentSelectedItem?.title == "翻译")
+    }
 }
 
 @MainActor
 struct AtCommandActionExecutionTests {
 
     private final class UndoableTextView: NSTextView {
-        let ownedUndoManager = UndoManager()
+        let ownedUndoManager: UndoManager = {
+            let manager = UndoManager()
+            manager.groupsByEvent = false
+            return manager
+        }()
         override var undoManager: UndoManager? { ownedUndoManager }
     }
 
@@ -346,6 +394,17 @@ struct AtCommandActionExecutionTests {
         textView.allowsUndo = true
         textView.string = text
         return textView
+    }
+
+    private func seedPriorEdit(_ textView: NSTextView, from original: String, to updated: String) {
+        textView.string = original
+        let undoManager = textView.undoManager
+        undoManager?.beginUndoGrouping()
+        undoManager?.registerUndo(withTarget: textView) { target in
+            target.string = original
+        }
+        textView.string = updated
+        undoManager?.endUndoGrouping()
     }
 
     @Test("Preset selection plan requires matching @query and enabled preset")
@@ -453,7 +512,7 @@ struct AtCommandActionExecutionTests {
         #expect(AtCommandComposerEdit.removeQuery(from: textView, query: query))
         #expect(textView.string == "Hello  please")
         #expect(textView.undoManager?.canUndo == true)
-        textView.undoManager?.undo()
+        #expect(AtCommandComposerEdit.undoQueryRemoval(in: textView))
         #expect(textView.string == text)
 
         final class RejectingTextView: NSTextView {
@@ -468,15 +527,67 @@ struct AtCommandActionExecutionTests {
         #expect(rejecting.string == text)
     }
 
-    @Test("Quick actions are omitted when session is busy or remaining query is empty")
-    func executableActionsMatchTriggerGuards() {
+    @Test("Cmd+Z after selection restores @query without undoing earlier typing")
+    func undoWithExistingHistoryRestoresOnlyQueryRemoval() {
+        let earlier = "Hello "
+        let withQuery = "Hello @trans please"
+        let query = AtCommandParser.parse(
+            text: withQuery,
+            selectedRange: NSRange(location: 12, length: 0),
+            hasMarkedText: false
+        )!
+        let textView = makeTextView(earlier)
+        seedPriorEdit(textView, from: earlier, to: withQuery)
+        #expect(textView.undoManager?.canUndo == true)
+
+        #expect(AtCommandComposerEdit.removeQuery(from: textView, query: query))
+        #expect(textView.string == "Hello  please")
+
+        textView.undoManager?.undo()
+        #expect(textView.string == withQuery)
+
+        textView.undoManager?.undo()
+        #expect(textView.string == earlier)
+    }
+
+    @Test("Failed trigger undoes only the @query removal")
+    func failedTriggerRestoresQueryWithoutDroppingHistory() {
+        let earlier = "draft "
+        let withQuery = "draft @chatgpt explain this code"
+        let query = AtCommandParser.parse(
+            text: withQuery,
+            selectedRange: NSRange(location: 14, length: 0),
+            hasMarkedText: false
+        )!
+        let textView = makeTextView(earlier)
+        seedPriorEdit(textView, from: earlier, to: withQuery)
+
+        #expect(AtCommandComposerEdit.removeQuery(from: textView, query: query))
+        #expect(textView.string == "draft  explain this code")
+        #expect(AtCommandComposerEdit.undoQueryRemoval(in: textView))
+        #expect(textView.string == withQuery)
+
+        textView.undoManager?.undo()
+        #expect(textView.string == earlier)
+    }
+
+    @Test("Empty remaining query still lists and can execute external ask")
+    func emptyRemainingQueryKeepsExternalAskExecutable() {
         let action = QuickAction.builtIn[0]
         #expect(
             AtCommandQuickActionAvailability.isExecutable(
                 action: action,
                 sessionEmpty: true,
                 isGenerating: false,
-                remainingQuery: "explain this"
+                remainingQuery: ""
+            )
+        )
+        #expect(
+            AtCommandQuickActionAvailability.isExecutable(
+                action: action,
+                sessionEmpty: true,
+                isGenerating: false,
+                remainingQuery: "   "
             )
         )
         #expect(
@@ -484,7 +595,7 @@ struct AtCommandActionExecutionTests {
                 action: action,
                 sessionEmpty: false,
                 isGenerating: false,
-                remainingQuery: "explain this"
+                remainingQuery: ""
             )
         )
         #expect(
@@ -495,15 +606,52 @@ struct AtCommandActionExecutionTests {
                 remainingQuery: "explain this"
             )
         )
-        #expect(
-            !AtCommandQuickActionAvailability.isExecutable(
-                action: action,
+
+        let text = "@chatgpt"
+        let query = AtCommandParser.parse(
+            text: text,
+            selectedRange: NSRange(location: 8, length: 0),
+            hasMarkedText: false
+        )!
+        #expect(AtCommandQueryMatcher.remainingText(afterRemoving: query, from: text) == "")
+
+        let plan = AtCommandSelection.plan(
+            text: text,
+            query: query,
+            item: makeActionItem(action),
+            allowsReplacement: true,
+            isPresetEnabled: { _ in false },
+            canExecuteQuickAction: { candidate, remaining in
+                AtCommandQuickActionAvailability.isExecutable(
+                    action: candidate,
+                    sessionEmpty: true,
+                    isGenerating: false,
+                    remainingQuery: remaining
+                )
+            }
+        )
+        #expect(plan == .triggerQuickAction(action))
+
+        let state = AtCommandState()
+        state.update(
+            query: AtCommandQuery(triggerLocation: 0, keyword: "chat"),
+            presets: [],
+            selectedPresetID: nil,
+            quickActions: AtCommandQuickActionAvailability.executableActions(
+                from: [action],
                 sessionEmpty: true,
                 isGenerating: false,
-                remainingQuery: "   "
-            )
+                remainingQuery: ""
+            ),
+            anchorPoint: .zero
         )
+        #expect(!state.filteredQuickActions.isEmpty)
+        #expect(state.currentSelectedItem != nil)
+    }
 
+    @Test("Busy session still omits quick actions")
+    func busySessionOmitsQuickActions() {
+        let action = QuickAction.builtIn[0]
         let state = AtCommandState()
         state.update(
             query: AtCommandQuery(triggerLocation: 0, keyword: ""),
@@ -555,47 +703,6 @@ struct AtCommandActionExecutionTests {
                 hasHighlightedItem: false
             ) == .ignore
         )
-    }
-
-    @Test("Failed trigger after a committed edit restores @query via undo")
-    func failedTriggerRestoresQueryViaUndo() {
-        let action = QuickAction.builtIn[0]
-        let text = "@chatgpt explain this code"
-        let query = AtCommandParser.parse(
-            text: text,
-            selectedRange: NSRange(location: 8, length: 0),
-            hasMarkedText: false
-        )!
-        let textView = makeTextView(text)
-        var input = text
-        var triggerSucceeded = false
-
-        let plan = AtCommandSelection.plan(
-            text: textView.string,
-            query: query,
-            item: makeActionItem(action),
-            allowsReplacement: true,
-            isPresetEnabled: { _ in false },
-            canExecuteQuickAction: { _, remaining in
-                AtCommandQuickActionAvailability.isExecutable(
-                    action: action,
-                    sessionEmpty: true,
-                    isGenerating: false,
-                    remainingQuery: remaining
-                )
-            }
-        )
-        #expect(plan == .triggerQuickAction(action))
-        #expect(AtCommandComposerEdit.removeQuery(from: textView, query: query))
-        input = textView.string
-        #expect(input == " explain this code")
-
-        if !triggerSucceeded, textView.undoManager?.canUndo == true {
-            textView.undoManager?.undo()
-            input = textView.string
-        }
-        #expect(input == text)
-        #expect(textView.string == text)
     }
 }
 

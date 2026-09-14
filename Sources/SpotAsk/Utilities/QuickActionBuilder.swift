@@ -92,31 +92,20 @@ enum QuickActionBuilder {
     /// Builds an actionable `URL` from the given template and raw query string (for web or uriScheme).
     static func makeURL(
         template: String,
-        query rawQuery: String
+        query rawQuery: String,
+        allowEmptyQuery: Bool = false
     ) -> URL? {
         let query = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return nil }
-        guard template.contains("{query}") else { return nil }
-
+        if query.isEmpty {
+            guard allowEmptyQuery else { return nil }
+            return url(from: template, encodedQuery: "")
+        }
         guard let encoded = query.addingPercentEncoding(
             withAllowedCharacters: queryValueAllowedCharacters
         ) else {
             return nil
         }
-
-        let urlString = template.replacingOccurrences(
-            of: "{query}",
-            with: encoded
-        )
-
-        guard let url = URL(string: urlString),
-              let scheme = url.scheme,
-              !scheme.isEmpty
-        else {
-            return nil
-        }
-
-        return url
+        return url(from: template, encodedQuery: encoded)
     }
 
     /// Escapes a query string for safe shell single-quote embedding:
@@ -129,10 +118,16 @@ enum QuickActionBuilder {
     /// Builds a terminal command string from the template and raw query.
     static func makeTerminalCommand(
         template: String,
-        query rawQuery: String
+        query rawQuery: String,
+        allowEmptyQuery: Bool = false
     ) -> String? {
         let query = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return nil }
+        if query.isEmpty {
+            guard allowEmptyQuery, template.contains("{query}") else { return nil }
+            let command = template.replacingOccurrences(of: "{query}", with: shellEscape(""))
+            let trimmed = command.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }
         guard template.contains("{query}") else { return nil }
 
         let escapedQuery = shellEscape(query)
@@ -140,5 +135,17 @@ enum QuickActionBuilder {
         let trimmed = command.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         return trimmed
+    }
+
+    private static func url(from template: String, encodedQuery: String) -> URL? {
+        guard template.contains("{query}") else { return nil }
+        let urlString = template.replacingOccurrences(of: "{query}", with: encodedQuery)
+        guard let url = URL(string: urlString),
+              let scheme = url.scheme,
+              !scheme.isEmpty
+        else {
+            return nil
+        }
+        return url
     }
 }

@@ -221,7 +221,11 @@ enum AtCommandQuickActionAvailability {
         remainingQuery: String
     ) -> Bool {
         guard sessionEmpty, !isGenerating else { return false }
-        return ResolvedQuickAction.resolve(action, query: remainingQuery) != nil
+        return ResolvedQuickAction.resolve(
+            action,
+            query: remainingQuery,
+            allowEmptyQuery: true
+        ) != nil
     }
 
     static func executableActions(
@@ -277,21 +281,42 @@ enum AtCommandComposerEdit {
     static func removeQuery(from textView: NSTextView, query: AtCommandQuery) -> Bool {
         guard AtCommandQueryMatcher.matches(query, in: textView.string) else { return false }
         let range = query.range
-        guard textView.shouldChangeText(in: range, replacementString: "") else { return false }
+        let undoManager = textView.undoManager
+        undoManager?.disableUndoRegistration()
+        let allowed = textView.shouldChangeText(in: range, replacementString: "")
+        undoManager?.enableUndoRegistration()
+        guard allowed else { return false }
+
         let removed = (textView.string as NSString).substring(with: range)
+        let insertionRange = NSRange(location: range.location, length: 0)
+        textView.breakUndoCoalescing()
+        undoManager?.beginUndoGrouping()
+        undoManager?.registerUndo(withTarget: textView) { target in
+            restore(removed, at: insertionRange, in: target)
+        }
         textView.replaceCharacters(in: range, with: "")
         textView.didChangeText()
-        textView.setSelectedRange(NSRange(location: range.location, length: 0))
-        if let undoManager = textView.undoManager, !undoManager.canUndo {
-            let insertionRange = NSRange(location: range.location, length: 0)
-            undoManager.registerUndo(withTarget: textView) { target in
-                guard target.shouldChangeText(in: insertionRange, replacementString: removed) else { return }
-                target.replaceCharacters(in: insertionRange, with: removed)
-                target.didChangeText()
-                target.setSelectedRange(NSRange(location: range.location + (removed as NSString).length, length: 0))
-            }
-        }
+        textView.setSelectedRange(insertionRange)
+        undoManager?.endUndoGrouping()
         return true
+    }
+
+    @discardableResult
+    static func undoQueryRemoval(in textView: NSTextView) -> Bool {
+        guard let undoManager = textView.undoManager, undoManager.canUndo else { return false }
+        undoManager.undo()
+        return true
+    }
+
+    private static func restore(_ text: String, at range: NSRange, in textView: NSTextView) {
+        let undoManager = textView.undoManager
+        undoManager?.disableUndoRegistration()
+        let allowed = textView.shouldChangeText(in: range, replacementString: text)
+        undoManager?.enableUndoRegistration()
+        guard allowed else { return }
+        textView.replaceCharacters(in: range, with: text)
+        textView.didChangeText()
+        textView.setSelectedRange(NSRange(location: range.location + (text as NSString).length, length: 0))
     }
 }
 
@@ -325,6 +350,27 @@ final class AtCommandState {
         quickActions: [QuickAction],
         anchorPoint: CGPoint
     ) {
+        applyEditorChange(
+            query: query,
+            hasMarkedText: false,
+            presets: presets,
+            selectedPresetID: selectedPresetID,
+            quickActions: quickActions,
+            anchorPoint: anchorPoint
+        )
+    }
+
+    func applyEditorChange(
+        query: AtCommandQuery?,
+        hasMarkedText: Bool,
+        presets: [PromptPreset],
+        selectedPresetID: UUID?,
+        quickActions: [QuickAction],
+        anchorPoint: CGPoint
+    ) {
+        if hasMarkedText {
+            return
+        }
         guard let query else {
             dismiss()
             return

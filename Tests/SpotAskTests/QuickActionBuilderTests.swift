@@ -75,6 +75,26 @@ struct QuickActionBuilderTests {
         #expect(QuickActionBuilder.makeURL(template: template, query: "\n\t  \r\n") == nil)
     }
 
+    @Test("Empty query can open the destination when allowEmptyQuery is true")
+    func testMakeURLAllowEmptyQuery() {
+        let template = "https://chatgpt.com/?q={query}"
+        #expect(
+            QuickActionBuilder.makeURL(template: template, query: "", allowEmptyQuery: true)?.absoluteString
+                == "https://chatgpt.com/?q="
+        )
+        #expect(
+            QuickActionBuilder.makeURL(template: template, query: "   ", allowEmptyQuery: true)?.absoluteString
+                == "https://chatgpt.com/?q="
+        )
+        #expect(
+            QuickActionBuilder.makeURL(
+                template: "https://chatgpt.com/?q=static",
+                query: "",
+                allowEmptyQuery: true
+            ) == nil
+        )
+    }
+
     @Test("Returns nil when template lacks {query} placeholder")
     func testMakeURLMissingPlaceholder() {
         let template = "https://chatgpt.com/?q=static"
@@ -136,6 +156,7 @@ struct QuickActionBuilderTests {
         #expect(QuickActionBuilder.makeTerminalCommand(template: "omp {query}", query: "") == nil)
         #expect(QuickActionBuilder.makeTerminalCommand(template: "omp {query}", query: "   \n\t") == nil)
         #expect(QuickActionBuilder.makeTerminalCommand(template: "omp static", query: "hello") == nil)
+        #expect(QuickActionBuilder.makeTerminalCommand(template: "omp {query}", query: "", allowEmptyQuery: true) == "omp ''")
     }
 
     // MARK: - QuickActionTemplateValidation Tests

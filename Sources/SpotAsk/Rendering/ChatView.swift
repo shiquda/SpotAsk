@@ -797,8 +797,8 @@ struct ChatView: View {
     }
 
     @discardableResult
-    private func triggerQuickAction(for actionID: UUID) -> Bool {
-        lazyQuickActionTrigger().trigger(actionID: actionID)
+    private func triggerQuickAction(for actionID: UUID, allowEmptyQuery: Bool = false) -> Bool {
+        lazyQuickActionTrigger().trigger(actionID: actionID, allowEmptyQuery: allowEmptyQuery)
     }
 
     private func canRetry(userMessage: ChatMessage) -> Bool {
@@ -1031,16 +1031,22 @@ struct ChatView: View {
     // MARK: - @ Command Palette Coordination
 
     private func updateAtCommandState(from textView: NSTextView) {
-        if textView.hasMarkedText() {
-            if atCommandState.isPresented {
-                atCommandState.dismiss()
-            }
+        let hasMarkedText = textView.hasMarkedText()
+        if hasMarkedText {
+            atCommandState.applyEditorChange(
+                query: atCommandState.query,
+                hasMarkedText: true,
+                presets: settings.enabledPromptPresets,
+                selectedPresetID: viewModel.selectedPromptPreset?.id,
+                quickActions: [],
+                anchorPoint: atCommandState.anchorPoint
+            )
             return
         }
         let query = AtCommandParser.parse(
             text: textView.string,
             selectedRange: textView.selectedRange(),
-            hasMarkedText: textView.hasMarkedText()
+            hasMarkedText: false
         )
         guard let query else {
             if atCommandState.isPresented {
@@ -1078,8 +1084,9 @@ struct ChatView: View {
             isGenerating: isGenerating,
             remainingQuery: remaining
         )
-        atCommandState.update(
+        atCommandState.applyEditorChange(
             query: query,
+            hasMarkedText: false,
             presets: settings.enabledPromptPresets,
             selectedPresetID: viewModel.selectedPromptPreset?.id,
             quickActions: executableActions,
@@ -1145,7 +1152,6 @@ struct ChatView: View {
         )
         guard plan != .reject, remaining != nil else { return }
 
-        let originalText = textView.string
         guard AtCommandComposerEdit.removeQuery(from: textView, query: query) else { return }
         viewModel.input = textView.string
 
@@ -1157,16 +1163,13 @@ struct ChatView: View {
             }
             inputFocused = true
         case let .triggerQuickAction(action):
-            let succeeded = triggerQuickAction(for: action.id)
+            let remainingText = remaining ?? ""
+            let allowEmptyQuery = remainingText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            let succeeded = triggerQuickAction(for: action.id, allowEmptyQuery: allowEmptyQuery)
             if succeeded {
                 atCommandState.dismiss()
             } else {
-                if textView.undoManager?.canUndo == true {
-                    textView.undoManager?.undo()
-                }
-                if textView.string != originalText {
-                    textView.string = originalText
-                }
+                _ = AtCommandComposerEdit.undoQueryRemoval(in: textView)
                 viewModel.input = textView.string
             }
         case .reject:

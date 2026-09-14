@@ -8,12 +8,24 @@ enum ResolvedQuickAction: Equatable, Sendable {
     case url(URL)
     case terminalCommand(String)
 
-    static func resolve(_ action: QuickAction, query: String) -> ResolvedQuickAction? {
+    static func resolve(
+        _ action: QuickAction,
+        query: String,
+        allowEmptyQuery: Bool = false
+    ) -> ResolvedQuickAction? {
         switch action.kind {
         case let .web(urlTemplate), let .uriScheme(urlTemplate):
-            QuickActionBuilder.makeURL(template: urlTemplate, query: query).map { .url($0) }
+            QuickActionBuilder.makeURL(
+                template: urlTemplate,
+                query: query,
+                allowEmptyQuery: allowEmptyQuery
+            ).map { .url($0) }
         case let .terminal(commandTemplate):
-            QuickActionBuilder.makeTerminalCommand(template: commandTemplate, query: query).map { .terminalCommand($0) }
+            QuickActionBuilder.makeTerminalCommand(
+                template: commandTemplate,
+                query: query,
+                allowEmptyQuery: allowEmptyQuery
+            ).map { .terminalCommand($0) }
         }
     }
 }
@@ -129,7 +141,7 @@ final class QuickActionTrigger {
     /// Triggers Quick Action for the given action ID following the execution pipeline.
     /// Returns `true` if the trigger was accepted and opened, `false` otherwise.
     @discardableResult
-    func trigger(actionID: UUID) -> Bool {
+    func trigger(actionID: UUID, allowEmptyQuery: Bool = false) -> Bool {
         // 1. 确认当前仍处于现有 PresetStrip 所定义的空会话状态
         guard isSessionEmpty() else { return false }
 
@@ -145,8 +157,12 @@ final class QuickActionTrigger {
         // 5. snapshot 当前 input
         let input = currentInput()
 
-        // 6. 根据 kind 解析 resolved action (空 query / 无效模板会返回 nil，自然 no-op)
-        guard let target = ResolvedQuickAction.resolve(action, query: input) else {
+        // 6. 根据 kind 解析 resolved action（默认空 query no-op；@ 命令允许空内容打开目标）
+        guard let target = ResolvedQuickAction.resolve(
+            action,
+            query: input,
+            allowEmptyQuery: allowEmptyQuery
+        ) else {
             return false
         }
 
