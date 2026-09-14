@@ -20,6 +20,7 @@
 		00100000000000000000000B /* SSEParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000000B /* SSEParser.swift */; };
 		00100000000000000000000C /* ChatInputTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000000C /* ChatInputTextView.swift */; };
 		00100000000000000000000D /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000000D /* ChatView.swift */; };
+		001000000000000000000058 /* AtCommandPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000071 /* AtCommandPalette.swift */; };
 		00100000000000000000000E /* CodeBlockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000000E /* CodeBlockView.swift */; };
 		001000000000000000000010 /* MarkdownTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000010 /* MarkdownTextView.swift */; };
 		001000000000000000000011 /* MessageContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000011 /* MessageContentView.swift */; };
@@ -107,6 +108,7 @@
 		00200000000000000000000B /* SSEParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/SSEParser.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000000C /* ChatInputTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatInputTextView.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000000D /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatView.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000071 /* AtCommandPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/AtCommandPalette.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000000E /* CodeBlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/CodeBlockView.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000010 /* MarkdownTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/MarkdownTextView.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000011 /* MessageContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/MessageContentView.swift; sourceTree = SOURCE_ROOT; };
@@ -232,6 +234,7 @@
 				00200000000000000000000C /* ChatInputTextView.swift */,
 				002000000000000000000039 /* InAppShortcutDispatcher.swift */,
 				00200000000000000000000D /* ChatView.swift */,
+				002000000000000000000071 /* AtCommandPalette.swift */,
 				00200000000000000000000E /* CodeBlockView.swift */,
 				002000000000000000000010 /* MarkdownTextView.swift */,
 				002000000000000000000011 /* MessageContentView.swift */,
@@ -413,7 +416,7 @@
 				001000000000000000000004, 001000000000000000000005, 001000000000000000000006,
 				001000000000000000000007, 001000000000000000000008, 001000000000000000000009,
 				00100000000000000000000A, 00100000000000000000000B, 00100000000000000000000C,
-				00100000000000000000000D, 00100000000000000000000E, 001000000000000000000010,
+				00100000000000000000000D, 00100000000000000000000E, 001000000000000000000010, 001000000000000000000058,
 				001000000000000000000011, 001000000000000000000012,
 				001000000000000000000013, 001000000000000000000014, A10A1BF55C41862B4D74E27E, 3FC6126F1DE94BF2D7037BB1, 98A8F92204242C8C229BC165, BAB11B847CB8759B26387593, 001000000000000000000015,
 				001000000000000000000016, 001000000000000000000017, 001000000000000000000018,

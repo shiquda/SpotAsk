@@ -158,6 +158,144 @@ enum AtCommandFilter {
     }
 }
 
+// MARK: - Query Match, Key Policy, Selection Plan
+
+enum AtCommandQueryMatcher {
+    static func matches(_ query: AtCommandQuery, in text: String) -> Bool {
+        let nsText = text as NSString
+        let range = query.range
+        guard range.location >= 0, NSMaxRange(range) <= nsText.length else { return false }
+        return nsText.substring(with: range) == "@" + query.keyword
+    }
+
+    static func remainingText(afterRemoving query: AtCommandQuery, from text: String) -> String? {
+        guard matches(query, in: text) else { return nil }
+        return (text as NSString).replacingCharacters(in: query.range, with: "")
+    }
+}
+
+enum AtCommandKeyPolicy {
+    enum Outcome: Equatable {
+        case ignore
+        case selectPrevious
+        case selectNext
+        case confirm
+        case consumeWithoutConfirm
+        case dismiss
+    }
+
+    static func outcome(
+        keyCode: UInt16,
+        modifierFlags: NSEvent.ModifierFlags,
+        isPresented: Bool,
+        hasHighlightedItem: Bool
+    ) -> Outcome {
+        guard isPresented else { return .ignore }
+        let modifiers = modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard modifiers.intersection([.control, .option, .command]).isEmpty else {
+            return .ignore
+        }
+        switch keyCode {
+        case 126:
+            return modifiers.isEmpty ? .selectPrevious : .ignore
+        case 125:
+            return modifiers.isEmpty ? .selectNext : .ignore
+        case 36, 76:
+            guard !modifiers.contains(.shift) else { return .ignore }
+            return hasHighlightedItem ? .confirm : .consumeWithoutConfirm
+        case 48:
+            return hasHighlightedItem ? .confirm : .consumeWithoutConfirm
+        case 53:
+            return .dismiss
+        default:
+            return .ignore
+        }
+    }
+}
+
+enum AtCommandQuickActionAvailability {
+    static func isExecutable(
+        action: QuickAction,
+        sessionEmpty: Bool,
+        isGenerating: Bool,
+        remainingQuery: String
+    ) -> Bool {
+        guard sessionEmpty, !isGenerating else { return false }
+        return ResolvedQuickAction.resolve(action, query: remainingQuery) != nil
+    }
+
+    static func executableActions(
+        from actions: [QuickAction],
+        sessionEmpty: Bool,
+        isGenerating: Bool,
+        remainingQuery: String
+    ) -> [QuickAction] {
+        actions.filter {
+            isExecutable(
+                action: $0,
+                sessionEmpty: sessionEmpty,
+                isGenerating: isGenerating,
+                remainingQuery: remainingQuery
+            )
+        }
+    }
+}
+
+enum AtCommandSelection {
+    enum Plan: Equatable {
+        case applyPreset(PromptPreset)
+        case triggerQuickAction(QuickAction)
+        case reject
+    }
+
+    static func plan(
+        text: String,
+        query: AtCommandQuery,
+        item: AtCommandItem,
+        allowsReplacement: Bool,
+        isPresetEnabled: (PromptPreset) -> Bool,
+        canExecuteQuickAction: (QuickAction, String) -> Bool
+    ) -> Plan {
+        guard allowsReplacement else { return .reject }
+        guard let remaining = AtCommandQueryMatcher.remainingText(afterRemoving: query, from: text) else {
+            return .reject
+        }
+        switch item.kind {
+        case let .promptPreset(preset):
+            guard isPresetEnabled(preset) else { return .reject }
+            return .applyPreset(preset)
+        case let .quickAction(action):
+            guard canExecuteQuickAction(action, remaining) else { return .reject }
+            return .triggerQuickAction(action)
+        }
+    }
+}
+
+@MainActor
+enum AtCommandComposerEdit {
+    @discardableResult
+    static func removeQuery(from textView: NSTextView, query: AtCommandQuery) -> Bool {
+        guard AtCommandQueryMatcher.matches(query, in: textView.string) else { return false }
+        let range = query.range
+        guard textView.shouldChangeText(in: range, replacementString: "") else { return false }
+        let removed = (textView.string as NSString).substring(with: range)
+        textView.replaceCharacters(in: range, with: "")
+        textView.didChangeText()
+        textView.setSelectedRange(NSRange(location: range.location, length: 0))
+        if let undoManager = textView.undoManager, !undoManager.canUndo {
+            let insertionRange = NSRange(location: range.location, length: 0)
+            undoManager.registerUndo(withTarget: textView) { target in
+                guard target.shouldChangeText(in: insertionRange, replacementString: removed) else { return }
+                target.replaceCharacters(in: insertionRange, with: removed)
+                target.didChangeText()
+                target.setSelectedRange(NSRange(location: range.location + (removed as NSString).length, length: 0))
+            }
+        }
+        return true
+    }
+}
+
+
 // MARK: - State Machine
 
 @MainActor

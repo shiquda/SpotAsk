@@ -135,9 +135,20 @@ struct ChatView: View {
             reasoningToggle.reconcile(messages: messages, prefersExpanded: settings.defaultExpandReasoning)
             userMessageExpansionState.reconcile(messages: messages, role: .user)
             assistantMessageExpansionState.reconcile(messages: messages, role: .assistant)
+            refreshAtCommandPaletteIfPresented()
+        }
+        .onChange(of: viewModel.generationState) { _, _ in
+            refreshAtCommandPaletteIfPresented()
         }
         .onChange(of: settings.promptPresets) { _, _ in
             synchronizeSelectedPromptPreset()
+            refreshAtCommandPaletteIfPresented()
+        }
+        .onChange(of: settings.quickActions) { _, _ in
+            refreshAtCommandPaletteIfPresented()
+        }
+        .onChange(of: settings.externalAskEnabled) { _, _ in
+            refreshAtCommandPaletteIfPresented()
         }
     }
 
@@ -1060,52 +1071,53 @@ struct ChatView: View {
         } else {
             anchor = CGPoint(x: 10, y: 0)
         }
-
+        let remaining = AtCommandQueryMatcher.remainingText(afterRemoving: query, from: textView.string) ?? ""
+        let executableActions = AtCommandQuickActionAvailability.executableActions(
+            from: settings.enabledQuickActions,
+            sessionEmpty: viewModel.messages.isEmpty,
+            isGenerating: isGenerating,
+            remainingQuery: remaining
+        )
         atCommandState.update(
             query: query,
             presets: settings.enabledPromptPresets,
             selectedPresetID: viewModel.selectedPromptPreset?.id,
-            quickActions: settings.enabledQuickActions,
+            quickActions: executableActions,
             anchorPoint: anchor
         )
     }
 
-    private func handleAtCommandKeyDown(_ event: NSEvent) -> Bool {
-        guard atCommandState.isPresented else { return false }
-        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        guard modifiers.intersection([.control, .option, .command]).isEmpty else {
-            return false
-        }
-
-        switch event.keyCode {
-        case 126: // Up arrow
-            guard modifiers.isEmpty else { return false }
-            atCommandState.selectPrevious()
-            return true
-        case 125: // Down arrow
-            guard modifiers.isEmpty else { return false }
-            atCommandState.selectNext()
-            return true
-        case 36, 76: // Enter / Return
-            guard !modifiers.contains(.shift) else { return false }
-            return executeSelectedAtCommand()
-        case 48: // Tab
-            return executeSelectedAtCommand()
-        case 53: // Escape
-            dismissAtCommandPalette()
-            return true
-        default:
-            return false
-        }
+    private func refreshAtCommandPaletteIfPresented() {
+        guard atCommandState.isPresented, let textView = composerTextView.textView else { return }
+        updateAtCommandState(from: textView)
     }
 
-    @discardableResult
-    private func executeSelectedAtCommand() -> Bool {
-        guard let item = atCommandState.currentSelectedItem else {
+    private func handleAtCommandKeyDown(_ event: NSEvent) -> Bool {
+        switch AtCommandKeyPolicy.outcome(
+            keyCode: event.keyCode,
+            modifierFlags: event.modifierFlags,
+            isPresented: atCommandState.isPresented,
+            hasHighlightedItem: atCommandState.currentSelectedItem != nil
+        ) {
+        case .ignore:
             return false
+        case .selectPrevious:
+            atCommandState.selectPrevious()
+            return true
+        case .selectNext:
+            atCommandState.selectNext()
+            return true
+        case .confirm:
+            if let item = atCommandState.currentSelectedItem {
+                handleAtCommandSelection(item)
+            }
+            return true
+        case .consumeWithoutConfirm:
+            return true
+        case .dismiss:
+            dismissAtCommandPalette()
+            return true
         }
-        handleAtCommandSelection(item)
-        return true
     }
 
     private func handleAtCommandSelection(_ item: AtCommandItem) {
@@ -1115,25 +1127,50 @@ struct ChatView: View {
             return
         }
 
-        let range = query.range
-        let nsText = textView.string as NSString
-        if range.location + range.length <= nsText.length {
-            textView.shouldChangeText(in: range, replacementString: "")
-            textView.replaceCharacters(in: range, with: "")
-            textView.didChangeText()
-            textView.setSelectedRange(NSRange(location: range.location, length: 0))
-        }
-        viewModel.input = textView.string
-        atCommandState.dismiss()
+        let remaining = AtCommandQueryMatcher.remainingText(afterRemoving: query, from: textView.string)
+        let plan = AtCommandSelection.plan(
+            text: textView.string,
+            query: query,
+            item: item,
+            allowsReplacement: true,
+            isPresetEnabled: { settings.promptPresetAllowedForUse($0) != nil },
+            canExecuteQuickAction: { action, remainingQuery in
+                AtCommandQuickActionAvailability.isExecutable(
+                    action: action,
+                    sessionEmpty: viewModel.messages.isEmpty,
+                    isGenerating: isGenerating,
+                    remainingQuery: remainingQuery
+                )
+            }
+        )
+        guard plan != .reject, remaining != nil else { return }
 
-        switch item.kind {
-        case let .promptPreset(preset):
+        let originalText = textView.string
+        guard AtCommandComposerEdit.removeQuery(from: textView, query: query) else { return }
+        viewModel.input = textView.string
+
+        switch plan {
+        case let .applyPreset(preset):
+            atCommandState.dismiss()
             if let enabled = settings.promptPresetAllowedForUse(preset) {
                 viewModel.selectedPromptPreset = enabled
             }
             inputFocused = true
-        case let .quickAction(action):
-            triggerQuickAction(for: action.id)
+        case let .triggerQuickAction(action):
+            let succeeded = triggerQuickAction(for: action.id)
+            if succeeded {
+                atCommandState.dismiss()
+            } else {
+                if textView.undoManager?.canUndo == true {
+                    textView.undoManager?.undo()
+                }
+                if textView.string != originalText {
+                    textView.string = originalText
+                }
+                viewModel.input = textView.string
+            }
+        case .reject:
+            break
         }
     }
 }

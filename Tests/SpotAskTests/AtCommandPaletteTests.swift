@@ -328,57 +328,274 @@ struct AtCommandStateTests {
 @MainActor
 struct AtCommandActionExecutionTests {
 
-    @Test("Selecting a prompt preset removes @query from input and activates the preset")
-    func promptPresetSelectionUpdatesState() {
-        let defaults = UserDefaults(suiteName: "AtCommandActionTests-\(UUID().uuidString)")!
-        defer { defaults.removePersistentDomain(forName: defaults.description) }
-        let settings = AppSettings(defaults: defaults)
-        let preset = PromptPreset.builtIn[0] // Translate
+    private final class UndoableTextView: NSTextView {
+        let ownedUndoManager = UndoManager()
+        override var undoManager: UndoManager? { ownedUndoManager }
+    }
 
-        // Simulate text replacement as done in handleAtCommandSelection
-        var text = "Hello @trans please"
+    private func makePresetItem(_ preset: PromptPreset) -> AtCommandItem {
+        AtCommandItem.makePresets(from: [preset], selectedPresetID: nil)[0]
+    }
+
+    private func makeActionItem(_ action: QuickAction) -> AtCommandItem {
+        AtCommandItem.makeQuickActions(from: [action])[0]
+    }
+
+    private func makeTextView(_ text: String) -> NSTextView {
+        let textView = UndoableTextView()
+        textView.allowsUndo = true
+        textView.string = text
+        return textView
+    }
+
+    @Test("Preset selection plan requires matching @query and enabled preset")
+    func presetPlanRequiresMatchAndEnabledPreset() {
+        let preset = PromptPreset(id: UUID(), title: "翻译", instruction: "翻译", customSymbolName: "globe")
+        let item = makePresetItem(preset)
+        let text = "Hello @trans please"
         let query = AtCommandParser.parse(
             text: text,
             selectedRange: NSRange(location: 12, length: 0),
             hasMarkedText: false
         )!
-        #expect(query.keyword == "trans")
 
-        let nsText = text as NSString
-        let range = query.range
-        text = nsText.replacingCharacters(in: range, with: "")
-        #expect(text == "Hello  please")
+        let accepted = AtCommandSelection.plan(
+            text: text,
+            query: query,
+            item: item,
+            allowsReplacement: true,
+            isPresetEnabled: { $0.id == preset.id },
+            canExecuteQuickAction: { _, _ in false }
+        )
+        #expect(accepted == .applyPreset(preset))
 
-        // Verify preset lookup
-        let enabled = settings.promptPresetAllowedForUse(preset)
-        #expect(enabled?.id == preset.id)
+        let rejectedEdit = AtCommandSelection.plan(
+            text: text,
+            query: query,
+            item: item,
+            allowsReplacement: false,
+            isPresetEnabled: { $0.id == preset.id },
+            canExecuteQuickAction: { _, _ in false }
+        )
+        #expect(rejectedEdit == .reject)
+
+        let staleQuery = AtCommandQuery(triggerLocation: 0, keyword: "gone")
+        let rejectedStale = AtCommandSelection.plan(
+            text: text,
+            query: staleQuery,
+            item: item,
+            allowsReplacement: true,
+            isPresetEnabled: { $0.id == preset.id },
+            canExecuteQuickAction: { _, _ in false }
+        )
+        #expect(rejectedStale == .reject)
+
+        let rejectedDisabled = AtCommandSelection.plan(
+            text: text,
+            query: query,
+            item: item,
+            allowsReplacement: true,
+            isPresetEnabled: { _ in false },
+            canExecuteQuickAction: { _, _ in false }
+        )
+        #expect(rejectedDisabled == .reject)
     }
 
-    @Test("Selecting an external ask removes @query and passes remaining input to trigger")
-    func externalAskSelectionPassesRemainingInput() {
-        let action = QuickAction.builtIn[0] // ChatGPT
-        var text = "@chatgpt explain this code"
+    @Test("External ask plan uses remaining text and keeps input when not executable")
+    func externalAskPlanKeepsInputWhenNotExecutable() {
+        let action = QuickAction.builtIn[0]
+        let item = makeActionItem(action)
+        let text = "@chatgpt explain this code"
         let query = AtCommandParser.parse(
             text: text,
             selectedRange: NSRange(location: 8, length: 0),
             hasMarkedText: false
         )!
-        #expect(query.keyword == "chatgpt")
+        let remaining = AtCommandQueryMatcher.remainingText(afterRemoving: query, from: text)
+        #expect(remaining == " explain this code")
 
-        let nsText = text as NSString
-        let range = query.range
-        text = nsText.replacingCharacters(in: range, with: "")
-        #expect(text == " explain this code")
+        var capturedRemaining: String?
+        let accepted = AtCommandSelection.plan(
+            text: text,
+            query: query,
+            item: item,
+            allowsReplacement: true,
+            isPresetEnabled: { _ in false },
+            canExecuteQuickAction: { _, remainingQuery in
+                capturedRemaining = remainingQuery
+                return true
+            }
+        )
+        #expect(accepted == .triggerQuickAction(action))
+        #expect(capturedRemaining == " explain this code")
 
-        // Resolving template with remaining input
-        let resolved = ResolvedQuickAction.resolve(action, query: text)
-        #expect(resolved != nil)
-        if case let .url(url) = resolved {
-            #expect(url.absoluteString.contains("chatgpt.com"))
-            #expect(url.absoluteString.contains("explain%20this%20code"))
-        } else {
-            Issue.record("Expected web URL execution")
+        let rejected = AtCommandSelection.plan(
+            text: text,
+            query: query,
+            item: item,
+            allowsReplacement: true,
+            isPresetEnabled: { _ in false },
+            canExecuteQuickAction: { _, _ in false }
+        )
+        #expect(rejected == .reject)
+    }
+
+    @Test("Composer edit respects shouldChangeText and restores @query on undo")
+    func composerEditRespectsPermissionAndUndo() {
+        let text = "Hello @trans please"
+        let query = AtCommandParser.parse(
+            text: text,
+            selectedRange: NSRange(location: 12, length: 0),
+            hasMarkedText: false
+        )!
+        let textView = makeTextView(text)
+
+        #expect(AtCommandComposerEdit.removeQuery(from: textView, query: query))
+        #expect(textView.string == "Hello  please")
+        #expect(textView.undoManager?.canUndo == true)
+        textView.undoManager?.undo()
+        #expect(textView.string == text)
+
+        final class RejectingTextView: NSTextView {
+            override func shouldChangeText(in affectedCharRange: NSRange, replacementString: String?) -> Bool {
+                false
+            }
         }
+        let rejecting = RejectingTextView()
+        rejecting.allowsUndo = true
+        rejecting.string = text
+        #expect(!AtCommandComposerEdit.removeQuery(from: rejecting, query: query))
+        #expect(rejecting.string == text)
+    }
+
+    @Test("Quick actions are omitted when session is busy or remaining query is empty")
+    func executableActionsMatchTriggerGuards() {
+        let action = QuickAction.builtIn[0]
+        #expect(
+            AtCommandQuickActionAvailability.isExecutable(
+                action: action,
+                sessionEmpty: true,
+                isGenerating: false,
+                remainingQuery: "explain this"
+            )
+        )
+        #expect(
+            !AtCommandQuickActionAvailability.isExecutable(
+                action: action,
+                sessionEmpty: false,
+                isGenerating: false,
+                remainingQuery: "explain this"
+            )
+        )
+        #expect(
+            !AtCommandQuickActionAvailability.isExecutable(
+                action: action,
+                sessionEmpty: true,
+                isGenerating: true,
+                remainingQuery: "explain this"
+            )
+        )
+        #expect(
+            !AtCommandQuickActionAvailability.isExecutable(
+                action: action,
+                sessionEmpty: true,
+                isGenerating: false,
+                remainingQuery: "   "
+            )
+        )
+
+        let state = AtCommandState()
+        state.update(
+            query: AtCommandQuery(triggerLocation: 0, keyword: ""),
+            presets: [],
+            selectedPresetID: nil,
+            quickActions: AtCommandQuickActionAvailability.executableActions(
+                from: [action],
+                sessionEmpty: false,
+                isGenerating: false,
+                remainingQuery: "hello"
+            ),
+            anchorPoint: .zero
+        )
+        #expect(state.filteredQuickActions.isEmpty)
+        #expect(state.currentSelectedItem == nil)
+    }
+
+    @Test("Enter with an open empty palette is consumed and does not send")
+    func emptyPaletteEnterIsConsumed() {
+        #expect(
+            AtCommandKeyPolicy.outcome(
+                keyCode: 36,
+                modifierFlags: [],
+                isPresented: true,
+                hasHighlightedItem: false
+            ) == .consumeWithoutConfirm
+        )
+        #expect(
+            AtCommandKeyPolicy.outcome(
+                keyCode: 48,
+                modifierFlags: [],
+                isPresented: true,
+                hasHighlightedItem: false
+            ) == .consumeWithoutConfirm
+        )
+        #expect(
+            AtCommandKeyPolicy.outcome(
+                keyCode: 36,
+                modifierFlags: [],
+                isPresented: true,
+                hasHighlightedItem: true
+            ) == .confirm
+        )
+        #expect(
+            AtCommandKeyPolicy.outcome(
+                keyCode: 36,
+                modifierFlags: [],
+                isPresented: false,
+                hasHighlightedItem: false
+            ) == .ignore
+        )
+    }
+
+    @Test("Failed trigger after a committed edit restores @query via undo")
+    func failedTriggerRestoresQueryViaUndo() {
+        let action = QuickAction.builtIn[0]
+        let text = "@chatgpt explain this code"
+        let query = AtCommandParser.parse(
+            text: text,
+            selectedRange: NSRange(location: 8, length: 0),
+            hasMarkedText: false
+        )!
+        let textView = makeTextView(text)
+        var input = text
+        var triggerSucceeded = false
+
+        let plan = AtCommandSelection.plan(
+            text: textView.string,
+            query: query,
+            item: makeActionItem(action),
+            allowsReplacement: true,
+            isPresetEnabled: { _ in false },
+            canExecuteQuickAction: { _, remaining in
+                AtCommandQuickActionAvailability.isExecutable(
+                    action: action,
+                    sessionEmpty: true,
+                    isGenerating: false,
+                    remainingQuery: remaining
+                )
+            }
+        )
+        #expect(plan == .triggerQuickAction(action))
+        #expect(AtCommandComposerEdit.removeQuery(from: textView, query: query))
+        input = textView.string
+        #expect(input == " explain this code")
+
+        if !triggerSucceeded, textView.undoManager?.canUndo == true {
+            textView.undoManager?.undo()
+            input = textView.string
+        }
+        #expect(input == text)
+        #expect(textView.string == text)
     }
 }
 
