@@ -386,12 +386,15 @@
 "settings.selectionAssistantModeActionBar" = "Mostrar acciones rápidas";
 "settings.selectionAssistantAutoShow" = "Mostrar acciones rápidas al seleccionar texto";
 "settings.selectionAssistantActionLabels" = "Mostrar etiquetas junto a los iconos";
+"settings.selectionAssistantActionChat" = "Mostrar icono de chat en la barra de selección";
 "settings.selectionAssistantActionExternalAsk" = "Mostrar External Ask en la barra de selección";
 "settings.selectionAssistantActionPrompts" = "Mostrar prompts en la barra de selección";
 "settings.selectionAssistantActionBarCrowdingHint" = "Con muchas acciones, la barra puede resultar demasiado larga. Quite las que no use, o desactive «Mostrar etiquetas junto a los iconos» para ver solo iconos.";
 "settings.selectionAssistantShowsExternalAsk" = "Mostrar External Ask en la barra de selección";
 "settings.selectionAssistantShowsExternalAskDescription" = "Las acciones y el orden siguen los ajustes de External Ask";
 "selection.actionBar.more" = "Más";
+"selection.actionBar.chat" = "Chat";
+"selection.actionBar.chatTooltip" = "Añadir al chat";
 "selection.actionBar.moreAccessibility" = "Más acciones de selección";
 "selection.actionBar.externalAskAccessibility" = "External Ask: %@";
 "selection.actionBar.kind.web" = "Pregunta web";

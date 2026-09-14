@@ -6,6 +6,7 @@ enum SpotAskCommandAction: Equatable {
     case prepare(PromptPreset)
     case newConversation
     case ask(String, PromptPreset?, SelectedTextSnapshot? = nil)
+    case addToChat(String)
     case showSettings
 }
 
@@ -55,6 +56,15 @@ final class SpotAskCommandCenter {
         }
         enqueue(.compose(trimmedQuestion, promptPreset))
     }
+    func addToChat(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            open()
+            return
+        }
+        enqueue(.addToChat(trimmed))
+    }
+
 
     func prepare(promptPreset: PromptPreset) {
         enqueue(.prepare(promptPreset))

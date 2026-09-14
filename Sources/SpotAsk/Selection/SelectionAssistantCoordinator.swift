@@ -99,22 +99,28 @@ final class SelectionAssistantCoordinator {
                     if let preset { commandCenter.ask(current.text, promptPreset: preset, selectionSnapshot: current) }
                     else { commandCenter.compose(current.text) }
                 } else {
+                    let showsChat = settings.selectionActionBarShowsChatAction
                     let presets = selectionActionBarPresets
                     let externalAsks = selectionActionBarExternalAsks
-                    guard !presets.isEmpty || !externalAsks.isEmpty else {
+                    guard showsChat || !presets.isEmpty || !externalAsks.isEmpty else {
                         discardPresentedSelection()
                         return
                     }
                     overlay.showActions(
                         snapshot: current,
+                        showsChat: showsChat,
                         presets: presets,
                         externalAsks: externalAsks,
                         showsLabels: settings.selectionActionBarShowsLabels,
+                        shortcutForChat: nil,
                         shortcutForPreset: { [settings] preset in
                             settings.shortcut(for: .promptPreset(preset.id))
                         },
                         shortcutForExternalAsk: { [settings] action in
                             settings.shortcut(for: .quickAction(action.id))
+                        },
+                        onSelectChat: { [weak self] in
+                            self?.addToChat()
                         },
                         onSelectPreset: { [weak self] preset in
                             self?.apply(preset: preset)
@@ -162,6 +168,13 @@ final class SelectionAssistantCoordinator {
         overlay.hide()
         self.snapshot = nil
         commandCenter.ask(snapshot.text, promptPreset: settings.enabledPromptPreset(id: preset.id), selectionSnapshot: snapshot)
+    }
+
+    private func addToChat() {
+        guard let snapshot else { return }
+        overlay.hide()
+        self.snapshot = nil
+        commandCenter.addToChat(snapshot.text)
     }
 
     private var selectionActionBarPresets: [PromptPreset] {
@@ -224,6 +237,19 @@ extension SelectionReadingError {
 protocol SelectionOverlayControlling: AnyObject {
     func showActions(
         snapshot: SelectedTextSnapshot,
+        showsChat: Bool,
+        presets: [PromptPreset],
+        externalAsks: [QuickAction],
+        showsLabels: Bool,
+        shortcutForChat: InAppShortcut?,
+        shortcutForPreset: ((PromptPreset) -> InAppShortcut?)?,
+        shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?,
+        onSelectChat: @escaping () -> Void,
+        onSelectPreset: @escaping (PromptPreset) -> Void,
+        onSelectExternalAsk: @escaping (QuickAction) -> Void
+    )
+    func showActions(
+        snapshot: SelectedTextSnapshot,
         presets: [PromptPreset],
         externalAsks: [QuickAction],
         showsLabels: Bool,
@@ -248,9 +274,14 @@ protocol SelectionOverlayControlling: AnyObject {
 extension SelectionOverlayControlling {
     func showActions(
         snapshot: SelectedTextSnapshot,
+        showsChat: Bool,
         presets: [PromptPreset],
         externalAsks: [QuickAction],
         showsLabels: Bool,
+        shortcutForChat: InAppShortcut?,
+        shortcutForPreset: ((PromptPreset) -> InAppShortcut?)?,
+        shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?,
+        onSelectChat: @escaping () -> Void,
         onSelectPreset: @escaping (PromptPreset) -> Void,
         onSelectExternalAsk: @escaping (QuickAction) -> Void
     ) {
@@ -259,8 +290,31 @@ extension SelectionOverlayControlling {
             presets: presets,
             externalAsks: externalAsks,
             showsLabels: showsLabels,
+            shortcutForPreset: shortcutForPreset,
+            shortcutForExternalAsk: shortcutForExternalAsk,
+            onSelectPreset: onSelectPreset,
+            onSelectExternalAsk: onSelectExternalAsk
+        )
+    }
+
+    func showActions(
+        snapshot: SelectedTextSnapshot,
+        presets: [PromptPreset],
+        externalAsks: [QuickAction],
+        showsLabels: Bool,
+        onSelectPreset: @escaping (PromptPreset) -> Void,
+        onSelectExternalAsk: @escaping (QuickAction) -> Void
+    ) {
+        showActions(
+            snapshot: snapshot,
+            showsChat: false,
+            presets: presets,
+            externalAsks: externalAsks,
+            showsLabels: showsLabels,
+            shortcutForChat: nil,
             shortcutForPreset: nil,
             shortcutForExternalAsk: nil,
+            onSelectChat: {},
             onSelectPreset: onSelectPreset,
             onSelectExternalAsk: onSelectExternalAsk
         )
@@ -278,9 +332,14 @@ extension SelectionOverlayControlling {
     ) {
         showActions(
             snapshot: snapshot,
+            showsChat: false,
             presets: presets,
             externalAsks: externalAsks,
             showsLabels: showsLabels,
+            shortcutForChat: nil,
+            shortcutForPreset: shortcutForPreset,
+            shortcutForExternalAsk: shortcutForExternalAsk,
+            onSelectChat: {},
             onSelectPreset: onSelectPreset,
             onSelectExternalAsk: onSelectExternalAsk
         )
