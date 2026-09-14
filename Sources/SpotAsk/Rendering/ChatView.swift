@@ -25,6 +25,8 @@ struct ChatView: View {
     @State private var assistantMessageExpansionState = MessageExpansionState()
     @State private var isPresetPopoverPresented = false
     @State private var isModelPickerPresented = false
+    @State private var atCommandState = AtCommandState()
+    @State private var lastDismissedTriggerLocation: Int?
     @State private var isDropTargeted = false
     @State private var showsShortcutHints = false
     @State private var shortcutDispatcher: InAppShortcutDispatcher?
@@ -503,7 +505,9 @@ struct ChatView: View {
                         }
                     },
                     onTextViewReady: { composerTextView.textView = $0 },
-                    onRecall: { viewModel.recallLastQuestion() }
+                    onRecall: { viewModel.recallLastQuestion() },
+                    onInterceptKeyDown: { handleAtCommandKeyDown($0) },
+                    onTextOrSelectionChange: { updateAtCommandState(from: $0) }
                 )
                 .frame(height: inputHeight)
                 .animation(.easeOut(duration: 0.12), value: inputHeight)
@@ -531,6 +535,27 @@ struct ChatView: View {
                 .overlay(alignment: .bottomTrailing) {
                     ShortcutKeycap(shortcut: shortcutHint(for: .operation(.focusInput)))
                         .padding(8)
+                }
+                .overlay(alignment: .topLeading) {
+                    Color.clear
+                        .frame(width: 1, height: 1)
+                        .offset(x: atCommandState.anchorPoint.x, y: atCommandState.anchorPoint.y)
+                        .background(
+                            PopoverOutsideClickMonitor(isPresented: $atCommandState.isPresented)
+                        )
+                        .popover(
+                            isPresented: $atCommandState.isPresented,
+                            attachmentAnchor: .point(.top),
+                            arrowEdge: .bottom
+                        ) {
+                            AtCommandPaletteView(
+                                state: atCommandState,
+                                showsShortcutHints: showsShortcutHints,
+                                shortcutForPreset: shortcutHint(for:),
+                                shortcutForAction: shortcutHint(for:),
+                                onSelect: handleAtCommandSelection
+                            )
+                        }
                 }
                 .animation(.easeOut(duration: 0.12), value: inputFocused)
                 ComposerSendButton(
@@ -865,6 +890,7 @@ struct ChatView: View {
     private func handleEscape() {
         switch chatEscapeAction(
             hasMarkedText: composerHasMarkedText(),
+            isAtCommandPalettePresented: atCommandState.isPresented,
             isPresetPopoverPresented: isPresetPopoverPresented,
             isModelPickerPresented: isModelPickerPresented,
             isGenerating: isGenerating,
@@ -873,6 +899,8 @@ struct ChatView: View {
         ) {
         case .preserveMarkedText:
             break
+        case .dismissAtCommandPalette:
+            dismissAtCommandPalette()
         case .dismissPresetPopover:
             isPresetPopoverPresented = false
         case .dismissModelPicker:
@@ -886,6 +914,12 @@ struct ChatView: View {
         }
     }
 
+    private func dismissAtCommandPalette() {
+        if let query = atCommandState.query {
+            lastDismissedTriggerLocation = query.triggerLocation
+        }
+        atCommandState.dismiss()
+    }
     private func dismiss() {
         if settings.clearInputOnClose { viewModel.input = "" }
         onDismiss()
@@ -981,6 +1015,125 @@ struct ChatView: View {
             .userDecelerating
         case .animating:
             .programmaticAnimating
+        }
+    }
+    // MARK: - @ Command Palette Coordination
+
+    private func updateAtCommandState(from textView: NSTextView) {
+        if textView.hasMarkedText() {
+            if atCommandState.isPresented {
+                atCommandState.dismiss()
+            }
+            return
+        }
+        let query = AtCommandParser.parse(
+            text: textView.string,
+            selectedRange: textView.selectedRange(),
+            hasMarkedText: textView.hasMarkedText()
+        )
+        guard let query else {
+            if atCommandState.isPresented {
+                atCommandState.dismiss()
+            }
+            lastDismissedTriggerLocation = nil
+            return
+        }
+        if query.triggerLocation == lastDismissedTriggerLocation && !atCommandState.isPresented {
+            return
+        }
+        lastDismissedTriggerLocation = nil
+
+        let anchor: CGPoint
+        if let composer = textView as? ComposerTextView {
+            anchor = composer.caretAnchorPoint(for: textView.selectedRange().location)
+        } else if let lm = textView.layoutManager, let tc = textView.textContainer {
+            lm.ensureLayout(for: tc)
+            let len = (textView.string as NSString).length
+            let safeIndex = max(0, min(textView.selectedRange().location, len - 1))
+            let glyphIdx = lm.glyphIndexForCharacter(at: safeIndex)
+            let rect = lm.boundingRect(forGlyphRange: NSRange(location: glyphIdx, length: 1), in: tc)
+            let scrollY = textView.enclosingScrollView?.documentVisibleRect.origin.y ?? 0
+            anchor = CGPoint(
+                x: max(10, rect.maxX + textView.textContainerInset.width),
+                y: max(0, rect.minY + textView.textContainerInset.height - scrollY)
+            )
+        } else {
+            anchor = CGPoint(x: 10, y: 0)
+        }
+
+        atCommandState.update(
+            query: query,
+            presets: settings.enabledPromptPresets,
+            selectedPresetID: viewModel.selectedPromptPreset?.id,
+            quickActions: settings.enabledQuickActions,
+            anchorPoint: anchor
+        )
+    }
+
+    private func handleAtCommandKeyDown(_ event: NSEvent) -> Bool {
+        guard atCommandState.isPresented else { return false }
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard modifiers.intersection([.control, .option, .command]).isEmpty else {
+            return false
+        }
+
+        switch event.keyCode {
+        case 126: // Up arrow
+            guard modifiers.isEmpty else { return false }
+            atCommandState.selectPrevious()
+            return true
+        case 125: // Down arrow
+            guard modifiers.isEmpty else { return false }
+            atCommandState.selectNext()
+            return true
+        case 36, 76: // Enter / Return
+            guard !modifiers.contains(.shift) else { return false }
+            return executeSelectedAtCommand()
+        case 48: // Tab
+            return executeSelectedAtCommand()
+        case 53: // Escape
+            dismissAtCommandPalette()
+            return true
+        default:
+            return false
+        }
+    }
+
+    @discardableResult
+    private func executeSelectedAtCommand() -> Bool {
+        guard let item = atCommandState.currentSelectedItem else {
+            return false
+        }
+        handleAtCommandSelection(item)
+        return true
+    }
+
+    private func handleAtCommandSelection(_ item: AtCommandItem) {
+        guard let query = atCommandState.query,
+              let textView = composerTextView.textView else {
+            atCommandState.dismiss()
+            return
+        }
+
+        let range = query.range
+        let nsText = textView.string as NSString
+        if range.location + range.length <= nsText.length {
+            textView.shouldChangeText(in: range, replacementString: "")
+            textView.replaceCharacters(in: range, with: "")
+            textView.didChangeText()
+            textView.setSelectedRange(NSRange(location: range.location, length: 0))
+        }
+        viewModel.input = textView.string
+        atCommandState.dismiss()
+
+        switch item.kind {
+        case let .promptPreset(preset):
+            if let enabled = settings.promptPresetAllowedForUse(preset) {
+                viewModel.selectedPromptPreset = enabled
+            }
+            inputFocused = true
+        case let .quickAction(action):
+            triggerQuickAction(for: action.id)
         }
     }
 }

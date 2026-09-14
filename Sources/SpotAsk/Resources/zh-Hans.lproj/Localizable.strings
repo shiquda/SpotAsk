@@ -510,3 +510,8 @@
 "externalAsk.validation.nonHTTPSWarning" = "建议使用以 https:// 开头的安全链接。";
 "externalAsk.deleteTitle" = "删除外部提问？";
 "externalAsk.deleteMessage" = "该条目将被删除，此操作无法撤销。";
+"chat.atCommand.searchPlaceholder" = "过滤命令…";
+"chat.atCommand.noMatching" = "未找到匹配“@%@”的命令";
+"chat.atCommand.pressEscToCancel" = "按 Esc 取消";
+"chat.atCommand.accessibilityLabel" = "@ 命令";
+"chat.atCommand.filtering" = "正在过滤“@%@”…";

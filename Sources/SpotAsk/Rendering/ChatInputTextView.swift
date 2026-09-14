@@ -24,6 +24,8 @@ struct ChatInputTextView: NSViewRepresentable {
     /// Called when the up arrow is pressed in an empty input with no selection.
     /// Return true when a previous question was recalled.
     let onRecall: () -> Bool
+    var onInterceptKeyDown: ((NSEvent) -> Bool)? = nil
+    var onTextOrSelectionChange: ((NSTextView) -> Void)? = nil
 
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
@@ -53,6 +55,8 @@ struct ChatInputTextView: NSViewRepresentable {
             guard let coordinator, let textView = $0 as? NSTextView else { return }
             coordinator.updateHeightIfNeeded(of: textView)
         }
+        textView.onInterceptKeyDown = onInterceptKeyDown
+        textView.onTextOrSelectionChange = onTextOrSelectionChange
         textView.string = text
         let initialLocation = (text as NSString).length
         textView.setSelectedRange(NSRange(location: initialLocation, length: 0))
@@ -113,6 +117,8 @@ struct ChatInputTextView: NSViewRepresentable {
                 coordinator?.pasteFiles(urls)
             }
         }
+        textView.onInterceptKeyDown = onInterceptKeyDown
+        textView.onTextOrSelectionChange = onTextOrSelectionChange
 
         let editorOwnsDraft = ChatInputSynchronization.shouldPreserveFocusedDraft(
             isGenerating: isGenerating,
@@ -151,8 +157,13 @@ struct ChatInputTextView: NSViewRepresentable {
             parent.text = textView.string
             updateHeightIfNeeded(of: textView)
             textView.scrollRangeToVisible(textView.selectedRange())
+            parent.onTextOrSelectionChange?(textView)
         }
 
+        func textViewDidChangeSelection(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else { return }
+            parent.onTextOrSelectionChange?(textView)
+        }
         func textDidBeginEditing(_ notification: Notification) {
             parent.isFocused = true
         }
@@ -257,13 +268,34 @@ private final class ComposerScrollView: NSScrollView {
     }
 }
 
-private final class ComposerTextView: NSTextView {
+final class ComposerTextView: NSTextView {
     var onSubmit: ((NSTextView) -> Void)?
     var onEscape: (() -> Void)?
     var onRecall: (() -> Bool)?
     var onPasteImage: ((Data) -> Void)?
     var onPasteFiles: (([URL]) -> Void)?
     var onLayoutPass: ((NSView) -> Void)?
+    var onInterceptKeyDown: ((NSEvent) -> Bool)?
+    var onTextOrSelectionChange: ((NSTextView) -> Void)?
+
+    func caretAnchorPoint(for characterIndex: Int) -> CGPoint {
+        guard let layoutManager = layoutManager,
+              let textContainer = textContainer else {
+            return CGPoint(x: textContainerInset.width, y: textContainerInset.height)
+        }
+        layoutManager.ensureLayout(for: textContainer)
+        let textLength = (string as NSString).length
+        guard textLength > 0 else {
+            return CGPoint(x: textContainerInset.width, y: textContainerInset.height)
+        }
+        let safeIndex = max(0, min(characterIndex, textLength - 1))
+        let glyphIndex = layoutManager.glyphIndexForCharacter(at: safeIndex)
+        let glyphRect = layoutManager.boundingRect(forGlyphRange: NSRange(location: glyphIndex, length: 1), in: textContainer)
+        let scrollOffsetY = enclosingScrollView?.documentVisibleRect.origin.y ?? 0
+        let localX = glyphRect.maxX + textContainerInset.width
+        let localY = glyphRect.minY + textContainerInset.height - scrollOffsetY
+        return CGPoint(x: max(10, localX), y: max(0, localY))
+    }
 
     override func layout() {
         super.layout()
@@ -293,9 +325,11 @@ private final class ComposerTextView: NSTextView {
     }
 
     override func keyDown(with event: NSEvent) {
+        if !hasMarkedText(), onInterceptKeyDown?(event) == true {
+            return
+        }
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         let isReturn = event.keyCode == 36 || event.keyCode == 76
-
         if isReturn, !modifiers.contains(.shift), !hasMarkedText() {
             onSubmit?(self)
             return

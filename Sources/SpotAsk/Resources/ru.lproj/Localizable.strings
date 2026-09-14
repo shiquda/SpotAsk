@@ -510,3 +510,8 @@
 "externalAsk.validation.nonHTTPSWarning" = "We recommend using a secure link starting with https://.";
 "externalAsk.deleteTitle" = "Delete External Ask?";
 "externalAsk.deleteMessage" = "This item will be deleted. This action cannot be undone.";
+"chat.atCommand.searchPlaceholder" = "Фильтр команд…";
+"chat.atCommand.noMatching" = "Нет команд, совпадающих с «@%@»";
+"chat.atCommand.pressEscToCancel" = "Нажмите Esc для отмены";
+"chat.atCommand.accessibilityLabel" = "Команды @";
+"chat.atCommand.filtering" = "Фильтрация «@%@»…";

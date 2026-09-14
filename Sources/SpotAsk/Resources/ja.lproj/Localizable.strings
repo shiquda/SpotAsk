@@ -510,3 +510,8 @@
 "externalAsk.validation.nonHTTPSWarning" = "We recommend using a secure link starting with https://.";
 "externalAsk.deleteTitle" = "Delete External Ask?";
 "externalAsk.deleteMessage" = "This item will be deleted. This action cannot be undone.";
+"chat.atCommand.searchPlaceholder" = "コマンドを絞り込み…";
+"chat.atCommand.noMatching" = "「@%@」に一致するコマンドはありません";
+"chat.atCommand.pressEscToCancel" = "Esc でキャンセル";
+"chat.atCommand.accessibilityLabel" = "@ コマンド";
+"chat.atCommand.filtering" = "「@%@」で絞り込み中…";
