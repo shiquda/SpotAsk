@@ -1138,6 +1138,8 @@ struct ChatView: View {
             newConversation()
         case let .ask(question, promptPreset, selectionSnapshot):
             receiveQuestion(question, promptPreset: promptPreset, selectionSnapshot: selectionSnapshot)
+        case let .addToChat(text):
+            addToChat(text)
         case .showSettings:
             commandCenter.showSettings()
         }
@@ -1180,6 +1182,26 @@ struct ChatView: View {
                 textView.string = trimmed
             }
             let targetLocation = (trimmed as NSString).length
+            textView.setSelectedRange(NSRange(location: targetLocation, length: 0))
+            textView.scrollRangeToVisible(NSRange(location: targetLocation, length: 0))
+        }
+    }
+
+    private func addToChat(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            focusInput()
+            return
+        }
+        let formatted = "\(trimmed)\n\n"
+        viewModel.selectedPromptPreset = nil
+        viewModel.input = formatted
+        focusInput()
+        if let textView = composerTextView.textView {
+            if textView.string != formatted {
+                textView.string = formatted
+            }
+            let targetLocation = (formatted as NSString).length
             textView.setSelectedRange(NSRange(location: targetLocation, length: 0))
             textView.scrollRangeToVisible(NSRange(location: targetLocation, length: 0))
         }
