@@ -333,4 +333,61 @@ struct AtCommandSelectionTests {
         #expect(retried == .launched)
         #expect(executor.performedActions.count == 1)
     }
+
+    @Test("Return submit keeps editor and model draft when pending launch fails")
+    func submitPathKeepsDraftOnLaunchFailure() {
+        let textView = makeTextView("retry me")
+        var modelDraft = "retry me"
+        let action = makeAction()
+        let executor = FakeActionExecutor()
+        executor.shouldSucceed = false
+
+        let onSubmit = { () -> Bool in
+            let outcome = AtCommandSelection.confirmPending(
+                action,
+                query: modelDraft,
+                resolve: resolve(action),
+                executor: executor
+            )
+            guard outcome == .launched else { return false }
+            modelDraft = ""
+            return true
+        }
+
+        #expect(!ChatInputSubmission.submit(textView, onSubmit: onSubmit))
+        #expect(textView.string == "retry me")
+        #expect(modelDraft == "retry me")
+        #expect(executor.performedActions.isEmpty)
+
+        executor.shouldSucceed = true
+        #expect(ChatInputSubmission.submit(textView, onSubmit: onSubmit))
+        #expect(textView.string.isEmpty)
+        #expect(modelDraft.isEmpty)
+        #expect(executor.performedActions.count == 1)
+    }
+
+    @Test("Return submit keeps editor when pending query is empty")
+    func submitPathKeepsDraftOnEmptyPendingQuery() {
+        let textView = makeTextView("   ")
+        var modelDraft = "   "
+        let action = makeAction()
+        let executor = FakeActionExecutor()
+
+        let onSubmit = { () -> Bool in
+            let outcome = AtCommandSelection.confirmPending(
+                action,
+                query: modelDraft,
+                resolve: resolve(action),
+                executor: executor
+            )
+            guard outcome == .launched else { return false }
+            modelDraft = ""
+            return true
+        }
+
+        #expect(!ChatInputSubmission.submit(textView, onSubmit: onSubmit))
+        #expect(textView.string == "   ")
+        #expect(modelDraft == "   ")
+        #expect(executor.performedActions.isEmpty)
+    }
 }

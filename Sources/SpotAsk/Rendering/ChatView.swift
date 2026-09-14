@@ -506,7 +506,6 @@ struct ChatView: View {
                     isGenerating: isGenerating,
                     onSubmit: {
                         sendFromComposer()
-                        return true
                     },
                     onEscape: handleEscape,
                     onPasteImage: { data in
@@ -667,15 +666,17 @@ struct ChatView: View {
         }
     }
 
-    private func sendFromComposer() {
+    @discardableResult
+    private func sendFromComposer() -> Bool {
         if let pending = pendingExternalAsk {
-            launchPendingExternalAsk(pending)
-            return
+            return launchPendingExternalAsk(pending)
         }
         synchronizeSelectedPromptPreset()
         if viewModel.send() {
             scrollFollowState.resumeFollowing()
+            return true
         }
+        return false
     }
 
     private func installShortcutDispatcher() {
@@ -1015,7 +1016,8 @@ struct ChatView: View {
         )
     }
 
-    private func launchPendingExternalAsk(_ action: QuickAction) {
+    @discardableResult
+    private func launchPendingExternalAsk(_ action: QuickAction) -> Bool {
         applyAtCommandActionOutcome(
             AtCommandSelection.confirmPending(
                 action,
@@ -1029,16 +1031,18 @@ struct ChatView: View {
         settings.enabledQuickActions.first { $0.id == id }
     }
 
-    private func applyAtCommandActionOutcome(_ outcome: AtCommandSelection.Outcome) {
+    @discardableResult
+    private func applyAtCommandActionOutcome(_ outcome: AtCommandSelection.Outcome) -> Bool {
         switch outcome {
         case .rejected, .appliedPreset:
-            return
+            return false
         case let .becamePending(action):
             clearAtCommandTokenState()
             skipEmptyPendingClear = true
             pendingExternalAsk = action
             StatusToastCenter.shared.show(L10n.string("atCommand.pendingToast", action.displayName))
             inputFocused = true
+            return false
         case .launched:
             clearAtCommandTokenState()
             pendingExternalAsk = nil
@@ -1047,6 +1051,7 @@ struct ChatView: View {
             }
             viewModel.input = ""
             inputFocused = true
+            return true
         case let .launchFailed(action):
             clearAtCommandTokenState()
             pendingExternalAsk = action
@@ -1055,6 +1060,7 @@ struct ChatView: View {
                 isError: true
             )
             inputFocused = true
+            return false
         }
     }
 

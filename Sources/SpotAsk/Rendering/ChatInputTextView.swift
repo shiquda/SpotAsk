@@ -199,11 +199,8 @@ struct ChatInputTextView: NSViewRepresentable {
 
         @MainActor
         func submit(_ textView: NSTextView) {
-            guard parent.onSubmit() else { return }
-            if !textView.string.isEmpty {
-                textView.string = ""
-                updateHeightIfNeeded(of: textView)
-            }
+            guard ChatInputSubmission.submit(textView, onSubmit: parent.onSubmit) else { return }
+            updateHeightIfNeeded(of: textView)
             publishAtCommandState(nil)
         }
 
@@ -279,6 +276,19 @@ enum ChatInputSynchronization {
         isMarkedText: Bool = false
     ) -> Bool {
         isMarkedText || (isGenerating && isFirstResponder && !isModelTextEmpty)
+    }
+}
+
+/// Return-key submit: clear the editor only when `onSubmit` accepts the send.
+enum ChatInputSubmission {
+    @MainActor
+    @discardableResult
+    static func submit(_ textView: NSTextView, onSubmit: () -> Bool) -> Bool {
+        guard onSubmit() else { return false }
+        if !textView.string.isEmpty {
+            textView.string = ""
+        }
+        return true
     }
 }
 
