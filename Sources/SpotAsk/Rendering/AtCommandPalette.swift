@@ -257,10 +257,11 @@ enum AtCommandSelection {
         query: AtCommandQuery,
         item: AtCommandItem,
         allowsReplacement: Bool,
+        hasMarkedText: Bool = false,
         isPresetEnabled: (PromptPreset) -> Bool,
         canExecuteQuickAction: (QuickAction, String) -> Bool
     ) -> Plan {
-        guard allowsReplacement else { return .reject }
+        guard allowsReplacement, !hasMarkedText else { return .reject }
         guard let remaining = AtCommandQueryMatcher.remainingText(afterRemoving: query, from: text) else {
             return .reject
         }

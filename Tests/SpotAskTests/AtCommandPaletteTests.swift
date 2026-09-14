@@ -460,6 +460,51 @@ struct AtCommandActionExecutionTests {
         #expect(rejectedDisabled == .reject)
     }
 
+    @Test("Marked text rejects palette selection even when the editor would allow replacement")
+    func markedTextRejectsSelectionWithoutDeletingQuery() {
+        let preset = PromptPreset(id: UUID(), title: "翻译", instruction: "翻译", customSymbolName: "globe")
+        let item = makePresetItem(preset)
+        let text = "Hello @trans please"
+        let query = AtCommandParser.parse(
+            text: text,
+            selectedRange: NSRange(location: 12, length: 0),
+            hasMarkedText: false
+        )!
+
+        final class PermissiveMarkedTextView: NSTextView {
+            override func hasMarkedText() -> Bool { true }
+            override func shouldChangeText(in affectedCharRange: NSRange, replacementString: String?) -> Bool {
+                true
+            }
+        }
+        let textView = PermissiveMarkedTextView()
+        textView.allowsUndo = true
+        textView.string = text
+        let unmarkedPlan = AtCommandSelection.plan(
+            text: textView.string,
+            query: query,
+            item: item,
+            allowsReplacement: true,
+            hasMarkedText: false,
+            isPresetEnabled: { $0.id == preset.id },
+            canExecuteQuickAction: { _, _ in true }
+        )
+        #expect(unmarkedPlan == .applyPreset(preset))
+
+        let markedPlan = AtCommandSelection.plan(
+            text: textView.string,
+            query: query,
+            item: item,
+            allowsReplacement: true,
+            hasMarkedText: textView.hasMarkedText(),
+            isPresetEnabled: { $0.id == preset.id },
+            canExecuteQuickAction: { _, _ in true }
+        )
+        #expect(markedPlan == .reject)
+        #expect(textView.shouldChangeText(in: query.range, replacementString: "") == true)
+        #expect(textView.string == text)
+    }
+
     @Test("External ask plan uses remaining text and keeps input when not executable")
     func externalAskPlanKeepsInputWhenNotExecutable() {
         let action = QuickAction.builtIn[0]

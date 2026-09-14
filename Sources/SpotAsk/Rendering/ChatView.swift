@@ -1133,6 +1133,7 @@ struct ChatView: View {
             atCommandState.dismiss()
             return
         }
+        guard !textView.hasMarkedText() else { return }
 
         let remaining = AtCommandQueryMatcher.remainingText(afterRemoving: query, from: textView.string)
         let plan = AtCommandSelection.plan(
@@ -1140,6 +1141,7 @@ struct ChatView: View {
             query: query,
             item: item,
             allowsReplacement: true,
+            hasMarkedText: textView.hasMarkedText(),
             isPresetEnabled: { settings.promptPresetAllowedForUse($0) != nil },
             canExecuteQuickAction: { action, remainingQuery in
                 AtCommandQuickActionAvailability.isExecutable(
