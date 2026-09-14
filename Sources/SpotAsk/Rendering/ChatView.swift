@@ -60,7 +60,10 @@ struct ChatView: View {
             // the content below. The composer reads as part of the window's
             // bottom chrome, so it is not boxed in by a second divider.
             Divider()
-            conversation
+            ZStack(alignment: .bottom) {
+                conversation
+                atCommandPaletteOverlay
+            }
             composer
         }
         // Content spans the full window; the header's Material draws the
@@ -552,10 +555,6 @@ struct ChatView: View {
                     ShortcutKeycap(shortcut: shortcutHint(for: .operation(.focusInput)))
                         .padding(8)
                 }
-                .overlay(alignment: .top) {
-                    atCommandPaletteOverlay
-                }
-                .zIndex(atCommandState == nil ? 0 : 2)
                 .animation(.easeOut(duration: 0.12), value: inputFocused)
                 ComposerSendButton(
                     isGenerating: isGenerating,
@@ -931,9 +930,8 @@ struct ChatView: View {
                 onSelectPreset: selectAtCommandPreset,
                 onSelectAction: selectAtCommandAction
             )
-            .alignmentGuide(.top) { dimensions in
-                dimensions[.bottom] + AtCommandPaletteMetrics.inputGap
-            }
+            .padding(.horizontal, 14)
+            .padding(.bottom, 6)
             .transition(
                 .asymmetric(
                     insertion: .opacity.combined(with: .offset(y: 4)),
