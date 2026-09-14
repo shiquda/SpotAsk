@@ -153,9 +153,12 @@
 "settings.downloadUpdate" = "下载更新";
 "settings.updateCheckUnavailable" = "暂时无法检查更新。";
 "settings.autoCheckForUpdates" = "自动检查更新";
-"settings.autoCheckForUpdatesDescription" = "启动 SpotAsk 时自动检查一次，有新版本时通知你。";
+"settings.autoCheckForUpdatesDescription" = "启动后自动检查更新，发现新版本时在应用内显示更新窗口。";
 "update.newVersionAvailable" = "发现新版本 %@。";
 "update.viewRelease" = "前往更新";
+"update.ignoredVersionRow" = "已忽略版本：%@";
+"update.restoreReminder" = "恢复提醒";
+"settings.openGitHubRelease" = "在 GitHub 查看";
 "settings.behavior" = "行为";
 "settings.clearAccessKey" = "清除密钥";
 "settings.clearAllLocalData" = "清除所有本地数据";

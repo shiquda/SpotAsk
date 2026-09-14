@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Check for Updates now downloads and installs inside the app. You can skip a version from the update window and restore alerts in About. GitHub Releases remains available if the in-app updater cannot run.
+
+
 ## [0.2.3] - 2026-09-11
 
 ### Changed

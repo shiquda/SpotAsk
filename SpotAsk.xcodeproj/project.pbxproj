@@ -39,7 +39,7 @@
 		001000000000000000000021 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000026 /* Localizable.strings */; };
 		001000000000000000000022 /* AppShortcuts.strings in Resources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000029 /* AppShortcuts.strings */; };
 		001000000000000000000023 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000030 /* AppIcon.icns */; };
-		001000000000000000000024 /* AppUpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000031 /* AppUpdateChecker.swift */; };
+		001000000000000000000024 /* AppVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000031 /* AppVersion.swift */; };
 		001000000000000000000025 /* ProviderModelCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000032 /* ProviderModelCatalog.swift */; };
 		001000000000000000000026 /* ProviderModelRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000033 /* ProviderModelRegistry.swift */; };
 		001000000000000000000027 /* ProviderTargetResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000034 /* ProviderTargetResolver.swift */; };
@@ -68,6 +68,8 @@
 		00100000000000000000003E /* DiagnosticLogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000004B /* DiagnosticLogStore.swift */; };
 		00100000000000000000003F /* ChatAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000058 /* ChatAttachment.swift */; };
 		001000000000000000000040 /* AttachmentProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000059 /* AttachmentProcessor.swift */; };
+		001000000000000000000071 /* UpdateCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000071 /* UpdateCoordinator.swift */; };
+		001000000000000000000072 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 009000000000000000000004 /* Sparkle */; };
 		001000000000000000000041 /* ProviderIcons in Resources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000005A /* ProviderIcons */; };
 		001000000000000000000042 /* ProviderBrandIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000005B /* ProviderBrandIcon.swift */; };
 		001000000000000000000043 /* ChatStreamingDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000005C /* ChatStreamingDriver.swift */; };
@@ -131,7 +133,7 @@
 		002000000000000000000027 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = Sources/SpotAsk/Resources/en.lproj/AppShortcuts.strings; sourceTree = SOURCE_ROOT; };
 		002000000000000000000028 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = zh-Hans; path = Sources/SpotAsk/Resources/zh-Hans.lproj/AppShortcuts.strings; sourceTree = SOURCE_ROOT; };
 		002000000000000000000030 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Resources/AppIcon.icns; sourceTree = SOURCE_ROOT; };
-		002000000000000000000031 /* AppUpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/AppUpdateChecker.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000031 /* AppVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Updates/AppVersion.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000032 /* ProviderModelCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/ProviderModelCatalog.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000033 /* ProviderModelRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/ProviderModelRegistry.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000034 /* ProviderTargetResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/ProviderTargetResolver.swift; sourceTree = SOURCE_ROOT; };
@@ -145,6 +147,7 @@
 		00200000000000000000003C /* AccessibilityElementReading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/AccessibilityElementReading.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000003D /* AccessibilitySelectedTextReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/AccessibilitySelectedTextReader.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000003E /* SelectedTextSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectedTextSnapshot.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000071 /* UpdateCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Updates/UpdateCoordinator.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000003F /* SelectionAnchorCoordinates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionAnchorCoordinates.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000040 /* SelectionAssistantCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionAssistantCoordinator.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000041 /* SelectionOverlayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionOverlayController.swift; sourceTree = SOURCE_ROOT; };
@@ -247,7 +250,8 @@
 				00200000000000000000003B /* ConfigBackup.swift */,
 				002000000000000000000038 /* InAppShortcut.swift */,
 				002000000000000000000015 /* SettingsView.swift */,
-				002000000000000000000031 /* AppUpdateChecker.swift */,
+				002000000000000000000031 /* AppVersion.swift */,
+				002000000000000000000071 /* UpdateCoordinator.swift */,
 				002000000000000000000016 /* Clipboard.swift */,
 				002000000000000000000017 /* SafeLogger.swift */,
 				002000000000000000000049 /* SelectionDiagnosticsSink.swift */,
@@ -362,6 +366,7 @@
 			name = SpotAsk;
 			packageProductDependencies = (
 				009000000000000000000002 /* Textual */,
+				009000000000000000000004 /* Sparkle */,
 			);
 			productName = SpotAsk;
 			productReference = 002000000000000000000022 /* SpotAsk.app */;
@@ -395,6 +400,7 @@
 			projectRoot = "";
 			packageReferences = (
 				009000000000000000000001 /* XCLocalSwiftPackageReference "textual-0.5.0" */,
+				009000000000000000000005 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			targets = (004000000000000000000001 /* SpotAsk */,);
 		};
@@ -421,6 +427,7 @@
 				00100000000000000000002A,
 				001000000000000000000020,
 				001000000000000000000024,
+				001000000000000000000071,
 				001000000000000000000025, 001000000000000000000026,
 				001000000000000000000027, 001000000000000000000028,
 				001000000000000000000029,
@@ -474,7 +481,7 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		006000000000000000000002 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (00100000000000000000001A /* Textual in Frameworks */,); runOnlyForDeploymentPostprocessing = 0; };
+		006000000000000000000002 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (00100000000000000000001A /* Textual in Frameworks */, 001000000000000000000072 /* Sparkle in Frameworks */,); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -484,11 +491,27 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		009000000000000000000005 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = exactVersion;
+				version = 2.9.6;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		009000000000000000000002 /* Textual */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 009000000000000000000001 /* XCLocalSwiftPackageReference "textual-0.5.0" */;
 			productName = Textual;
+		};
+		009000000000000000000004 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 009000000000000000000005 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 

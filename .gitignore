@@ -1,6 +1,7 @@
 .build/
 build/
 dist/
+.sparkle/
 node_modules/
 __pycache__/
 .DS_Store

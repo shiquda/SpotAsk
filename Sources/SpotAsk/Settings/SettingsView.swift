@@ -191,7 +191,7 @@ enum SettingsSearchIndex {
         Entry(section: .general, titleKey: "settings.configuration", labelKeys: ["settings.configurationDescription"]),
         Entry(section: .appearance, titleKey: "settings.reading", labelKeys: ["settings.appearance", "settings.chatMessageStyle", "settings.renderMath", "settings.fontSize"]),
         Entry(section: .about, titleKey: "SpotAsk", labelKeys: ["settings.version", "settings.source", "settings.userGuide"]),
-        Entry(section: .about, titleKey: "settings.updates", labelKeys: ["settings.autoCheckForUpdates", "settings.checkForUpdates"])
+        Entry(section: .about, titleKey: "settings.updates", labelKeys: ["settings.autoCheckForUpdates", "settings.checkForUpdates", "update.restoreReminder", "settings.openGitHubRelease"])
     ]
 
     /// Settings can be displayed in Chinese or English while the query arrives
@@ -258,7 +258,6 @@ struct SettingsView: View {
     @State private var selectedSection: SettingsSection = .provider
     @State private var providerState: ProviderSettingsState
     @State private var generalState: GeneralSettingsState
-    @State private var updateState = AppUpdateState()
     @State private var searchText = ""
     @State private var pendingGroupTarget: SettingsGroupTarget?
 
@@ -382,7 +381,7 @@ struct SettingsView: View {
                 case .appearance:
                     AppearanceSettingsPage(settings: settings)
                 case .about:
-                    AboutSettingsPage(updateState: updateState, settings: settings)
+                    AboutSettingsPage(coordinator: UpdateCoordinator.shared, settings: settings)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)

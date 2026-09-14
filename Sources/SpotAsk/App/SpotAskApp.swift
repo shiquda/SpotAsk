@@ -103,7 +103,7 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
     private var selectionCoordinator: SelectionAssistantCoordinator?
     private var selectionOverlay: SelectionOverlayController?
     private var selectionAutoInvokeMonitor: SelectionAutoInvokeMonitor?
-    private lazy var launchUpdateNotifier = AutomaticUpdateNotifier(settings: settings)
+    private let updateCoordinator = UpdateCoordinator.shared
     private var statusBarController: StatusBarController?
     private var entryPresentationCoordinator: AppEntryPresentationCoordinator?
     private lazy var settingsWindowController = SettingsWindowController(
@@ -195,7 +195,7 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.async { [weak self] in
             self?.presentInitialPanelIfNeeded()
         }
-        scheduleAutomaticUpdateCheck()
+        updateCoordinator.start()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -269,22 +269,6 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         }
         if accessibilityPermissionCoordinator.clearedStaleGrant {
             MacOSAccessibilityPermissionSettingsOpener().openAccessibilitySettings()
-        }
-    }
-
-    private func scheduleAutomaticUpdateCheck() {
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(1))
-            guard let self, !Task.isCancelled else { return }
-            await self.launchUpdateNotifier.checkAtLaunchIfEnabled { update in
-                StatusToastCenter.shared.show(
-                    L10n.string("update.newVersionAvailable", update.version.description),
-                    actionTitle: L10n.string("update.viewRelease"),
-                    duration: StatusToastCenter.actionDisplayDuration
-                ) {
-                    NSWorkspace.shared.open(AppUpdateChecker.downloadURL)
-                }
-            }
         }
     }
 

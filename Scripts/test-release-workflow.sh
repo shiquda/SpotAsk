@@ -345,11 +345,20 @@ grep -q 'secrets.CASK_GITHUB_TOKEN || github.token' "$ROOT_DIR/.github/workflows
 grep -q 'persist-credentials: false' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release checkout still persists GITHUB_TOKEN credentials"
 
 
+grep -q -- '--deep' "$ROOT_DIR/Scripts/make-app-bundle.sh" && fail "make-app-bundle.sh still uses codesign --deep"
+grep -q 'Sparkle.framework' "$ROOT_DIR/Scripts/make-app-bundle.sh" || fail "make-app-bundle.sh does not sign Sparkle.framework"
+grep -q 'XPCServices/Downloader.xpc' "$ROOT_DIR/Scripts/make-app-bundle.sh" || fail "make-app-bundle.sh does not sign Downloader.xpc"
+grep -q 'appcast-arm64.xml' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release workflow does not publish appcast-arm64.xml"
+grep -q 'generate-appcast.sh' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release workflow does not generate Sparkle appcasts"
+
 # --- script syntax ---
 /bin/sh -n "$PUBLISH"
 /bin/sh -n "$NOTARIZE"
 /bin/sh -n "$PUSH_CASK"
 /bin/sh -n "$ROOT_DIR/Scripts/make-release-dmg.sh"
+/bin/sh -n "$ROOT_DIR/Scripts/make-app-bundle.sh"
+/bin/sh -n "$ROOT_DIR/Scripts/generate-appcast.sh"
+/bin/sh -n "$ROOT_DIR/Scripts/generate-sparkle-keys.sh"
 /bin/sh -n "$ROOT_DIR/Scripts/test-release-workflow.sh"
 pass "release scripts parse"
 

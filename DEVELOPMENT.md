@@ -49,6 +49,22 @@ For day-to-day development, use `Scripts/install-debug-app.sh`. It installs `~/A
 ./Scripts/make-release-dmg.sh --arch x86_64
 ```
 
+In-app updates use Sparkle 2.9.6. `Scripts/make-app-bundle.sh` signs Sparkle helpers, XPC services, `Updater.app`, then `Sparkle.framework`, then `SpotAsk.app`. Do not pass `codesign --deep`.
+
+Generate Ed25519 keys once with `Scripts/generate-sparkle-keys.sh`. Put the printed public key in `Resources/Info.plist` as `SUPublicEDKey`. Store the private key as GitHub secret `SPARKLE_ED_PRIVATE_KEY`. Never commit `.sparkle/`.
+
+After both architecture DMGs exist:
+
+```sh
+./Scripts/generate-appcast.sh \
+  --version 0.2.3 \
+  --tag v0.2.3 \
+  --arm64-dmg dist/SpotAsk-0.2.3-arm64.dmg \
+  --x86_64-dmg dist/SpotAsk-0.2.3-x86_64.dmg
+```
+
+That writes `dist/appcast-arm64.xml` and `dist/appcast-x86_64.xml`. The Release workflow attaches them when `SPARKLE_ED_PRIVATE_KEY` is set.
+
 Signing and notarization are optional and configured through environment variables:
 
 - `SPOTASK_CODESIGN_IDENTITY` — Developer ID Application identity name
@@ -142,6 +158,7 @@ The 30-minute `--timeout` only ends local polling. Apple Notary Service can keep
 - `Sources/SpotAsk/Provider` — OpenAI-compatible and Anthropic providers, model discovery, proxy
 - `Sources/SpotAsk/Rendering` — chat UI, markdown, code blocks, thinking display, toasts
 - `Sources/SpotAsk/Selection` — cross-app selection assistant: accessibility reads, action bar, overlay
+- `Sources/SpotAsk/Updates` — Sparkle 2 updater, skip-version store, and version comparison
 - `Sources/SpotAsk/Settings` — settings model and views, shortcuts
 - `Sources/SpotAsk/Intents` — Spotlight, Siri, and Shortcuts integration
 - `Sources/SpotAsk/Utilities` — localization, diagnostics, clipboard helpers
@@ -175,7 +192,7 @@ Local Release rebuilds change the code signature even when the Developer ID stay
 2. Bump `MARKETING_VERSION` in `SpotAsk.xcodeproj/project.pbxproj` and `CFBundleShortVersionString` in `Resources/Info.plist`.
 3. Run `swift test` and build both DMGs with `Scripts/make-release-dmg.sh`. If Apple secrets are configured, the Release workflow signs and notarizes them automatically.
 4. Tag the release `vX.Y.Z` and push the tag.
-5. GitHub Actions creates the GitHub Release, attaches both DMGs plus the SHA256SUMS file, and copies the changelog section into the release notes.
+5. GitHub Actions creates the GitHub Release, attaches both DMGs, architecture appcasts when signing keys are present, plus the SHA256SUMS file, and copies the changelog section into the release notes.
 
 ## Contributing
 

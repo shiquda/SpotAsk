@@ -18,7 +18,7 @@ enum DocumentationLinks {
 }
 
 struct AboutSettingsPage: View {
-    let updateState: AppUpdateState
+    @Bindable var coordinator: UpdateCoordinator
     let settings: AppSettings
 
     var body: some View {
@@ -33,7 +33,7 @@ struct AboutSettingsPage: View {
                 }
                 Divider()
                 SettingsFieldRow(label: L10n.string("settings.source")) {
-                    Link(AppUpdateChecker.sourceURL.absoluteString, destination: AppUpdateChecker.sourceURL)
+                    Link(UpdateFeed.sourceURL.absoluteString, destination: UpdateFeed.sourceURL)
                         .textSelection(.enabled)
                 }
                 Divider()
@@ -50,60 +50,53 @@ struct AboutSettingsPage: View {
                     description: L10n.string("settings.autoCheckForUpdatesDescription"),
                     isOn: Bindable(settings).automaticUpdateCheckEnabled
                 )
+                .onChange(of: settings.automaticUpdateCheckEnabled) { _, enabled in
+                    coordinator.setAutomaticChecksEnabled(enabled)
+                }
+
+                if let skippedVersion = coordinator.skippedVersion {
+                    Divider()
+                    SettingsFieldRow(label: L10n.string("update.ignoredVersionRow", skippedVersion)) {
+                        Button(L10n.string("update.restoreReminder")) {
+                            coordinator.restoreReminders()
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Color.accentColor)
+                    }
+                }
+
                 Divider()
                 HStack(spacing: 10) {
                     Button {
-                        updateState.checkForUpdate()
+                        coordinator.checkForUpdates()
                     } label: {
                         Label(L10n.string("settings.checkForUpdates"), systemImage: "arrow.clockwise")
                     }
                     .buttonStyle(.bordered)
-                    .disabled(updateState.isChecking)
+                    .disabled(coordinator.isChecking)
 
-                    if case .updateAvailable = updateState.status {
-                        Link(destination: AppUpdateChecker.downloadURL) {
-                            Label(L10n.string("settings.downloadUpdate"), systemImage: "arrow.down.circle")
-                        }
-                        .buttonStyle(.borderedProminent)
+                    Button {
+                        coordinator.openGitHubReleaseFallback()
+                    } label: {
+                        Label(L10n.string("settings.openGitHubRelease"), systemImage: "safari")
                     }
+                    .buttonStyle(.bordered)
 
-                    if updateState.isChecking {
+                    if coordinator.isChecking {
                         ProgressView()
                             .controlSize(.small)
                     }
                 }
 
-                if let statusText {
-                    Text(statusText)
+                if coordinator.status == .unavailable {
+                    Text(L10n.string("settings.updateCheckUnavailable"))
                         .font(.caption)
-                        .foregroundStyle(statusColor)
+                        .foregroundStyle(.red)
                 }
             }
         }
-    }
-
-    private var statusText: String? {
-        switch updateState.status {
-        case .idle:
-            nil
-        case .checking:
-            L10n.string("settings.checkingForUpdates")
-        case .upToDate:
-            L10n.string("settings.upToDate")
-        case let .updateAvailable(update):
-            L10n.string("settings.updateAvailable", update.version.description)
-        case .unavailable:
-            L10n.string("settings.updateCheckUnavailable")
-        }
-    }
-
-    private var statusColor: Color {
-        switch updateState.status {
-        case .unavailable:
-            .red
-        default:
-            .secondary
+        .onAppear {
+            coordinator.refreshSkippedVersion()
         }
     }
 }
-

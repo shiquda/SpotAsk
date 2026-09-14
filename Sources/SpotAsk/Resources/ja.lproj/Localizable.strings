@@ -153,9 +153,12 @@
 "settings.downloadUpdate" = "アップデートをダウンロード";
 "settings.updateCheckUnavailable" = "現在アップデートを確認できません。";
 "settings.autoCheckForUpdates" = "アップデートを自動的に確認";
-"settings.autoCheckForUpdatesDescription" = "SpotAsk 起動時に一度確認し、新しいバージョンがあれば通知します。";
+"settings.autoCheckForUpdatesDescription" = "アップデートを自動確認し、新しいバージョンがあればアプリ内ウィンドウで表示します。";
 "update.newVersionAvailable" = "新しいバージョン %@ が利用できます。";
 "update.viewRelease" = "リリースを表示";
+"update.ignoredVersionRow" = "スキップしたバージョン: %@";
+"update.restoreReminder" = "通知を再開";
+"settings.openGitHubRelease" = "GitHub で見る";
 "settings.behavior" = "動作";
 "settings.clearAccessKey" = "アクセスキーを消去";
 "settings.clearAllLocalData" = "すべてのローカルデータを消去";
