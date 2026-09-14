@@ -24,6 +24,10 @@ struct ChatInputTextView: NSViewRepresentable {
     /// Called when the up arrow is pressed in an empty input with no selection.
     /// Return true when a previous question was recalled.
     let onRecall: () -> Bool
+    let onAtCommandStateChanged: (AtCommandState?) -> Void
+    let isAtPalettePresented: Bool
+    let onAtCommandMoveHighlight: (Int) -> Void
+    let onAtCommandConfirm: () -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
@@ -39,6 +43,11 @@ struct ChatInputTextView: NSViewRepresentable {
         }
         textView.onEscape = onEscape
         textView.onRecall = onRecall
+        textView.isAtPalettePresented = { [weak coordinator = context.coordinator] in
+            coordinator?.parent.isAtPalettePresented ?? false
+        }
+        textView.onAtCommandMoveHighlight = onAtCommandMoveHighlight
+        textView.onAtCommandConfirm = onAtCommandConfirm
         textView.onPasteImage = { [weak coordinator = context.coordinator] data in
             MainActor.assumeIsolated {
                 coordinator?.pasteImage(data)
@@ -103,6 +112,11 @@ struct ChatInputTextView: NSViewRepresentable {
         }
         textView.onEscape = onEscape
         textView.onRecall = onRecall
+        textView.isAtPalettePresented = { [weak coordinator = context.coordinator] in
+            coordinator?.parent.isAtPalettePresented ?? false
+        }
+        textView.onAtCommandMoveHighlight = onAtCommandMoveHighlight
+        textView.onAtCommandConfirm = onAtCommandConfirm
         textView.onPasteImage = { [weak coordinator = context.coordinator] data in
             MainActor.assumeIsolated {
                 coordinator?.pasteImage(data)
@@ -136,11 +150,13 @@ struct ChatInputTextView: NSViewRepresentable {
         }
     }
 
+    @MainActor
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: ChatInputTextView
         private var needsInitialFocus = true
         private var lastMeasuredTextLength = 0
         private var lastMeasuredWidth: CGFloat = 0
+        private var lastAtCommandState: AtCommandState?
 
         init(parent: ChatInputTextView) {
             self.parent = parent
@@ -151,6 +167,12 @@ struct ChatInputTextView: NSViewRepresentable {
             parent.text = textView.string
             updateHeightIfNeeded(of: textView)
             textView.scrollRangeToVisible(textView.selectedRange())
+            publishAtCommandState(from: textView)
+        }
+
+        func textViewDidChangeSelection(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else { return }
+            publishAtCommandState(from: textView)
         }
 
         func textDidBeginEditing(_ notification: Notification) {
@@ -162,15 +184,24 @@ struct ChatInputTextView: NSViewRepresentable {
                   let scrollView = textView.enclosingScrollView,
                   scrollView.window?.firstResponder !== textView else { return }
             parent.isFocused = false
+            publishAtCommandState(nil)
+        }
+
+        private func publishAtCommandState(from textView: NSTextView) {
+            publishAtCommandState(AtCommandDetector.state(in: textView))
+        }
+
+        private func publishAtCommandState(_ state: AtCommandState?) {
+            guard state != lastAtCommandState else { return }
+            lastAtCommandState = state
+            parent.onAtCommandStateChanged(state)
         }
 
         @MainActor
         func submit(_ textView: NSTextView) {
-            guard parent.onSubmit() else { return }
-            if !textView.string.isEmpty {
-                textView.string = ""
-                updateHeightIfNeeded(of: textView)
-            }
+            guard ChatInputSubmission.submit(textView, onSubmit: parent.onSubmit) else { return }
+            updateHeightIfNeeded(of: textView)
+            publishAtCommandState(nil)
         }
 
         @MainActor
@@ -248,6 +279,19 @@ enum ChatInputSynchronization {
     }
 }
 
+/// Return-key submit: clear the editor only when `onSubmit` accepts the send.
+enum ChatInputSubmission {
+    @MainActor
+    @discardableResult
+    static func submit(_ textView: NSTextView, onSubmit: () -> Bool) -> Bool {
+        guard onSubmit() else { return false }
+        if !textView.string.isEmpty {
+            textView.string = ""
+        }
+        return true
+    }
+}
+
 private final class ComposerScrollView: NSScrollView {
     var onWindowChange: (() -> Void)?
 
@@ -264,6 +308,9 @@ private final class ComposerTextView: NSTextView {
     var onPasteImage: ((Data) -> Void)?
     var onPasteFiles: (([URL]) -> Void)?
     var onLayoutPass: ((NSView) -> Void)?
+    var isAtPalettePresented: () -> Bool = { false }
+    var onAtCommandMoveHighlight: ((Int) -> Void)?
+    var onAtCommandConfirm: (() -> Void)?
 
     override func layout() {
         super.layout()
@@ -295,6 +342,27 @@ private final class ComposerTextView: NSTextView {
     override func keyDown(with event: NSEvent) {
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         let isReturn = event.keyCode == 36 || event.keyCode == 76
+        let paletteActive = !hasMarkedText() && isAtPalettePresented()
+
+        if paletteActive {
+            let arrowModifiers = modifiers.intersection([.shift, .control, .option, .command])
+            if event.keyCode == 126, arrowModifiers.isEmpty {
+                onAtCommandMoveHighlight?(-1)
+                return
+            }
+            if event.keyCode == 125, arrowModifiers.isEmpty {
+                onAtCommandMoveHighlight?(1)
+                return
+            }
+            if isReturn, !modifiers.contains(.shift) {
+                onAtCommandConfirm?()
+                return
+            }
+            if event.keyCode == 48, arrowModifiers.isEmpty {
+                onAtCommandConfirm?()
+                return
+            }
+        }
 
         if isReturn, !modifiers.contains(.shift), !hasMarkedText() {
             onSubmit?(self)

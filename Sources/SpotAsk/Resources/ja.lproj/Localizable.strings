@@ -19,6 +19,14 @@
 "chat.goToBottom" = "最下部へ";
 "chat.inputAccessibility" = "質問入力欄";
 "chat.inputPlaceholder" = "質問を入力...";
+"atCommand.prompts" = "プロンプト";
+"atCommand.externalAsk" = "外部に質問";
+"atCommand.empty" = "@%@ に一致するコマンドがありません";
+"atCommand.emptyEsc" = "Esc";
+"atCommand.accessibilityLabel" = "コマンドパレット";
+"atCommand.pendingPlaceholder" = "%@ に送る質問を入力…";
+"atCommand.pendingToast" = "%@ が質問を待っています。Return で送信します。";
+"atCommand.launchFailed" = "%@ を開けませんでした";
 "chat.newConversation" = "新しい会話";
 "chat.newConversationConfirmMessage" = "現在の会話は消去されます。";
 "chat.newConversationConfirmTitle" = "新しい会話を始めますか？";
