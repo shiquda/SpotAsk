@@ -55,6 +55,7 @@ jobs:
             Scripts/release-notes-from-changelog.sh \
             Scripts/push-homebrew-cask.sh \
             Scripts/generate-appcast.sh \
+            Scripts/verify-sparkle-appcast.py \
             "$helper_dir/"
           chmod +x "$helper_dir"/*
           if ! grep -q 'WAIT_FLAG' "$helper_dir/notarize-dmg.sh"; then
@@ -71,7 +72,8 @@ jobs:
           cp "$RELEASE_HELPER_DIR/publish-github-release.sh" Scripts/publish-github-release.sh
           cp "$RELEASE_HELPER_DIR/release-notes-from-changelog.sh" Scripts/release-notes-from-changelog.sh
           cp "$RELEASE_HELPER_DIR/generate-appcast.sh" Scripts/generate-appcast.sh
-          chmod +x Scripts/notarize-dmg.sh Scripts/publish-github-release.sh Scripts/release-notes-from-changelog.sh Scripts/generate-appcast.sh
+          cp "$RELEASE_HELPER_DIR/verify-sparkle-appcast.py" Scripts/verify-sparkle-appcast.py
+          chmod +x Scripts/notarize-dmg.sh Scripts/publish-github-release.sh Scripts/release-notes-from-changelog.sh Scripts/generate-appcast.sh Scripts/verify-sparkle-appcast.py
           if ! grep -q 'WAIT_FLAG' Scripts/notarize-dmg.sh; then
             echo "Restored notarize helper still lacks --wait; refusing to publish $RELEASE_TAG" >&2
             exit 1
@@ -173,9 +175,9 @@ jobs:
         if: env.RELEASE_STATE != 'published'
         env:
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
-          SPARKLE_ALLOW_MISSING_ED_KEY: "1"
         run: |
           set -eu
+          test -n "$SPARKLE_ED_PRIVATE_KEY"
           ./Scripts/generate-appcast.sh \
             --version "$APP_VERSION" \
             --tag "$RELEASE_TAG" \
@@ -189,11 +191,9 @@ jobs:
           set -eu
           (
             cd dist
-            if ls appcast-*.xml >/dev/null 2>&1; then
-              shasum -a 256 SpotAsk-*.dmg appcast-*.xml > "SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt"
-            else
-              shasum -a 256 SpotAsk-*.dmg > "SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt"
-            fi
+            test -s appcast-arm64.xml
+            test -s appcast-x86_64.xml
+            shasum -a 256 SpotAsk-*.dmg appcast-*.xml > "SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt"
           )
       - name: Publish GitHub Release
         if: env.RELEASE_STATE != 'published'
@@ -204,10 +204,9 @@ jobs:
           set -- \
             "dist/SpotAsk-${APP_VERSION}-arm64.dmg" \
             "dist/SpotAsk-${APP_VERSION}-x86_64.dmg" \
-            "dist/SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt"
-          if [ -f dist/appcast-arm64.xml ] && [ -f dist/appcast-x86_64.xml ]; then
-            set -- "$@" dist/appcast-arm64.xml dist/appcast-x86_64.xml
-          fi
+            "dist/SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt" \
+            dist/appcast-arm64.xml \
+            dist/appcast-x86_64.xml
           ./Scripts/publish-github-release.sh \
             --tag "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
