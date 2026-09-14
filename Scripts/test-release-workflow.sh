@@ -471,9 +471,33 @@ from pathlib import Path
 work = Path(sys.argv[1]) / "signed-appcast"
 root = Path(sys.argv[2])
 work.mkdir()
-tools = root / ".build" / "sparkle-tools-2.9.6" / "bin"
-if not (tools / "generate_appcast").is_file():
-    raise SystemExit("Sparkle generate_appcast is missing")
+def locate_or_fetch_generate_appcast(root_path: Path) -> Path:
+    env_dir = os.environ.get("SPARKLE_TOOLS_DIR")
+    if env_dir:
+        candidate = Path(env_dir) / "generate_appcast"
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return candidate
+
+    spm_bin = root_path / ".build" / "artifacts" / "sparkle" / "Sparkle" / "bin" / "generate_appcast"
+    if spm_bin.is_file() and os.access(spm_bin, os.X_OK):
+        return spm_bin
+
+    tools_cache = root_path / ".build" / "sparkle-tools-2.9.6"
+    cached_bin = tools_cache / "bin" / "generate_appcast"
+    if cached_bin.is_file() and os.access(cached_bin, os.X_OK):
+        return cached_bin
+
+    tools_cache.mkdir(parents=True, exist_ok=True)
+    zip_path = tools_cache / "Sparkle-for-Swift-Package-Manager.zip"
+    url = "https://github.com/sparkle-project/Sparkle/releases/download/2.9.6/Sparkle-for-Swift-Package-Manager.zip"
+    subprocess.check_call(["curl", "-fsSL", url, "-o", str(zip_path)])
+    subprocess.check_call(["unzip", "-qo", str(zip_path), "-d", str(tools_cache)])
+    if cached_bin.is_file() and os.access(cached_bin, os.X_OK):
+        return cached_bin
+
+    raise RuntimeError(f"Unable to locate or fetch Sparkle generate_appcast into {tools_cache}")
+
+tools_bin = locate_or_fetch_generate_appcast(root)
 
 pem = work / "priv.pem"
 subprocess.check_call(["openssl", "genpkey", "-algorithm", "ED25519", "-out", str(pem)])
@@ -511,7 +535,7 @@ notes = work / "notes.md"
 notes.write_text("# Dummy 1.2.3\n\nUnique notes token ALPHA-NOTES\n")
 
 env = os.environ.copy()
-env["SPARKLE_TOOLS_DIR"] = str(tools)
+env["SPARKLE_TOOLS_DIR"] = str(tools_bin.parent)
 env["SPARKLE_ED_PRIVATE_KEY_FILE"] = str(key_file)
 env.pop("SPARKLE_ED_PRIVATE_KEY", None)
 out = work / "out"
