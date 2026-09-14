@@ -310,7 +310,7 @@ struct AtCommandPaletteView: View {
                         }
                         .padding(.vertical, AtCommandPaletteMetrics.contentPadding)
                     }
-                    .frame(maxHeight: scrollMaxHeight)
+                    .frame(height: paletteHeight)
                     .onChange(of: highlightedID) { _, id in
                         guard let id else { return }
                         if reduceMotion {
@@ -340,10 +340,12 @@ struct AtCommandPaletteView: View {
         .accessibilityLabel(L10n.string("atCommand.accessibilityLabel"))
     }
 
-    private var scrollMaxHeight: CGFloat {
+    private var paletteHeight: CGFloat {
+        if isEmpty { return AtCommandPaletteMetrics.emptyHeight }
         let headers = (presets.isEmpty ? 0 : 1) + (actions.isEmpty ? 0 : 1)
         let divider: CGFloat = (!presets.isEmpty && !actions.isEmpty) ? 4 : 0
-        let rows = CGFloat(AtCommandPaletteMetrics.maxVisibleRows) * AtCommandPaletteMetrics.rowHeight
+        let visibleCount = min(presets.count + actions.count, AtCommandPaletteMetrics.maxVisibleRows)
+        let rows = CGFloat(visibleCount) * AtCommandPaletteMetrics.rowHeight
         return AtCommandPaletteMetrics.contentPadding * 2
             + CGFloat(headers) * AtCommandPaletteMetrics.headerHeight
             + divider
