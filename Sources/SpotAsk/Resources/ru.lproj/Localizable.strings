@@ -19,6 +19,14 @@
 "chat.goToBottom" = "Вниз";
 "chat.inputAccessibility" = "Поле вопроса";
 "chat.inputPlaceholder" = "Задайте вопрос...";
+"atCommand.prompts" = "Промпты";
+"atCommand.externalAsk" = "Внешний запрос";
+"atCommand.empty" = "Нет совпадений для @%@";
+"atCommand.emptyEsc" = "Esc";
+"atCommand.accessibilityLabel" = "Палитра команд";
+"atCommand.pendingPlaceholder" = "Введите вопрос для %@…";
+"atCommand.pendingToast" = "%@ ожидает вопрос. Нажмите Return, чтобы отправить.";
+"atCommand.launchFailed" = "Не удалось открыть %@";
 "chat.newConversation" = "Новый разговор";
 "chat.newConversationConfirmMessage" = "Текущий разговор будет очищен.";
 "chat.newConversationConfirmTitle" = "Начать новый разговор?";

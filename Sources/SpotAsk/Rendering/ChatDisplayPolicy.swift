@@ -43,6 +43,7 @@ func shortcutPresetSelection(current: PromptPreset?, requested: PromptPreset) ->
 
 enum ChatEscapeAction: Equatable {
     case preserveMarkedText
+    case dismissAtPalette
     case dismissPresetPopover
     case dismissModelPicker
     case cancelGeneration
@@ -52,6 +53,7 @@ enum ChatEscapeAction: Equatable {
 
 func chatEscapeAction(
     hasMarkedText: Bool,
+    isAtPalettePresented: Bool = false,
     isPresetPopoverPresented: Bool,
     isModelPickerPresented: Bool = false,
     isGenerating: Bool,
@@ -60,6 +62,9 @@ func chatEscapeAction(
 ) -> ChatEscapeAction {
     if hasMarkedText {
         return .preserveMarkedText
+    }
+    if isAtPalettePresented {
+        return .dismissAtPalette
     }
     if isPresetPopoverPresented {
         return .dismissPresetPopover

@@ -200,18 +200,7 @@ final class SelectionAssistantCoordinator {
             overlay.showMessage(.temporaryFailure)
             return
         }
-        let resolved: ResolvedQuickAction?
-        switch currentAction.kind {
-        case let .web(template), let .uriScheme(template):
-            resolved = QuickActionBuilder.makeURL(template: template, query: snapshot.text).map { .url($0) }
-        case let .terminal(template):
-            resolved = QuickActionBuilder.makeTerminalCommand(template: template, query: snapshot.text).map { .terminalCommand($0) }
-        }
-        guard let resolved else {
-            overlay.showMessage(.temporaryFailure)
-            return
-        }
-        if !executor.perform(resolved) {
+        if !QuickActionLaunch.perform(currentAction, query: snapshot.text, executor: executor) {
             overlay.showMessage(.temporaryFailure)
         }
     }
