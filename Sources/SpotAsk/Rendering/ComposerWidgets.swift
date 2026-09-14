@@ -343,7 +343,7 @@ var body: some View {
 /// mouse-down outside the popover's window closes it (the click also proceeds
 /// to its target); clicks inside the popover pass through untouched. `esc`
 /// closes separately via the composer's existing escape handling.
-private struct PopoverOutsideClickMonitor: NSViewRepresentable {
+struct PopoverOutsideClickMonitor: NSViewRepresentable {
     @Binding var isPresented: Bool
 
     func makeCoordinator() -> Coordinator { Coordinator(isPresented: $isPresented) }
