@@ -123,8 +123,8 @@ struct SelectionActionBarLayoutTests {
         expectButtonsStayInsidePanel(layout)
     }
 
-    @Test("Labeled chat action uses chat title and respects 400pt cap")
-    func labeledChatActionUsesChatTitleAndRespectsCap() {
+    @Test("Labeled mode renders chat action as pure icon and respects 400pt cap")
+    func labeledChatActionUsesPureIconAndRespectsCap() {
         let layout = SelectionActionBarLayout.make(
             showsChat: true,
             chatTitle: "Chat",
@@ -133,14 +133,27 @@ struct SelectionActionBarLayoutTests {
             showsLabels: true
         )
         #expect(layout.showsChat)
-        #expect(layout.chatWidth > 0)
+        #expect(layout.chatWidth == SelectionActionBarLayout.controlSize.width)
         #expect(layout.visiblePresets.count == 2)
         #expect(layout.visibleExternalAsks.count == 1)
         #expect(layout.showsDivider)
         #expect(layout.size.width <= 400.0)
+        if case let .chat(frame) = layout.placedItems[0] {
+            #expect(frame.origin.x == 4.0)
+            #expect(frame.size.width == 28.0)
+            #expect(frame.size.height == 28.0)
+        } else {
+            Issue.record("Expected first item to be .chat")
+        }
+        if case let .preset(index, frame) = layout.placedItems[1] {
+            #expect(index == 0)
+            #expect(frame.origin.x == 34.0)
+            #expect(frame.size.width > 28.0)
+        } else {
+            Issue.record("Expected second item to be .preset(0)")
+        }
         expectButtonsStayInsidePanel(layout)
     }
-
     @Test("Labeled mode caps total width at 400pt by truncating External Ask")
     func labeledModeCapsWidthAt400ptByTruncating() {
         let presets = [

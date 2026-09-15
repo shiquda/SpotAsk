@@ -86,10 +86,10 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
                 buttonTargets.append(target)
                 content.addSubview(makeActionButton(
                     frame: frame,
-                    title: L10n.string("selection.actionBar.chat"),
+                    title: "",
                     symbolName: "bubble.left.and.bubble.right",
                     brandSlug: nil,
-                    showsLabels: showsLabels,
+                    showsLabels: false,
                     toolTip: SelectionActionBarLayout.tooltip(
                         name: L10n.string("selection.actionBar.chatTooltip"),
                         shortcut: shortcutForChat
@@ -476,7 +476,7 @@ struct SelectionActionBarLayout: Equatable {
             )
         }
 
-        let chatNaturalWidth = showsChat ? buttonWidth(for: chatTitle) : 0
+        let chatWidth: CGFloat = showsChat ? controlSize.width : 0
         let presetNaturalWidths = cappedPresets.map { buttonWidth(for: $0.title) }
         var chosenExternalAsks = cappedExternalAsks
 
@@ -485,36 +485,48 @@ struct SelectionActionBarLayout: Equatable {
             return widths.reduce(0, +) + CGFloat(widths.count - 1) * controlSpacing
         }
 
-        let spotAskNaturalWidths: [CGFloat] = (showsChat ? [chatNaturalWidth] : []) + presetNaturalWidths
+        func spotAskGroupWidth(presetWidths: [CGFloat]) -> CGFloat {
+            let pWidth = groupWidth(presetWidths)
+            if showsChat && !presetWidths.isEmpty {
+                return chatWidth + controlSpacing + pWidth
+            } else if showsChat {
+                return chatWidth
+            } else {
+                return pWidth
+            }
+        }
 
-        func labeledWidth(spotAskWidths: [CGFloat], eaWidths: [CGFloat]) -> CGFloat {
-            let div = (!spotAskWidths.isEmpty && !eaWidths.isEmpty) ? dividerOccupiedWidth : 0
-            return contentInset * 2 + groupWidth(spotAskWidths) + div + groupWidth(eaWidths)
+        func labeledWidth(presetWidths: [CGFloat], eaWidths: [CGFloat]) -> CGFloat {
+            let saWidth = spotAskGroupWidth(presetWidths: presetWidths)
+            let div = (saWidth > 0 && !eaWidths.isEmpty) ? dividerOccupiedWidth : 0
+            return contentInset * 2 + saWidth + div + groupWidth(eaWidths)
         }
 
         while !chosenExternalAsks.isEmpty {
             let minEAWidths = Array(repeating: minExternalAskWidth, count: chosenExternalAsks.count)
-            if labeledWidth(spotAskWidths: spotAskNaturalWidths, eaWidths: minEAWidths) <= maxTotalWidth {
+            if labeledWidth(presetWidths: presetNaturalWidths, eaWidths: minEAWidths) <= maxTotalWidth {
                 break
             }
             chosenExternalAsks.removeLast()
         }
 
-        let showsDivider = !spotAskNaturalWidths.isEmpty && !chosenExternalAsks.isEmpty
-        let spotAskSpacing = spotAskNaturalWidths.count > 1 ? CGFloat(spotAskNaturalWidths.count - 1) * controlSpacing : 0
+        let showsDivider = (showsChat || !cappedPresets.isEmpty) && !chosenExternalAsks.isEmpty
         let eaSpacing = chosenExternalAsks.count > 1 ? CGFloat(chosenExternalAsks.count - 1) * controlSpacing : 0
-        let spotAskWidths: [CGFloat]
+        let presetWidths: [CGFloat]
         let eaWidths: [CGFloat]
 
         if chosenExternalAsks.isEmpty {
-            let available = max(0, maxTotalWidth - contentInset * 2 - spotAskSpacing)
-            spotAskWidths = compressedWidths(spotAskNaturalWidths, into: available)
+            let presetSpacing = cappedPresets.count > 1 ? CGFloat(cappedPresets.count - 1) * controlSpacing : 0
+            let spacingAfterChat = (showsChat && !cappedPresets.isEmpty) ? controlSpacing : 0
+            let availableForPresets = max(0, maxTotalWidth - contentInset * 2 - chatWidth - spacingAfterChat - presetSpacing)
+            presetWidths = compressedWidths(presetNaturalWidths, into: availableForPresets)
             eaWidths = []
         } else {
-            spotAskWidths = spotAskNaturalWidths
+            presetWidths = presetNaturalWidths
+            let saWidth = spotAskGroupWidth(presetWidths: presetNaturalWidths)
             let availableEA = max(
                 0,
-                maxTotalWidth - contentInset * 2 - groupWidth(spotAskNaturalWidths) - dividerOccupiedWidth - eaSpacing
+                maxTotalWidth - contentInset * 2 - saWidth - dividerOccupiedWidth - eaSpacing
             )
             eaWidths = compressedWidths(
                 chosenExternalAsks.map { buttonWidth(for: $0.displayName) },
@@ -522,15 +534,13 @@ struct SelectionActionBarLayout: Equatable {
             )
         }
 
-        let totalWidth = labeledWidth(spotAskWidths: spotAskWidths, eaWidths: eaWidths)
-        let finalChatWidth: CGFloat = showsChat ? (spotAskWidths.first ?? 0) : 0
-        let finalPresetWidths: [CGFloat] = showsChat ? Array(spotAskWidths.dropFirst()) : spotAskWidths
+        let totalWidth = labeledWidth(presetWidths: presetWidths, eaWidths: eaWidths)
 
         return SelectionActionBarLayout(
             showsChat: showsChat,
-            chatWidth: finalChatWidth,
+            chatWidth: chatWidth,
             visiblePresets: cappedPresets,
-            visiblePresetWidths: finalPresetWidths,
+            visiblePresetWidths: presetWidths,
             visibleExternalAsks: chosenExternalAsks,
             visibleExternalAskWidths: eaWidths,
             showsDivider: showsDivider,
