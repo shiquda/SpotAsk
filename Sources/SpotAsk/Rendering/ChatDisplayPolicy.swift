@@ -119,14 +119,6 @@ struct ComposerModeCoordinator: Equatable {
         }
     }
 
-    /// Alias for toggleExternalAsk.
-    @discardableResult
-    mutating func selectExternalAsk(
-        _ action: QuickAction,
-        selectedPreset: inout PromptPreset?
-    ) -> Bool {
-        toggleExternalAsk(action, selectedPreset: &selectedPreset)
-    }
 
     /// Unconditionally attaches an external ask action, clearing any preset.
     /// Used when confirming an `@` command target (`.becamePending`).

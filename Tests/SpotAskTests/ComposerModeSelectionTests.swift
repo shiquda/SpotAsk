@@ -53,7 +53,7 @@ struct ComposerModeSelectionTests {
         #expect(coordinator.badge(selectedPreset: preset) == .preset(title: translate.title, icon: translate.symbolName))
 
         // 2. Select ChatGPT (via popover or shortcut): clears preset, attaches pendingExternalAsk
-        let becamePending = coordinator.selectExternalAsk(chatGPT, selectedPreset: &preset)
+        let becamePending = coordinator.toggleExternalAsk(chatGPT, selectedPreset: &preset)
         #expect(becamePending)
         #expect(coordinator.pendingExternalAsk == chatGPT)
         #expect(preset == nil)
@@ -65,14 +65,14 @@ struct ComposerModeSelectionTests {
         ))
 
         // 3. Re-selecting ChatGPT toggles it off
-        let toggledOff = coordinator.selectExternalAsk(chatGPT, selectedPreset: &preset)
+        let toggledOff = coordinator.toggleExternalAsk(chatGPT, selectedPreset: &preset)
         #expect(!toggledOff)
         #expect(coordinator.pendingExternalAsk == nil)
         #expect(preset == nil)
         #expect(coordinator.badge(selectedPreset: preset) == nil)
 
         // 4. Select Grok
-        _ = coordinator.selectExternalAsk(grok, selectedPreset: &preset)
+        _ = coordinator.toggleExternalAsk(grok, selectedPreset: &preset)
         #expect(coordinator.pendingExternalAsk == grok)
         #expect(preset == nil)
 
@@ -89,7 +89,7 @@ struct ComposerModeSelectionTests {
         #expect(coordinator.badge(selectedPreset: preset) == nil)
 
         // 7. Clear selection explicitly
-        _ = coordinator.selectExternalAsk(chatGPT, selectedPreset: &preset)
+        _ = coordinator.toggleExternalAsk(chatGPT, selectedPreset: &preset)
         #expect(coordinator.pendingExternalAsk == chatGPT)
         coordinator.clearSelection(selectedPreset: &preset)
         #expect(coordinator.pendingExternalAsk == nil)
@@ -135,7 +135,7 @@ struct ComposerModeSelectionTests {
         #expect(executor.performedActions.isEmpty)
 
         // 2. With pending external ask but empty/whitespace input: rejected, preserves pending and input
-        _ = coordinator.selectExternalAsk(chatGPT, selectedPreset: &preset)
+        coordinator.attachExternalAsk(chatGPT, selectedPreset: &preset)
         var emptyInput = "   "
         let emptyOutcome = coordinator.handleSend(input: &emptyInput, resolve: resolve, executor: executor)
         #expect(emptyOutcome == .rejectedExternalAsk)
