@@ -250,6 +250,73 @@ final class UpdateCoordinatorTests: XCTestCase {
         XCTAssertFalse(UpdateCoordinator.isNetworkOrTimeoutError(sparkleError(code: 1001))) // SUNoUpdateError
     }
 
+    func testAutomaticModeResetsToOfficialAcrossCyclesAndSchedulesWatchdog() async {
+        let driver = FakeUpdateDriver()
+        let coordinator = makeCoordinator(driver: driver)
+        coordinator.checkTimeoutInterval = 0.05
+
+        // Cycle 1: Check updates on official, trigger fallback to accelerated, then finish cycle
+        coordinator.checkForUpdates()
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+        coordinator.handleCheckTimeout()
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertEqual(driver.checkCount, 2)
+        XCTAssertTrue(coordinator.hasFallenBackInCurrentCycle)
+
+        // Mark cycle complete
+        coordinator.markIdle()
+        XCTAssertEqual(coordinator.status, .idle)
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+        XCTAssertFalse(coordinator.hasFallenBackInCurrentCycle)
+
+        // Cycle 2: Sparkle background timer initiates check by calling willStartUpdateCycle / currentFeedURL
+        coordinator.willStartUpdateCycle()
+        XCTAssertEqual(coordinator.status, .checking)
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+        XCTAssertEqual(
+            coordinator.currentFeedURL(),
+            UpdateFeed.officialAppcastURL().absoluteString
+        )
+
+        // Wait for watchdog to fire for this second cycle
+        try? await Task.sleep(nanoseconds: 80_000_000)
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertEqual(
+            coordinator.currentFeedURL(),
+            UpdateFeed.acceleratedAppcastURL().absoluteString
+        )
+        XCTAssertEqual(driver.checkCount, 3)
+    }
+
+    func testLateAbortFromReplacedOfficialUpdaterCannotClobberAcceleratedAttempt() {
+        let driver = FakeUpdateDriver()
+        let coordinator = makeCoordinator(driver: driver)
+
+        // Start check on official
+        coordinator.checkForUpdates()
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+
+        // Official times out, fallback triggered to accelerated
+        coordinator.handleCheckTimeout()
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertEqual(coordinator.status, .checking)
+        XCTAssertEqual(driver.checkCount, 2)
+
+        // Stale late abort arrives from replaced official updater
+        let networkError = NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut)
+        coordinator.handleAbort(networkError, from: .official)
+
+        // Must still be checking on accelerated, not clobbered to unavailable
+        XCTAssertEqual(coordinator.status, .checking)
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertEqual(driver.checkCount, 2)
+
+        // Abort from the active accelerated updater marks unavailable
+        coordinator.handleAbort(networkError, from: .accelerated)
+        XCTAssertEqual(coordinator.status, .unavailable)
+        XCTAssertFalse(coordinator.isChecking)
+    }
+
     func testGitHubReleaseFallbackOpensNamedBrowserURL() {
         var opened: [URL] = []
         let coordinator = makeCoordinator(openURL: { opened.append($0) })

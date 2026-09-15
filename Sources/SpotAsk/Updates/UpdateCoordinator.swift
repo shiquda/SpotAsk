@@ -50,6 +50,7 @@ extension UpdateDriver {
 final class SparkleUpdateDriver: NSObject, UpdateDriver, SPUUpdaterDelegate {
     private var controller: SPUStandardUpdaterController?
     private var pendingAutomaticChecks = true
+    private(set) var currentSource: UpdateDownloadSource = .official
     weak var coordinator: UpdateCoordinator?
 
     var automaticallyChecksForUpdates: Bool {
@@ -58,6 +59,10 @@ final class SparkleUpdateDriver: NSObject, UpdateDriver, SPUUpdaterDelegate {
             pendingAutomaticChecks = newValue
             controller?.updater.automaticallyChecksForUpdates = newValue
         }
+    }
+
+    private func isCurrentUpdater(_ updater: SPUUpdater) -> Bool {
+        controller?.updater === updater
     }
 
     func start() {
@@ -83,6 +88,7 @@ final class SparkleUpdateDriver: NSObject, UpdateDriver, SPUUpdaterDelegate {
     }
 
     func checkForUpdates(using source: UpdateDownloadSource) {
+        currentSource = source
         if controller == nil {
             start()
         } else if controller?.updater.sessionInProgress == true {
@@ -92,27 +98,43 @@ final class SparkleUpdateDriver: NSObject, UpdateDriver, SPUUpdaterDelegate {
     }
 
     func feedURLString(for updater: SPUUpdater) -> String? {
-        coordinator?.currentFeedURL() ?? UpdateFeed.appcastURL().absoluteString
+        guard isCurrentUpdater(updater) else { return nil }
+        return coordinator?.currentFeedURL() ?? UpdateFeed.appcastURL().absoluteString
+    }
+
+    func updater(_ updater: SPUUpdater, mayPerform updateCheck: SPUUpdateCheck) throws {
+        guard isCurrentUpdater(updater) else { return }
+        coordinator?.willStartUpdateCycle()
     }
 
     func updater(_ updater: SPUUpdater, willDownloadUpdate item: SUAppcastItem, with request: NSMutableURLRequest) {
+        guard isCurrentUpdater(updater) else { return }
         coordinator?.prepareDownloadRequest(request, for: item)
     }
 
     func updater(_ updater: SPUUpdater, failedToDownloadUpdate item: SUAppcastItem, error: Error) {
-        coordinator?.handleDownloadFailure(item: item, error: error)
+        guard isCurrentUpdater(updater) else { return }
+        coordinator?.handleDownloadFailure(item: item, error: error, from: currentSource)
     }
 
     func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+        guard isCurrentUpdater(updater) else { return }
         coordinator?.markIdle()
     }
 
     func updaterDidNotFindUpdate(_ updater: SPUUpdater, error: Error) {
+        guard isCurrentUpdater(updater) else { return }
         coordinator?.markIdle()
     }
 
     func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {
-        coordinator?.handleAbort(error)
+        guard isCurrentUpdater(updater) else { return }
+        coordinator?.handleAbort(error, from: currentSource)
+    }
+
+    func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: (any Error)?) {
+        guard isCurrentUpdater(updater) else { return }
+        coordinator?.didFinishUpdateCycle(error: error, from: currentSource)
     }
 }
 
@@ -143,6 +165,7 @@ final class UpdateCoordinator {
     private(set) var activeDownloadSource: UpdateDownloadSource = .official
     private(set) var hasFallenBackInCurrentCycle = false
     private var didEnclosureFailOnOfficial = false
+    private(set) var activeCycleID = UUID()
 
     var checkTimeoutInterval: TimeInterval = 10.0
     var downloadTimeoutInterval: TimeInterval = 10.0
@@ -172,9 +195,16 @@ final class UpdateCoordinator {
         driver.start()
         refreshSkippedVersion()
     }
+    func willStartUpdateCycle() {
+        if hasFallenBackInCurrentCycle && currentAttemptSource == .accelerated {
+            return
+        }
+        prepareForNewCycle()
+    }
 
-    func checkForUpdates() {
-        guard !isChecking else { return }
+    func prepareForNewCycle() {
+        cancelTimeoutWatchdog()
+        activeCycleID = UUID()
         status = .checking
         hasFallenBackInCurrentCycle = false
         didEnclosureFailOnOfficial = false
@@ -188,6 +218,11 @@ final class UpdateCoordinator {
         }
 
         startTimeoutWatchdogIfNeeded()
+    }
+
+    func checkForUpdates() {
+        guard !isChecking else { return }
+        prepareForNewCycle()
         driver.checkForUpdates(using: currentAttemptSource)
     }
 
@@ -212,16 +247,33 @@ final class UpdateCoordinator {
     func markIdle() {
         cancelTimeoutWatchdog()
         status = .idle
+        resetCycleState()
         refreshSkippedVersion()
     }
 
     func markUnavailable() {
         cancelTimeoutWatchdog()
         status = .unavailable
+        resetCycleState()
         refreshSkippedVersion()
     }
 
+    private func resetCycleState() {
+        hasFallenBackInCurrentCycle = false
+        didEnclosureFailOnOfficial = false
+        if settings.updateDownloadSource == .automatic {
+            currentAttemptSource = .official
+            activeDownloadSource = .official
+        } else {
+            currentAttemptSource = settings.updateDownloadSource
+            activeDownloadSource = settings.updateDownloadSource
+        }
+    }
+
     func currentFeedURL() -> String {
+        if status != .checking && !hasFallenBackInCurrentCycle {
+            prepareForNewCycle()
+        }
         let source: UpdateDownloadSource
         if settings.updateDownloadSource == .automatic {
             source = currentAttemptSource
@@ -239,7 +291,10 @@ final class UpdateCoordinator {
         }
     }
 
-    func handleDownloadFailure(item: SUAppcastItem, error: Error) {
+    func handleDownloadFailure(item: SUAppcastItem, error: Error, from source: UpdateDownloadSource? = nil) {
+        if let source, source != currentAttemptSource {
+            return
+        }
         if Self.isNetworkOrTimeoutError(error),
            settings.updateDownloadSource == .automatic,
            activeDownloadSource == .official,
@@ -250,7 +305,10 @@ final class UpdateCoordinator {
         }
     }
 
-    func handleAbort(_ error: Error) {
+    func handleAbort(_ error: Error, from source: UpdateDownloadSource? = nil) {
+        if let source, source != currentAttemptSource {
+            return
+        }
         cancelTimeoutWatchdog()
         let nsError = error as NSError
         if nsError.domain == SUSparkleErrorDomain {
@@ -282,6 +340,31 @@ final class UpdateCoordinator {
 
         markUnavailable()
     }
+
+    func didFinishUpdateCycle(error: (any Error)?, from source: UpdateDownloadSource? = nil) {
+        if let source, source != currentAttemptSource {
+            return
+        }
+        if hasFallenBackInCurrentCycle && currentAttemptSource == .accelerated && status == .checking {
+            return
+        }
+        if status == .checking {
+            if let error {
+                let nsError = error as NSError
+                if nsError.domain == SUSparkleErrorDomain,
+                   (nsError.code == Int(SUError.noUpdateError.rawValue) ||
+                    nsError.code == Int(SUError.installationCanceledError.rawValue) ||
+                    nsError.code == Int(SUError.installationAuthorizeLaterError.rawValue)) {
+                    markIdle()
+                } else {
+                    markUnavailable()
+                }
+            } else {
+                markIdle()
+            }
+        }
+    }
+
     func handleCheckTimeout() {
         guard status == .checking,
               settings.updateDownloadSource == .automatic,
@@ -294,6 +377,7 @@ final class UpdateCoordinator {
 
     func triggerFallbackToAccelerated() {
         cancelTimeoutWatchdog()
+        activeCycleID = UUID()
         didEnclosureFailOnOfficial = false
         hasFallenBackInCurrentCycle = true
         currentAttemptSource = .accelerated
@@ -301,19 +385,26 @@ final class UpdateCoordinator {
         status = .checking
         driver.checkForUpdates(using: .accelerated)
     }
+
     private func startTimeoutWatchdogIfNeeded() {
         cancelTimeoutWatchdog()
         guard settings.updateDownloadSource == .automatic, currentAttemptSource == .official else {
             return
         }
         let timeout = checkTimeoutInterval
+        let cycleID = activeCycleID
+        let attemptSource = currentAttemptSource
         checkTimeoutTask = Task { @MainActor [weak self] in
             do {
                 try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
             } catch {
                 return
             }
-            guard let self, !Task.isCancelled, self.status == .checking, self.currentAttemptSource == .official else {
+            guard let self,
+                  !Task.isCancelled,
+                  self.status == .checking,
+                  self.activeCycleID == cycleID,
+                  self.currentAttemptSource == attemptSource else {
                 return
             }
             self.handleCheckTimeout()
