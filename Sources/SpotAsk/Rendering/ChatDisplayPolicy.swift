@@ -94,6 +94,91 @@ func shouldClearPendingExternalAsk(from oldValue: String, to newValue: String, s
     return wasNonempty && isEmpty
 }
 
+@MainActor
+struct ComposerModeCoordinator: Equatable {
+    var pendingExternalAsk: QuickAction?
+    var skipEmptyPendingClear = false
+
+    func badge(selectedPreset: PromptPreset?) -> ComposerModeBadge? {
+        ComposerModeBadge.resolve(pendingExternalAsk: pendingExternalAsk, selectedPreset: selectedPreset)
+    }
+
+    /// Toggles the external ask action: if already selected, clears it; otherwise attaches it.
+    /// Used by shortcut keys and popover rows.
+    @discardableResult
+    mutating func toggleExternalAsk(
+        _ action: QuickAction,
+        selectedPreset: inout PromptPreset?
+    ) -> Bool {
+        if shortcutQuickActionSelection(current: pendingExternalAsk, requested: action) == nil {
+            pendingExternalAsk = nil
+            return false
+        } else {
+            attachExternalAsk(action, selectedPreset: &selectedPreset)
+            return true
+        }
+    }
+
+
+    /// Unconditionally attaches an external ask action, clearing any preset.
+    /// Used when confirming an `@` command target (`.becamePending`).
+    mutating func attachExternalAsk(
+        _ action: QuickAction,
+        selectedPreset: inout PromptPreset?
+    ) {
+        pendingExternalAsk = action
+        selectedPreset = nil
+        skipEmptyPendingClear = true
+    }
+
+    mutating func applyPreset(
+        _ preset: PromptPreset?,
+        selectedPreset: inout PromptPreset?
+    ) {
+        pendingExternalAsk = nil
+        selectedPreset = preset
+    }
+
+    mutating func clearSelection(selectedPreset: inout PromptPreset?) {
+        pendingExternalAsk = nil
+        selectedPreset = nil
+    }
+
+    enum SendOutcome: Equatable {
+        case launchedExternalAsk
+        case launchFailedExternalAsk(QuickAction)
+        case rejectedExternalAsk
+        case proceedWithStandardSend
+    }
+
+    mutating func handleSend(
+        input: inout String,
+        resolve: (UUID) -> QuickAction?,
+        executor: any QuickActionExecuting = DefaultQuickActionExecutor()
+    ) -> SendOutcome {
+        guard let pending = pendingExternalAsk else {
+            return .proceedWithStandardSend
+        }
+        let outcome = AtCommandSelection.confirmPending(
+            pending,
+            query: input,
+            resolve: resolve,
+            executor: executor
+        )
+        switch outcome {
+        case .launched:
+            pendingExternalAsk = nil
+            input = ""
+            return .launchedExternalAsk
+        case let .launchFailed(action):
+            pendingExternalAsk = action
+            return .launchFailedExternalAsk(action)
+        case .rejected, .appliedPreset, .becamePending:
+            return .rejectedExternalAsk
+        }
+    }
+}
+
 
 enum ChatEscapeAction: Equatable {
     case preserveMarkedText
