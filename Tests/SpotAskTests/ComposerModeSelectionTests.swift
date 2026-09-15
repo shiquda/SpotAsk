@@ -43,219 +43,103 @@ struct ComposerModeSelectionTests {
         #expect(!shouldClearPendingExternalAsk(from: "   ", to: "", skipOnce: false))
     }
 
-    @Test("Selecting External Ask is mutually exclusive with a prompt preset")
-    func selectingExternalAskClearsPreset() {
-        var pending: QuickAction?
+    @Test("ComposerModeCoordinator manages selection, toggle, and preset mutual exclusivity")
+    func composerModeCoordinatorSelectionAndMutualExclusion() {
+        var coordinator = ComposerModeCoordinator()
         var preset: PromptPreset? = translate
 
-        pending = shortcutQuickActionSelection(current: pending, requested: chatGPT)
-        if pending != nil {
-            preset = nil
-        }
-        #expect(pending == chatGPT)
+        // 1. Initial state with a preset: badge is preset
+        #expect(coordinator.pendingExternalAsk == nil)
+        #expect(coordinator.badge(selectedPreset: preset) == .preset(title: translate.title, icon: translate.symbolName))
+
+        // 2. Select ChatGPT (via popover or shortcut): clears preset, attaches pendingExternalAsk
+        let becamePending = coordinator.selectExternalAsk(chatGPT, selectedPreset: &preset)
+        #expect(becamePending)
+        #expect(coordinator.pendingExternalAsk == chatGPT)
+        #expect(preset == nil)
+        #expect(coordinator.skipEmptyPendingClear)
+        #expect(coordinator.badge(selectedPreset: preset) == .externalAsk(
+            title: chatGPT.displayName,
+            icon: chatGPT.symbolName,
+            brandIconSlug: chatGPT.brandIconSlug
+        ))
+
+        // 3. Re-selecting ChatGPT toggles it off
+        let toggledOff = coordinator.selectExternalAsk(chatGPT, selectedPreset: &preset)
+        #expect(!toggledOff)
+        #expect(coordinator.pendingExternalAsk == nil)
+        #expect(preset == nil)
+        #expect(coordinator.badge(selectedPreset: preset) == nil)
+
+        // 4. Select Grok
+        _ = coordinator.selectExternalAsk(grok, selectedPreset: &preset)
+        #expect(coordinator.pendingExternalAsk == grok)
         #expect(preset == nil)
 
-        let badge = ComposerModeBadge.resolve(pendingExternalAsk: pending, selectedPreset: polish)
-        #expect(badge?.title == chatGPT.displayName)
-
-        pending = shortcutQuickActionSelection(current: pending, requested: chatGPT)
-        #expect(pending == nil)
-    }
-
-    @Test("Empty pending Return is rejected and a failed launch stays retryable")
-    func pendingReturnProtectsDraft() {
-        let action = QuickAction(name: "ChatGPT", urlTemplate: "https://example.com/?q={query}")
-        let executor = FailingThenSucceedingExecutor()
-        let resolve: (UUID) -> QuickAction? = { id in id == action.id ? action : nil }
-
-        #expect(
-            AtCommandSelection.confirmPending(
-                action,
-                query: "   ",
-                resolve: resolve,
-                executor: executor
-            ) == .rejected
-        )
-        #expect(executor.performedActions.isEmpty)
-
-        executor.shouldSucceed = false
-        #expect(
-            AtCommandSelection.confirmPending(
-                action,
-                query: "retry me",
-                resolve: resolve,
-                executor: executor
-            ) == .launchFailed(action)
-        )
-        #expect(executor.performedActions.isEmpty)
-
-        executor.shouldSucceed = true
-        #expect(
-            AtCommandSelection.confirmPending(
-                action,
-                query: "retry me",
-                resolve: resolve,
-                executor: executor
-            ) == .launched
-        )
-        #expect(executor.performedActions.count == 1)
-    }
-
-    @Test("In existing conversation, external ask shortcut attaches mode badge and respects toggle")
-    func existingConversationShortcutAttachesExternalAsk() {
-        var pendingExternalAsk: QuickAction?
-        var selectedPreset: PromptPreset? = translate
-
-        // Pressing shortcut for ChatGPT attaches it and clears preset
-        pendingExternalAsk = shortcutQuickActionSelection(current: pendingExternalAsk, requested: chatGPT)
-        if pendingExternalAsk != nil {
-            selectedPreset = nil
-        }
-        #expect(pendingExternalAsk == chatGPT)
-        #expect(selectedPreset == nil)
-
-        let badge = ComposerModeBadge.resolve(pendingExternalAsk: pendingExternalAsk, selectedPreset: selectedPreset)
-        #expect(badge == .externalAsk(
-            title: chatGPT.displayName,
-            icon: chatGPT.symbolName,
-            brandIconSlug: chatGPT.brandIconSlug
-        ))
-
-        // Pressing the same shortcut again toggles it off
-        pendingExternalAsk = shortcutQuickActionSelection(current: pendingExternalAsk, requested: chatGPT)
-        #expect(pendingExternalAsk == nil)
-        let clearedBadge = ComposerModeBadge.resolve(pendingExternalAsk: pendingExternalAsk, selectedPreset: selectedPreset)
-        #expect(clearedBadge == nil)
-
-        // Pressing Grok shortcut sets Grok
-        pendingExternalAsk = shortcutQuickActionSelection(current: pendingExternalAsk, requested: grok)
-        #expect(pendingExternalAsk == grok)
-        let grokBadge = ComposerModeBadge.resolve(pendingExternalAsk: pendingExternalAsk, selectedPreset: selectedPreset)
-        #expect(grokBadge == .externalAsk(
-            title: grok.displayName,
-            icon: grok.symbolName,
-            brandIconSlug: grok.brandIconSlug
-        ))
-    }
-
-    @Test("Popover external ask selection and deselect state machine")
-    func popoverExternalAskSelectionStateMachine() {
-        var pendingExternalAsk: QuickAction?
-        var selectedPreset: PromptPreset?
-
-        func selectAction(_ action: QuickAction) {
-            if shortcutQuickActionSelection(current: pendingExternalAsk, requested: action) == nil {
-                pendingExternalAsk = nil
-            } else {
-                pendingExternalAsk = action
-                selectedPreset = nil
-            }
-        }
-
-        func selectPreset(_ preset: PromptPreset?) {
-            pendingExternalAsk = nil
-            selectedPreset = preset
-        }
-
-        // 1. Initial state: direct question
-        #expect(pendingExternalAsk == nil)
-        #expect(selectedPreset == nil)
-        #expect(ComposerModeBadge.resolve(pendingExternalAsk: pendingExternalAsk, selectedPreset: selectedPreset) == nil)
-
-        // 2. Select ChatGPT from popover
-        selectAction(chatGPT)
-        #expect(pendingExternalAsk == chatGPT)
-        #expect(selectedPreset == nil)
-        #expect(ComposerModeBadge.resolve(pendingExternalAsk: pendingExternalAsk, selectedPreset: selectedPreset) == .externalAsk(
-            title: chatGPT.displayName,
-            icon: chatGPT.symbolName,
-            brandIconSlug: chatGPT.brandIconSlug
-        ))
-
-        // 3. Re-select ChatGPT from popover: deselects/toggles off
-        selectAction(chatGPT)
-        #expect(pendingExternalAsk == nil)
-        #expect(selectedPreset == nil)
-        #expect(ComposerModeBadge.resolve(pendingExternalAsk: pendingExternalAsk, selectedPreset: selectedPreset) == nil)
-
-        // 4. Select Grok from popover
-        selectAction(grok)
-        #expect(pendingExternalAsk == grok)
-        #expect(selectedPreset == nil)
-
-        // 5. Select preset from popover: clears pending external ask
-        selectPreset(translate)
-        #expect(pendingExternalAsk == nil)
-        #expect(selectedPreset == translate)
-        #expect(ComposerModeBadge.resolve(pendingExternalAsk: pendingExternalAsk, selectedPreset: selectedPreset) == .preset(
-            title: translate.title,
-            icon: translate.symbolName
-        ))
+        // 5. Select preset: clears pending external ask
+        coordinator.applyPreset(polish, selectedPreset: &preset)
+        #expect(coordinator.pendingExternalAsk == nil)
+        #expect(preset == polish)
+        #expect(coordinator.badge(selectedPreset: preset) == .preset(title: polish.title, icon: polish.symbolName))
 
         // 6. Select direct question (nil): clears both
-        selectPreset(nil)
-        #expect(pendingExternalAsk == nil)
-        #expect(selectedPreset == nil)
-        #expect(ComposerModeBadge.resolve(pendingExternalAsk: pendingExternalAsk, selectedPreset: selectedPreset) == nil)
+        coordinator.applyPreset(nil, selectedPreset: &preset)
+        #expect(coordinator.pendingExternalAsk == nil)
+        #expect(preset == nil)
+        #expect(coordinator.badge(selectedPreset: preset) == nil)
+
+        // 7. Clear selection explicitly
+        _ = coordinator.selectExternalAsk(chatGPT, selectedPreset: &preset)
+        #expect(coordinator.pendingExternalAsk == chatGPT)
+        coordinator.clearSelection(selectedPreset: &preset)
+        #expect(coordinator.pendingExternalAsk == nil)
+        #expect(preset == nil)
     }
 
-    @Test("Submitting input launches external ask and resets pending state")
-    func submittingInputLaunchesExternalAskAndResets() {
-        var pendingExternalAsk: QuickAction? = chatGPT
-        var input = "What is the airspeed velocity of an unladen swallow?"
+    @Test("ComposerModeCoordinator handleSend executes external ask and cleans up state on launch")
+    func composerModeCoordinatorHandleSend() {
+        var coordinator = ComposerModeCoordinator()
+        var preset: PromptPreset?
         let executor = FailingThenSucceedingExecutor()
         let resolve: (UUID) -> QuickAction? = { id in id == self.chatGPT.id ? self.chatGPT : nil }
 
-        let outcome = AtCommandSelection.confirmPending(
-            chatGPT,
-            query: input,
-            resolve: resolve,
-            executor: executor
-        )
-        #expect(outcome == .launched)
+        // 1. Without pending external ask: proceeds with standard send
+        var standardInput = "hello"
+        let standardOutcome = coordinator.handleSend(input: &standardInput, resolve: resolve, executor: executor)
+        #expect(standardOutcome == .proceedWithStandardSend)
+        #expect(standardInput == "hello")
+        #expect(executor.performedActions.isEmpty)
+
+        // 2. With pending external ask but empty/whitespace input: rejected, preserves pending and input
+        _ = coordinator.selectExternalAsk(chatGPT, selectedPreset: &preset)
+        var emptyInput = "   "
+        let emptyOutcome = coordinator.handleSend(input: &emptyInput, resolve: resolve, executor: executor)
+        #expect(emptyOutcome == .rejectedExternalAsk)
+        #expect(coordinator.pendingExternalAsk == chatGPT)
+        #expect(emptyInput == "   ")
+        #expect(executor.performedActions.isEmpty)
+
+        // 3. Executor fails: returns launchFailed, retains pending external ask for retry
+        executor.shouldSucceed = false
+        var retryInput = "query to retry"
+        let failedOutcome = coordinator.handleSend(input: &retryInput, resolve: resolve, executor: executor)
+        #expect(failedOutcome == .launchFailedExternalAsk(chatGPT))
+        #expect(coordinator.pendingExternalAsk == chatGPT)
+        #expect(retryInput == "query to retry")
+        #expect(executor.performedActions.isEmpty)
+
+        // 4. Executor succeeds: returns launched, clears pendingExternalAsk and input automatically
+        executor.shouldSucceed = true
+        let launchedOutcome = coordinator.handleSend(input: &retryInput, resolve: resolve, executor: executor)
+        #expect(launchedOutcome == .launchedExternalAsk)
+        #expect(coordinator.pendingExternalAsk == nil)
+        #expect(retryInput.isEmpty)
         #expect(executor.performedActions.count == 1)
         if case let .url(url) = executor.performedActions[0] {
             #expect(url.absoluteString.contains("chatgpt.com"))
         } else {
             Issue.record("Expected .url resolved action")
         }
-
-        // On successful launch, pendingExternalAsk and input are cleared
-        if case .launched = outcome {
-            pendingExternalAsk = nil
-            input = ""
-        }
-        #expect(pendingExternalAsk == nil)
-        #expect(input.isEmpty)
-    }
-
-    @Test("PresetPopoverContent initializes with actions and selection callbacks")
-    func presetPopoverContentInitialization() {
-        var selectedAction: QuickAction?
-        var selectedPreset: PromptPreset?
-
-        let content = PresetPopoverContent(
-            presets: [translate, polish],
-            selection: nil,
-            actions: [chatGPT, grok],
-            selectedActionID: chatGPT.id,
-            showsShortcutHints: true,
-            shortcutForPreset: { _ in InAppShortcut(key: "1", modifiers: .command) },
-            shortcutForAction: { _ in InAppShortcut(key: "5", modifiers: .command) },
-            onChoose: { selectedPreset = $0 },
-            onSelectAction: { selectedAction = $0 }
-        )
-
-        #expect(content.presets.count == 2)
-        #expect(content.actions.count == 2)
-        #expect(content.selectedActionID == chatGPT.id)
-        #expect(content.selection == nil)
-
-        content.onSelectAction(chatGPT)
-        #expect(selectedAction == chatGPT)
-
-        content.onChoose(translate)
-        #expect(selectedPreset == translate)
     }
 }
 

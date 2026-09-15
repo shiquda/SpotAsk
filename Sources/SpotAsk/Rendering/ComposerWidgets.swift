@@ -176,7 +176,7 @@ struct PresetPopoverTrigger: View {
     }
 }
 
-struct PresetPopoverContent: View {
+private struct PresetPopoverContent: View {
     let presets: [PromptPreset]
     let selection: PromptPreset?
     var actions: [QuickAction] = []
@@ -230,7 +230,7 @@ struct PresetPopoverContent: View {
     }
 }
 
-struct PopoverRow: View {
+private struct PopoverRow: View {
     let title: String
     let icon: String
     var brandIconSlug: String? = nil
