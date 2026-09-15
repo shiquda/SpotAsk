@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Check for Updates now downloads and installs inside the app. You can skip a version from the update window and restore alerts in About. GitHub Releases remains available if the in-app updater cannot run.
-
+- Type `@` in the composer to filter prompt presets and External Ask targets. Selecting a preset keeps the draft; a nonempty query launches External Ask immediately.
 
 ## [0.2.3] - 2026-09-11
 

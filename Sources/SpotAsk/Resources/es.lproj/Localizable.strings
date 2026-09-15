@@ -19,6 +19,14 @@
 "chat.goToBottom" = "Ir al final";
 "chat.inputAccessibility" = "Entrada de pregunta";
 "chat.inputPlaceholder" = "Escribe una pregunta...";
+"atCommand.prompts" = "Prompts";
+"atCommand.externalAsk" = "Preguntar fuera";
+"atCommand.empty" = "Sin coincidencias para @%@";
+"atCommand.emptyEsc" = "Esc";
+"atCommand.accessibilityLabel" = "Paleta de comandos";
+"atCommand.pendingPlaceholder" = "Escribe una pregunta para %@…";
+"atCommand.pendingToast" = "%@ está esperando una pregunta. Pulsa Return para enviar.";
+"atCommand.launchFailed" = "No se pudo abrir %@";
 "chat.newConversation" = "Nueva conversación";
 "chat.newConversationConfirmMessage" = "La conversación actual se borrará.";
 "chat.newConversationConfirmTitle" = "¿Empezar una nueva conversación?";

@@ -302,6 +302,7 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(
             chatEscapeAction(
                 hasMarkedText: true,
+                isAtPalettePresented: true,
                 isPresetPopoverPresented: true,
                 isGenerating: true,
                 startsNewConversation: true,
@@ -312,6 +313,18 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(
             chatEscapeAction(
                 hasMarkedText: false,
+                isAtPalettePresented: true,
+                isPresetPopoverPresented: true,
+                isGenerating: true,
+                startsNewConversation: true,
+                hasMessages: true
+            ),
+            .dismissAtPalette
+        )
+        XCTAssertEqual(
+            chatEscapeAction(
+                hasMarkedText: false,
+                isAtPalettePresented: false,
                 isPresetPopoverPresented: true,
                 isGenerating: true,
                 startsNewConversation: true,

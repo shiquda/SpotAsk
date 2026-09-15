@@ -18,6 +18,20 @@ enum ResolvedQuickAction: Equatable, Sendable {
     }
 }
 
+enum QuickActionLaunch {
+    /// Shared execution entry for chat `@` palette and the selection action bar.
+    @MainActor
+    @discardableResult
+    static func perform(
+        _ action: QuickAction,
+        query: String,
+        executor: any QuickActionExecuting = DefaultQuickActionExecutor()
+    ) -> Bool {
+        guard let resolved = ResolvedQuickAction.resolve(action, query: query) else { return false }
+        return executor.perform(resolved)
+    }
+}
+
 protocol QuickActionExecuting: Sendable {
     @MainActor
     func perform(_ resolved: ResolvedQuickAction) -> Bool
@@ -146,16 +160,15 @@ final class QuickActionTrigger {
         let input = currentInput()
 
         // 6. 根据 kind 解析 resolved action (空 query / 无效模板会返回 nil，自然 no-op)
-        guard let target = ResolvedQuickAction.resolve(action, query: input) else {
+        guard ResolvedQuickAction.resolve(action, query: input) != nil else {
             return false
         }
-
 
         // 7. 设置 session-scoped isExecutingQuickAction = true
         isExecutingQuickAction = true
 
         // 8. 调用 executor
-        let success = executor.perform(target)
+        let success = QuickActionLaunch.perform(action, query: input, executor: executor)
 
         if !success {
             // 9. 如果 executor 返回 false：清除 guard，保留面板，不修改 input/messages，允许重试
