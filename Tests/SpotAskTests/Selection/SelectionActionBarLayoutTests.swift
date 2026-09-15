@@ -77,6 +77,83 @@ struct SelectionActionBarLayoutTests {
         #expect(layout.visibleExternalAsks.count == 1)
     }
 
+    @Test("Chat action is placed at the first position in compact mode")
+    func compactChatActionPlacesChatAtFirstPosition() {
+        let layout = SelectionActionBarLayout.make(
+            showsChat: true,
+            presets: [preset("Translate"), preset("Explain")],
+            externalAsks: [],
+            showsLabels: false
+        )
+        #expect(layout.showsChat)
+        #expect(layout.visiblePresets.count == 2)
+        #expect(!layout.showsDivider)
+        // insets (8) + chat (28) + spacing (2) + presets (28*2 + 2 = 58) = 96
+        #expect(layout.size.width == 96.0)
+        #expect(layout.placedItems.count == 3)
+        if case let .chat(frame) = layout.placedItems[0] {
+            #expect(frame.origin.x == 4.0)
+            #expect(frame.size.width == 28.0)
+        } else {
+            Issue.record("Expected first item to be .chat")
+        }
+        if case let .preset(index, frame) = layout.placedItems[1] {
+            #expect(index == 0)
+            #expect(frame.origin.x == 34.0)
+        } else {
+            Issue.record("Expected second item to be .preset(0)")
+        }
+        expectButtonsStayInsidePanel(layout)
+    }
+
+    @Test("Chat-only mode with external asks shows divider")
+    func chatOnlyWithExternalAsksShowsDivider() {
+        let layout = SelectionActionBarLayout.make(
+            showsChat: true,
+            presets: [],
+            externalAsks: [action("ChatGPT")],
+            showsLabels: false
+        )
+        #expect(layout.showsChat)
+        #expect(layout.visiblePresets.isEmpty)
+        #expect(layout.visibleExternalAsks.count == 1)
+        #expect(layout.showsDivider)
+        // insets (8) + chat (28) + divider (9) + external ask (28) = 73
+        #expect(layout.size.width == 73.0)
+        expectButtonsStayInsidePanel(layout)
+    }
+
+    @Test("Labeled mode renders chat action as pure icon and respects 400pt cap")
+    func labeledChatActionUsesPureIconAndRespectsCap() {
+        let layout = SelectionActionBarLayout.make(
+            showsChat: true,
+            chatTitle: "Chat",
+            presets: [preset("Translate"), preset("Explain")],
+            externalAsks: [action("ChatGPT")],
+            showsLabels: true
+        )
+        #expect(layout.showsChat)
+        #expect(layout.chatWidth == SelectionActionBarLayout.controlSize.width)
+        #expect(layout.visiblePresets.count == 2)
+        #expect(layout.visibleExternalAsks.count == 1)
+        #expect(layout.showsDivider)
+        #expect(layout.size.width <= 400.0)
+        if case let .chat(frame) = layout.placedItems[0] {
+            #expect(frame.origin.x == 4.0)
+            #expect(frame.size.width == 28.0)
+            #expect(frame.size.height == 28.0)
+        } else {
+            Issue.record("Expected first item to be .chat")
+        }
+        if case let .preset(index, frame) = layout.placedItems[1] {
+            #expect(index == 0)
+            #expect(frame.origin.x == 34.0)
+            #expect(frame.size.width > 28.0)
+        } else {
+            Issue.record("Expected second item to be .preset(0)")
+        }
+        expectButtonsStayInsidePanel(layout)
+    }
     @Test("Labeled mode caps total width at 400pt by truncating External Ask")
     func labeledModeCapsWidthAt400ptByTruncating() {
         let presets = [
@@ -212,7 +289,7 @@ struct SelectionActionBarLayoutTests {
             #expect(frame.minY >= 0)
             #expect(frame.maxY <= panel.maxY + 0.001)
             switch item {
-            case .preset, .externalAsk:
+            case .chat, .preset, .externalAsk:
                 #expect(frame.minX >= inset - 0.001)
                 #expect(frame.maxX <= panel.maxX - inset + 0.001)
             case .divider:

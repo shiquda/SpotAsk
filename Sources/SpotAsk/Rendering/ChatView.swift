@@ -32,7 +32,6 @@ struct ChatView: View {
     @State private var copiedMessageID: UUID?
     @State private var copyFeedbackToken = UUID()
     private let selectionReplacementWriter: any SelectionReplacementWriting = AccessibilitySelectionReplacementWriter()
-    @State private var quickActionTrigger: QuickActionTrigger?
     @State private var atCommandState: AtCommandState?
     @State private var atCommandSuppressed = false
     @State private var atCommandHighlightedIndex = 0
@@ -86,7 +85,6 @@ struct ChatView: View {
             reasoningToggle.reconcile(messages: viewModel.messages, prefersExpanded: settings.defaultExpandReasoning)
             userMessageExpansionState.reconcile(messages: viewModel.messages, role: .user)
             assistantMessageExpansionState.reconcile(messages: viewModel.messages, role: .assistant)
-            quickActionTrigger?.resetForNewPanelPresentation()
             installShortcutDispatcher()
         }
         .onDisappear {
@@ -268,9 +266,10 @@ struct ChatView: View {
                     if !settings.enabledQuickActions.isEmpty {
                         QuickActionStripView(
                             actions: settings.enabledQuickActions,
+                            selectedActionID: pendingExternalAsk?.id,
                             showsShortcutHints: showsShortcutHints,
                             shortcutForAction: shortcutHint(for:),
-                            onSelect: { triggerQuickAction(for: $0.id) }
+                            onSelect: selectExternalAsk
                         )
                     }
                 }
@@ -502,76 +501,79 @@ struct ChatView: View {
                     .transition(.opacity)
                 }
                 AttachmentPickerButton(action: presentAttachmentPicker)
-                ChatInputTextView(
-                    text: $viewModel.input,
-                    isFocused: $inputFocused,
-                    height: $inputHeight,
-                    isGenerating: isGenerating,
-                    onSubmit: {
-                        sendFromComposer()
-                    },
-                    onEscape: handleEscape,
-                    onPasteImage: { data in
-                        Task { await viewModel.addScreenshot(data) }
-                    },
-                    onPasteFiles: { urls in
-                        Task { @MainActor in
-                            for url in urls {
-                                await viewModel.addAttachment(from: url)
-                            }
+                VStack(alignment: .leading, spacing: 6) {
+                    if let badge = activeComposerBadge {
+                        SelectedPresetBadge(
+                            title: badge.title,
+                            icon: badge.icon,
+                            brandIconSlug: badge.brandIconSlug
+                        ) {
+                            clearComposerModeSelection()
                         }
-                    },
-                    onTextViewReady: { composerTextView.textView = $0 },
-                    onRecall: { viewModel.recallLastQuestion() },
-                    onAtCommandStateChanged: handleAtCommandStateChanged,
-                    isAtPalettePresented: atCommandState != nil,
-                    onAtCommandMoveHighlight: moveAtCommandHighlight,
-                    onAtCommandConfirm: confirmAtCommandSelection
-                )
-                .frame(height: inputHeight)
-                .animation(.easeOut(duration: 0.12), value: inputHeight)
-                .background(inputFocused ? Brand.bg : Brand.surface, in: RoundedRectangle(cornerRadius: 12))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(inputFocused ? Brand.accent : Brand.border, lineWidth: 1)
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(Brand.accent.opacity(0.15), lineWidth: 6)
-                        .blur(radius: 4)
-                        .opacity(inputFocused ? 1 : 0)
-                        .allowsHitTesting(false)
-                }
-                .overlay(alignment: .topLeading) {
-                    if viewModel.input.isEmpty {
-                        Text(placeholderText)
-                            .foregroundStyle(Brand.muted)
-                            .padding(.leading, 14)
-                            .padding(.top, 10)
+                    }
+                    ChatInputTextView(
+                        text: $viewModel.input,
+                        isFocused: $inputFocused,
+                        height: $inputHeight,
+                        isGenerating: isGenerating,
+                        onSubmit: {
+                            sendFromComposer()
+                        },
+                        onEscape: handleEscape,
+                        onPasteImage: { data in
+                            Task { await viewModel.addScreenshot(data) }
+                        },
+                        onPasteFiles: { urls in
+                            Task { @MainActor in
+                                for url in urls {
+                                    await viewModel.addAttachment(from: url)
+                                }
+                            }
+                        },
+                        onTextViewReady: { composerTextView.textView = $0 },
+                        onRecall: { viewModel.recallLastQuestion() },
+                        onAtCommandStateChanged: handleAtCommandStateChanged,
+                        isAtPalettePresented: atCommandState != nil,
+                        onAtCommandMoveHighlight: moveAtCommandHighlight,
+                        onAtCommandConfirm: confirmAtCommandSelection
+                    )
+                    .frame(height: inputHeight)
+                    .animation(.easeOut(duration: 0.12), value: inputHeight)
+                    .background(inputFocused ? Brand.bg : Brand.surface, in: RoundedRectangle(cornerRadius: 12))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(inputFocused ? Brand.accent : Brand.border, lineWidth: 1)
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(Brand.accent.opacity(0.15), lineWidth: 6)
+                            .blur(radius: 4)
+                            .opacity(inputFocused ? 1 : 0)
                             .allowsHitTesting(false)
                     }
+                    .overlay(alignment: .topLeading) {
+                        if viewModel.input.isEmpty {
+                            Text(placeholderText)
+                                .foregroundStyle(Brand.muted)
+                                .padding(.leading, 14)
+                                .padding(.top, 10)
+                                .allowsHitTesting(false)
+                        }
+                    }
+                    .overlay(alignment: .bottomTrailing) {
+                        ShortcutKeycap(shortcut: shortcutHint(for: .operation(.focusInput)))
+                            .padding(8)
+                    }
+                    .animation(.easeOut(duration: 0.12), value: inputFocused)
                 }
-                .overlay(alignment: .bottomTrailing) {
-                    ShortcutKeycap(shortcut: shortcutHint(for: .operation(.focusInput)))
-                        .padding(8)
-                }
-                .animation(.easeOut(duration: 0.12), value: inputFocused)
+                .frame(maxWidth: .infinity)
+                .animation(.easeOut(duration: 0.12), value: activeComposerBadge)
                 ComposerSendButton(
                     isGenerating: isGenerating,
                     canSend: viewModel.canSend,
                     shortcut: shortcutHint(for: .operation(.sendOrCancel)),
                     action: primaryAction
                 )
-            }
-            if let preset = viewModel.selectedPromptPreset {
-                HStack {
-                    Spacer(minLength: 0)
-                    SelectedPresetBadge(title: preset.title, icon: preset.symbolName) {
-                        viewModel.selectedPromptPreset = nil
-                        inputFocused = true
-                    }
-                }
-                .transition(.opacity)
             }
         }
         .padding(.horizontal, 14)
@@ -714,7 +716,9 @@ struct ChatView: View {
             applyPreset(shortcutPresetSelection(current: viewModel.selectedPromptPreset, requested: preset))
             return true
         case let .quickAction(id):
-            return triggerQuickAction(for: id)
+            guard let action = settings.enabledQuickAction(id: id) else { return false }
+            selectExternalAsk(action)
+            return true
         case let .operation(operation):
             switch operation {
             case .focusInput:
@@ -776,27 +780,6 @@ struct ChatView: View {
         shortcutHint(for: .quickAction(action.id))
     }
 
-    private func lazyQuickActionTrigger() -> QuickActionTrigger {
-        if let trigger = quickActionTrigger {
-            return trigger
-        }
-        let trigger = QuickActionTrigger(
-            isSessionEmpty: { viewModel.messages.isEmpty },
-            isGenerating: { isGenerating },
-            currentInput: { viewModel.input },
-            clearInput: { viewModel.input = "" },
-            resolveAction: { settings.enabledQuickAction(id: $0) },
-            closePanel: { commandCenter.close() }
-        )
-        quickActionTrigger = trigger
-        return trigger
-    }
-
-    @discardableResult
-    private func triggerQuickAction(for actionID: UUID) -> Bool {
-        lazyQuickActionTrigger().trigger(actionID: actionID)
-    }
-
     private func canRetry(userMessage: ChatMessage) -> Bool {
         guard viewModel.generationState == .failed,
               viewModel.messages.last?.role == .assistant,
@@ -852,6 +835,7 @@ struct ChatView: View {
     /// and focuses the input (Return still sends). "直接提问" passes nil and
     /// never sends.
     private func applyPreset(_ preset: PromptPreset?, sendIfReady: Bool = true) {
+        pendingExternalAsk = nil
         guard let preset else {
             viewModel.selectedPromptPreset = nil
             inputFocused = true
@@ -1038,7 +1022,7 @@ struct ChatView: View {
             clearAtCommandTokenState()
             skipEmptyPendingClear = true
             pendingExternalAsk = action
-            StatusToastCenter.shared.show(L10n.string("atCommand.pendingToast", action.displayName))
+            viewModel.selectedPromptPreset = nil
             inputFocused = true
             return false
         case .launched:
@@ -1068,16 +1052,35 @@ struct ChatView: View {
     }
 
     private func clearPendingExternalAskIfInputEmptied(from oldValue: String, to newValue: String) {
-        if skipEmptyPendingClear {
-            skipEmptyPendingClear = false
-            return
-        }
-        let wasNonempty = !oldValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        let isEmpty = newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        if wasNonempty, isEmpty {
+        let skipOnce = skipEmptyPendingClear
+        skipEmptyPendingClear = false
+        if shouldClearPendingExternalAsk(from: oldValue, to: newValue, skipOnce: skipOnce) {
             pendingExternalAsk = nil
         }
     }
+
+    private var activeComposerBadge: ComposerModeBadge? {
+        ComposerModeBadge.resolve(
+            pendingExternalAsk: pendingExternalAsk,
+            selectedPreset: viewModel.selectedPromptPreset
+        )
+    }
+
+    private func selectExternalAsk(_ action: QuickAction) {
+        if shortcutQuickActionSelection(current: pendingExternalAsk, requested: action) == nil {
+            pendingExternalAsk = nil
+            inputFocused = true
+            return
+        }
+        applyAtCommandActionOutcome(.becamePending(action))
+    }
+
+    private func clearComposerModeSelection() {
+        pendingExternalAsk = nil
+        viewModel.selectedPromptPreset = nil
+        inputFocused = true
+    }
+
 
     private func handleEscape() {
         let action = chatEscapeAction(
@@ -1136,6 +1139,8 @@ struct ChatView: View {
             newConversation()
         case let .ask(question, promptPreset, selectionSnapshot):
             receiveQuestion(question, promptPreset: promptPreset, selectionSnapshot: selectionSnapshot)
+        case let .addToChat(text):
+            addToChat(text)
         case .showSettings:
             commandCenter.showSettings()
         }
@@ -1178,6 +1183,26 @@ struct ChatView: View {
                 textView.string = trimmed
             }
             let targetLocation = (trimmed as NSString).length
+            textView.setSelectedRange(NSRange(location: targetLocation, length: 0))
+            textView.scrollRangeToVisible(NSRange(location: targetLocation, length: 0))
+        }
+    }
+
+    private func addToChat(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            focusInput()
+            return
+        }
+        let formatted = "\(trimmed)\n\n"
+        viewModel.selectedPromptPreset = nil
+        viewModel.input = formatted
+        focusInput()
+        if let textView = composerTextView.textView {
+            if textView.string != formatted {
+                textView.string = formatted
+            }
+            let targetLocation = (formatted as NSString).length
             textView.setSelectedRange(NSRange(location: targetLocation, length: 0))
             textView.scrollRangeToVisible(NSRange(location: targetLocation, length: 0))
         }

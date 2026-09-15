@@ -187,17 +187,20 @@ final class QuickActionTrigger {
 
 struct QuickActionStripView: View {
     let actions: [QuickAction]
+    let selectedActionID: UUID?
     let showsShortcutHints: Bool
     let shortcutForAction: (QuickAction) -> InAppShortcut?
     let onSelect: (QuickAction) -> Void
 
     init(
         actions: [QuickAction],
+        selectedActionID: UUID? = nil,
         showsShortcutHints: Bool,
         shortcutForAction: @escaping (QuickAction) -> InAppShortcut?,
         onSelect: @escaping (QuickAction) -> Void
     ) {
         self.actions = actions
+        self.selectedActionID = selectedActionID
         self.showsShortcutHints = showsShortcutHints
         self.shortcutForAction = shortcutForAction
         self.onSelect = onSelect
@@ -212,6 +215,7 @@ struct QuickActionStripView: View {
                             title: action.displayName,
                             icon: action.symbolName,
                             brandIconSlug: action.brandIconSlug,
+                            isSelected: selectedActionID == action.id,
                             shortcut: showsShortcutHints ? shortcutForAction(action) : nil
                         ) {
                             onSelect(action)
@@ -227,10 +231,12 @@ struct QuickActionStripView: View {
     }
 }
 
+
 struct QuickActionChipView: View {
     let title: String
     let icon: String
     var brandIconSlug: String? = nil
+    var isSelected: Bool = false
     let shortcut: InAppShortcut?
     let action: () -> Void
 
@@ -241,12 +247,14 @@ struct QuickActionChipView: View {
         title: String,
         icon: String,
         brandIconSlug: String? = nil,
+        isSelected: Bool = false,
         shortcut: InAppShortcut?,
         action: @escaping () -> Void
     ) {
         self.title = title
         self.icon = icon
         self.brandIconSlug = brandIconSlug
+        self.isSelected = isSelected
         self.shortcut = shortcut
         self.action = action
     }
@@ -257,27 +265,33 @@ struct QuickActionChipView: View {
                 ProviderBrandIconView(
                     slug: brandIconSlug,
                     size: 13,
-                    fallbackSymbol: icon
+                    fallbackSymbol: icon,
+                    fallbackColor: isSelected ? Color.white : (isHovering || isFocused ? Color.primary : Color.secondary)
                 )
                 .frame(width: 14, height: 14)
-                .foregroundStyle(isHovering || isFocused ? Color.primary : Color.secondary)
 
                 Text(title)
                     .font(.system(size: 12, weight: .regular))
-                    .foregroundStyle(isHovering || isFocused ? Color.primary : Color.secondary)
+                    .foregroundStyle(isSelected ? Color.white : (isHovering || isFocused ? Color.primary : Color.secondary))
                     .lineLimit(1)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color(nsColor: .controlBackgroundColor).opacity(isHovering ? 0.9 : 0.6))
+                    .fill(
+                        isSelected
+                            ? Brand.accent
+                            : Color(nsColor: .controlBackgroundColor).opacity(isHovering ? 0.9 : 0.6)
+                    )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(
-                        isFocused ? Color.accentColor : Color.primary.opacity(isHovering ? 0.2 : 0.1),
-                        lineWidth: isFocused ? 1.5 : 1
+                        isSelected
+                            ? Brand.accent
+                            : (isFocused ? Color.accentColor : Color.primary.opacity(isHovering ? 0.2 : 0.1)),
+                        lineWidth: isFocused && !isSelected ? 1.5 : 1
                     )
             )
         }
@@ -290,7 +304,10 @@ struct QuickActionChipView: View {
         .focusable()
         .focused($isFocused)
         .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .animation(.easeOut(duration: 0.12), value: isSelected)
         .help(shortcut.map { "\(title) (\(InAppShortcutDisplay.labels(for: $0).joined()))" } ?? title)
         .accessibilityLabel(title)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

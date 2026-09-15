@@ -115,6 +115,62 @@ struct SpotAskIntentTests {
         #expect(panel.composerTextView?.selectedRange() == NSRange(location: 5, length: 0))
     }
 
+    @Test @MainActor func coldStartAddToChatAppendsNewlinesAndPlacesCaretAtEnd() async {
+        let commandCenter = SpotAskCommandCenter()
+        let panel = HostingPanelController()
+        let settings = makeSettings()
+        let viewModel = ChatViewModel(
+            settings: settings,
+            providerFactory: ImmediateProviderFactory(),
+            sessionStore: SessionStore(bundleIdentifier: "SpotAskIntentTests.\(UUID().uuidString)")
+        )
+
+        commandCenter.addToChat("123")
+        commandCenter.configure(panelController: panel)
+        commandCenter.setPanelContent {
+            ChatView(
+                viewModel: viewModel,
+                settings: settings,
+                commandCenter: commandCenter
+            )
+        }
+
+        await panel.waitForComposerFocus()
+
+        #expect(panel.composerIsFirstResponder)
+        #expect(panel.composerTextView?.string == "123\n\n")
+        #expect(panel.composerTextView?.selectedRange() == NSRange(location: 5, length: 0))
+    }
+
+    @Test @MainActor func warmStartAddToChatAppendsNewlinesAndPlacesCaretAtEnd() async {
+        let commandCenter = SpotAskCommandCenter()
+        let panel = HostingPanelController()
+        let settings = makeSettings()
+        let viewModel = ChatViewModel(
+            settings: settings,
+            providerFactory: ImmediateProviderFactory(),
+            sessionStore: SessionStore(bundleIdentifier: "SpotAskIntentTests.\(UUID().uuidString)")
+        )
+
+        commandCenter.open()
+        commandCenter.configure(panelController: panel)
+        commandCenter.setPanelContent {
+            ChatView(
+                viewModel: viewModel,
+                settings: settings,
+                commandCenter: commandCenter
+            )
+        }
+
+        await panel.waitForComposerFocus()
+
+        commandCenter.addToChat("123")
+
+        #expect(panel.composerIsFirstResponder)
+        #expect(panel.composerTextView?.string == "123\n\n")
+        #expect(panel.composerTextView?.selectedRange() == NSRange(location: 5, length: 0))
+    }
+
     @Test @MainActor func coldStartAskStartsFreshAfterAnIdleConversation() async {
         let commandCenter = SpotAskCommandCenter()
         let panel = HostingPanelController()
