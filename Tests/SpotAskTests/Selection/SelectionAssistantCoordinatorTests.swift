@@ -139,6 +139,33 @@ struct SelectionAssistantCoordinatorTests {
         #expect(overlay.hideCount == 1)
     }
 
+    @Test("Choosing chat action uses captured selection and hides overlay")
+    func choosingChatActionUsesCapturedSelection() async {
+        let settings = makeSettings()
+        let checker = SelectionPermissionChecker(isTrusted: true)
+        let permissionCoordinator = makePermissionCoordinator(checker: checker)
+        let reader = SelectionReaderStub(snapshot: sampleSnapshot)
+        let overlay = SelectionOverlayStub()
+        let coordinator = SelectionAssistantCoordinator(
+            settings: settings,
+            reader: reader,
+            permissionCoordinator: permissionCoordinator,
+            settingsOpener: SelectionSettingsOpenerStub(),
+            commandCenter: SpotAskCommandCenter(),
+            overlay: overlay
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 10 where !overlay.hasChatHandler {
+            await Task.yield()
+        }
+        #expect(overlay.showsChat)
+        overlay.chooseChatAction()
+
+        #expect(reader.promptRequests == [false])
+        #expect(overlay.hideCount == 1)
+    }
+
     @Test("Automatic trigger is skipped for a blacklisted source app")
     func automaticTriggerSkipsBlacklistedApp() async {
         let settings = makeSettings()
@@ -287,9 +314,10 @@ struct SelectionAssistantCoordinatorTests {
         #expect(overlay.hasActionHandler)
     }
 
-    @Test("Hiding prompts and External Ask does not show the action bar")
+    @Test("Hiding prompts, External Ask, and chat action does not show the action bar")
     func hidingBothGroupsSkipsTheActionBar() async {
         let settings = makeSettings()
+        settings.selectionActionBarShowsChatAction = false
         settings.selectionActionBarShowsPrompts = false
         settings.selectionActionBarShowsExternalAsk = false
         let reader = SelectionReaderStub(snapshot: sampleSnapshot)
@@ -303,6 +331,28 @@ struct SelectionAssistantCoordinatorTests {
 
         #expect(reader.promptRequests == [false])
         #expect(!overlay.hasActionHandler)
+        #expect(!overlay.hasChatHandler)
+        #expect(overlay.shownPresets.isEmpty)
+        #expect(overlay.quickActions.isEmpty)
+    }
+
+    @Test("Hiding prompts and External Ask keeps chat-only action bar")
+    func hidingPromptsAndExternalAskKeepsChatOnlyActionBar() async {
+        let settings = makeSettings()
+        settings.selectionActionBarShowsChatAction = true
+        settings.selectionActionBarShowsPrompts = false
+        settings.selectionActionBarShowsExternalAsk = false
+        let reader = SelectionReaderStub(snapshot: sampleSnapshot)
+        let overlay = SelectionOverlayStub()
+        let coordinator = makeCoordinator(settings: settings, reader: reader, overlay: overlay)
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where !overlay.hasChatHandler {
+            await Task.yield()
+        }
+        #expect(reader.promptRequests == [false])
+        #expect(overlay.showsChat)
+        #expect(overlay.hasChatHandler)
         #expect(overlay.shownPresets.isEmpty)
         #expect(overlay.quickActions.isEmpty)
     }
@@ -618,29 +668,45 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
     private(set) var messages: [SelectionFeedback] = []
     private(set) var quickActions: [QuickAction] = []
     private(set) var shownPresets: [PromptPreset] = []
+    private(set) var showsChat = false
+    private var chatHandler: (() -> Void)?
     private var actionHandler: ((PromptPreset) -> Void)?
     private var quickActionHandler: ((QuickAction) -> Void)?
 
     var hasActionHandler: Bool { actionHandler != nil }
+    var hasChatHandler: Bool { chatHandler != nil }
 
     func showActions(
         snapshot: SelectedTextSnapshot,
+        showsChat: Bool,
         presets: [PromptPreset],
         externalAsks: [QuickAction],
         showsLabels: Bool,
+        shortcutForChat: InAppShortcut?,
+        shortcutForPreset: ((PromptPreset) -> InAppShortcut?)?,
+        shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?,
+        onSelectChat: @escaping () -> Void,
         onSelectPreset: @escaping (PromptPreset) -> Void,
         onSelectExternalAsk: @escaping (QuickAction) -> Void
     ) {
+        self.showsChat = showsChat
         shownPresets = presets
         self.quickActions = externalAsks
+        chatHandler = onSelectChat
         actionHandler = onSelectPreset
         quickActionHandler = onSelectExternalAsk
+    }
+
+    func chooseChatAction() {
+        chatHandler?()
     }
     func showMessage(_ message: SelectionFeedback) { messages.append(message) }
     func showPermissionDenied(openSettings: @escaping () -> Void) { permissionDeniedCount += 1 }
     func hide() {
         hideCount += 1
         actionHandler = nil
+        showsChat = false
+        chatHandler = nil
         quickActionHandler = nil
         shownPresets = []
         quickActions = []

@@ -87,6 +87,18 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertFalse(AppSettings(defaults: defaults).selectionActionBarShowsPrompts)
     }
 
+    func testSelectionActionBarShowsChatActionDefaultsOnAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        XCTAssertTrue(AppSettings(defaults: defaults).selectionActionBarShowsChatAction)
+
+        let settings = AppSettings(defaults: defaults)
+        settings.selectionActionBarShowsChatAction = false
+        XCTAssertFalse(AppSettings(defaults: defaults).selectionActionBarShowsChatAction)
+    }
+
     func testProxyDefaultsToOffAndPersists() {
         let suite = "AppSettingsTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
