@@ -25,7 +25,6 @@
 "atCommand.emptyEsc" = "Esc";
 "atCommand.accessibilityLabel" = "命令面板";
 "atCommand.pendingPlaceholder" = "输入要交给 %@ 的问题…";
-"atCommand.pendingToast" = "%@ 正在等待问题，按 Return 发送。";
 "atCommand.launchFailed" = "无法打开 %@";
 "chat.newConversation" = "开始新对话";
 "chat.newConversationConfirmMessage" = "当前对话内容将被清除。";

@@ -25,7 +25,6 @@
 "atCommand.emptyEsc" = "Esc";
 "atCommand.accessibilityLabel" = "Палитра команд";
 "atCommand.pendingPlaceholder" = "Введите вопрос для %@…";
-"atCommand.pendingToast" = "%@ ожидает вопрос. Нажмите Return, чтобы отправить.";
 "atCommand.launchFailed" = "Не удалось открыть %@";
 "chat.newConversation" = "Новый разговор";
 "chat.newConversationConfirmMessage" = "Текущий разговор будет очищен.";
