@@ -161,6 +161,10 @@
 "settings.updateCheckUnavailable" = "Unable to check for updates right now.";
 "settings.autoCheckForUpdates" = "Automatically Check for Updates";
 "settings.autoCheckForUpdatesDescription" = "Automatically check for updates and show an in-app window when a new version is available.";
+"settings.updateSource" = "Update Source";
+"settings.updateSource.automatic" = "Automatic (Recommended, fallback on timeout)";
+"settings.updateSource.official" = "Official GitHub (Direct)";
+"settings.updateSource.accelerated" = "Accelerated Mirror (Fast mirror)";
 "update.newVersionAvailable" = "New version %@ is available.";
 "update.viewRelease" = "View Release";
 "update.ignoredVersionRow" = "Skipped version: %@";

@@ -161,6 +161,10 @@
 "settings.updateCheckUnavailable" = "Сейчас невозможно проверить обновления.";
 "settings.autoCheckForUpdates" = "Проверять обновления автоматически";
 "settings.autoCheckForUpdatesDescription" = "Автоматически проверять обновления и показывать окно в приложении, когда доступна новая версия.";
+"settings.updateSource" = "Источник обновлений";
+"settings.updateSource.automatic" = "Автоматически (Рекомендуется, переключение при таймауте)";
+"settings.updateSource.official" = "Официальный GitHub (Прямой)";
+"settings.updateSource.accelerated" = "Ускоренное зеркало (Быстро)";
 "update.newVersionAvailable" = "Доступна новая версия %@.";
 "update.viewRelease" = "Открыть релиз";
 "update.ignoredVersionRow" = "Пропущенная версия: %@";

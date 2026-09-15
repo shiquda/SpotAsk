@@ -31,13 +31,53 @@ final class AppVersionTests: XCTestCase {
 
     func testUpdateFeedURLsAreArchitectureSpecific() {
         XCTAssertEqual(
+            UpdateFeed.officialAppcastURL(architecture: "arm64").absoluteString,
+            "https://github.com/shiquda/SpotAsk/releases/latest/download/appcast-arm64.xml"
+        )
+        XCTAssertEqual(
+            UpdateFeed.officialAppcastURL(architecture: "x86_64").absoluteString,
+            "https://github.com/shiquda/SpotAsk/releases/latest/download/appcast-x86_64.xml"
+        )
+        XCTAssertEqual(
             UpdateFeed.appcastURL(architecture: "arm64").absoluteString,
             "https://github.com/shiquda/SpotAsk/releases/latest/download/appcast-arm64.xml"
         )
         XCTAssertEqual(
-            UpdateFeed.appcastURL(architecture: "x86_64").absoluteString,
-            "https://github.com/shiquda/SpotAsk/releases/latest/download/appcast-x86_64.xml"
+            UpdateFeed.acceleratedAppcastURL(architecture: "arm64").absoluteString,
+            "https://ghproxy.net/https://github.com/shiquda/SpotAsk/releases/latest/download/appcast-arm64.xml"
+        )
+        XCTAssertEqual(
+            UpdateFeed.appcastURL(for: .official, architecture: "arm64").absoluteString,
+            "https://github.com/shiquda/SpotAsk/releases/latest/download/appcast-arm64.xml"
+        )
+        XCTAssertEqual(
+            UpdateFeed.appcastURL(for: .accelerated, architecture: "arm64").absoluteString,
+            "https://ghproxy.net/https://github.com/shiquda/SpotAsk/releases/latest/download/appcast-arm64.xml"
+        )
+        XCTAssertEqual(
+            UpdateFeed.appcastURL(for: .automatic, architecture: "arm64").absoluteString,
+            "https://github.com/shiquda/SpotAsk/releases/latest/download/appcast-arm64.xml"
         )
         XCTAssertEqual(UpdateFeed.githubReleasesURL.absoluteString, "https://github.com/shiquda/SpotAsk/releases/latest")
+    }
+
+    func testAcceleratedEnclosureURLRewriting() {
+        let githubURL = URL(string: "https://github.com/shiquda/SpotAsk/releases/download/v1.0.0/SpotAsk-1.0.0-arm64.dmg")!
+        XCTAssertEqual(
+            UpdateFeed.acceleratedEnclosureURL(for: githubURL).absoluteString,
+            "https://ghproxy.net/https://github.com/shiquda/SpotAsk/releases/download/v1.0.0/SpotAsk-1.0.0-arm64.dmg"
+        )
+
+        let alreadyMirroredURL = URL(string: "https://ghproxy.net/https://github.com/shiquda/SpotAsk/releases/download/v1.0.0/SpotAsk-1.0.0-arm64.dmg")!
+        XCTAssertEqual(
+            UpdateFeed.acceleratedEnclosureURL(for: alreadyMirroredURL).absoluteString,
+            alreadyMirroredURL.absoluteString
+        )
+
+        let customDomainURL = URL(string: "https://cdn.example.com/downloads/SpotAsk.dmg")!
+        XCTAssertEqual(
+            UpdateFeed.acceleratedEnclosureURL(for: customDomainURL).absoluteString,
+            customDomainURL.absoluteString
+        )
     }
 }

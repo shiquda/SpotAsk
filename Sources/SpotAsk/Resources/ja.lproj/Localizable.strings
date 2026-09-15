@@ -161,6 +161,10 @@
 "settings.updateCheckUnavailable" = "現在アップデートを確認できません。";
 "settings.autoCheckForUpdates" = "アップデートを自動的に確認";
 "settings.autoCheckForUpdatesDescription" = "アップデートを自動確認し、新しいバージョンがあればアプリ内ウィンドウで表示します。";
+"settings.updateSource" = "アップデートソース";
+"settings.updateSource.automatic" = "自動（推奨、タイムアウト時に高速ミラーへ切替）";
+"settings.updateSource.official" = "公式 GitHub（直接接続）";
+"settings.updateSource.accelerated" = "高速ミラー（ミラー経由）";
 "update.newVersionAvailable" = "新しいバージョン %@ が利用できます。";
 "update.viewRelease" = "リリースを表示";
 "update.ignoredVersionRow" = "スキップしたバージョン: %@";

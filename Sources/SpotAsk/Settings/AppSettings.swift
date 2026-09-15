@@ -302,6 +302,22 @@ enum ProxyType: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 }
 
+enum UpdateDownloadSource: String, CaseIterable, Identifiable, Codable, Sendable {
+    case automatic
+    case official
+    case accelerated
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .automatic: L10n.string("settings.updateSource.automatic")
+        case .official: L10n.string("settings.updateSource.official")
+        case .accelerated: L10n.string("settings.updateSource.accelerated")
+        }
+    }
+}
+
 @MainActor
 @Observable
 final class AppSettings {
@@ -360,6 +376,7 @@ final class AppSettings {
         static let selectionActionBarShowsPrompts = "selectionActionBarShowsPrompts"
         static let selectionActionBarShowsExternalAsk = "selectionActionBarShowsExternalAsk"
         static let automaticUpdateCheckEnabled = "automaticUpdateCheckEnabled"
+        static let updateDownloadSource = "updateDownloadSource"
         static let quickActionCatalog = "webQuickAskProviderCatalog"
         static let externalAskEnabled = "webQuickAskEnabled"
     }
@@ -462,6 +479,9 @@ final class AppSettings {
     var selectionActionBarShowsExternalAsk: Bool { didSet { defaults.set(selectionActionBarShowsExternalAsk, forKey: Key.selectionActionBarShowsExternalAsk) } }
     var automaticUpdateCheckEnabled: Bool {
         didSet { defaults.set(automaticUpdateCheckEnabled, forKey: Key.automaticUpdateCheckEnabled) }
+    }
+    var updateDownloadSource: UpdateDownloadSource {
+        didSet { defaults.set(updateDownloadSource.rawValue, forKey: Key.updateDownloadSource) }
     }
     /// Whether a cross-app selection automatically shows the quick actions after
     /// `selectionAutoInvokeDelay` seconds. Defaults off so granting high-impact
@@ -628,6 +648,12 @@ final class AppSettings {
         selectionActionBarShowsPrompts = defaults.object(forKey: Key.selectionActionBarShowsPrompts) as? Bool ?? true
         selectionActionBarShowsExternalAsk = defaults.object(forKey: Key.selectionActionBarShowsExternalAsk) as? Bool ?? true
         automaticUpdateCheckEnabled = defaults.object(forKey: Key.automaticUpdateCheckEnabled) as? Bool ?? true
+        if let rawUpdateSource = defaults.string(forKey: Key.updateDownloadSource),
+           let source = UpdateDownloadSource(rawValue: rawUpdateSource) {
+            updateDownloadSource = source
+        } else {
+            updateDownloadSource = .automatic
+        }
         selectionAutoInvokeDelay = SelectionAutoInvokeDelay.normalized(
             defaults.object(forKey: Key.selectionAutoInvokeDelay) as? Double ?? SelectionAutoInvokeDelay.defaultValue
         )
@@ -879,6 +905,7 @@ final class AppSettings {
                 keepWindowOnTop: keepWindowOnTop,
                 showsMenuBarIcon: showsMenuBarIcon,
                 automaticUpdateCheckEnabled: automaticUpdateCheckEnabled,
+                updateDownloadSource: updateDownloadSource.rawValue,
                 proxyEnabled: proxyEnabled,
                 proxyType: proxyType.rawValue,
                 proxyHost: proxyHost,
@@ -937,6 +964,10 @@ final class AppSettings {
         showsMenuBarIcon = general.showsMenuBarIcon
         if let automaticUpdateCheckEnabled = general.automaticUpdateCheckEnabled {
             self.automaticUpdateCheckEnabled = automaticUpdateCheckEnabled
+        }
+        if let rawUpdateSource = general.updateDownloadSource,
+           let source = UpdateDownloadSource(rawValue: rawUpdateSource) {
+            self.updateDownloadSource = source
         }
         if let proxyEnabled = general.proxyEnabled { self.proxyEnabled = proxyEnabled }
         if let proxyType = general.proxyType, let type = ProxyType(rawValue: proxyType) { self.proxyType = type }

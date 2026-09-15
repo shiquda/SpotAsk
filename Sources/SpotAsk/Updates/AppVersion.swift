@@ -42,9 +42,51 @@ struct AppVersion: Comparable, Equatable, Sendable, CustomStringConvertible {
 enum UpdateFeed {
     static let sourceURL = URL(string: "https://github.com/shiquda/SpotAsk")!
     static let githubReleasesURL = URL(string: "https://github.com/shiquda/SpotAsk/releases/latest")!
+    static let defaultMirrorPrefix = "https://ghproxy.net/"
+
+    static func officialAppcastURL(architecture: String = currentArchitecture) -> URL {
+        URL(string: "https://github.com/shiquda/SpotAsk/releases/latest/download/appcast-\(architecture).xml")!
+    }
+
+    static func acceleratedAppcastURL(
+        architecture: String = currentArchitecture,
+        mirrorPrefix: String = defaultMirrorPrefix
+    ) -> URL {
+        let official = officialAppcastURL(architecture: architecture).absoluteString
+        return URL(string: mirrorPrefix + official) ?? officialAppcastURL(architecture: architecture)
+    }
 
     static func appcastURL(architecture: String = currentArchitecture) -> URL {
-        URL(string: "https://github.com/shiquda/SpotAsk/releases/latest/download/appcast-\(architecture).xml")!
+        officialAppcastURL(architecture: architecture)
+    }
+
+    static func appcastURL(
+        for source: UpdateDownloadSource,
+        architecture: String = currentArchitecture,
+        mirrorPrefix: String = defaultMirrorPrefix
+    ) -> URL {
+        switch source {
+        case .official:
+            return officialAppcastURL(architecture: architecture)
+        case .accelerated:
+            return acceleratedAppcastURL(architecture: architecture, mirrorPrefix: mirrorPrefix)
+        case .automatic:
+            return officialAppcastURL(architecture: architecture)
+        }
+    }
+
+    static func acceleratedEnclosureURL(
+        for url: URL,
+        mirrorPrefix: String = defaultMirrorPrefix
+    ) -> URL {
+        let urlString = url.absoluteString
+        if urlString.hasPrefix(mirrorPrefix) {
+            return url
+        }
+        if urlString.hasPrefix("https://github.com/") || urlString.hasPrefix("http://github.com/") {
+            return URL(string: mirrorPrefix + urlString) ?? url
+        }
+        return url
     }
 
     static var currentArchitecture: String {

@@ -161,6 +161,10 @@
 "settings.updateCheckUnavailable" = "No se pueden buscar actualizaciones ahora mismo.";
 "settings.autoCheckForUpdates" = "Buscar actualizaciones automáticamente";
 "settings.autoCheckForUpdatesDescription" = "Buscar actualizaciones automáticamente y mostrar una ventana en la app cuando haya una nueva versión.";
+"settings.updateSource" = "Origen de actualizaciones";
+"settings.updateSource.automatic" = "Automático (Recomendado, alternar en tiempo de espera)";
+"settings.updateSource.official" = "GitHub oficial (Directo)";
+"settings.updateSource.accelerated" = "Espejo acelerado (Rápido)";
 "update.newVersionAvailable" = "La versión %@ está disponible.";
 "update.viewRelease" = "Ver versión";
 "update.ignoredVersionRow" = "Versión omitida: %@";

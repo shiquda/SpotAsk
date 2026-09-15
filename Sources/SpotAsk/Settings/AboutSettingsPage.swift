@@ -54,6 +54,17 @@ struct AboutSettingsPage: View {
                     coordinator.setAutomaticChecksEnabled(enabled)
                 }
 
+                Divider()
+
+                SettingsFieldRow(label: L10n.string("settings.updateSource")) {
+                    Picker(L10n.string("settings.updateSource"), selection: Bindable(settings).updateDownloadSource) {
+                        ForEach(UpdateDownloadSource.allCases) { source in
+                            Text(source.title).tag(source)
+                        }
+                    }
+                    .labelsHidden()
+                }
+
                 if let skippedVersion = coordinator.skippedVersion {
                     Divider()
                     SettingsFieldRow(label: L10n.string("update.ignoredVersionRow", skippedVersion)) {

@@ -100,6 +100,7 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
         var keepWindowOnTop: Bool
         var showsMenuBarIcon: Bool
         var automaticUpdateCheckEnabled: Bool?
+        var updateDownloadSource: String?
         var proxyEnabled: Bool?
         var proxyType: String?
         var proxyHost: String?
