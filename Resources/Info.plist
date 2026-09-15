@@ -49,7 +49,7 @@
 	<key>SUFeedURL</key>
 	<string>https://github.com/shiquda/SpotAsk/releases/latest/download/appcast-arm64.xml</string>
 	<key>SUPublicEDKey</key>
-	<string>EieW94+JdgOPkHdG2pCN4C8O+7sAU4b7whJz/dERpRY=</string>
+	<string>EEIVlJPYB2JO+wK51tEVK/gf2AMo1HwpbTRHCHDOQu0=</string>
 	<key>SUVerifyUpdateBeforeExtraction</key>
 	<true/>
 	<key>NSHighResolutionCapable</key>
