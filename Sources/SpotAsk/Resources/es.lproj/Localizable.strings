@@ -25,7 +25,6 @@
 "atCommand.emptyEsc" = "Esc";
 "atCommand.accessibilityLabel" = "Paleta de comandos";
 "atCommand.pendingPlaceholder" = "Escribe una pregunta para %@…";
-"atCommand.pendingToast" = "%@ está esperando una pregunta. Pulsa Return para enviar.";
 "atCommand.launchFailed" = "No se pudo abrir %@";
 "chat.newConversation" = "Nueva conversación";
 "chat.newConversationConfirmMessage" = "La conversación actual se borrará.";
