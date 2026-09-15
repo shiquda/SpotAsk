@@ -33,14 +33,6 @@ struct ComposerModeSelectionTests {
         #expect(ComposerModeBadge.resolve(pendingExternalAsk: nil, selectedPreset: nil) == nil)
     }
 
-    @Test("Placeholder is hidden while a mode badge is present")
-    func placeholderHidesWhenBadgeExists() {
-        #expect(composerShowsPlaceholder(inputIsEmpty: true, hasModeBadge: false))
-        #expect(!composerShowsPlaceholder(inputIsEmpty: true, hasModeBadge: true))
-        #expect(!composerShowsPlaceholder(inputIsEmpty: false, hasModeBadge: false))
-        #expect(!composerShowsPlaceholder(inputIsEmpty: false, hasModeBadge: true))
-    }
-
     @Test("Emptying the draft after typing cancels pending External Ask unless skipped once")
     func backspaceClearingDraftCancelsPending() {
         #expect(shouldClearPendingExternalAsk(from: "hello", to: "", skipOnce: false))

@@ -87,10 +87,6 @@ enum ComposerModeBadge: Equatable {
     }
 }
 
-func composerShowsPlaceholder(inputIsEmpty: Bool, hasModeBadge: Bool) -> Bool {
-    inputIsEmpty && !hasModeBadge
-}
-
 func shouldClearPendingExternalAsk(from oldValue: String, to newValue: String, skipOnce: Bool) -> Bool {
     guard !skipOnce else { return false }
     let wasNonempty = !oldValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

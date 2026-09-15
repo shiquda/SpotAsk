@@ -501,59 +501,7 @@ struct ChatView: View {
                     .transition(.opacity)
                 }
                 AttachmentPickerButton(action: presentAttachmentPicker)
-                ChatInputTextView(
-                    text: $viewModel.input,
-                    isFocused: $inputFocused,
-                    height: $inputHeight,
-                    isGenerating: isGenerating,
-                    onSubmit: {
-                        sendFromComposer()
-                    },
-                    onEscape: handleEscape,
-                    onPasteImage: { data in
-                        Task { await viewModel.addScreenshot(data) }
-                    },
-                    onPasteFiles: { urls in
-                        Task { @MainActor in
-                            for url in urls {
-                                await viewModel.addAttachment(from: url)
-                            }
-                        }
-                    },
-                    onTextViewReady: { composerTextView.textView = $0 },
-                    onRecall: { viewModel.recallLastQuestion() },
-                    onAtCommandStateChanged: handleAtCommandStateChanged,
-                    isAtPalettePresented: atCommandState != nil,
-                    onAtCommandMoveHighlight: moveAtCommandHighlight,
-                    onAtCommandConfirm: confirmAtCommandSelection
-                )
-                .frame(height: inputHeight)
-                .animation(.easeOut(duration: 0.12), value: inputHeight)
-                .background(inputFocused ? Brand.bg : Brand.surface, in: RoundedRectangle(cornerRadius: 12))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(inputFocused ? Brand.accent : Brand.border, lineWidth: 1)
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(Brand.accent.opacity(0.15), lineWidth: 6)
-                        .blur(radius: 4)
-                        .opacity(inputFocused ? 1 : 0)
-                        .allowsHitTesting(false)
-                }
-                .overlay(alignment: .topLeading) {
-                    if composerShowsPlaceholder(
-                        inputIsEmpty: viewModel.input.isEmpty,
-                        hasModeBadge: activeComposerBadge != nil
-                    ) {
-                        Text(placeholderText)
-                            .foregroundStyle(Brand.muted)
-                            .padding(.leading, 14)
-                            .padding(.top, 10)
-                            .allowsHitTesting(false)
-                    }
-                }
-                .overlay(alignment: .topLeading) {
+                VStack(alignment: .leading, spacing: 6) {
                     if let badge = activeComposerBadge {
                         SelectedPresetBadge(
                             title: badge.title,
@@ -562,15 +510,63 @@ struct ChatView: View {
                         ) {
                             clearComposerModeSelection()
                         }
-                        .padding(.leading, 14)
-                        .padding(.top, 10)
                     }
+                    ChatInputTextView(
+                        text: $viewModel.input,
+                        isFocused: $inputFocused,
+                        height: $inputHeight,
+                        isGenerating: isGenerating,
+                        onSubmit: {
+                            sendFromComposer()
+                        },
+                        onEscape: handleEscape,
+                        onPasteImage: { data in
+                            Task { await viewModel.addScreenshot(data) }
+                        },
+                        onPasteFiles: { urls in
+                            Task { @MainActor in
+                                for url in urls {
+                                    await viewModel.addAttachment(from: url)
+                                }
+                            }
+                        },
+                        onTextViewReady: { composerTextView.textView = $0 },
+                        onRecall: { viewModel.recallLastQuestion() },
+                        onAtCommandStateChanged: handleAtCommandStateChanged,
+                        isAtPalettePresented: atCommandState != nil,
+                        onAtCommandMoveHighlight: moveAtCommandHighlight,
+                        onAtCommandConfirm: confirmAtCommandSelection
+                    )
+                    .frame(height: inputHeight)
+                    .animation(.easeOut(duration: 0.12), value: inputHeight)
+                    .background(inputFocused ? Brand.bg : Brand.surface, in: RoundedRectangle(cornerRadius: 12))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(inputFocused ? Brand.accent : Brand.border, lineWidth: 1)
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(Brand.accent.opacity(0.15), lineWidth: 6)
+                            .blur(radius: 4)
+                            .opacity(inputFocused ? 1 : 0)
+                            .allowsHitTesting(false)
+                    }
+                    .overlay(alignment: .topLeading) {
+                        if viewModel.input.isEmpty {
+                            Text(placeholderText)
+                                .foregroundStyle(Brand.muted)
+                                .padding(.leading, 14)
+                                .padding(.top, 10)
+                                .allowsHitTesting(false)
+                        }
+                    }
+                    .overlay(alignment: .bottomTrailing) {
+                        ShortcutKeycap(shortcut: shortcutHint(for: .operation(.focusInput)))
+                            .padding(8)
+                    }
+                    .animation(.easeOut(duration: 0.12), value: inputFocused)
                 }
-                .overlay(alignment: .bottomTrailing) {
-                    ShortcutKeycap(shortcut: shortcutHint(for: .operation(.focusInput)))
-                        .padding(8)
-                }
-                .animation(.easeOut(duration: 0.12), value: inputFocused)
+                .frame(maxWidth: .infinity)
                 .animation(.easeOut(duration: 0.12), value: activeComposerBadge)
                 ComposerSendButton(
                     isGenerating: isGenerating,
