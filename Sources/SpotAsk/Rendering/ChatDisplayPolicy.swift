@@ -41,6 +41,60 @@ func shortcutPresetSelection(current: PromptPreset?, requested: PromptPreset) ->
     current?.id == requested.id ? nil : requested
 }
 
+func shortcutQuickActionSelection(current: QuickAction?, requested: QuickAction) -> QuickAction? {
+    current?.id == requested.id ? nil : requested
+}
+
+enum ComposerModeBadge: Equatable {
+    case preset(title: String, icon: String)
+    case externalAsk(title: String, icon: String, brandIconSlug: String?)
+
+    var title: String {
+        switch self {
+        case let .preset(title, _), let .externalAsk(title, _, _):
+            return title
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case let .preset(_, icon), let .externalAsk(_, icon, _):
+            return icon
+        }
+    }
+
+    var brandIconSlug: String? {
+        switch self {
+        case .preset:
+            return nil
+        case let .externalAsk(_, _, slug):
+            return slug
+        }
+    }
+
+    static func resolve(pendingExternalAsk: QuickAction?, selectedPreset: PromptPreset?) -> Self? {
+        if let action = pendingExternalAsk {
+            return .externalAsk(
+                title: action.displayName,
+                icon: action.symbolName,
+                brandIconSlug: action.brandIconSlug
+            )
+        }
+        if let preset = selectedPreset {
+            return .preset(title: preset.title, icon: preset.symbolName)
+        }
+        return nil
+    }
+}
+
+func shouldClearPendingExternalAsk(from oldValue: String, to newValue: String, skipOnce: Bool) -> Bool {
+    guard !skipOnce else { return false }
+    let wasNonempty = !oldValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    let isEmpty = newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    return wasNonempty && isEmpty
+}
+
+
 enum ChatEscapeAction: Equatable {
     case preserveMarkedText
     case dismissAtPalette

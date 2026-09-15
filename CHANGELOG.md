@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Type `@` in the composer to filter prompt presets and External Ask targets. Selecting a preset keeps the draft; a nonempty query launches External Ask immediately.
 - Added a dedicated chat icon to the selection assistant action bar to quickly populate the chat input with selected text for follow-up questions, with a configurable setting in Settings (enabled by default).
 
+### Changed
+
+- The selected prompt or External Ask badge now sits above the composer field on the left with a compact content-adaptive width, outside the input, so the extra bottom row and its leftover space are gone.
+- Empty-state External Ask chips and their shortcuts now select a pending target instead of launching immediately; Return sends the draft, and clicking again, Esc, or clearing the input cancels the selection.
+
 ## [0.2.3] - 2026-09-11
 
 ### Changed

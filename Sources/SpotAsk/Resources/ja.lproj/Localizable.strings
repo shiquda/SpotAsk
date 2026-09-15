@@ -25,7 +25,6 @@
 "atCommand.emptyEsc" = "Esc";
 "atCommand.accessibilityLabel" = "コマンドパレット";
 "atCommand.pendingPlaceholder" = "%@ に送る質問を入力…";
-"atCommand.pendingToast" = "%@ が質問を待っています。Return で送信します。";
 "atCommand.launchFailed" = "%@ を開けませんでした";
 "chat.newConversation" = "新しい会話";
 "chat.newConversationConfirmMessage" = "現在の会話は消去されます。";
