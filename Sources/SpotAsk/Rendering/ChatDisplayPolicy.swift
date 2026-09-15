@@ -103,8 +103,10 @@ struct ComposerModeCoordinator: Equatable {
         ComposerModeBadge.resolve(pendingExternalAsk: pendingExternalAsk, selectedPreset: selectedPreset)
     }
 
+    /// Toggles the external ask action: if already selected, clears it; otherwise attaches it.
+    /// Used by shortcut keys and popover rows.
     @discardableResult
-    mutating func selectExternalAsk(
+    mutating func toggleExternalAsk(
         _ action: QuickAction,
         selectedPreset: inout PromptPreset?
     ) -> Bool {
@@ -112,11 +114,29 @@ struct ComposerModeCoordinator: Equatable {
             pendingExternalAsk = nil
             return false
         } else {
-            pendingExternalAsk = action
-            selectedPreset = nil
-            skipEmptyPendingClear = true
+            attachExternalAsk(action, selectedPreset: &selectedPreset)
             return true
         }
+    }
+
+    /// Alias for toggleExternalAsk.
+    @discardableResult
+    mutating func selectExternalAsk(
+        _ action: QuickAction,
+        selectedPreset: inout PromptPreset?
+    ) -> Bool {
+        toggleExternalAsk(action, selectedPreset: &selectedPreset)
+    }
+
+    /// Unconditionally attaches an external ask action, clearing any preset.
+    /// Used when confirming an `@` command target (`.becamePending`).
+    mutating func attachExternalAsk(
+        _ action: QuickAction,
+        selectedPreset: inout PromptPreset?
+    ) {
+        pendingExternalAsk = action
+        selectedPreset = nil
+        skipEmptyPendingClear = true
     }
 
     mutating func applyPreset(

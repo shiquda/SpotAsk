@@ -858,7 +858,16 @@ struct ChatView: View {
     /// and focuses the input (Return still sends). "直接提问" passes nil and
     /// never sends.
     private func applyPreset(_ preset: PromptPreset?, sendIfReady: Bool = true) {
-        let enabledPreset = preset.flatMap(settings.promptPresetAllowedForUse)
+        guard let preset else {
+            composerModeCoordinator.applyPreset(nil, selectedPreset: &viewModel.selectedPromptPreset)
+            inputFocused = true
+            return
+        }
+        guard let enabledPreset = settings.promptPresetAllowedForUse(preset) else {
+            composerModeCoordinator.applyPreset(nil, selectedPreset: &viewModel.selectedPromptPreset)
+            inputFocused = true
+            return
+        }
         composerModeCoordinator.applyPreset(
             enabledPreset,
             selectedPreset: &viewModel.selectedPromptPreset
@@ -1025,10 +1034,11 @@ struct ChatView: View {
             return false
         case let .becamePending(action):
             clearAtCommandTokenState()
-            _ = composerModeCoordinator.selectExternalAsk(
+            composerModeCoordinator.attachExternalAsk(
                 action,
                 selectedPreset: &viewModel.selectedPromptPreset
             )
+            inputFocused = true
             return false
         case .launched:
             clearAtCommandTokenState()
@@ -1069,7 +1079,7 @@ struct ChatView: View {
     }
 
     private func selectExternalAsk(_ action: QuickAction) {
-        let becamePending = composerModeCoordinator.selectExternalAsk(
+        let becamePending = composerModeCoordinator.toggleExternalAsk(
             action,
             selectedPreset: &viewModel.selectedPromptPreset
         )

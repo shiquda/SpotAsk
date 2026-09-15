@@ -95,6 +95,30 @@ struct ComposerModeSelectionTests {
         #expect(coordinator.pendingExternalAsk == nil)
         #expect(preset == nil)
     }
+    @Test("attachExternalAsk maintains mount when same action is already pending")
+    func attachExternalAskMaintainsMountWhenAlreadyPending() {
+        var coordinator = ComposerModeCoordinator()
+        var preset: PromptPreset? = translate
+
+        // 1. Initial attachment clears preset and sets pending action
+        coordinator.attachExternalAsk(chatGPT, selectedPreset: &preset)
+        #expect(coordinator.pendingExternalAsk == chatGPT)
+        #expect(preset == nil)
+        #expect(coordinator.skipEmptyPendingClear)
+
+        // 2. Receiving becamePending with the same action MUST keep it mounted (NOT toggle off)
+        coordinator.attachExternalAsk(chatGPT, selectedPreset: &preset)
+        #expect(coordinator.pendingExternalAsk == chatGPT)
+        #expect(preset == nil)
+        #expect(coordinator.skipEmptyPendingClear)
+
+        // 3. Contrast with toggleExternalAsk which toggles it off when re-selected
+        let toggledOff = coordinator.toggleExternalAsk(chatGPT, selectedPreset: &preset)
+        #expect(!toggledOff)
+        #expect(coordinator.pendingExternalAsk == nil)
+        #expect(preset == nil)
+    }
+
 
     @Test("ComposerModeCoordinator handleSend executes external ask and cleans up state on launch")
     func composerModeCoordinatorHandleSend() {
