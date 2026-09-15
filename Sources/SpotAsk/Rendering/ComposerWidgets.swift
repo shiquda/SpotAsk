@@ -94,93 +94,133 @@ private struct ChipView: View {
 // MARK: - In-conversation preset trigger + popover
 
 /// The 36×36 circular trigger shown once a conversation has started. It opens
-/// an upward popover listing "直接提问" plus every preset; the current item
-/// carries a check. Selecting applies immediately and closes.
-struct PresetPopoverTrigger: View { let presets: [PromptPreset]
-@Binding var selection: PromptPreset?
-@Binding var isPresented: Bool
-let showsShortcutHints: Bool
-let shortcutForPreset: (PromptPreset) -> InAppShortcut?
-let onSelect: (PromptPreset?) -> Void
-
-@State private var isHovering = false
-@FocusState private var isFocused: Bool
-
-private var hasSelection: Bool { selection != nil }
-
-var body: some View {
-    Button {
-        isPresented.toggle()
-    } label: {
-        Image(systemName: "sparkles")
-            .font(.system(size: 16))
-            .foregroundStyle(hasSelection ? Brand.accent : (isHovering ? Brand.fg : Brand.muted))
-            .frame(width: 36, height: 36)
-            .background(
-                Circle().fill(isHovering || isPresented ? Brand.surface : Brand.bg)
-            )
-            .overlay {
-                Circle().strokeBorder(hasSelection ? Brand.accent : Brand.border, lineWidth: 1)
-            }
-            .overlay {
-                if isFocused {
-                    Circle().strokeBorder(Brand.accent, lineWidth: 2).padding(-2)
-                }
-            }
-            .contentShape(Circle())
-    }
-    .buttonStyle(.plain)
-    .focused($isFocused)
-    .onHover { isHovering = $0 }
-    .animation(.easeOut(duration: 0.12), value: isHovering)
-    .help(L10n.string("chat.selectPrompt"))
-    .accessibilityLabel(L10n.string("chat.selectPrompt"))
-    .accessibilityValue(hasSelection ? selection!.title : L10n.string("chat.directQuestion"))
-    .background(
-        PopoverOutsideClickMonitor(isPresented: $isPresented)
-    )
-    .popover(
-        isPresented: $isPresented,
-        attachmentAnchor: .point(.top),
-        arrowEdge: .bottom
-    ) {
-        PresetPopoverContent(
-            presets: presets,
-            selection: selection,
-            showsShortcutHints: showsShortcutHints,
-            shortcutForPreset: shortcutForPreset
-        ) { preset in
-            isPresented = false
-            onSelect(preset)
-        }
-    }
-} }
-
-private struct PresetPopoverContent: View {
+/// an upward popover listing "直接提问" plus every preset and enabled external ask;
+/// the current item carries a check. Selecting applies immediately and closes.
+struct PresetPopoverTrigger: View {
     let presets: [PromptPreset]
-    let selection: PromptPreset?
+    @Binding var selection: PromptPreset?
+    var actions: [QuickAction] = []
+    var selectedActionID: UUID? = nil
+    @Binding var isPresented: Bool
     let showsShortcutHints: Bool
     let shortcutForPreset: (PromptPreset) -> InAppShortcut?
+    var shortcutForAction: (QuickAction) -> InAppShortcut? = { _ in nil }
+    let onSelect: (PromptPreset?) -> Void
+    var onSelectAction: (QuickAction) -> Void = { _ in }
+
+    @State private var isHovering = false
+    @FocusState private var isFocused: Bool
+
+    private var hasSelection: Bool {
+        selection != nil || selectedActionID != nil
+    }
+
+    var body: some View {
+        Button {
+            isPresented.toggle()
+        } label: {
+            Image(systemName: "sparkles")
+                .font(.system(size: 16))
+                .foregroundStyle(hasSelection ? Brand.accent : (isHovering ? Brand.fg : Brand.muted))
+                .frame(width: 36, height: 36)
+                .background(
+                    Circle().fill(isHovering || isPresented ? Brand.surface : Brand.bg)
+                )
+                .overlay {
+                    Circle().strokeBorder(hasSelection ? Brand.accent : Brand.border, lineWidth: 1)
+                }
+                .overlay {
+                    if isFocused {
+                        Circle().strokeBorder(Brand.accent, lineWidth: 2).padding(-2)
+                    }
+                }
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .focused($isFocused)
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .help(L10n.string("chat.selectPrompt"))
+        .accessibilityLabel(L10n.string("chat.selectPrompt"))
+        .accessibilityValue(
+            selection?.title
+                ?? actions.first(where: { $0.id == selectedActionID })?.displayName
+                ?? L10n.string("chat.directQuestion")
+        )
+        .background(
+            PopoverOutsideClickMonitor(isPresented: $isPresented)
+        )
+        .popover(
+            isPresented: $isPresented,
+            attachmentAnchor: .point(.top),
+            arrowEdge: .bottom
+        ) {
+            PresetPopoverContent(
+                presets: presets,
+                selection: selection,
+                actions: actions,
+                selectedActionID: selectedActionID,
+                showsShortcutHints: showsShortcutHints,
+                shortcutForPreset: shortcutForPreset,
+                shortcutForAction: shortcutForAction,
+                onChoose: { preset in
+                    isPresented = false
+                    onSelect(preset)
+                },
+                onSelectAction: { action in
+                    isPresented = false
+                    onSelectAction(action)
+                }
+            )
+        }
+    }
+}
+
+struct PresetPopoverContent: View {
+    let presets: [PromptPreset]
+    let selection: PromptPreset?
+    var actions: [QuickAction] = []
+    var selectedActionID: UUID? = nil
+    let showsShortcutHints: Bool
+    let shortcutForPreset: (PromptPreset) -> InAppShortcut?
+    var shortcutForAction: (QuickAction) -> InAppShortcut? = { _ in nil }
     let onChoose: (PromptPreset?) -> Void
+    var onSelectAction: (QuickAction) -> Void = { _ in }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             PopoverRow(
                 title: L10n.string("chat.directQuestion"),
                 icon: "text.bubble",
-                isSelected: selection == nil
+                isSelected: selection == nil && selectedActionID == nil
             ) {
                 onChoose(nil)
             }
-            Divider().padding(.vertical, 4).padding(.horizontal, 6)
-            ForEach(presets) { preset in
-                PopoverRow(
-                    title: preset.title,
-                    icon: preset.symbolName,
-                    isSelected: selection?.id == preset.id,
-                    shortcut: showsShortcutHints ? shortcutForPreset(preset) : nil
-                ) {
-                    onChoose(preset)
+            if !presets.isEmpty {
+                Divider().padding(.vertical, 4).padding(.horizontal, 6)
+                ForEach(presets) { preset in
+                    PopoverRow(
+                        title: preset.title,
+                        icon: preset.symbolName,
+                        isSelected: selectedActionID == nil && selection?.id == preset.id,
+                        shortcut: showsShortcutHints ? shortcutForPreset(preset) : nil
+                    ) {
+                        onChoose(preset)
+                    }
+                }
+            }
+            if !actions.isEmpty {
+                Divider().padding(.vertical, 4).padding(.horizontal, 6)
+                ForEach(actions) { action in
+                    PopoverRow(
+                        title: action.displayName,
+                        icon: action.symbolName,
+                        brandIconSlug: action.brandIconSlug,
+                        isSelected: selectedActionID == action.id,
+                        shortcut: showsShortcutHints ? shortcutForAction(action) : nil
+                    ) {
+                        onSelectAction(action)
+                    }
                 }
             }
         }
@@ -190,9 +230,10 @@ private struct PresetPopoverContent: View {
     }
 }
 
-private struct PopoverRow: View {
+struct PopoverRow: View {
     let title: String
     let icon: String
+    var brandIconSlug: String? = nil
     let isSelected: Bool
     var shortcut: InAppShortcut? = nil
     let action: () -> Void
@@ -203,10 +244,20 @@ private struct PopoverRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 13))
-                    .foregroundStyle(isHovering ? Brand.fg : Brand.muted)
-                    .frame(width: 14)
+                if let brandIconSlug {
+                    ProviderBrandIconView(
+                        slug: brandIconSlug,
+                        size: 14,
+                        fallbackSymbol: icon,
+                        fallbackColor: isHovering ? Brand.fg : Brand.muted
+                    )
+                    .frame(width: 14, height: 14)
+                } else {
+                    Image(systemName: icon)
+                        .font(.system(size: 13))
+                        .foregroundStyle(isHovering ? Brand.fg : Brand.muted)
+                        .frame(width: 14)
+                }
                 Text(title)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Brand.fg)

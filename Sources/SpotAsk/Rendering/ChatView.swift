@@ -493,10 +493,14 @@ struct ChatView: View {
                     PresetPopoverTrigger(
                         presets: settings.enabledPromptPresets,
                         selection: $viewModel.selectedPromptPreset,
+                        actions: settings.enabledQuickActions,
+                        selectedActionID: pendingExternalAsk?.id,
                         isPresented: $isPresetPopoverPresented,
                         showsShortcutHints: showsShortcutHints,
                         shortcutForPreset: shortcutHint(for:),
-                        onSelect: { applyPreset($0) }
+                        shortcutForAction: shortcutHint(for:),
+                        onSelect: { applyPreset($0) },
+                        onSelectAction: selectExternalAsk
                     )
                     .transition(.opacity)
                 }
@@ -1098,7 +1102,13 @@ struct ChatView: View {
         case .dismissAtPalette:
             dismissAtCommandPalette()
             return
-        case .dismissPresetPopover, .dismissModelPicker, .cancelGeneration, .startNewConversation, .dismissWindow:
+        case .dismissPresetPopover:
+            isPresetPopoverPresented = false
+            return
+        case .dismissModelPicker:
+            isModelPickerPresented = false
+            return
+        case .cancelGeneration, .startNewConversation, .dismissWindow:
             break
         }
         if pendingExternalAsk != nil {
@@ -1106,12 +1116,8 @@ struct ChatView: View {
             return
         }
         switch action {
-        case .preserveMarkedText, .dismissAtPalette:
+        case .preserveMarkedText, .dismissAtPalette, .dismissPresetPopover, .dismissModelPicker:
             break
-        case .dismissPresetPopover:
-            isPresetPopoverPresented = false
-        case .dismissModelPicker:
-            isModelPickerPresented = false
         case .cancelGeneration:
             viewModel.cancel()
         case .startNewConversation:
