@@ -99,14 +99,14 @@ private struct ChipView: View {
 struct PresetPopoverTrigger: View {
     let presets: [PromptPreset]
     @Binding var selection: PromptPreset?
-    var actions: [QuickAction] = []
-    var selectedActionID: UUID? = nil
+    let actions: [QuickAction]
+    let selectedActionID: UUID?
     @Binding var isPresented: Bool
     let showsShortcutHints: Bool
     let shortcutForPreset: (PromptPreset) -> InAppShortcut?
-    var shortcutForAction: (QuickAction) -> InAppShortcut? = { _ in nil }
+    let shortcutForAction: (QuickAction) -> InAppShortcut?
     let onSelect: (PromptPreset?) -> Void
-    var onSelectAction: (QuickAction) -> Void = { _ in }
+    let onSelectAction: (QuickAction) -> Void
 
     @State private var isHovering = false
     @FocusState private var isFocused: Bool
@@ -153,7 +153,7 @@ struct PresetPopoverTrigger: View {
         .popover(
             isPresented: $isPresented,
             attachmentAnchor: .point(.top),
-            arrowEdge: .bottom
+            arrowEdge: .top
         ) {
             PresetPopoverContent(
                 presets: presets,
@@ -179,13 +179,13 @@ struct PresetPopoverTrigger: View {
 private struct PresetPopoverContent: View {
     let presets: [PromptPreset]
     let selection: PromptPreset?
-    var actions: [QuickAction] = []
-    var selectedActionID: UUID? = nil
+    let actions: [QuickAction]
+    let selectedActionID: UUID?
     let showsShortcutHints: Bool
     let shortcutForPreset: (PromptPreset) -> InAppShortcut?
-    var shortcutForAction: (QuickAction) -> InAppShortcut? = { _ in nil }
+    let shortcutForAction: (QuickAction) -> InAppShortcut?
     let onChoose: (PromptPreset?) -> Void
-    var onSelectAction: (QuickAction) -> Void = { _ in }
+    let onSelectAction: (QuickAction) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
