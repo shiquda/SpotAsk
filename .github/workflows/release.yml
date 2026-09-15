@@ -54,6 +54,8 @@ jobs:
             Scripts/publish-github-release.sh \
             Scripts/release-notes-from-changelog.sh \
             Scripts/push-homebrew-cask.sh \
+            Scripts/generate-appcast.sh \
+            Scripts/verify-sparkle-appcast.py \
             "$helper_dir/"
           chmod +x "$helper_dir"/*
           if ! grep -q 'WAIT_FLAG' "$helper_dir/notarize-dmg.sh"; then
@@ -69,7 +71,9 @@ jobs:
           cp "$RELEASE_HELPER_DIR/notarize-dmg.sh" Scripts/notarize-dmg.sh
           cp "$RELEASE_HELPER_DIR/publish-github-release.sh" Scripts/publish-github-release.sh
           cp "$RELEASE_HELPER_DIR/release-notes-from-changelog.sh" Scripts/release-notes-from-changelog.sh
-          chmod +x Scripts/notarize-dmg.sh Scripts/publish-github-release.sh Scripts/release-notes-from-changelog.sh
+          cp "$RELEASE_HELPER_DIR/generate-appcast.sh" Scripts/generate-appcast.sh
+          cp "$RELEASE_HELPER_DIR/verify-sparkle-appcast.py" Scripts/verify-sparkle-appcast.py
+          chmod +x Scripts/notarize-dmg.sh Scripts/publish-github-release.sh Scripts/release-notes-from-changelog.sh Scripts/generate-appcast.sh Scripts/verify-sparkle-appcast.py
           if ! grep -q 'WAIT_FLAG' Scripts/notarize-dmg.sh; then
             echo "Restored notarize helper still lacks --wait; refusing to publish $RELEASE_TAG" >&2
             exit 1
@@ -160,14 +164,6 @@ jobs:
           echo "Stapling notarization tickets..."
           ./Scripts/notarize-dmg.sh staple "$arm64_dmg"
           ./Scripts/notarize-dmg.sh staple "$x86_64_dmg"
-      - name: Create checksums
-        if: env.RELEASE_STATE != 'published'
-        run: |
-          set -eu
-          (
-            cd dist
-            shasum -a 256 SpotAsk-*.dmg > "SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt"
-          )
       - name: Generate release notes from CHANGELOG
         if: env.RELEASE_STATE != 'published'
         run: |
@@ -175,20 +171,48 @@ jobs:
           ./Scripts/release-notes-from-changelog.sh "$RELEASE_TAG" > "$RUNNER_TEMP/release-notes.md"
           test -s "$RUNNER_TEMP/release-notes.md"
           echo "RELEASE_NOTES_FILE=$RUNNER_TEMP/release-notes.md" >> "$GITHUB_ENV"
+      - name: Generate Sparkle appcasts
+        if: env.RELEASE_STATE != 'published'
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          set -eu
+          test -n "$SPARKLE_ED_PRIVATE_KEY"
+          ./Scripts/generate-appcast.sh \
+            --version "$APP_VERSION" \
+            --tag "$RELEASE_TAG" \
+            --arm64-dmg "dist/SpotAsk-${APP_VERSION}-arm64.dmg" \
+            --x86_64-dmg "dist/SpotAsk-${APP_VERSION}-x86_64.dmg" \
+            --output dist \
+            --notes "$RUNNER_TEMP/release-notes.md"
+      - name: Create checksums
+        if: env.RELEASE_STATE != 'published'
+        run: |
+          set -eu
+          (
+            cd dist
+            test -s appcast-arm64.xml
+            test -s appcast-x86_64.xml
+            shasum -a 256 SpotAsk-*.dmg appcast-*.xml > "SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt"
+          )
       - name: Publish GitHub Release
         if: env.RELEASE_STATE != 'published'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -eu
+          set -- \
+            "dist/SpotAsk-${APP_VERSION}-arm64.dmg" \
+            "dist/SpotAsk-${APP_VERSION}-x86_64.dmg" \
+            "dist/SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt" \
+            dist/appcast-arm64.xml \
+            dist/appcast-x86_64.xml
           ./Scripts/publish-github-release.sh \
             --tag "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --notes "$RELEASE_NOTES_FILE" \
             -- \
-            "dist/SpotAsk-${APP_VERSION}-arm64.dmg" \
-            "dist/SpotAsk-${APP_VERSION}-x86_64.dmg" \
-            "dist/SpotAsk-${RELEASE_TAG}-SHA256SUMS.txt"
+            "$@"
       - name: Update Homebrew Cask
         env:
           GH_TOKEN: ${{ github.token }}

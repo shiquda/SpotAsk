@@ -160,9 +160,12 @@
 "settings.downloadUpdate" = "Update herunterladen";
 "settings.updateCheckUnavailable" = "Derzeit können keine Updates gesucht werden.";
 "settings.autoCheckForUpdates" = "Automatisch nach Updates suchen";
-"settings.autoCheckForUpdatesDescription" = "Beim Start von SpotAsk einmal prüfen und bei einer neuen Version benachrichtigen.";
+"settings.autoCheckForUpdatesDescription" = "Automatisch nach Updates suchen und ein Fenster in der App anzeigen, wenn eine neue Version verfügbar ist.";
 "update.newVersionAvailable" = "Neue Version %@ ist verfügbar.";
 "update.viewRelease" = "Version anzeigen";
+"update.ignoredVersionRow" = "Übersprungene Version: %@";
+"update.restoreReminder" = "Hinweise wiederherstellen";
+"settings.openGitHubRelease" = "Auf GitHub anzeigen";
 "settings.behavior" = "Verhalten";
 "settings.clearAccessKey" = "Zugriffsschlüssel löschen";
 "settings.clearAllLocalData" = "Alle lokalen Daten löschen";

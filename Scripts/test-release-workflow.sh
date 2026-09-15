@@ -345,11 +345,247 @@ grep -q 'secrets.CASK_GITHUB_TOKEN || github.token' "$ROOT_DIR/.github/workflows
 grep -q 'persist-credentials: false' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release checkout still persists GITHUB_TOKEN credentials"
 
 
+grep -q -- '--deep' "$ROOT_DIR/Scripts/make-app-bundle.sh" && fail "make-app-bundle.sh still uses codesign --deep"
+grep -q 'Sparkle.framework' "$ROOT_DIR/Scripts/make-app-bundle.sh" || fail "make-app-bundle.sh does not sign Sparkle.framework"
+grep -q 'XPCServices/Downloader.xpc' "$ROOT_DIR/Scripts/make-app-bundle.sh" || fail "make-app-bundle.sh does not sign Downloader.xpc"
+grep -q 'appcast-arm64.xml' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release workflow does not publish appcast-arm64.xml"
+grep -q 'generate-appcast.sh' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release workflow does not generate Sparkle appcasts"
+grep -q 'verify-sparkle-appcast.py' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release workflow does not restore the appcast verifier"
+grep -q 'SPARKLE_ALLOW_MISSING_ED_KEY' "$ROOT_DIR/.github/workflows/release.yml" && fail "Release workflow still allows missing EdDSA keys"
+grep -q 'SPARKLE_ALLOW_MISSING_ED_KEY' "$ROOT_DIR/Scripts/generate-appcast.sh" && fail "generate-appcast.sh still allows missing EdDSA keys"
+grep -q -- '--embed-release-notes' "$ROOT_DIR/Scripts/generate-appcast.sh" || fail "generate-appcast.sh does not embed release notes"
+grep -q 'if \[ -f dist/appcast-arm64.xml \]' "$ROOT_DIR/.github/workflows/release.yml" && fail "Release workflow still treats appcasts as optional assets"
+grep -q 'test -n "$SPARKLE_ED_PRIVATE_KEY"' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release workflow does not fail closed without SPARKLE_ED_PRIVATE_KEY"
+
+VERIFY="$ROOT_DIR/Scripts/verify-sparkle-appcast.py"
+GENERATE_APPCAST="$ROOT_DIR/Scripts/generate-appcast.sh"
+python3 -m py_compile "$VERIFY" || fail "verify-sparkle-appcast.py does not compile"
+
+# --- verifier: signature, public key, and embedded notes ---
+python3 - "$WORK_DIR" "$VERIFY" <<'PY' || fail "appcast verifier regressions failed"
+import base64, subprocess, sys, tempfile
+from pathlib import Path
+
+work = Path(sys.argv[1]) / "verifier"
+work.mkdir()
+verify = sys.argv[2]
+archive = work / "SpotAsk-1.2.3-arm64.zip"
+archive.write_bytes(b"spotask-archive-bytes\n" * 64)
+
+pem = work / "priv.pem"
+subprocess.check_call(["openssl", "genpkey", "-algorithm", "ED25519", "-out", str(pem)])
+der = subprocess.check_output(["openssl", "pkey", "-in", str(pem), "-outform", "DER"])
+pub_der = subprocess.check_output(["openssl", "pkey", "-in", str(pem), "-pubout", "-outform", "DER"])
+pub = pub_der[-32:]
+sig_path = work / "sig.bin"
+subprocess.check_call(
+    ["openssl", "pkeyutl", "-sign", "-inkey", str(pem), "-rawin", "-in", str(archive), "-out", str(sig_path)]
+)
+sig_b64 = base64.b64encode(sig_path.read_bytes()).decode()
+pub_b64 = base64.b64encode(pub).decode()
+wrong_b64 = base64.b64encode(bytes(b ^ 0xFF for b in pub)).decode()
+
+def write_xml(path, signature=sig_b64, notes_link=False, description=True):
+    notes = ""
+    if notes_link:
+        notes += '            <sparkle:releaseNotesLink>https://example.test/missing.md</sparkle:releaseNotesLink>\n'
+    if description:
+        notes += '            <description sparkle:format="markdown"><![CDATA[# Dummy 1.2.3\n\nUnique notes token ALPHA-NOTES\n]]></description>\n'
+    enclosure = '            <enclosure url="https://example.test/SpotAsk-1.2.3-arm64.zip" length="10" type="application/octet-stream"'
+    if signature:
+        enclosure += f' sparkle:edSignature="{signature}"'
+    enclosure += "/>"
+    path.write_text(
+        '<?xml version="1.0" standalone="yes"?>\n'
+        '<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">\n'
+        "    <channel>\n        <item>\n            <title>1.2.3</title>\n"
+        f"{notes}{enclosure}\n        </item>\n    </channel>\n</rss>\n"
+    )
+
+good = work / "good.xml"
+write_xml(good)
+subprocess.check_call(
+    ["python3", verify, "--xml", str(good), "--archive", str(archive), "--public-key", pub_b64, "--notes-token", "ALPHA-NOTES"]
+)
+
+missing_sig = work / "missing-sig.xml"
+write_xml(missing_sig, signature="")
+r = subprocess.run(
+    ["python3", verify, "--xml", str(missing_sig), "--archive", str(archive), "--public-key", pub_b64],
+    capture_output=True,
+    text=True,
+)
+assert r.returncode != 0, "missing signature was accepted"
+assert "edSignature" in r.stderr
+
+linked = work / "notes-link.xml"
+write_xml(linked, notes_link=True)
+r = subprocess.run(
+    ["python3", verify, "--xml", str(linked), "--archive", str(archive), "--public-key", pub_b64, "--notes-token", "ALPHA-NOTES"],
+    capture_output=True,
+    text=True,
+)
+assert r.returncode != 0, "releaseNotesLink was accepted"
+assert "releaseNotesLink" in r.stderr
+
+mismatch = work / "mismatch.xml"
+write_xml(mismatch)
+r = subprocess.run(
+    ["python3", verify, "--xml", str(mismatch), "--archive", str(archive), "--public-key", wrong_b64],
+    capture_output=True,
+    text=True,
+)
+assert r.returncode != 0, "mismatched SUPublicEDKey was accepted"
+print("verifier cases ok")
+PY
+pass "appcast verifier rejects missing signatures, notes links, and key mismatch"
+
+# --- generate-appcast fail-closed without a key ---
+notes="$WORK_DIR/appcast-notes.md"
+printf '# Dummy 1.2.3\n\nUnique notes token ALPHA-NOTES\n' > "$notes"
+dummy_arm="$WORK_DIR/SpotAsk-1.2.3-arm64.zip"
+dummy_x86="$WORK_DIR/SpotAsk-1.2.3-x86_64.zip"
+printf 'arm-archive\n' > "$dummy_arm"
+printf 'x86-archive\n' > "$dummy_x86"
+if SPARKLE_ED_PRIVATE_KEY= SPARKLE_ED_PRIVATE_KEY_FILE= \
+    "$GENERATE_APPCAST" \
+    --version 1.2.3 \
+    --tag v1.2.3 \
+    --arm64-dmg "$dummy_arm" \
+    --x86_64-dmg "$dummy_x86" \
+    --notes "$notes" \
+    --output "$WORK_DIR/appcast-missing-key" \
+    --download-url-prefix "https://example.test/" \
+    2>"$WORK_DIR/missing-key.err"; then
+    fail "generate-appcast succeeded without an EdDSA key"
+fi
+grep -q 'SPARKLE_ED_PRIVATE_KEY or SPARKLE_ED_PRIVATE_KEY_FILE is required' "$WORK_DIR/missing-key.err" \
+    || fail "missing key did not fail closed"
+pass "generate-appcast fails closed without an EdDSA key"
+
+# --- generate_appcast embeds notes and signs against the public key ---
+python3 - "$WORK_DIR" "$ROOT_DIR" <<'PY' || fail "signed embedded appcast generation failed"
+import base64, os, plistlib, subprocess, sys
+from pathlib import Path
+
+work = Path(sys.argv[1]) / "signed-appcast"
+root = Path(sys.argv[2])
+work.mkdir()
+def locate_or_fetch_generate_appcast(root_path: Path) -> Path:
+    env_dir = os.environ.get("SPARKLE_TOOLS_DIR")
+    if env_dir:
+        candidate = Path(env_dir) / "generate_appcast"
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return candidate
+
+    spm_bin = root_path / ".build" / "artifacts" / "sparkle" / "Sparkle" / "bin" / "generate_appcast"
+    if spm_bin.is_file() and os.access(spm_bin, os.X_OK):
+        return spm_bin
+
+    tools_cache = root_path / ".build" / "sparkle-tools-2.9.6"
+    cached_bin = tools_cache / "bin" / "generate_appcast"
+    if cached_bin.is_file() and os.access(cached_bin, os.X_OK):
+        return cached_bin
+
+    tools_cache.mkdir(parents=True, exist_ok=True)
+    zip_path = tools_cache / "Sparkle-for-Swift-Package-Manager.zip"
+    url = "https://github.com/sparkle-project/Sparkle/releases/download/2.9.6/Sparkle-for-Swift-Package-Manager.zip"
+    subprocess.check_call(["curl", "-fsSL", url, "-o", str(zip_path)])
+    subprocess.check_call(["unzip", "-qo", str(zip_path), "-d", str(tools_cache)])
+    if cached_bin.is_file() and os.access(cached_bin, os.X_OK):
+        return cached_bin
+
+    raise RuntimeError(f"Unable to locate or fetch Sparkle generate_appcast into {tools_cache}")
+
+tools_bin = locate_or_fetch_generate_appcast(root)
+
+pem = work / "priv.pem"
+subprocess.check_call(["openssl", "genpkey", "-algorithm", "ED25519", "-out", str(pem)])
+der = subprocess.check_output(["openssl", "pkey", "-in", str(pem), "-outform", "DER"])
+pub = subprocess.check_output(["openssl", "pkey", "-in", str(pem), "-pubout", "-outform", "DER"])[-32:]
+idx = der.find(b"\x04\x20")
+seed = der[idx + 2:idx + 34]
+pub_b64 = base64.b64encode(pub).decode()
+key_file = work / "eddsa_priv.key"
+key_file.write_text(base64.b64encode(seed).decode() + "\n")
+key_file.chmod(0o600)
+
+app = work / "Dummy.app"
+macos = app / "Contents" / "MacOS"
+macos.mkdir(parents=True)
+subprocess.check_call(["cp", "/usr/bin/true", str(macos / "Dummy")])
+plist = {
+    "CFBundleExecutable": "Dummy",
+    "CFBundleIdentifier": "com.example.dummy",
+    "CFBundleName": "Dummy",
+    "CFBundlePackageType": "APPL",
+    "CFBundleShortVersionString": "1.2.3",
+    "CFBundleVersion": "123",
+    "LSMinimumSystemVersion": "15.0",
+    "SUPublicEDKey": pub_b64,
+}
+(app / "Contents" / "Info.plist").write_bytes(plistlib.dumps(plist))
+subprocess.check_call(["codesign", "--force", "--sign", "-", str(app)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+arm = work / "SpotAsk-1.2.3-arm64.zip"
+x86 = work / "SpotAsk-1.2.3-x86_64.zip"
+subprocess.check_call(["ditto", "-c", "-k", "--keepParent", str(app), str(arm)])
+subprocess.check_call(["ditto", "-c", "-k", "--keepParent", str(app), str(x86)])
+notes = work / "notes.md"
+notes.write_text("# Dummy 1.2.3\n\nUnique notes token ALPHA-NOTES\n")
+
+env = os.environ.copy()
+env["SPARKLE_TOOLS_DIR"] = str(tools_bin.parent)
+env["SPARKLE_ED_PRIVATE_KEY_FILE"] = str(key_file)
+env.pop("SPARKLE_ED_PRIVATE_KEY", None)
+out = work / "out"
+subprocess.check_call(
+    [
+        str(root / "Scripts" / "generate-appcast.sh"),
+        "--version", "1.2.3",
+        "--tag", "v1.2.3",
+        "--arm64-dmg", str(arm),
+        "--x86_64-dmg", str(x86),
+        "--notes", str(notes),
+        "--output", str(out),
+        "--download-url-prefix", "https://example.test/v1.2.3/",
+        "--public-key", pub_b64,
+    ],
+    env=env,
+)
+
+for name in ("appcast-arm64.xml", "appcast-x86_64.xml"):
+    xml = (out / name).read_text()
+    assert "sparkle:edSignature=" in xml, name
+    assert "releaseNotesLink" not in xml, name
+    assert "ALPHA-NOTES" in xml, name
+    assert "<description" in xml, name
+
+wrong = base64.b64encode(bytes(b ^ 0xFF for b in pub)).decode()
+r = subprocess.run(
+    [
+        "python3",
+        str(root / "Scripts" / "verify-sparkle-appcast.py"),
+        "--xml", str(out / "appcast-arm64.xml"),
+        "--archive", str(arm),
+        "--public-key", wrong,
+    ],
+    capture_output=True,
+    text=True,
+)
+assert r.returncode != 0, "generated appcast verified against the wrong public key"
+print("signed embedded appcasts ok")
+PY
+pass "generate-appcast embeds notes and verifies sparkle:edSignature against the public key"
+
 # --- script syntax ---
 /bin/sh -n "$PUBLISH"
 /bin/sh -n "$NOTARIZE"
 /bin/sh -n "$PUSH_CASK"
 /bin/sh -n "$ROOT_DIR/Scripts/make-release-dmg.sh"
+/bin/sh -n "$ROOT_DIR/Scripts/make-app-bundle.sh"
+/bin/sh -n "$ROOT_DIR/Scripts/generate-appcast.sh"
+/bin/sh -n "$ROOT_DIR/Scripts/generate-sparkle-keys.sh"
 /bin/sh -n "$ROOT_DIR/Scripts/test-release-workflow.sh"
 pass "release scripts parse"
 

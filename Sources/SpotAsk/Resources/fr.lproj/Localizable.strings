@@ -160,9 +160,12 @@
 "settings.downloadUpdate" = "Télécharger la mise à jour";
 "settings.updateCheckUnavailable" = "Impossible de rechercher des mises à jour pour le moment.";
 "settings.autoCheckForUpdates" = "Vérifier automatiquement les mises à jour";
-"settings.autoCheckForUpdatesDescription" = "Vérifier une fois au lancement de SpotAsk et vous informer quand une nouvelle version est disponible.";
+"settings.autoCheckForUpdatesDescription" = "Rechercher automatiquement les mises à jour et afficher une fenêtre dans l’app lorsqu’une nouvelle version est disponible.";
 "update.newVersionAvailable" = "La version %@ est disponible.";
 "update.viewRelease" = "Voir la version";
+"update.ignoredVersionRow" = "Version ignorée : %@";
+"update.restoreReminder" = "Rétablir les alertes";
+"settings.openGitHubRelease" = "Voir sur GitHub";
 "settings.behavior" = "Comportement";
 "settings.clearAccessKey" = "Effacer la clé d'accès";
 "settings.clearAllLocalData" = "Effacer toutes les données locales";

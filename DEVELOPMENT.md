@@ -49,6 +49,24 @@ For day-to-day development, use `Scripts/install-debug-app.sh`. It installs `~/A
 ./Scripts/make-release-dmg.sh --arch x86_64
 ```
 
+In-app updates use Sparkle 2.9.6. `Scripts/make-app-bundle.sh` signs Sparkle helpers, XPC services, `Updater.app`, then `Sparkle.framework`, then `SpotAsk.app`. Do not pass `codesign --deep`.
+
+Generate Ed25519 keys once with `Scripts/generate-sparkle-keys.sh`. Put the printed public key in `Resources/Info.plist` as `SUPublicEDKey`. Store the private key as GitHub secret `SPARKLE_ED_PRIVATE_KEY`. Never commit `.sparkle/`.
+
+After both architecture DMGs exist, generate signed feeds. Release notes are embedded in the XML (`--embed-release-notes`); do not rely on `sparkle:releaseNotesLink` GitHub assets.
+
+```sh
+SPARKLE_ED_PRIVATE_KEY_FILE=.sparkle/eddsa_priv.key \
+./Scripts/generate-appcast.sh \
+  --version 0.2.3 \
+  --tag v0.2.3 \
+  --arm64-dmg dist/SpotAsk-0.2.3-arm64.dmg \
+  --x86_64-dmg dist/SpotAsk-0.2.3-x86_64.dmg \
+  --notes path/to/notes.md
+```
+
+That writes `dist/appcast-arm64.xml` and `dist/appcast-x86_64.xml`, then verifies each `sparkle:edSignature` against `Resources/Info.plist` `SUPublicEDKey`. Missing `SPARKLE_ED_PRIVATE_KEY` / `SPARKLE_ED_PRIVATE_KEY_FILE` fails the release; the workflow does not publish unsigned feeds.
+
 Signing and notarization are optional and configured through environment variables:
 
 - `SPOTASK_CODESIGN_IDENTITY` — Developer ID Application identity name
@@ -129,11 +147,10 @@ Add these secrets to **Settings > Secrets and variables > Actions** (or to the `
 | `APPLE_NOTARIZATION_APPLE_ID` | paid Apple ID used for notarization |
 | `APPLE_NOTARIZATION_TEAM_ID` | `6UR4V5Z3N7` |
 | `APPLE_NOTARIZATION_APP_PASSWORD` | app-specific password created above |
+| `SPARKLE_ED_PRIVATE_KEY` | **Required**. Ed25519 private seed matching `SUPublicEDKey` in `Resources/Info.plist`. Without it the Release workflow fails closed instead of publishing unsigned appcasts. |
 | `CASK_GITHUB_TOKEN` | **Required**, on the `release` environment. Fine-grained PAT limited to this repo with **Contents: Read and write** (or classic `public_repo`). Token owner must be a repo admin so the Homebrew step can bypass required `arm64`/`x86_64` checks. Do not use `GITHUB_TOKEN`; GitHub Actions cannot bypass this ruleset. |
 
-The Release workflow runs automatically on tag push (`v*`) or manual `workflow_dispatch`. It imports the Developer ID certificate into a temporary Keychain, builds both signed DMGs (`arm64` and `x86_64`), submits them concurrently to Apple Notary Service with `notarytool submit --wait --timeout 30m`, staples the notarization tickets, writes basename SHA-256 checksums, publishes the GitHub Release from a draft only after those assets are uploaded, and pushes the Homebrew Cask formula to `main` with `CASK_GITHUB_TOKEN`. Workflow helpers (`Scripts/notarize-dmg.sh` and the publish script) are taken from the workflow commit, not the app tag, so manually publishing an older tag still waits for notarization.
-
-The 30-minute `--timeout` only ends local polling. Apple Notary Service can keep processing after the runner gives up, so a timeout is not a rejection and there is no promised wall-clock time to publication. If the wait times out or a later step fails, the GitHub Release stays missing or draft. Re-run the same tag with `workflow_dispatch`: a published release is never overwritten (Cask recovery reuses the published DMGs); a missing or draft release rebuilds, resubmits, and publishes only after a complete upload. `shasum -a 256 -c SpotAsk-vX.Y.Z-SHA256SUMS.txt` is expected to work in the same directory as the downloaded DMGs.
+The Release workflow runs automatically on tag push (`v*`) or manual `workflow_dispatch`. It imports the Developer ID certificate into a temporary Keychain, builds both signed DMGs (`arm64` and `x86_64`), submits them concurrently to Apple Notary Service with `notarytool submit --wait --timeout 30m`, staples the notarization tickets, embeds changelog notes into signed Sparkle appcasts, writes basename SHA-256 checksums for the DMGs and appcasts, publishes the GitHub Release from a draft only after those assets are uploaded, and pushes the Homebrew Cask formula to `main` with `CASK_GITHUB_TOKEN`. Workflow helpers (`Scripts/notarize-dmg.sh`, the publish script, `generate-appcast.sh`, and `verify-sparkle-appcast.py`) are taken from the workflow commit, not the app tag, so manually publishing an older tag still waits for notarization and still fail-closes without an EdDSA key.
 
 ## Project layout
 
@@ -142,6 +159,7 @@ The 30-minute `--timeout` only ends local polling. Apple Notary Service can keep
 - `Sources/SpotAsk/Provider` — OpenAI-compatible and Anthropic providers, model discovery, proxy
 - `Sources/SpotAsk/Rendering` — chat UI, markdown, code blocks, thinking display, toasts
 - `Sources/SpotAsk/Selection` — cross-app selection assistant: accessibility reads, action bar, overlay
+- `Sources/SpotAsk/Updates` — Sparkle 2 updater, skip-version store, and version comparison
 - `Sources/SpotAsk/Settings` — settings model and views, shortcuts
 - `Sources/SpotAsk/Intents` — Spotlight, Siri, and Shortcuts integration
 - `Sources/SpotAsk/Utilities` — localization, diagnostics, clipboard helpers
@@ -175,7 +193,7 @@ Local Release rebuilds change the code signature even when the Developer ID stay
 2. Bump `MARKETING_VERSION` in `SpotAsk.xcodeproj/project.pbxproj` and `CFBundleShortVersionString` in `Resources/Info.plist`.
 3. Run `swift test` and build both DMGs with `Scripts/make-release-dmg.sh`. If Apple secrets are configured, the Release workflow signs and notarizes them automatically.
 4. Tag the release `vX.Y.Z` and push the tag.
-5. GitHub Actions creates the GitHub Release, attaches both DMGs plus the SHA256SUMS file, and copies the changelog section into the release notes.
+5. GitHub Actions creates the GitHub Release, attaches both DMGs, both architecture appcasts (embedded notes + `sparkle:edSignature` verified against `SUPublicEDKey`), plus the SHA256SUMS file, and copies the changelog section into the release notes. Missing `SPARKLE_ED_PRIVATE_KEY` fails the job.
 
 ## Contributing
 

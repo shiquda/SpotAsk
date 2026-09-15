@@ -146,6 +146,36 @@ fi
 
 rm -rf "$APP_DIR"
 ditto "$BUILT_APP_DIR" "$APP_DIR"
+
+sign_item() {
+    path=$1
+    shift
+    if [ ! -e "$path" ]; then
+        return 0
+    fi
+    if [ "$SIGN_IDENTITY" = - ]; then
+        codesign --force --sign - "$@" "$path"
+    else
+        codesign --force --sign "$SIGN_IDENTITY" --options runtime --timestamp "$@" "$path"
+    fi
+}
+
+# Sparkle helpers keep their own entitlements. Sign each nested binary explicitly.
+sign_nested_sparkle() {
+    framework="$APP_DIR/Contents/Frameworks/Sparkle.framework"
+    if [ ! -d "$framework" ]; then
+        printf 'Sparkle.framework is missing from %s\n' "$APP_DIR" >&2
+        exit 1
+    fi
+    versions="$framework/Versions/B"
+    sign_item "$versions/XPCServices/Installer.xpc"
+    sign_item "$versions/XPCServices/Downloader.xpc" --preserve-metadata=entitlements
+    sign_item "$versions/Autoupdate"
+    sign_item "$versions/Updater.app"
+    sign_item "$framework"
+}
+
+sign_nested_sparkle
 if [ -n "$BUNDLE_IDENTIFIER" ]; then
     /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_IDENTIFIER" "$APP_DIR/Contents/Info.plist"
 fi
