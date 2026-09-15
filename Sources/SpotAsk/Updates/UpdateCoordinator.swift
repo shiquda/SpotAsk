@@ -119,7 +119,7 @@ final class SparkleUpdateDriver: NSObject, UpdateDriver, SPUUpdaterDelegate {
 
     func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
         guard isCurrentUpdater(updater) else { return }
-        coordinator?.markIdle()
+        coordinator?.didFindValidUpdate(item)
     }
 
     func updaterDidNotFindUpdate(_ updater: SPUUpdater, error: Error) {
@@ -244,6 +244,12 @@ final class UpdateCoordinator {
         skippedVersion = skippedStore.skippedVersion
     }
 
+    func didFindValidUpdate(_ item: SUAppcastItem) {
+        cancelTimeoutWatchdog()
+        status = .idle
+        refreshSkippedVersion()
+    }
+
     func markIdle() {
         cancelTimeoutWatchdog()
         status = .idle
@@ -271,9 +277,6 @@ final class UpdateCoordinator {
     }
 
     func currentFeedURL() -> String {
-        if status != .checking && !hasFallenBackInCurrentCycle {
-            prepareForNewCycle()
-        }
         let source: UpdateDownloadSource
         if settings.updateDownloadSource == .automatic {
             source = currentAttemptSource
@@ -301,10 +304,8 @@ final class UpdateCoordinator {
            !hasFallenBackInCurrentCycle {
             didEnclosureFailOnOfficial = true
             activeDownloadSource = .accelerated
-            currentAttemptSource = .accelerated
         }
     }
-
     func handleAbort(_ error: Error, from source: UpdateDownloadSource? = nil) {
         if let source, source != currentAttemptSource {
             return
@@ -348,20 +349,18 @@ final class UpdateCoordinator {
         if hasFallenBackInCurrentCycle && currentAttemptSource == .accelerated && status == .checking {
             return
         }
-        if status == .checking {
-            if let error {
-                let nsError = error as NSError
-                if nsError.domain == SUSparkleErrorDomain,
-                   (nsError.code == Int(SUError.noUpdateError.rawValue) ||
-                    nsError.code == Int(SUError.installationCanceledError.rawValue) ||
-                    nsError.code == Int(SUError.installationAuthorizeLaterError.rawValue)) {
-                    markIdle()
-                } else {
-                    markUnavailable()
-                }
-            } else {
+        if let error {
+            let nsError = error as NSError
+            if nsError.domain == SUSparkleErrorDomain,
+               (nsError.code == Int(SUError.noUpdateError.rawValue) ||
+                nsError.code == Int(SUError.installationCanceledError.rawValue) ||
+                nsError.code == Int(SUError.installationAuthorizeLaterError.rawValue)) {
                 markIdle()
+            } else {
+                markUnavailable()
             }
+        } else {
+            markIdle()
         }
     }
 

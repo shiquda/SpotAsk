@@ -168,13 +168,16 @@ final class UpdateCoordinatorTests: XCTestCase {
         XCTAssertEqual(coordinator.activeDownloadSource, .official)
 
         let downloadError = NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut)
-        coordinator.handleDownloadFailure(item: SUAppcastItem.empty(), error: downloadError)
+        coordinator.handleDownloadFailure(item: SUAppcastItem.empty(), error: downloadError, from: .official)
         XCTAssertEqual(coordinator.activeDownloadSource, .accelerated)
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
 
         // Following abort triggers retry on accelerated source
-        coordinator.handleAbort(downloadError)
+        coordinator.handleAbort(downloadError, from: .official)
         XCTAssertEqual(driver.checkCount, 2)
+        XCTAssertEqual(driver.requestedSources, [.official, .accelerated])
         XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertEqual(coordinator.activeDownloadSource, .accelerated)
     }
 
     func testSignatureAndValidationErrorsDoNotFallback() {
@@ -317,6 +320,58 @@ final class UpdateCoordinatorTests: XCTestCase {
         XCTAssertFalse(coordinator.isChecking)
     }
 
+    func testAcceleratedValidUpdatePreservesAcceleratedSourceForEnclosureDownload() {
+        let driver = FakeUpdateDriver()
+        let coordinator = makeCoordinator(driver: driver)
+
+        coordinator.checkForUpdates()
+        // Fallback to accelerated
+        coordinator.triggerFallbackToAccelerated()
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertEqual(coordinator.activeDownloadSource, .accelerated)
+
+        // Sparkle finds valid update
+        coordinator.didFindValidUpdate(SUAppcastItem.empty())
+        XCTAssertEqual(coordinator.status, .idle)
+        // activeDownloadSource must NOT be prematurely reset to official
+        XCTAssertEqual(coordinator.activeDownloadSource, .accelerated)
+
+        // When Sparkle prepares enclosure download request, it must accelerate the URL
+        let dmgURL = URL(string: "https://github.com/shiquda/SpotAsk/releases/download/v1.0.0/SpotAsk-1.0.0-arm64.dmg")!
+        let request = NSMutableURLRequest(url: dmgURL)
+        coordinator.prepareDownloadRequest(request, for: SUAppcastItem.empty())
+        XCTAssertEqual(
+            request.url?.absoluteString,
+            "https://ghproxy.net/https://github.com/shiquda/SpotAsk/releases/download/v1.0.0/SpotAsk-1.0.0-arm64.dmg"
+        )
+
+        // When the cycle actually completes, activeDownloadSource resets to official
+        coordinator.didFinishUpdateCycle(error: nil, from: .accelerated)
+        XCTAssertEqual(coordinator.activeDownloadSource, .official)
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+    }
+
+    func testStartingSparkleWithAutomaticChecksDisabledDoesNotEnterCheckingOrStartWatchdog() async {
+        let settings = makeSettings()
+        settings.automaticUpdateCheckEnabled = false
+        let driver = SparkleUpdateDriver()
+        let coordinator = makeCoordinator(driver: driver, settings: settings)
+        driver.coordinator = coordinator
+
+        coordinator.start()
+        XCTAssertFalse(driver.automaticallyChecksForUpdates)
+        XCTAssertEqual(coordinator.status, UpdateCoordinator.Status.idle)
+
+        // Ensure currentFeedURL is a pure read and does not enter checking
+        _ = coordinator.currentFeedURL()
+
+        // Wait 100ms to verify status remains .idle
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        XCTAssertEqual(coordinator.status, UpdateCoordinator.Status.idle)
+        XCTAssertFalse(coordinator.isChecking)
+        XCTAssertEqual(coordinator.currentAttemptSource, UpdateDownloadSource.official)
+    }
+
     func testGitHubReleaseFallbackOpensNamedBrowserURL() {
         var opened: [URL] = []
         let coordinator = makeCoordinator(openURL: { opened.append($0) })
@@ -342,13 +397,13 @@ final class UpdateCoordinatorTests: XCTestCase {
     }
 
     private func makeCoordinator(
-        driver: FakeUpdateDriver = FakeUpdateDriver(),
+        driver: (any UpdateDriver)? = nil,
         store: MemorySkippedVersionStore = MemorySkippedVersionStore(),
         settings: AppSettings? = nil,
         openURL: @escaping (URL) -> Void = { _ in }
     ) -> UpdateCoordinator {
         UpdateCoordinator(
-            driver: driver,
+            driver: driver ?? FakeUpdateDriver(),
             skippedStore: store,
             settings: settings ?? makeSettings(),
             openURL: openURL
