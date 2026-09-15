@@ -297,45 +297,60 @@ private struct CircularPressButtonStyle: ButtonStyle {
 
 // MARK: - Selected preset badge
 
-struct SelectedPresetBadge: View { let title: String
-let icon: String
-let onClear: () -> Void
+struct SelectedPresetBadge: View {
+    let title: String
+    let icon: String
+    var brandIconSlug: String? = nil
+    let onClear: () -> Void
 
-@State private var isClearHovering = false
-@FocusState private var isClearFocused: Bool
+    @State private var isClearHovering = false
+    @FocusState private var isClearFocused: Bool
 
-var body: some View {
-    HStack(spacing: 5) {
-        Image(systemName: icon)
-            .font(.system(size: 11))
-        Text(title)
-            .font(.system(size: 11, weight: .medium))
-            .lineLimit(1)
-        Button(action: onClear) {
-            Image(systemName: "xmark")
-                .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(isClearHovering ? Brand.fg : Brand.muted)
-                .frame(width: 16, height: 16)
-                .background(
-                    RoundedRectangle(cornerRadius: 3).fill(isClearHovering ? Brand.surface : Color.clear)
-                )
-                .overlay {
-                    if isClearFocused {
-                        RoundedRectangle(cornerRadius: 3).strokeBorder(Brand.accent, lineWidth: 2)
+    var body: some View {
+        HStack(spacing: 5) {
+            ProviderBrandIconView(
+                slug: brandIconSlug,
+                size: 11,
+                fallbackSymbol: icon,
+                fallbackColor: Brand.accent
+            )
+            Text(title)
+                .font(.system(size: 11, weight: .medium))
+                .lineLimit(1)
+                .frame(maxWidth: 180, alignment: .leading)
+            Button(action: onClear) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(isClearHovering ? Brand.fg : Brand.muted)
+                    .frame(width: 16, height: 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 3).fill(isClearHovering ? Brand.surface : Color.clear)
+                    )
+                    .overlay {
+                        if isClearFocused {
+                            RoundedRectangle(cornerRadius: 3).strokeBorder(Brand.accent, lineWidth: 2)
+                        }
                     }
-                }
-                .contentShape(Rectangle())
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .focused($isClearFocused)
+            .onHover { isClearHovering = $0 }
+            .animation(.easeOut(duration: 0.12), value: isClearHovering)
+            .help(L10n.string("chat.clearPrompt"))
+            .accessibilityLabel(L10n.string("chat.clearPrompt"))
         }
-        .buttonStyle(.plain)
-        .focused($isClearFocused)
-        .onHover { isClearHovering = $0 }
-        .animation(.easeOut(duration: 0.12), value: isClearHovering)
-        .help(L10n.string("chat.clearPrompt"))
-        .accessibilityLabel(L10n.string("chat.clearPrompt"))
+        .foregroundStyle(Brand.accent)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(Capsule().fill(Brand.surface))
+        .overlay {
+            Capsule().strokeBorder(Brand.accent, lineWidth: 1)
+        }
+        .transition(.opacity)
+        .accessibilityElement(children: .contain)
     }
-    .foregroundStyle(Brand.accent)
-    .accessibilityElement(children: .contain)
-} }
+}
 
 // MARK: - Click-outside-to-close for the preset popover
 

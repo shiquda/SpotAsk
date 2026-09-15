@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Type `@` in the composer to filter prompt presets and External Ask targets. Selecting a preset keeps the draft; a nonempty query launches External Ask immediately.
 
+### Changed
+
+- The selected prompt or External Ask badge now sits inside the top-left of the composer field, so the extra bottom row and its leftover space are gone.
+- Empty-state External Ask chips and their shortcuts now select a pending target instead of launching immediately; Return sends the draft, and clicking again, Esc, or clearing the input cancels the selection.
+
 ## [0.2.3] - 2026-09-11
 
 ### Changed
