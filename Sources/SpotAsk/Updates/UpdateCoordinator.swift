@@ -53,6 +53,10 @@ final class SparkleUpdateDriver: NSObject, UpdateDriver, SPUUpdaterDelegate {
     private(set) var currentSource: UpdateDownloadSource = .official
     weak var coordinator: UpdateCoordinator?
 
+    var activeUpdater: SPUUpdater? {
+        controller?.updater
+    }
+
     var automaticallyChecksForUpdates: Bool {
         get { controller?.updater.automaticallyChecksForUpdates ?? pendingAutomaticChecks }
         set {
@@ -88,10 +92,11 @@ final class SparkleUpdateDriver: NSObject, UpdateDriver, SPUUpdaterDelegate {
     }
 
     func checkForUpdates(using source: UpdateDownloadSource) {
+        let isChangingSource = (controller != nil && source != currentSource)
         currentSource = source
         if controller == nil {
             start()
-        } else if controller?.updater.sessionInProgress == true {
+        } else if controller?.updater.sessionInProgress == true || isChangingSource {
             start(forceRestart: true)
         }
         controller?.checkForUpdates(nil)
@@ -99,12 +104,18 @@ final class SparkleUpdateDriver: NSObject, UpdateDriver, SPUUpdaterDelegate {
 
     func feedURLString(for updater: SPUUpdater) -> String? {
         guard isCurrentUpdater(updater) else { return nil }
+        if let currentAttempt = coordinator?.currentAttemptSource, coordinator?.hasFallenBackInCurrentCycle == false {
+            currentSource = currentAttempt
+        }
         return coordinator?.currentFeedURL() ?? UpdateFeed.appcastURL().absoluteString
     }
 
     func updater(_ updater: SPUUpdater, mayPerform updateCheck: SPUUpdateCheck) throws {
         guard isCurrentUpdater(updater) else { return }
         coordinator?.willStartUpdateCycle()
+        if let currentAttempt = coordinator?.currentAttemptSource {
+            currentSource = currentAttempt
+        }
     }
 
     func updater(_ updater: SPUUpdater, willDownloadUpdate item: SUAppcastItem, with request: NSMutableURLRequest) {
@@ -125,6 +136,9 @@ final class SparkleUpdateDriver: NSObject, UpdateDriver, SPUUpdaterDelegate {
     func updaterDidNotFindUpdate(_ updater: SPUUpdater, error: Error) {
         guard isCurrentUpdater(updater) else { return }
         coordinator?.markIdle()
+        if let currentAttempt = coordinator?.currentAttemptSource {
+            currentSource = currentAttempt
+        }
     }
 
     func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {
@@ -135,6 +149,9 @@ final class SparkleUpdateDriver: NSObject, UpdateDriver, SPUUpdaterDelegate {
     func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: (any Error)?) {
         guard isCurrentUpdater(updater) else { return }
         coordinator?.didFinishUpdateCycle(error: error, from: currentSource)
+        if let currentAttempt = coordinator?.currentAttemptSource {
+            currentSource = currentAttempt
+        }
     }
 }
 

@@ -372,6 +372,61 @@ final class UpdateCoordinatorTests: XCTestCase {
         XCTAssertEqual(coordinator.currentAttemptSource, UpdateDownloadSource.official)
     }
 
+    func testScheduledCycleAfterFallbackSyncsDriverCurrentSourceAndAllowsAcceleratedFallback() {
+        let driver = SparkleUpdateDriver()
+        let coordinator = makeCoordinator(driver: driver)
+        driver.coordinator = coordinator
+
+        // Start driver to instantiate controller
+        driver.start()
+        guard let initialUpdater = driver.activeUpdater else {
+            XCTFail("Missing active updater after driver.start()")
+            return
+        }
+
+        // Cycle 1: Check for updates on official
+        coordinator.checkForUpdates()
+        XCTAssertEqual(driver.currentSource, .official)
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+
+        // Fallback to accelerated creates replacement updater
+        coordinator.triggerFallbackToAccelerated()
+        XCTAssertEqual(driver.currentSource, .accelerated)
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        guard let replacementUpdater = driver.activeUpdater else {
+            XCTFail("Missing replacement updater after triggerFallbackToAccelerated()")
+            return
+        }
+        XCTAssertFalse(replacementUpdater === initialUpdater)
+
+        // Cycle 1 completes via valid update and cycle finish
+        driver.updater(replacementUpdater, didFindValidUpdate: SUAppcastItem.empty())
+        driver.updater(replacementUpdater, didFinishUpdateCycleFor: .updates, error: nil)
+        XCTAssertEqual(coordinator.status, .idle)
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+        XCTAssertEqual(driver.currentSource, .official)
+
+        // Cycle 2: Sparkle's internal timer schedules check on the replacement updater
+        // Calling mayPerform must sync driver.currentSource to .official
+        try? driver.updater(replacementUpdater, mayPerform: .updates)
+        XCTAssertEqual(coordinator.status, .checking)
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+        XCTAssertEqual(driver.currentSource, .official)
+        XCTAssertEqual(
+            driver.feedURLString(for: replacementUpdater),
+            UpdateFeed.officialAppcastURL().absoluteString
+        )
+
+        // Official attempt times out in Cycle 2
+        let timeoutError = NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut)
+        driver.updater(replacementUpdater, didAbortWithError: timeoutError)
+
+        // Cycle 2 must successfully trigger fallback to accelerated
+        XCTAssertEqual(coordinator.status, .checking)
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertEqual(driver.currentSource, .accelerated)
+    }
+
     func testGitHubReleaseFallbackOpensNamedBrowserURL() {
         var opened: [URL] = []
         let coordinator = makeCoordinator(openURL: { opened.append($0) })
