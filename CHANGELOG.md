@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The selected prompt or External Ask badge now sits above the composer field on the left, outside the input, so the extra bottom row and its leftover space are gone.
+- The selected prompt or External Ask badge now sits above the composer field on the left with a compact content-adaptive width, outside the input, so the extra bottom row and its leftover space are gone.
 - Empty-state External Ask chips and their shortcuts now select a pending target instead of launching immediately; Return sends the draft, and clicking again, Esc, or clearing the input cancels the selection.
 
 ## [0.2.3] - 2026-09-11

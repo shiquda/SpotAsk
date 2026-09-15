@@ -1023,7 +1023,6 @@ struct ChatView: View {
             skipEmptyPendingClear = true
             pendingExternalAsk = action
             viewModel.selectedPromptPreset = nil
-            StatusToastCenter.shared.show(L10n.string("atCommand.pendingToast", action.displayName))
             inputFocused = true
             return false
         case .launched:

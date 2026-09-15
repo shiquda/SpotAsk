@@ -317,7 +317,6 @@ struct SelectedPresetBadge: View {
             Text(title)
                 .font(.system(size: 11, weight: .medium))
                 .lineLimit(1)
-                .frame(maxWidth: 180, alignment: .leading)
             Button(action: onClear) {
                 Image(systemName: "xmark")
                     .font(.system(size: 9, weight: .bold))
