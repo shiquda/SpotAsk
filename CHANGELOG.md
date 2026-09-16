@@ -7,16 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-09-16
+
 ### Added
 
 - Check for Updates now downloads and installs inside the app. You can skip a version from the update window and restore alerts in About. GitHub Releases remains available if the in-app updater cannot run.
+- Configurable update download sources (Automatic, Official GitHub, Accelerated Mirror) in Settings > About > Updates with automatic timeout detection and mirror fallback for reliable downloads across regions.
 - Type `@` in the composer to filter prompt presets and External Ask targets. Selecting a preset keeps the draft; a nonempty query launches External Ask immediately.
-- Added a dedicated chat icon to the selection assistant action bar to quickly populate the chat input with selected text for follow-up questions, with a configurable setting in Settings (enabled by default).
+- Dedicated chat icon in the selection assistant action bar to quickly populate the chat input with selected text for follow-up questions, with a configurable setting in Settings (enabled by default).
 - In existing conversations, the preset popover menu now lists enabled External Ask targets alongside prompt presets, opens upward from the bottom composer bar, and External Ask shortcuts attach a pending badge that launches on send.
+
 ### Changed
 
 - The selected prompt or External Ask badge now sits above the composer field on the left with a compact content-adaptive width, outside the input, so the extra bottom row and its leftover space are gone.
 - Empty-state External Ask chips and their shortcuts now select a pending target instead of launching immediately; Return sends the draft, and clicking again, Esc, or clearing the input cancels the selection.
+
+### Fixed
+
+- When composer input is present, pressing an External Ask shortcut or selecting from the popover menu sends immediately rather than requiring an extra Return keypress.
 
 ## [0.2.3] - 2026-09-11
 
@@ -154,7 +162,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provider cards can be expanded and collapsed reliably.
 - Thinking expansion behavior: when enabled, thinking stays expanded during reasoning and collapses for the final answer; when disabled, it stays collapsed.
 
-[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/shiquda/SpotAsk/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/shiquda/SpotAsk/compare/v0.2.2...v0.2.3
 [0.2.1]: https://github.com/shiquda/SpotAsk/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/shiquda/SpotAsk/compare/v0.1.6...v0.2.0

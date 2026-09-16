@@ -34,6 +34,7 @@ description: A compact reference for SpotAsk settings sections, default shortcut
 | Run the first enabled prompts | `⌘ + 1` through `⌘ + 9` |
 | Send the question | `↩` |
 | Add a line break | `⇧ + ↩` |
+| Filter prompts and External Ask | `@` in composer |
 | Stop generating | `⎋` |
 
 Prompt shortcuts depend on prompt order and which prompts are enabled. In-app shortcuts can be reassigned or cleared in Settings. Numbers after the enabled prompts continue to enabled [External Ask](/guides/external-ask) entries.
@@ -57,6 +58,8 @@ Up to 8 attachments are supported per message. Very large images are normalized 
 
 ## Updates
 
-- Automatic update checking runs once when SpotAsk launches and notifies you when a new release is available.
+- Automatic update checking runs when SpotAsk launches and periodically checks for new releases.
 - **Check for Updates** checks immediately from About > Updates.
-- **Download Update** opens the release page for the available version.
+- In-app updates download and install directly inside SpotAsk without leaving the app. You can skip a version from the update window or restore skipped version alerts in Settings > About.
+- **Update Download Source** can be configured in Settings > About > Updates (Automatic, Official GitHub, or Accelerated Mirror) with automatic timeout detection and mirror fallback for reliable downloads across regions.
+- GitHub Releases remains available if the in-app updater cannot run.

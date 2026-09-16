@@ -58,10 +58,10 @@ After both architecture DMGs exist, generate signed feeds. Release notes are emb
 ```sh
 SPARKLE_ED_PRIVATE_KEY_FILE=.sparkle/eddsa_priv.key \
 ./Scripts/generate-appcast.sh \
-  --version 0.2.3 \
-  --tag v0.2.3 \
-  --arm64-dmg dist/SpotAsk-0.2.3-arm64.dmg \
-  --x86_64-dmg dist/SpotAsk-0.2.3-x86_64.dmg \
+  --version 0.2.4 \
+  --tag v0.2.4 \
+  --arm64-dmg dist/SpotAsk-0.2.4-arm64.dmg \
+  --x86_64-dmg dist/SpotAsk-0.2.4-x86_64.dmg \
   --notes path/to/notes.md
 ```
 

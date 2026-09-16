@@ -13,6 +13,15 @@ In the question window, choose a prompt before sending:
 
 - With content in the input, selecting a prompt sends it immediately.
 - With an empty input, select a prompt, enter your question, then press `↩`.
+- The selected prompt appears as a compact badge at the top-left above the input field. Click its `×` or press its keyboard shortcut again to cancel the selection.
+
+## `@` Command Palette
+
+Type `@` at the beginning of the input or after a space to open the floating command palette above the composer:
+
+- Filter prompt presets and enabled [External Ask](/guides/external-ask) targets by typing.
+- Use arrow keys to navigate and press `Return` or `Tab` to select.
+- Selecting a prompt attaches it as a mode badge while keeping your current draft intact.
 
 ## Create a custom prompt
 
