@@ -45,6 +45,15 @@ func shortcutQuickActionSelection(current: QuickAction?, requested: QuickAction)
     current?.id == requested.id ? nil : requested
 }
 
+func shouldSendExternalAskImmediately(
+    sendIfReady: Bool = true,
+    canSend: Bool,
+    input: String
+) -> Bool {
+    guard sendIfReady, canSend else { return false }
+    return !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+}
+
 enum ComposerModeBadge: Equatable {
     case preset(title: String, icon: String)
     case externalAsk(title: String, icon: String, brandIconSlug: String?)

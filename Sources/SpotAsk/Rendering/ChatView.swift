@@ -1087,6 +1087,12 @@ struct ChatView: View {
             clearAtCommandTokenState()
         }
         inputFocused = true
+        guard becamePending,
+              shouldSendExternalAskImmediately(
+                  canSend: viewModel.canSend,
+                  input: viewModel.input
+              ) else { return }
+        sendFromComposer()
     }
 
     private func clearComposerModeSelection() {

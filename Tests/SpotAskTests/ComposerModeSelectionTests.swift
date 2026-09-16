@@ -165,6 +165,90 @@ struct ComposerModeSelectionTests {
             Issue.record("Expected .url resolved action")
         }
     }
+
+    @Test("External Ask immediate send policy requires canSend and non-empty trimmed text")
+    func immediateExternalAskSendPolicy() {
+        #expect(shouldSendExternalAskImmediately(sendIfReady: true, canSend: true, input: "如何理解量子力学"))
+        #expect(shouldSendExternalAskImmediately(sendIfReady: true, canSend: true, input: "  hello world  "))
+        #expect(!shouldSendExternalAskImmediately(sendIfReady: true, canSend: true, input: ""))
+        #expect(!shouldSendExternalAskImmediately(sendIfReady: true, canSend: true, input: "   \n\t  "))
+        #expect(!shouldSendExternalAskImmediately(sendIfReady: true, canSend: false, input: "hello"))
+        #expect(!shouldSendExternalAskImmediately(sendIfReady: true, canSend: false, input: ""))
+        #expect(!shouldSendExternalAskImmediately(sendIfReady: false, canSend: true, input: "hello"))
+    }
+
+    @Test("ComposerModeCoordinator external ask workflow: immediate send on input, mounting on empty, and toggle-off")
+    func externalAskSelectionAndSendLifecycle() {
+        var coordinator = ComposerModeCoordinator()
+        var preset: PromptPreset? = translate
+        let executor = FailingThenSucceedingExecutor()
+        let resolve: (UUID) -> QuickAction? = { id in id == self.chatGPT.id ? self.chatGPT : nil }
+
+        func simulateSelectExternalAsk(action: QuickAction, input: inout String, canSend: Bool) -> Bool {
+            let becamePending = coordinator.toggleExternalAsk(action, selectedPreset: &preset)
+            guard becamePending, shouldSendExternalAskImmediately(canSend: canSend, input: input) else {
+                return false
+            }
+            let outcome = coordinator.handleSend(input: &input, resolve: resolve, executor: executor)
+            return outcome == .launchedExternalAsk
+        }
+
+        // 1. Non-empty input: selecting external ask immediately launches and clears draft + pending state
+        var inputWithText = "如何理解量子力学"
+        let sentImmediately = simulateSelectExternalAsk(action: chatGPT, input: &inputWithText, canSend: true)
+        #expect(sentImmediately)
+        #expect(inputWithText.isEmpty)
+        #expect(coordinator.pendingExternalAsk == nil)
+        #expect(preset == nil)
+        #expect(coordinator.badge(selectedPreset: preset) == nil)
+        #expect(executor.performedActions.count == 1)
+        if case let .url(url) = executor.performedActions.last {
+            #expect(url.absoluteString.contains("chatgpt.com"))
+        } else {
+            Issue.record("Expected .url action")
+        }
+
+        // 2. Empty input: selecting external ask mounts capsule and does not launch
+        var emptyInput = ""
+        let sentOnEmpty = simulateSelectExternalAsk(action: chatGPT, input: &emptyInput, canSend: false)
+        #expect(!sentOnEmpty)
+        #expect(coordinator.pendingExternalAsk == chatGPT)
+        #expect(coordinator.badge(selectedPreset: preset) == .externalAsk(
+            title: chatGPT.displayName,
+            icon: chatGPT.symbolName,
+            brandIconSlug: chatGPT.brandIconSlug
+        ))
+        #expect(executor.performedActions.count == 1)
+
+        // 3. Repeating the same action while mounted toggles it off without sending
+        var typedLater = "hello"
+        let toggledOff = simulateSelectExternalAsk(action: chatGPT, input: &typedLater, canSend: true)
+        #expect(!toggledOff)
+        #expect(coordinator.pendingExternalAsk == nil)
+        #expect(typedLater == "hello")
+        #expect(coordinator.badge(selectedPreset: preset) == nil)
+        #expect(executor.performedActions.count == 1)
+
+        // 4. Mount with empty input, then failed send keeps pending state and input for retry
+        _ = simulateSelectExternalAsk(action: chatGPT, input: &emptyInput, canSend: false)
+        #expect(coordinator.pendingExternalAsk == chatGPT)
+        executor.shouldSucceed = false
+        var retryInput = "need retry"
+        let failedOutcome = coordinator.handleSend(input: &retryInput, resolve: resolve, executor: executor)
+        #expect(failedOutcome == .launchFailedExternalAsk(chatGPT))
+        #expect(coordinator.pendingExternalAsk == chatGPT)
+        #expect(retryInput == "need retry")
+        #expect(coordinator.badge(selectedPreset: preset) != nil)
+
+        // 5. Subsequent successful send cleans up pending and input
+        executor.shouldSucceed = true
+        let retryOutcome = coordinator.handleSend(input: &retryInput, resolve: resolve, executor: executor)
+        #expect(retryOutcome == .launchedExternalAsk)
+        #expect(coordinator.pendingExternalAsk == nil)
+        #expect(retryInput.isEmpty)
+        #expect(coordinator.badge(selectedPreset: preset) == nil)
+        #expect(executor.performedActions.count == 2)
+    }
 }
 
 @MainActor
