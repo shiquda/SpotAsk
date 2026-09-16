@@ -22,6 +22,8 @@ SpotAsk requests this permission only when you enable the feature. It uses the p
 
 **Show quick actions** displays the action bar next to the selection. You can also enable labels beside the action icons.
 
+- **Ask in Chat icon**: A dedicated speech bubble icon appears at the start of the action bar. Clicking it opens the question window with the selected text filled in and a blank line ready for your follow-up question. This can be toggled in Settings > **Selection Assistant** (enabled by default).
+- Built-in prompts, custom prompts, and enabled External Ask targets follow in the bar.
 ## Automatic display
 
 In **Show quick actions** mode, turn on **Show quick actions after selecting text** to avoid pressing the shortcut each time.

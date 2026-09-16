@@ -31,10 +31,11 @@
   - **Web platforms** — launch queries directly in ChatGPT, Perplexity, Grok, and more.
   - **Desktop apps** — trigger installed desktop applications via custom URI schemes.
   - **Terminal & CLI agents** — wake up local CLI agents directly in Terminal.
+- **`@` Command palette & prompt presets** — type `@` in the composer to quickly search and switch prompt presets or External Ask targets; built-in prompts for everyday workflows plus custom prompt creation and custom shortcuts.
+- **Selection assistant with instant chat action** — highlight text in Safari, Notes, Xcode, or any other app; click the dedicated chat icon to bring text directly into the conversation, or run translation, explanation, summarization, and custom prompts from the floating quick action bar.
+- **In-app updates with regional mirrors** — check, download, and install updates directly inside the app with Sparkle, featuring automatic fallback to mainland China download mirrors.
 - **Instant hotkey capture** — press `Option + Space` (customizable) to summon a focused input window from anywhere; get direct streaming answers using your own API key (BYOK), or press `Esc` to instantly close the window when done.
-- **Selection assistant** — highlight text in Safari, Notes, Xcode, or any other app; translate, explain, summarize, polish, or run custom prompts from a floating quick action bar.
 - **Ask with attachments** — paste screenshots or drop in images, text, and code files; follow-up questions seamlessly retain the attached context.
-- **Prompt presets & shortcuts** — built-in prompts for everyday workflows plus custom prompt creation; record custom shortcuts for every frequent action.
 - **Featherweight pure native** — built entirely in Swift and AppKit; cold-starts instantly, idles quietly in the menu bar, and uses minimal memory.
 
 ## Core philosophy & typical use cases
