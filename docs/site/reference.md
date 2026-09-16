@@ -61,5 +61,5 @@ Up to 8 attachments are supported per message. Very large images are normalized 
 - Automatic update checking runs when SpotAsk launches and periodically checks for new releases.
 - **Check for Updates** checks immediately from About > Updates.
 - In-app updates download and install directly inside SpotAsk without leaving the app. You can skip a version from the update window or restore skipped version alerts in Settings > About.
-- **Update Download Source** can be configured in Settings > About > Updates (Official GitHub, FastGit, or Cloudflare mirror) with automatic timeout detection and mirror fallback for reliable downloads across regions.
+- **Update Download Source** can be configured in Settings > About > Updates (Automatic, Official GitHub, or Accelerated Mirror) with automatic timeout detection and mirror fallback for reliable downloads across regions.
 - GitHub Releases remains available if the in-app updater cannot run.
