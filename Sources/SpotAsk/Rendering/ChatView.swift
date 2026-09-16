@@ -35,8 +35,7 @@ struct ChatView: View {
     @State private var atCommandState: AtCommandState?
     @State private var atCommandSuppressed = false
     @State private var atCommandHighlightedIndex = 0
-    @State private var pendingExternalAsk: QuickAction?
-    @State private var skipEmptyPendingClear = false
+    @State private var composerModeCoordinator = ComposerModeCoordinator()
 
     @State private var isPanelVisible = true
 
@@ -266,7 +265,7 @@ struct ChatView: View {
                     if !settings.enabledQuickActions.isEmpty {
                         QuickActionStripView(
                             actions: settings.enabledQuickActions,
-                            selectedActionID: pendingExternalAsk?.id,
+                            selectedActionID: composerModeCoordinator.pendingExternalAsk?.id,
                             showsShortcutHints: showsShortcutHints,
                             shortcutForAction: shortcutHint(for:),
                             onSelect: selectExternalAsk
@@ -493,10 +492,14 @@ struct ChatView: View {
                     PresetPopoverTrigger(
                         presets: settings.enabledPromptPresets,
                         selection: $viewModel.selectedPromptPreset,
+                        actions: settings.enabledQuickActions,
+                        selectedActionID: composerModeCoordinator.pendingExternalAsk?.id,
                         isPresented: $isPresetPopoverPresented,
                         showsShortcutHints: showsShortcutHints,
                         shortcutForPreset: shortcutHint(for:),
-                        onSelect: { applyPreset($0) }
+                        shortcutForAction: shortcutHint(for:),
+                        onSelect: { applyPreset($0) },
+                        onSelectAction: selectExternalAsk
                     )
                     .transition(.opacity)
                 }
@@ -622,7 +625,7 @@ struct ChatView: View {
     }
 
     private var placeholderText: String {
-        if let pending = pendingExternalAsk {
+        if let pending = composerModeCoordinator.pendingExternalAsk {
             return L10n.string("atCommand.pendingPlaceholder", pending.displayName)
         }
         guard let preset = viewModel.selectedPromptPreset else {
@@ -669,15 +672,35 @@ struct ChatView: View {
 
     @discardableResult
     private func sendFromComposer() -> Bool {
-        if let pending = pendingExternalAsk {
-            return launchPendingExternalAsk(pending)
-        }
-        synchronizeSelectedPromptPreset()
-        if viewModel.send() {
-            scrollFollowState.resumeFollowing()
+        switch composerModeCoordinator.handleSend(
+            input: &viewModel.input,
+            resolve: resolveEnabledQuickAction
+        ) {
+        case .launchedExternalAsk:
+            clearAtCommandTokenState()
+            if let textView = composerTextView.textView, !textView.string.isEmpty {
+                textView.string = ""
+            }
+            inputFocused = true
             return true
+        case let .launchFailedExternalAsk(action):
+            clearAtCommandTokenState()
+            StatusToastCenter.shared.show(
+                L10n.string("atCommand.launchFailed", action.displayName),
+                isError: true
+            )
+            inputFocused = true
+            return false
+        case .rejectedExternalAsk:
+            return false
+        case .proceedWithStandardSend:
+            synchronizeSelectedPromptPreset()
+            if viewModel.send() {
+                scrollFollowState.resumeFollowing()
+                return true
+            }
+            return false
         }
-        return false
     }
 
     private func installShortcutDispatcher() {
@@ -835,18 +858,20 @@ struct ChatView: View {
     /// and focuses the input (Return still sends). "直接提问" passes nil and
     /// never sends.
     private func applyPreset(_ preset: PromptPreset?, sendIfReady: Bool = true) {
-        pendingExternalAsk = nil
         guard let preset else {
-            viewModel.selectedPromptPreset = nil
+            composerModeCoordinator.applyPreset(nil, selectedPreset: &viewModel.selectedPromptPreset)
             inputFocused = true
             return
         }
         guard let enabledPreset = settings.promptPresetAllowedForUse(preset) else {
-            viewModel.selectedPromptPreset = nil
+            composerModeCoordinator.applyPreset(nil, selectedPreset: &viewModel.selectedPromptPreset)
             inputFocused = true
             return
         }
-        viewModel.selectedPromptPreset = enabledPreset
+        composerModeCoordinator.applyPreset(
+            enabledPreset,
+            selectedPreset: &viewModel.selectedPromptPreset
+        )
         inputFocused = true
         guard sendIfReady, viewModel.canSend else { return }
         sendFromComposer()
@@ -983,7 +1008,6 @@ struct ChatView: View {
             textView: composerTextView.textView
         ) == .appliedPreset else { return }
         clearAtCommandTokenState()
-        pendingExternalAsk = nil
         applyPreset(preset, sendIfReady: false)
     }
 
@@ -998,16 +1022,6 @@ struct ChatView: View {
         )
     }
 
-    @discardableResult
-    private func launchPendingExternalAsk(_ action: QuickAction) -> Bool {
-        applyAtCommandActionOutcome(
-            AtCommandSelection.confirmPending(
-                action,
-                query: viewModel.input,
-                resolve: resolveEnabledQuickAction
-            )
-        )
-    }
 
     private func resolveEnabledQuickAction(_ id: UUID) -> QuickAction? {
         settings.enabledQuickActions.first { $0.id == id }
@@ -1020,14 +1034,15 @@ struct ChatView: View {
             return false
         case let .becamePending(action):
             clearAtCommandTokenState()
-            skipEmptyPendingClear = true
-            pendingExternalAsk = action
-            viewModel.selectedPromptPreset = nil
+            composerModeCoordinator.attachExternalAsk(
+                action,
+                selectedPreset: &viewModel.selectedPromptPreset
+            )
             inputFocused = true
             return false
         case .launched:
             clearAtCommandTokenState()
-            pendingExternalAsk = nil
+            composerModeCoordinator.pendingExternalAsk = nil
             if let textView = composerTextView.textView, !textView.string.isEmpty {
                 textView.string = ""
             }
@@ -1036,7 +1051,7 @@ struct ChatView: View {
             return true
         case let .launchFailed(action):
             clearAtCommandTokenState()
-            pendingExternalAsk = action
+            composerModeCoordinator.pendingExternalAsk = action
             StatusToastCenter.shared.show(
                 L10n.string("atCommand.launchFailed", action.displayName),
                 isError: true
@@ -1052,32 +1067,30 @@ struct ChatView: View {
     }
 
     private func clearPendingExternalAskIfInputEmptied(from oldValue: String, to newValue: String) {
-        let skipOnce = skipEmptyPendingClear
-        skipEmptyPendingClear = false
+        let skipOnce = composerModeCoordinator.skipEmptyPendingClear
+        composerModeCoordinator.skipEmptyPendingClear = false
         if shouldClearPendingExternalAsk(from: oldValue, to: newValue, skipOnce: skipOnce) {
-            pendingExternalAsk = nil
+            composerModeCoordinator.pendingExternalAsk = nil
         }
     }
 
     private var activeComposerBadge: ComposerModeBadge? {
-        ComposerModeBadge.resolve(
-            pendingExternalAsk: pendingExternalAsk,
-            selectedPreset: viewModel.selectedPromptPreset
-        )
+        composerModeCoordinator.badge(selectedPreset: viewModel.selectedPromptPreset)
     }
 
     private func selectExternalAsk(_ action: QuickAction) {
-        if shortcutQuickActionSelection(current: pendingExternalAsk, requested: action) == nil {
-            pendingExternalAsk = nil
-            inputFocused = true
-            return
+        let becamePending = composerModeCoordinator.toggleExternalAsk(
+            action,
+            selectedPreset: &viewModel.selectedPromptPreset
+        )
+        if becamePending {
+            clearAtCommandTokenState()
         }
-        applyAtCommandActionOutcome(.becamePending(action))
+        inputFocused = true
     }
 
     private func clearComposerModeSelection() {
-        pendingExternalAsk = nil
-        viewModel.selectedPromptPreset = nil
+        composerModeCoordinator.clearSelection(selectedPreset: &viewModel.selectedPromptPreset)
         inputFocused = true
     }
 
@@ -1098,20 +1111,22 @@ struct ChatView: View {
         case .dismissAtPalette:
             dismissAtCommandPalette()
             return
-        case .dismissPresetPopover, .dismissModelPicker, .cancelGeneration, .startNewConversation, .dismissWindow:
+        case .dismissPresetPopover:
+            isPresetPopoverPresented = false
+            return
+        case .dismissModelPicker:
+            isModelPickerPresented = false
+            return
+        case .cancelGeneration, .startNewConversation, .dismissWindow:
             break
         }
-        if pendingExternalAsk != nil {
-            pendingExternalAsk = nil
+        if composerModeCoordinator.pendingExternalAsk != nil {
+            composerModeCoordinator.pendingExternalAsk = nil
             return
         }
         switch action {
-        case .preserveMarkedText, .dismissAtPalette:
+        case .preserveMarkedText, .dismissAtPalette, .dismissPresetPopover, .dismissModelPicker:
             break
-        case .dismissPresetPopover:
-            isPresetPopoverPresented = false
-        case .dismissModelPicker:
-            isModelPickerPresented = false
         case .cancelGeneration:
             viewModel.cancel()
         case .startNewConversation:
