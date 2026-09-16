@@ -333,7 +333,7 @@ git -C "$cask_work" config http.https://github.com/.extraheader "AUTHORIZATION: 
     PATH="$gitbin:$PATH" CASK_GITHUB_TOKEN=test-token "$PUSH_CASK"
 ) >/dev/null
 test -z "$(git -C "$cask_work" config --get http.https://github.com/.extraheader || true)" || fail "checkout extraheader still set after cask push"
-grep -F 'http.https://github.com/.extraheader=AUTHORIZATION: bearer test-token' "$WORK_DIR/cask-git.args" >/dev/null \
+grep -F "http.https://github.com/.extraheader=AUTHORIZATION: basic $(printf 'x-access-token:test-token' | base64 | tr -d '\r\n')" "$WORK_DIR/cask-git.args" >/dev/null \
     || fail "push did not use URL-scoped PAT extraheader"
 grep -F 'AUTHORIZATION: basic CHECKOUTTOKEN' "$WORK_DIR/cask-git.args" >/dev/null \
     && fail "push still passed the checkout extraheader"

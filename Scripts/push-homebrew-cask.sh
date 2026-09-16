@@ -19,7 +19,8 @@ fi
 
 remote=${CASK_PUSH_REMOTE:-origin}
 refspec=${CASK_PUSH_REFSPEC:-HEAD:refs/heads/main}
-pat_header="AUTHORIZATION: bearer ${CASK_GITHUB_TOKEN}"
+basic_token=$(printf 'x-access-token:%s' "${CASK_GITHUB_TOKEN}" | base64 | tr -d '\r\n')
+pat_header="AUTHORIZATION: basic ${basic_token}"
 
 git config --unset-all http.https://github.com/.extraheader 2>/dev/null || true
 
