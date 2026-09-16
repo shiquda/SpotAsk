@@ -1,4 +1,5 @@
 import XCTest
+import Sparkle
 @testable import SpotAsk
 
 @MainActor
@@ -6,6 +7,7 @@ final class FakeUpdateDriver: UpdateDriver {
     var automaticallyChecksForUpdates = true
     private(set) var startCount = 0
     private(set) var checkCount = 0
+    private(set) var requestedSources: [UpdateDownloadSource] = []
 
     func start() {
         startCount += 1
@@ -13,6 +15,12 @@ final class FakeUpdateDriver: UpdateDriver {
 
     func checkForUpdates() {
         checkCount += 1
+        requestedSources.append(.official)
+    }
+
+    func checkForUpdates(using source: UpdateDownloadSource) {
+        checkCount += 1
+        requestedSources.append(source)
     }
 }
 
@@ -83,13 +91,340 @@ final class UpdateCoordinatorTests: XCTestCase {
         XCTAssertEqual(coordinator.status, .idle)
     }
 
-    func testAppcastAbortMarksUnavailable() {
-        let coordinator = makeCoordinator()
+    func testAppcastAbortOnOfficialSourceMarksUnavailableWhenDirectOfficialSelected() {
+        let settings = makeSettings()
+        settings.updateDownloadSource = .official
+        let coordinator = makeCoordinator(settings: settings)
+        coordinator.checkForUpdates()
 
         coordinator.handleAbort(sparkleError(code: 1002))
 
         XCTAssertEqual(coordinator.status, .unavailable)
         XCTAssertFalse(coordinator.isChecking)
+    }
+
+    func testAutomaticModeFallsBackToAcceleratedOnNetworkTimeout() {
+        let driver = FakeUpdateDriver()
+        let coordinator = makeCoordinator(driver: driver)
+
+        coordinator.checkForUpdates()
+        XCTAssertEqual(driver.checkCount, 1)
+        XCTAssertEqual(driver.requestedSources, [.official])
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+        XCTAssertTrue(coordinator.isChecking)
+
+        // First check encounters timeout error
+        let timeoutError = NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut)
+        coordinator.handleAbort(timeoutError)
+
+        // Seamlessly retries accelerated mirror
+        XCTAssertEqual(driver.checkCount, 2)
+        XCTAssertEqual(driver.requestedSources, [.official, .accelerated])
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertEqual(coordinator.activeDownloadSource, .accelerated)
+        XCTAssertTrue(coordinator.isChecking)
+
+        // If accelerated mirror also times out, marks unavailable without infinite loop
+        coordinator.handleAbort(timeoutError)
+        XCTAssertEqual(coordinator.status, .unavailable)
+        XCTAssertFalse(coordinator.isChecking)
+        XCTAssertEqual(driver.checkCount, 2)
+    }
+
+    func testAutomaticModeFallsBackToAcceleratedOnCannotConnectToHost() {
+        let driver = FakeUpdateDriver()
+        let coordinator = makeCoordinator(driver: driver)
+
+        coordinator.checkForUpdates()
+        let connectError = NSError(domain: NSURLErrorDomain, code: NSURLErrorCannotConnectToHost)
+        coordinator.handleAbort(connectError)
+
+        XCTAssertEqual(driver.checkCount, 2)
+        XCTAssertEqual(driver.requestedSources, [.official, .accelerated])
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertTrue(coordinator.isChecking)
+    }
+
+    func testWatchdogTimeoutTriggersFallbackToAccelerated() {
+        let driver = FakeUpdateDriver()
+        let coordinator = makeCoordinator(driver: driver)
+
+        coordinator.checkForUpdates()
+        XCTAssertEqual(driver.checkCount, 1)
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+
+        coordinator.handleCheckTimeout()
+        XCTAssertEqual(driver.checkCount, 2)
+        XCTAssertEqual(driver.requestedSources, [.official, .accelerated])
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertTrue(coordinator.isChecking)
+    }
+
+    func testEnclosureDownloadFailureSwitchesToAccelerated() {
+        let driver = FakeUpdateDriver()
+        let coordinator = makeCoordinator(driver: driver)
+
+        coordinator.checkForUpdates()
+        XCTAssertEqual(coordinator.activeDownloadSource, .official)
+
+        let downloadError = NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut)
+        coordinator.handleDownloadFailure(item: SUAppcastItem.empty(), error: downloadError, from: .official)
+        XCTAssertEqual(coordinator.activeDownloadSource, .accelerated)
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+
+        // Following abort triggers retry on accelerated source
+        coordinator.handleAbort(downloadError, from: .official)
+        XCTAssertEqual(driver.checkCount, 2)
+        XCTAssertEqual(driver.requestedSources, [.official, .accelerated])
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertEqual(coordinator.activeDownloadSource, .accelerated)
+    }
+
+    func testSignatureAndValidationErrorsDoNotFallback() {
+        let driver = FakeUpdateDriver()
+        let coordinator = makeCoordinator(driver: driver)
+
+        coordinator.checkForUpdates()
+        XCTAssertEqual(driver.checkCount, 1)
+
+        // SUSignatureError (3001) must fail closed and never fallback
+        coordinator.handleAbort(sparkleError(code: 3001))
+        XCTAssertEqual(coordinator.status, .unavailable)
+        XCTAssertFalse(coordinator.isChecking)
+        XCTAssertEqual(driver.checkCount, 1)
+
+        // SUValidationError (3002) must also fail closed
+        let driver2 = FakeUpdateDriver()
+        let coordinator2 = makeCoordinator(driver: driver2)
+        coordinator2.checkForUpdates()
+        coordinator2.handleAbort(sparkleError(code: 3002))
+        XCTAssertEqual(coordinator2.status, .unavailable)
+        XCTAssertFalse(coordinator2.isChecking)
+        XCTAssertEqual(driver2.checkCount, 1)
+    }
+
+    func testPrepareDownloadRequestSetsTimeoutAndAcceleratesURL() {
+        let coordinator = makeCoordinator()
+        coordinator.checkForUpdates()
+
+        let dmgURL = URL(string: "https://github.com/shiquda/SpotAsk/releases/download/v1.0.0/SpotAsk-1.0.0-arm64.dmg")!
+        let request = NSMutableURLRequest(url: dmgURL)
+
+        // Initially on official source
+        coordinator.prepareDownloadRequest(request, for: SUAppcastItem.empty())
+        XCTAssertEqual(request.timeoutInterval, 10.0)
+        XCTAssertEqual(request.url, dmgURL)
+
+        // When fallback is triggered, accelerates the URL
+        coordinator.triggerFallbackToAccelerated()
+        coordinator.prepareDownloadRequest(request, for: SUAppcastItem.empty())
+        XCTAssertEqual(request.timeoutInterval, 10.0)
+        XCTAssertEqual(
+            request.url?.absoluteString,
+            "https://ghproxy.net/https://github.com/shiquda/SpotAsk/releases/download/v1.0.0/SpotAsk-1.0.0-arm64.dmg"
+        )
+    }
+
+    func testForcedAcceleratedSourceDirectlyUsesMirror() {
+        let settings = makeSettings()
+        settings.updateDownloadSource = .accelerated
+        let driver = FakeUpdateDriver()
+        let coordinator = makeCoordinator(driver: driver, settings: settings)
+
+        coordinator.checkForUpdates()
+        XCTAssertEqual(driver.checkCount, 1)
+        XCTAssertEqual(driver.requestedSources, [.accelerated])
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertEqual(coordinator.activeDownloadSource, .accelerated)
+        XCTAssertEqual(
+            coordinator.currentFeedURL(),
+            UpdateFeed.acceleratedAppcastURL().absoluteString
+        )
+    }
+
+    func testIsNetworkOrTimeoutError() {
+        XCTAssertTrue(UpdateCoordinator.isNetworkOrTimeoutError(NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut)))
+        XCTAssertTrue(UpdateCoordinator.isNetworkOrTimeoutError(NSError(domain: NSURLErrorDomain, code: NSURLErrorCannotConnectToHost)))
+        XCTAssertTrue(UpdateCoordinator.isNetworkOrTimeoutError(NSError(domain: NSURLErrorDomain, code: NSURLErrorDNSLookupFailed)))
+        XCTAssertTrue(UpdateCoordinator.isNetworkOrTimeoutError(sparkleError(code: 1002))) // SUAppcastError
+        XCTAssertTrue(UpdateCoordinator.isNetworkOrTimeoutError(sparkleError(code: 2001))) // SUDownloadError
+        XCTAssertFalse(UpdateCoordinator.isNetworkOrTimeoutError(sparkleError(code: 3001))) // SUSignatureError
+        XCTAssertFalse(UpdateCoordinator.isNetworkOrTimeoutError(sparkleError(code: 3002))) // SUValidationError
+        XCTAssertFalse(UpdateCoordinator.isNetworkOrTimeoutError(sparkleError(code: 1001))) // SUNoUpdateError
+    }
+
+    func testAutomaticModeResetsToOfficialAcrossCyclesAndSchedulesWatchdog() async {
+        let driver = FakeUpdateDriver()
+        let coordinator = makeCoordinator(driver: driver)
+        coordinator.checkTimeoutInterval = 0.05
+
+        // Cycle 1: Check updates on official, trigger fallback to accelerated, then finish cycle
+        coordinator.checkForUpdates()
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+        coordinator.handleCheckTimeout()
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertEqual(driver.checkCount, 2)
+        XCTAssertTrue(coordinator.hasFallenBackInCurrentCycle)
+
+        // Mark cycle complete
+        coordinator.markIdle()
+        XCTAssertEqual(coordinator.status, .idle)
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+        XCTAssertFalse(coordinator.hasFallenBackInCurrentCycle)
+
+        // Cycle 2: Sparkle background timer initiates check by calling willStartUpdateCycle / currentFeedURL
+        coordinator.willStartUpdateCycle()
+        XCTAssertEqual(coordinator.status, .checking)
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+        XCTAssertEqual(
+            coordinator.currentFeedURL(),
+            UpdateFeed.officialAppcastURL().absoluteString
+        )
+
+        // Wait for watchdog to fire for this second cycle
+        try? await Task.sleep(nanoseconds: 80_000_000)
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertEqual(
+            coordinator.currentFeedURL(),
+            UpdateFeed.acceleratedAppcastURL().absoluteString
+        )
+        XCTAssertEqual(driver.checkCount, 3)
+    }
+
+    func testLateAbortFromReplacedOfficialUpdaterCannotClobberAcceleratedAttempt() {
+        let driver = FakeUpdateDriver()
+        let coordinator = makeCoordinator(driver: driver)
+
+        // Start check on official
+        coordinator.checkForUpdates()
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+
+        // Official times out, fallback triggered to accelerated
+        coordinator.handleCheckTimeout()
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertEqual(coordinator.status, .checking)
+        XCTAssertEqual(driver.checkCount, 2)
+
+        // Stale late abort arrives from replaced official updater
+        let networkError = NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut)
+        coordinator.handleAbort(networkError, from: .official)
+
+        // Must still be checking on accelerated, not clobbered to unavailable
+        XCTAssertEqual(coordinator.status, .checking)
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertEqual(driver.checkCount, 2)
+
+        // Abort from the active accelerated updater marks unavailable
+        coordinator.handleAbort(networkError, from: .accelerated)
+        XCTAssertEqual(coordinator.status, .unavailable)
+        XCTAssertFalse(coordinator.isChecking)
+    }
+
+    func testAcceleratedValidUpdatePreservesAcceleratedSourceForEnclosureDownload() {
+        let driver = FakeUpdateDriver()
+        let coordinator = makeCoordinator(driver: driver)
+
+        coordinator.checkForUpdates()
+        // Fallback to accelerated
+        coordinator.triggerFallbackToAccelerated()
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertEqual(coordinator.activeDownloadSource, .accelerated)
+
+        // Sparkle finds valid update
+        coordinator.didFindValidUpdate(SUAppcastItem.empty())
+        XCTAssertEqual(coordinator.status, .idle)
+        // activeDownloadSource must NOT be prematurely reset to official
+        XCTAssertEqual(coordinator.activeDownloadSource, .accelerated)
+
+        // When Sparkle prepares enclosure download request, it must accelerate the URL
+        let dmgURL = URL(string: "https://github.com/shiquda/SpotAsk/releases/download/v1.0.0/SpotAsk-1.0.0-arm64.dmg")!
+        let request = NSMutableURLRequest(url: dmgURL)
+        coordinator.prepareDownloadRequest(request, for: SUAppcastItem.empty())
+        XCTAssertEqual(
+            request.url?.absoluteString,
+            "https://ghproxy.net/https://github.com/shiquda/SpotAsk/releases/download/v1.0.0/SpotAsk-1.0.0-arm64.dmg"
+        )
+
+        // When the cycle actually completes, activeDownloadSource resets to official
+        coordinator.didFinishUpdateCycle(error: nil, from: .accelerated)
+        XCTAssertEqual(coordinator.activeDownloadSource, .official)
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+    }
+
+    func testStartingSparkleWithAutomaticChecksDisabledDoesNotEnterCheckingOrStartWatchdog() async {
+        let settings = makeSettings()
+        settings.automaticUpdateCheckEnabled = false
+        let driver = SparkleUpdateDriver()
+        let coordinator = makeCoordinator(driver: driver, settings: settings)
+        driver.coordinator = coordinator
+
+        coordinator.start()
+        XCTAssertFalse(driver.automaticallyChecksForUpdates)
+        XCTAssertEqual(coordinator.status, UpdateCoordinator.Status.idle)
+
+        // Ensure currentFeedURL is a pure read and does not enter checking
+        _ = coordinator.currentFeedURL()
+
+        // Wait 100ms to verify status remains .idle
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        XCTAssertEqual(coordinator.status, UpdateCoordinator.Status.idle)
+        XCTAssertFalse(coordinator.isChecking)
+        XCTAssertEqual(coordinator.currentAttemptSource, UpdateDownloadSource.official)
+    }
+
+    func testScheduledCycleAfterFallbackSyncsDriverCurrentSourceAndAllowsAcceleratedFallback() {
+        let driver = SparkleUpdateDriver()
+        let coordinator = makeCoordinator(driver: driver)
+        driver.coordinator = coordinator
+
+        // Start driver to instantiate controller
+        driver.start()
+        guard let initialUpdater = driver.activeUpdater else {
+            XCTFail("Missing active updater after driver.start()")
+            return
+        }
+
+        // Cycle 1: Check for updates on official
+        coordinator.checkForUpdates()
+        XCTAssertEqual(driver.currentSource, .official)
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+
+        // Fallback to accelerated creates replacement updater
+        coordinator.triggerFallbackToAccelerated()
+        XCTAssertEqual(driver.currentSource, .accelerated)
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        guard let replacementUpdater = driver.activeUpdater else {
+            XCTFail("Missing replacement updater after triggerFallbackToAccelerated()")
+            return
+        }
+        XCTAssertFalse(replacementUpdater === initialUpdater)
+
+        // Cycle 1 completes via valid update and cycle finish
+        driver.updater(replacementUpdater, didFindValidUpdate: SUAppcastItem.empty())
+        driver.updater(replacementUpdater, didFinishUpdateCycleFor: .updates, error: nil)
+        XCTAssertEqual(coordinator.status, .idle)
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+        XCTAssertEqual(driver.currentSource, .official)
+
+        // Cycle 2: Sparkle's internal timer schedules check on the replacement updater
+        // Calling mayPerform must sync driver.currentSource to .official
+        try? driver.updater(replacementUpdater, mayPerform: .updates)
+        XCTAssertEqual(coordinator.status, .checking)
+        XCTAssertEqual(coordinator.currentAttemptSource, .official)
+        XCTAssertEqual(driver.currentSource, .official)
+        XCTAssertEqual(
+            driver.feedURLString(for: replacementUpdater),
+            UpdateFeed.officialAppcastURL().absoluteString
+        )
+
+        // Official attempt times out in Cycle 2
+        let timeoutError = NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut)
+        driver.updater(replacementUpdater, didAbortWithError: timeoutError)
+
+        // Cycle 2 must successfully trigger fallback to accelerated
+        XCTAssertEqual(coordinator.status, .checking)
+        XCTAssertEqual(coordinator.currentAttemptSource, .accelerated)
+        XCTAssertEqual(driver.currentSource, .accelerated)
     }
 
     func testGitHubReleaseFallbackOpensNamedBrowserURL() {
@@ -117,14 +452,15 @@ final class UpdateCoordinatorTests: XCTestCase {
     }
 
     private func makeCoordinator(
-        driver: FakeUpdateDriver = FakeUpdateDriver(),
+        driver: (any UpdateDriver)? = nil,
         store: MemorySkippedVersionStore = MemorySkippedVersionStore(),
+        settings: AppSettings? = nil,
         openURL: @escaping (URL) -> Void = { _ in }
     ) -> UpdateCoordinator {
         UpdateCoordinator(
-            driver: driver,
+            driver: driver ?? FakeUpdateDriver(),
             skippedStore: store,
-            settings: makeSettings(),
+            settings: settings ?? makeSettings(),
             openURL: openURL
         )
     }

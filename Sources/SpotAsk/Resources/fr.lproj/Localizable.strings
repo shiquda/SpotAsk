@@ -161,6 +161,10 @@
 "settings.updateCheckUnavailable" = "Impossible de rechercher des mises à jour pour le moment.";
 "settings.autoCheckForUpdates" = "Vérifier automatiquement les mises à jour";
 "settings.autoCheckForUpdatesDescription" = "Rechercher automatiquement les mises à jour et afficher une fenêtre dans l’app lorsqu’une nouvelle version est disponible.";
+"settings.updateSource" = "Source des mises à jour";
+"settings.updateSource.automatic" = "Automatique (Recommandé, bascule en cas d'expiration)";
+"settings.updateSource.official" = "GitHub officiel (Direct)";
+"settings.updateSource.accelerated" = "Miroir accéléré (Rapide)";
 "update.newVersionAvailable" = "La version %@ est disponible.";
 "update.viewRelease" = "Voir la version";
 "update.ignoredVersionRow" = "Version ignorée : %@";

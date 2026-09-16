@@ -37,13 +37,25 @@ protocol UpdateDriver: AnyObject {
     var automaticallyChecksForUpdates: Bool { get set }
     func start()
     func checkForUpdates()
+    func checkForUpdates(using source: UpdateDownloadSource)
+}
+
+extension UpdateDriver {
+    func checkForUpdates(using source: UpdateDownloadSource) {
+        checkForUpdates()
+    }
 }
 
 @MainActor
 final class SparkleUpdateDriver: NSObject, UpdateDriver, SPUUpdaterDelegate {
     private var controller: SPUStandardUpdaterController?
     private var pendingAutomaticChecks = true
+    private(set) var currentSource: UpdateDownloadSource = .official
     weak var coordinator: UpdateCoordinator?
+
+    var activeUpdater: SPUUpdater? {
+        controller?.updater
+    }
 
     var automaticallyChecksForUpdates: Bool {
         get { controller?.updater.automaticallyChecksForUpdates ?? pendingAutomaticChecks }
@@ -53,8 +65,16 @@ final class SparkleUpdateDriver: NSObject, UpdateDriver, SPUUpdaterDelegate {
         }
     }
 
+    private func isCurrentUpdater(_ updater: SPUUpdater) -> Bool {
+        controller?.updater === updater
+    }
+
     func start() {
-        if controller == nil {
+        start(forceRestart: false)
+    }
+
+    func start(forceRestart: Bool) {
+        if forceRestart || controller == nil {
             let controller = SPUStandardUpdaterController(
                 startingUpdater: false,
                 updaterDelegate: self,
@@ -68,26 +88,70 @@ final class SparkleUpdateDriver: NSObject, UpdateDriver, SPUUpdaterDelegate {
     }
 
     func checkForUpdates() {
+        checkForUpdates(using: coordinator?.currentAttemptSource ?? .official)
+    }
+
+    func checkForUpdates(using source: UpdateDownloadSource) {
+        let isChangingSource = (controller != nil && source != currentSource)
+        currentSource = source
         if controller == nil {
             start()
+        } else if controller?.updater.sessionInProgress == true || isChangingSource {
+            start(forceRestart: true)
         }
         controller?.checkForUpdates(nil)
     }
 
     func feedURLString(for updater: SPUUpdater) -> String? {
-        UpdateFeed.appcastURL().absoluteString
+        guard isCurrentUpdater(updater) else { return nil }
+        if let currentAttempt = coordinator?.currentAttemptSource, coordinator?.hasFallenBackInCurrentCycle == false {
+            currentSource = currentAttempt
+        }
+        return coordinator?.currentFeedURL() ?? UpdateFeed.appcastURL().absoluteString
+    }
+
+    func updater(_ updater: SPUUpdater, mayPerform updateCheck: SPUUpdateCheck) throws {
+        guard isCurrentUpdater(updater) else { return }
+        coordinator?.willStartUpdateCycle()
+        if let currentAttempt = coordinator?.currentAttemptSource {
+            currentSource = currentAttempt
+        }
+    }
+
+    func updater(_ updater: SPUUpdater, willDownloadUpdate item: SUAppcastItem, with request: NSMutableURLRequest) {
+        guard isCurrentUpdater(updater) else { return }
+        coordinator?.prepareDownloadRequest(request, for: item)
+    }
+
+    func updater(_ updater: SPUUpdater, failedToDownloadUpdate item: SUAppcastItem, error: Error) {
+        guard isCurrentUpdater(updater) else { return }
+        coordinator?.handleDownloadFailure(item: item, error: error, from: currentSource)
     }
 
     func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
-        coordinator?.markIdle()
+        guard isCurrentUpdater(updater) else { return }
+        coordinator?.didFindValidUpdate(item)
     }
 
     func updaterDidNotFindUpdate(_ updater: SPUUpdater, error: Error) {
+        guard isCurrentUpdater(updater) else { return }
         coordinator?.markIdle()
+        if let currentAttempt = coordinator?.currentAttemptSource {
+            currentSource = currentAttempt
+        }
     }
 
     func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {
-        coordinator?.handleAbort(error)
+        guard isCurrentUpdater(updater) else { return }
+        coordinator?.handleAbort(error, from: currentSource)
+    }
+
+    func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: (any Error)?) {
+        guard isCurrentUpdater(updater) else { return }
+        coordinator?.didFinishUpdateCycle(error: error, from: currentSource)
+        if let currentAttempt = coordinator?.currentAttemptSource {
+            currentSource = currentAttempt
+        }
     }
 }
 
@@ -114,6 +178,16 @@ final class UpdateCoordinator {
         status == .checking
     }
 
+    private(set) var currentAttemptSource: UpdateDownloadSource = .official
+    private(set) var activeDownloadSource: UpdateDownloadSource = .official
+    private(set) var hasFallenBackInCurrentCycle = false
+    private var didEnclosureFailOnOfficial = false
+    private(set) var activeCycleID = UUID()
+
+    var checkTimeoutInterval: TimeInterval = 10.0
+    var downloadTimeoutInterval: TimeInterval = 10.0
+    private var checkTimeoutTask: Task<Void, Never>?
+
     init(
         driver: (any UpdateDriver)? = nil,
         skippedStore: any SkippedVersionStoring = UserDefaultsSkippedVersionStore(),
@@ -138,11 +212,35 @@ final class UpdateCoordinator {
         driver.start()
         refreshSkippedVersion()
     }
+    func willStartUpdateCycle() {
+        if hasFallenBackInCurrentCycle && currentAttemptSource == .accelerated {
+            return
+        }
+        prepareForNewCycle()
+    }
+
+    func prepareForNewCycle() {
+        cancelTimeoutWatchdog()
+        activeCycleID = UUID()
+        status = .checking
+        hasFallenBackInCurrentCycle = false
+        didEnclosureFailOnOfficial = false
+
+        if settings.updateDownloadSource == .automatic {
+            currentAttemptSource = .official
+            activeDownloadSource = .official
+        } else {
+            currentAttemptSource = settings.updateDownloadSource
+            activeDownloadSource = settings.updateDownloadSource
+        }
+
+        startTimeoutWatchdogIfNeeded()
+    }
 
     func checkForUpdates() {
         guard !isChecking else { return }
-        status = .checking
-        driver.checkForUpdates()
+        prepareForNewCycle()
+        driver.checkForUpdates(using: currentAttemptSource)
     }
 
     func setAutomaticChecksEnabled(_ enabled: Bool) {
@@ -163,17 +261,73 @@ final class UpdateCoordinator {
         skippedVersion = skippedStore.skippedVersion
     }
 
-    func markIdle() {
+    func didFindValidUpdate(_ item: SUAppcastItem) {
+        cancelTimeoutWatchdog()
         status = .idle
         refreshSkippedVersion()
     }
 
-    func markUnavailable() {
-        status = .unavailable
+    func markIdle() {
+        cancelTimeoutWatchdog()
+        status = .idle
+        resetCycleState()
         refreshSkippedVersion()
     }
 
-    func handleAbort(_ error: Error) {
+    func markUnavailable() {
+        cancelTimeoutWatchdog()
+        status = .unavailable
+        resetCycleState()
+        refreshSkippedVersion()
+    }
+
+    private func resetCycleState() {
+        hasFallenBackInCurrentCycle = false
+        didEnclosureFailOnOfficial = false
+        if settings.updateDownloadSource == .automatic {
+            currentAttemptSource = .official
+            activeDownloadSource = .official
+        } else {
+            currentAttemptSource = settings.updateDownloadSource
+            activeDownloadSource = settings.updateDownloadSource
+        }
+    }
+
+    func currentFeedURL() -> String {
+        let source: UpdateDownloadSource
+        if settings.updateDownloadSource == .automatic {
+            source = currentAttemptSource
+        } else {
+            source = settings.updateDownloadSource
+        }
+        return UpdateFeed.appcastURL(for: source).absoluteString
+    }
+
+    func prepareDownloadRequest(_ request: NSMutableURLRequest, for item: SUAppcastItem) {
+        request.timeoutInterval = downloadTimeoutInterval
+        let source = (settings.updateDownloadSource == .automatic) ? activeDownloadSource : settings.updateDownloadSource
+        if source == .accelerated, let originalURL = request.url {
+            request.url = UpdateFeed.acceleratedEnclosureURL(for: originalURL)
+        }
+    }
+
+    func handleDownloadFailure(item: SUAppcastItem, error: Error, from source: UpdateDownloadSource? = nil) {
+        if let source, source != currentAttemptSource {
+            return
+        }
+        if Self.isNetworkOrTimeoutError(error),
+           settings.updateDownloadSource == .automatic,
+           activeDownloadSource == .official,
+           !hasFallenBackInCurrentCycle {
+            didEnclosureFailOnOfficial = true
+            activeDownloadSource = .accelerated
+        }
+    }
+    func handleAbort(_ error: Error, from source: UpdateDownloadSource? = nil) {
+        if let source, source != currentAttemptSource {
+            return
+        }
+        cancelTimeoutWatchdog()
         let nsError = error as NSError
         if nsError.domain == SUSparkleErrorDomain {
             switch nsError.code {
@@ -182,10 +336,145 @@ final class UpdateCoordinator {
                  Int(SUError.installationAuthorizeLaterError.rawValue):
                 markIdle()
                 return
+            case Int(SUError.signatureError.rawValue),
+                 Int(SUError.validationError.rawValue):
+                // Security invariance redline: fail closed on signature error
+                markUnavailable()
+                return
             default:
                 break
             }
         }
+
+        let isNetworkOrTimeout = Self.isNetworkOrTimeoutError(error)
+        let canFallback = settings.updateDownloadSource == .automatic
+            && !hasFallenBackInCurrentCycle
+            && (currentAttemptSource == .official || activeDownloadSource == .official || didEnclosureFailOnOfficial)
+
+        if isNetworkOrTimeout && canFallback {
+            triggerFallbackToAccelerated()
+            return
+        }
+
         markUnavailable()
+    }
+
+    func didFinishUpdateCycle(error: (any Error)?, from source: UpdateDownloadSource? = nil) {
+        if let source, source != currentAttemptSource {
+            return
+        }
+        if hasFallenBackInCurrentCycle && currentAttemptSource == .accelerated && status == .checking {
+            return
+        }
+        if let error {
+            let nsError = error as NSError
+            if nsError.domain == SUSparkleErrorDomain,
+               (nsError.code == Int(SUError.noUpdateError.rawValue) ||
+                nsError.code == Int(SUError.installationCanceledError.rawValue) ||
+                nsError.code == Int(SUError.installationAuthorizeLaterError.rawValue)) {
+                markIdle()
+            } else {
+                markUnavailable()
+            }
+        } else {
+            markIdle()
+        }
+    }
+
+    func handleCheckTimeout() {
+        guard status == .checking,
+              settings.updateDownloadSource == .automatic,
+              currentAttemptSource == .official,
+              !hasFallenBackInCurrentCycle else {
+            return
+        }
+        triggerFallbackToAccelerated()
+    }
+
+    func triggerFallbackToAccelerated() {
+        cancelTimeoutWatchdog()
+        activeCycleID = UUID()
+        didEnclosureFailOnOfficial = false
+        hasFallenBackInCurrentCycle = true
+        currentAttemptSource = .accelerated
+        activeDownloadSource = .accelerated
+        status = .checking
+        driver.checkForUpdates(using: .accelerated)
+    }
+
+    private func startTimeoutWatchdogIfNeeded() {
+        cancelTimeoutWatchdog()
+        guard settings.updateDownloadSource == .automatic, currentAttemptSource == .official else {
+            return
+        }
+        let timeout = checkTimeoutInterval
+        let cycleID = activeCycleID
+        let attemptSource = currentAttemptSource
+        checkTimeoutTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+            } catch {
+                return
+            }
+            guard let self,
+                  !Task.isCancelled,
+                  self.status == .checking,
+                  self.activeCycleID == cycleID,
+                  self.currentAttemptSource == attemptSource else {
+                return
+            }
+            self.handleCheckTimeout()
+        }
+    }
+
+    private func cancelTimeoutWatchdog() {
+        checkTimeoutTask?.cancel()
+        checkTimeoutTask = nil
+    }
+
+    static func isNetworkOrTimeoutError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain {
+            switch nsError.code {
+            case NSURLErrorTimedOut,
+                 NSURLErrorCannotConnectToHost,
+                 NSURLErrorCannotFindHost,
+                 NSURLErrorNetworkConnectionLost,
+                 NSURLErrorDNSLookupFailed,
+                 NSURLErrorNotConnectedToInternet,
+                 NSURLErrorBadServerResponse,
+                 NSURLErrorResourceUnavailable,
+                 NSURLErrorSecureConnectionFailed,
+                 NSURLErrorServerCertificateHasBadDate,
+                 NSURLErrorServerCertificateUntrusted,
+                 NSURLErrorServerCertificateHasUnknownRoot,
+                 NSURLErrorServerCertificateNotYetValid,
+                 NSURLErrorClientCertificateRejected,
+                 NSURLErrorClientCertificateRequired,
+                 NSURLErrorCannotLoadFromNetwork,
+                 NSURLErrorInternationalRoamingOff,
+                 NSURLErrorCallIsActive,
+                 NSURLErrorDataNotAllowed:
+                return true
+            default:
+                return false
+            }
+        }
+
+        if nsError.domain == SUSparkleErrorDomain {
+            if nsError.code == Int(SUError.appcastError.rawValue) ||
+               nsError.code == Int(SUError.downloadError.rawValue) {
+                if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
+                    return isNetworkOrTimeoutError(underlying)
+                }
+                return true
+            }
+        }
+
+        if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
+            return isNetworkOrTimeoutError(underlying)
+        }
+
+        return false
     }
 }

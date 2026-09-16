@@ -63,6 +63,21 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertFalse(AppSettings(defaults: defaults).automaticUpdateCheckEnabled)
     }
 
+    func testUpdateDownloadSourceDefaultsToAutomaticAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        XCTAssertEqual(AppSettings(defaults: defaults).updateDownloadSource, .automatic)
+
+        let settings = AppSettings(defaults: defaults)
+        settings.updateDownloadSource = .accelerated
+        XCTAssertEqual(AppSettings(defaults: defaults).updateDownloadSource, .accelerated)
+
+        settings.updateDownloadSource = .official
+        XCTAssertEqual(AppSettings(defaults: defaults).updateDownloadSource, .official)
+    }
+
     func testSelectionActionBarShowsExternalAskDefaultsOnAndPersists() {
         let suite = "AppSettingsTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
