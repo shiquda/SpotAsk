@@ -28,6 +28,8 @@ features:
     details: "~10 MB installer, pure Swift/AppKit, zero Electron runtime, keyboard-first with Esc-to-close, and instant cold launch."
 ---
 
+![SpotAsk — ask first, decide where it goes after: one prompt routed to in-app answers, web AI, or local agents](/images/spotask-hero.png)
+
 ![SpotAsk question window in light and dark appearance with prompts and External Ask buttons](/images/spotask-chat.png)
 
 ## What is SpotAsk

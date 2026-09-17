@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="images/spotask-icon.png" width="104" alt="SpotAsk app icon">
+  <img src="images/spotask-hero.png" width="800" alt="SpotAsk — ask first, decide where it goes after: one prompt routed to in-app answers, web AI, or local agents">
 </p>
-
-<h1 align="center">SpotAsk</h1>
 
 <p align="center">
   A native macOS menu-bar AI assistant & query router. Ask instantly with a hotkey — get fast in-app answers with your own AI service (BYOK) or route queries to ChatGPT, local CLI agents, and other external tools in 1 click.
