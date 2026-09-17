@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="images/spotask-icon.png" width="104" alt="SpotAsk 应用图标">
+  <img src="images/spotask-hero-zh.png" width="800" alt="SpotAsk — 先提问，再决定去向：一次提问分流至应用内回答、网页 AI 或本地 Agent">
 </p>
-
-<h1 align="center">SpotAsk</h1>
 
 <p align="center">
   一款原生 macOS 菜单栏 AI 助手与查询路由器。按快捷键秒级呼出、随时提问——支持使用自己的 AI 服务（BYOK）极速获取应用内回答，或一键将问题发给 ChatGPT、本地终端 Agent 等外部工具。
