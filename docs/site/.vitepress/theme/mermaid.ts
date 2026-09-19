@@ -108,9 +108,7 @@ export function installMermaidDiagrams(): void {
       },
       (error) => {
         watchingLoad = false
-        const message = errorMessage(error)
-        if (message === MERMAID_LOAD_TIMEOUT) mermaidPoisoned = MERMAID_LOAD_TIMEOUT
-        else loading = null
+        mermaidPoisoned = errorMessage(error)
         schedule()
       },
     )
@@ -247,11 +245,12 @@ export function installMermaidDiagrams(): void {
       startedRun = true
       mermaidBusy = true
       const finished = withTimeout(instance.run({ nodes: [stage] }), MERMAID_TIMEOUT)
-      void finished.finally(() => {
+      const settleGate = (): void => {
         mermaidBusy = false
         turn.resolve()
         schedule()
-      })
+      }
+      void finished.then(settleGate, settleGate)
       const stale = untilStale(isStale)
       try {
         await Promise.race([finished, stale.promise])
