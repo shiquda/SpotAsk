@@ -28,7 +28,7 @@ features:
     details: "安装包约 10 MB，纯 Swift 与 AppKit 构建，无 Electron 运行时，全键盘驱动（Esc 一键关闭），毫秒级冷启动。"
 ---
 
-![SpotAsk 浅色与深色模式下的提问窗口，含提示词和外部提问入口](/images/spotask-chat.png)
+![SpotAsk — 一次提问，分流至应用内回答、网页 AI 或本地 Agent](/images/spotask-hero-zh.png)
 
 ## SpotAsk 是什么
 

@@ -1,11 +1,12 @@
 <p align="center">
-  <img src="images/spotask-icon.png" width="104" alt="SpotAsk app icon">
+  <img src="images/spotask-hero.png" width="100%" alt="SpotAsk — one prompt routed to an in-app answer, a web AI, or a local CLI agent">
 </p>
 
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  A native macOS menu-bar AI assistant & query router. Ask instantly with a hotkey — get fast in-app answers with your own AI service (BYOK) or route queries to ChatGPT, local CLI agents, and other external tools in 1 click.
+  A native macOS menu-bar AI assistant & query router — summon it with a hotkey, then send the question wherever it belongs.
+</p>
 
 <p align="center">
   <a href="https://github.com/shiquda/SpotAsk/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/shiquda/SpotAsk?display_name=tag&sort=semver"></a>
@@ -14,15 +15,7 @@
 </p>
 
 <p align="center">
-  Pure Swift · ~10 MB installer · No Electron · Privacy-first · macOS 15+ · Apple silicon & Intel · AGPL-3.0
-</p>
-
-<p align="center">
   <a href="#download">Download</a> · <a href="https://shiquda.github.io/SpotAsk/">Documentation</a> · <a href="#quick-start">Build from source</a> · <a href="#development">Development</a> · <a href="README.zh-CN.md">简体中文</a>
-</p>
-
-<p align="center">
-  <img src="images/spotask-chat.png" width="640" alt="SpotAsk question window in light and dark appearance with prompts and External Ask buttons">
 </p>
 
 ## What SpotAsk does
@@ -31,16 +24,15 @@
   - **Web platforms** — launch queries directly in ChatGPT, Perplexity, Grok, and more.
   - **Desktop apps** — trigger installed desktop applications via custom URI schemes.
   - **Terminal & CLI agents** — wake up local CLI agents directly in Terminal.
-- **`@` Command palette & prompt presets** — type `@` in the composer to quickly search and switch prompt presets or External Ask targets; built-in prompts for everyday workflows plus custom prompt creation and custom shortcuts.
+- **Prompt presets** — built-in prompts for everyday workflows plus custom prompt creation and custom shortcuts.
 - **Selection assistant with instant chat action** — highlight text in Safari, Notes, Xcode, or any other app; click the dedicated chat icon to bring text directly into the conversation, or run translation, explanation, summarization, and custom prompts from the floating quick action bar.
-- **In-app updates with regional mirrors** — check, download, and install updates directly inside the app with Sparkle, featuring automatic fallback to mainland China download mirrors.
 - **Instant hotkey capture** — press `Option + Space` (customizable) to summon a focused input window from anywhere; get direct streaming answers using your own API key (BYOK), or press `Esc` to instantly close the window when done.
 - **Ask with attachments** — paste screenshots or drop in images, text, and code files; follow-up questions seamlessly retain the attached context.
-- **Featherweight pure native** — built entirely in Swift and AppKit; cold-starts instantly, idles quietly in the menu bar, and uses minimal memory.
+- **Featherweight pure native** — built entirely in Swift and AppKit; ~10 MB installer, no Electron runtime; cold-starts instantly, idles quietly in the menu bar, and uses minimal memory.
 
 ## Core philosophy & typical use cases
 
-SpotAsk is designed around **"Ask first. Decide where it goes after"** and **"Done and gone"** — keeping everyday AI interactions lightweight, keyboard-first, and zero-overhead.
+SpotAsk is designed around **"Ask first. Decide where it goes after"** and **"Summon anytime. Dismiss instantly"** — keeping everyday AI interactions lightweight, keyboard-first, and zero-overhead.
 
 ### 1. Core interaction: Summon, ask, and close
 
