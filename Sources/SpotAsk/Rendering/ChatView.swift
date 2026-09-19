@@ -219,11 +219,6 @@ struct ChatView: View {
                         effectiveModelID: viewModel.effectiveModelID,
                         hasSessionOverride: viewModel.sessionModelID != nil,
                         isDisabled: isGenerating,
-                        externalAsks: settings.enabledQuickActions,
-                        onSelectExternalAsk: { action in
-                            isModelPickerPresented = false
-                            selectExternalAskFromModelPicker(action)
-                        },
                         onSelect: { id in
                             viewModel.selectSessionModel(id: id)
                             isModelPickerPresented = false
@@ -455,6 +450,10 @@ struct ChatView: View {
                     onRegenerate: viewModel.regenerate,
                     onRetryWithModel: { retryLatestAnswer(with: $0) },
                     onRetryWithDefaultModel: retryLatestAnswerWithDefaultModel,
+                    externalAsks: settings.enabledQuickActions,
+                    onRetryWithExternalAsk: { action in
+                        retryWithExternalAsk(action, answering: message.id)
+                    },
                     isCopied: copiedMessageID == message.id,
                     onCopy: { copyMessage(message) },
                     canInsertSelection: message.state == .complete && (viewModel.selectionSnapshot(for: message.id)?.canReplaceSelection ?? false),
@@ -913,6 +912,11 @@ struct ChatView: View {
 
     private func confirmNewConversation() {
         viewModel.newConversation()
+        composerModeCoordinator.reset()
+        clearAtCommandTokenState()
+        if let textView = composerTextView.textView, !textView.string.isEmpty {
+            textView.string = ""
+        }
         inputFocused = true
         scrollFollowState.resumeFollowing()
     }
@@ -1091,31 +1095,24 @@ struct ChatView: View {
         composerModeCoordinator.badge(selectedPreset: viewModel.selectedPromptPreset)
     }
 
-    /// Picking an External Ask in the header's model popover is a side trip:
-    /// the current conversation is left exactly as it is, and only the draft the
-    /// launch just consumed is cleared.
-    private func selectExternalAskFromModelPicker(_ action: QuickAction) {
+    /// Picking an External Ask in the retry popover is a side trip: the question
+    /// that produced this answer travels to the other platform, while the
+    /// conversation, the session model, and the composer draft stay as they are.
+    private func retryWithExternalAsk(_ action: QuickAction, answering messageID: UUID) {
         switch ModelPickerExternalAsk.perform(
             action,
+            answering: messageID,
             viewModel: viewModel,
-            coordinator: &composerModeCoordinator,
-            clearComposerText: {
-                if let textView = composerTextView.textView, !textView.string.isEmpty {
-                    textView.string = ""
-                }
-            }
+            coordinator: &composerModeCoordinator
         ) {
-        case .launched:
-            clearAtCommandTokenState()
-        case .becamePending:
-            break
+        case .launched, .becamePending:
+            inputFocused = true
         case let .launchFailed(failed):
             StatusToastCenter.shared.show(
                 L10n.string("atCommand.launchFailed", failed.displayName),
                 isError: true
             )
         }
-        inputFocused = true
     }
 
     private func selectExternalAsk(_ action: QuickAction) {
