@@ -450,6 +450,14 @@
 "settings.selectionAssistantAutoShowSearchPlaceholder" = "搜索应用";
 "settings.selectionAssistantAutoShowSearchNoResults" = "没有匹配的应用。";
 "settings.selectionAssistantAutoShowSearchClear" = "清空搜索";
+"settings.selectionAssistantClipboardAssisted" = "剪贴板辅助划词";
+"settings.selectionAssistantClipboardAssistedDescription" = "在无法准确提供选中文字的应用中，使用剪贴板来读取。请仅为需要的应用开启此功能。";
+"settings.selectionAssistantClipboardAssistedEnabled" = "通过剪贴板读取选中文字";
+"settings.selectionAssistantClipboardAssistedApps" = "已选择应用";
+"settings.selectionAssistantClipboardAssistedChooseApps" = "选择应用";
+"settings.selectionAssistantClipboardAssistedSelectedCount" = "已选择 %d 个应用";
+"settings.selectionAssistantClipboardAssistedClear" = "清空";
+"settings.selectionAssistantClipboardAssistedRefresh" = "刷新应用列表";
 "menu.quickQuestionMode" = "快速提问模式";
 "chat.insertSelection" = "替换选中文字";
 "chat.insertSelectionSucceeded" = "已替换选中的文字。";

@@ -450,6 +450,14 @@
 "settings.selectionAssistantAutoShowSearchPlaceholder" = "Search apps";
 "settings.selectionAssistantAutoShowSearchNoResults" = "No matching apps.";
 "settings.selectionAssistantAutoShowSearchClear" = "Clear search";
+"settings.selectionAssistantClipboardAssisted" = "Clipboard-assisted selection";
+"settings.selectionAssistantClipboardAssistedDescription" = "Use the clipboard to read selected text in apps that do not report it accurately. Turn this on only for the apps that need it.";
+"settings.selectionAssistantClipboardAssistedEnabled" = "Read selections with the clipboard";
+"settings.selectionAssistantClipboardAssistedApps" = "Selected apps";
+"settings.selectionAssistantClipboardAssistedChooseApps" = "Choose Apps";
+"settings.selectionAssistantClipboardAssistedSelectedCount" = "%d apps selected";
+"settings.selectionAssistantClipboardAssistedClear" = "Clear";
+"settings.selectionAssistantClipboardAssistedRefresh" = "Refresh app list";
 "menu.quickQuestionMode" = "Quick Question Mode";
 "chat.insertSelection" = "Replace selected text";
 "chat.insertSelectionSucceeded" = "Replaced the selected text.";
