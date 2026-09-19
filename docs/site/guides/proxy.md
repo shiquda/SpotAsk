@@ -17,6 +17,8 @@ If your network requires a proxy, configure it in Settings > General > **Proxy**
 
 The proxy is used for chat requests and model updates. A successful proxy test confirms SpotAsk can connect through the proxy.
 
+<SpotAskSettingsLink section="general" />
+
 ## If the test fails
 
 - Check the server host and port with your network provider.

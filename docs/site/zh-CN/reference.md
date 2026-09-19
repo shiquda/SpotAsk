@@ -39,6 +39,8 @@ description: SpotAsk 设置分区、默认快捷键和受支持附件类型的�
 
 提示词快捷键取决于提示词顺序和启用状态。应用内快捷键可以在设置中重新指定或清除。提示词之后的数字会继续分配给已启用的[外部提问](/zh-CN/guides/external-ask)条目。
 
+<SpotAskSettingsLink section="shortcuts" />
+
 ## 受支持的附件类型
 
 | 类型 | 示例 |

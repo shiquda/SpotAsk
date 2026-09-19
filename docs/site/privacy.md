@@ -32,6 +32,8 @@ Automatic update checking is enabled by default and checks the official release 
 
 Settings > General > **Clear All Local Data** removes access keys, settings, and saved recent conversations.
 
+<SpotAskSettingsLink section="general" />
+
 ## Diagnostics
 
 Settings > General > **Diagnostics** can record recent request and selection details locally to help troubleshoot issues. Credentials are never recorded. Use **Export Log** to share the log with someone helping you.

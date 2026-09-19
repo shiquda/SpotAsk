@@ -7,7 +7,6 @@ enum SpotAskCommandAction: Equatable {
     case newConversation
     case ask(String, PromptPreset?, SelectedTextSnapshot? = nil)
     case addToChat(String)
-    case showSettings
 }
 
 @MainActor
@@ -17,8 +16,9 @@ final class SpotAskCommandCenter {
     private var panelController: (any SpotAskPanelControlling)?
     private var hasPanelContent = false
     private var pendingActions: [SpotAskCommandAction] = []
+    private var pendingSettingsRequests: [SettingsSection?] = []
     private var actionConsumer: ((SpotAskCommandAction) -> Void)?
-    private var settingsPresenter: (() -> Void)?
+    private var settingsPresenter: ((SettingsSection?) -> Void)?
 
     init() {}
 
@@ -40,8 +40,13 @@ final class SpotAskCommandCenter {
         showAndDeliverPendingActions()
     }
 
-    func setSettingsPresenter(_ presenter: @escaping () -> Void) {
+    /// The presenter receives the requested settings page, or `nil` for plain
+    /// Settings. Settings requests never enter the chat panel queue: they wait
+    /// in their own queue and are delivered the moment a presenter exists, so a
+    /// cold-start deep link neither needs the panel nor opens it.
+    func setSettingsPresenter(_ presenter: @escaping (SettingsSection?) -> Void) {
         settingsPresenter = presenter
+        deliverPendingSettingsRequests()
     }
 
     func open() {
@@ -103,12 +108,19 @@ final class SpotAskCommandCenter {
         enqueue(.ask(trimmedQuestion, promptPreset, selectionSnapshot))
     }
 
-    func showSettings() {
+    func showSettings(section: SettingsSection? = nil) {
         if let settingsPresenter {
-            settingsPresenter()
+            settingsPresenter(section)
         } else {
-            enqueue(.showSettings)
+            pendingSettingsRequests.append(section)
         }
+    }
+
+    private func deliverPendingSettingsRequests() {
+        guard let settingsPresenter, !pendingSettingsRequests.isEmpty else { return }
+        let requests = pendingSettingsRequests
+        pendingSettingsRequests.removeAll()
+        requests.forEach(settingsPresenter)
     }
 
     private func enqueue(_ action: SpotAskCommandAction) {

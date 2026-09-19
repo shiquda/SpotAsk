@@ -18,6 +18,8 @@ description: 将 Anthropic 添加为 SpotAsk 服务并验证连接。
 7. 添加 Anthropic 控制台或服务商文档中的模型 ID。
 8. 点击“测试连接”。
 
+<SpotAskSettingsLink section="provider" />
+
 ## 地址示例
 
 使用**服务根地址**：

@@ -7,6 +7,8 @@ description: Manage AI services and models, refresh model lists, and switch mode
 
 Settings > **Services** is where you keep your AI services and models.
 
+<SpotAskSettingsLink section="provider" />
+
 ## Services
 
 Each service has:
@@ -36,6 +38,18 @@ The model picker in the chat window changes the model for the current conversati
 - Choose a different model before or after a completed answer to retry with that model.
 - **Use Default Model** returns the conversation to the Settings default.
 - **New Conversation** clears the override and returns to the default model.
+
+```mermaid Model choice: the Settings default versus a model picked for one conversation
+flowchart TD
+  A[New conversation] --> B[Uses the Active model from Settings]
+  B --> C{Change the model in the chat window?}
+  C -->|No| D[The Settings default keeps being used]
+  C -->|Yes| E[Only this conversation uses it]
+  E --> F[Ask again or retry the latest answer]
+  F --> G{Back to the default?}
+  G -->|Use Default Model| B
+  G -->|New Conversation| B
+```
 
 ## If a request fails
 

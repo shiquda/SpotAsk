@@ -1,7 +1,9 @@
 import { defineConfig, type HeadConfig } from 'vitepress'
+import { mermaidFence } from './mermaidFence'
 
 const docsUrl = 'https://shiquda.github.io/SpotAsk/'
-const socialImageUrl = `${docsUrl}images/spotask-chat.png`
+const socialImageUrl = `${docsUrl}images/spotask-hero.png`
+const socialImageUrlZh = `${docsUrl}images/spotask-hero-zh.png`
 
 function routeForPage(page: string): string {
   const withoutExtension = page.replace(/\.md$/, '')
@@ -132,6 +134,9 @@ export default defineConfig({
   srcExclude: ['public/markdown/**/*.md'],
   cleanUrls: true,
   lastUpdated: true,
+  markdown: {
+    config: mermaidFence
+  },
   sitemap: {
     hostname: docsUrl
   },
@@ -173,13 +178,13 @@ export default defineConfig({
       ['meta', { property: 'og:title', content: title }],
       ['meta', { property: 'og:description', content: description }],
       ['meta', { property: 'og:url', content: canonicalUrl }],
-      ['meta', { property: 'og:image', content: socialImageUrl }],
+      ['meta', { property: 'og:image', content: isChinese ? socialImageUrlZh : socialImageUrl }],
       ['meta', { property: 'og:locale', content: isChinese ? 'zh_CN' : 'en_US' }],
       ['meta', { property: 'og:locale:alternate', content: isChinese ? 'en_US' : 'zh_CN' }],
       ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
       ['meta', { name: 'twitter:title', content: title }],
       ['meta', { name: 'twitter:description', content: description }],
-      ['meta', { name: 'twitter:image', content: socialImageUrl }],
+      ['meta', { name: 'twitter:image', content: isChinese ? socialImageUrlZh : socialImageUrl }],
       ['script', { type: 'application/ld+json' }, JSON.stringify(structuredData)]
     ]
   },

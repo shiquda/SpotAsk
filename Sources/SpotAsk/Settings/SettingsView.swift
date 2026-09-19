@@ -1,4 +1,5 @@
 import AppKit
+import Observation
 import SwiftUI
 
 enum SettingsSectionGroup: CaseIterable, Hashable, Identifiable {
@@ -249,13 +250,42 @@ enum SettingsSearchIndex {
 }
 
 
+/// Presentation state shared by `SettingsWindowController` and `SettingsView`.
+///
+/// The controller keeps one model for the lifetime of the settings window, so a
+/// deep link reached from documentation survives window reuse: a cold-start link
+/// is already in the model when the view is built, and a link that arrives while
+/// the window is open flips the selection in place.
+@MainActor
+@Observable
+final class SettingsWindowModel {
+    var selectedSection: SettingsSection
+
+    /// Counts deep-link reveals. Navigate away from the revealed page and the
+    /// model's `selectedSection` still equals the last requested one, so
+    /// observing the section alone would swallow the second request for the
+    /// same page; the generation makes every reveal observable.
+    private(set) var revealGeneration = 0
+
+    init(selectedSection: SettingsSection = .provider) {
+        self.selectedSection = selectedSection
+    }
+
+    /// Selects `section` and asks the settings view to present it, whatever
+    /// the user was looking at when the link arrived.
+    func reveal(_ section: SettingsSection) {
+        selectedSection = section
+        revealGeneration += 1
+    }
+}
+
 struct SettingsView: View {
     let settings: AppSettings
     let accessibilityPermissionCoordinator: AccessibilityPermissionCoordinator
     private let accessibilitySettingsOpener: any AccessibilityPermissionSettingsOpening
 
     private let settingsWindowProvider: (() -> NSWindow?)?
-    @State private var selectedSection: SettingsSection = .provider
+    @Bindable var model: SettingsWindowModel
     @State private var providerState: ProviderSettingsState
     @State private var generalState: GeneralSettingsState
     @State private var searchText = ""
@@ -281,10 +311,10 @@ struct SettingsView: View {
     }
 
     private var resolvedSelection: SettingsSection {
-        guard visibleSections.contains(selectedSection) else {
-            return visibleSections.first ?? selectedSection
+        guard visibleSections.contains(model.selectedSection) else {
+            return visibleSections.first ?? model.selectedSection
         }
-        return selectedSection
+        return model.selectedSection
     }
 
     init(
@@ -293,14 +323,14 @@ struct SettingsView: View {
         providerFactory: any ChatProviderFactory,
         accessibilityPermissionCoordinator: AccessibilityPermissionCoordinator = AccessibilityPermissionCoordinator(),
         accessibilitySettingsOpener: any AccessibilityPermissionSettingsOpening = MacOSAccessibilityPermissionSettingsOpener(),
-        initialSection: SettingsSection = .provider,
+        model: SettingsWindowModel = SettingsWindowModel(),
         settingsWindowProvider: (() -> NSWindow?)? = nil
     ) {
         self.settings = settings
         self.accessibilityPermissionCoordinator = accessibilityPermissionCoordinator
         self.accessibilitySettingsOpener = accessibilitySettingsOpener
         self.settingsWindowProvider = settingsWindowProvider
-        _selectedSection = State(initialValue: initialSection)
+        self.model = model
         let providerState = ProviderSettingsState(
             settings: settings,
             keyStore: keyStore,
@@ -318,13 +348,13 @@ struct SettingsView: View {
     var body: some View {
         HStack(spacing: 0) {
             SettingsSidebar(
-                selection: $selectedSection,
+                selection: $model.selectedSection,
                 searchText: $searchText,
                 settings: settings,
                 visibleSections: visibleSections,
                 searchResults: searchResults,
                 onSelectResult: { result in
-                    selectedSection = result.target.section
+                    model.selectedSection = result.target.section
                     pendingGroupTarget = result.target
                 }
             )
@@ -361,7 +391,7 @@ struct SettingsView: View {
                             settings: settings,
                             permissionCoordinator: accessibilityPermissionCoordinator,
                             settingsOpener: accessibilitySettingsOpener,
-                            onOpenShortcuts: { selectedSection = .shortcuts }
+                            onOpenShortcuts: { model.selectedSection = .shortcuts }
                         )
                     }
                 case .shortcuts:
@@ -395,6 +425,13 @@ struct SettingsView: View {
         .overlay(alignment: .topTrailing) {
             StatusToastOverlay()
                 .padding(.top, 36)
+        }
+        .onChange(of: model.revealGeneration) { _, _ in
+            // A deep link asks for one page. Drop the search filter and any
+            // pending group target, or the requested page could stay hidden by
+            // the sidebar filter or scroll to the previous search's group.
+            searchText = ""
+            pendingGroupTarget = nil
         }
     }
 
