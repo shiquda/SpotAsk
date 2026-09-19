@@ -450,6 +450,14 @@
 "settings.selectionAssistantAutoShowSearchPlaceholder" = "Найти приложения";
 "settings.selectionAssistantAutoShowSearchNoResults" = "Нет подходящих приложений.";
 "settings.selectionAssistantAutoShowSearchClear" = "Очистить поиск";
+"settings.selectionAssistantClipboardAssisted" = "Выделение с помощью буфера обмена";
+"settings.selectionAssistantClipboardAssistedDescription" = "Использовать буфер обмена для чтения выделенного текста в приложениях, которые передают его неточно. Включайте это только для приложений, которым это необходимо.";
+"settings.selectionAssistantClipboardAssistedEnabled" = "Читать выделение через буфер обмена";
+"settings.selectionAssistantClipboardAssistedApps" = "Выбранные приложения";
+"settings.selectionAssistantClipboardAssistedChooseApps" = "Выбрать приложения";
+"settings.selectionAssistantClipboardAssistedSelectedCount" = "Выбрано приложений: %d";
+"settings.selectionAssistantClipboardAssistedClear" = "Очистить";
+"settings.selectionAssistantClipboardAssistedRefresh" = "Обновить список приложений";
 "menu.quickQuestionMode" = "Режим быстрого вопроса";
 "chat.insertSelection" = "Заменить выделенный текст";
 "chat.insertSelectionSucceeded" = "Выделенный текст заменён.";

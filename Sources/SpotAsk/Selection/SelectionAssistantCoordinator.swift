@@ -11,6 +11,7 @@ final class SelectionAssistantCoordinator {
     private let commandCenter: SpotAskCommandCenter
     private let overlay: any SelectionOverlayControlling
     private let executor: any QuickActionExecuting
+    private let clipboardAssistedPolicy: ClipboardAssistedSelectionPolicy
     private var triggerToken = 0
     private var snapshot: SelectedTextSnapshot?
     private var hasShownPermissionRecovery = false
@@ -18,7 +19,7 @@ final class SelectionAssistantCoordinator {
 
     init(
         settings: AppSettings,
-        reader: any SelectedTextReading = AccessibilitySelectedTextReader(),
+        reader: (any SelectedTextReading)? = nil,
         applicationProvider: any ForegroundSelectionApplicationProviding = MacOSForegroundSelectionApplicationProvider(),
         permissionCoordinator: AccessibilityPermissionCoordinator,
         settingsOpener: any AccessibilityPermissionSettingsOpening = MacOSAccessibilityPermissionSettingsOpener(),
@@ -26,8 +27,17 @@ final class SelectionAssistantCoordinator {
         overlay: any SelectionOverlayControlling,
         executor: any QuickActionExecuting = DefaultQuickActionExecutor()
     ) {
+        // The reader works on its own queue, so it cannot read main-actor
+        // settings mid-read. Keep a mirror of the clipboard preferences and
+        // refresh it whenever the selection settings change.
+        let clipboardAssistedPolicy = ClipboardAssistedSelectionPolicy()
+        clipboardAssistedPolicy.update(
+            enabled: settings.clipboardAssistedSelectionEnabled,
+            identifiers: settings.clipboardAssistedSelectionAppIdentifiers
+        )
+        self.clipboardAssistedPolicy = clipboardAssistedPolicy
         self.settings = settings
-        self.reader = reader
+        self.reader = reader ?? AccessibilitySelectedTextReader(clipboardAssistedPolicy: clipboardAssistedPolicy)
         self.applicationProvider = applicationProvider
         self.permissionCoordinator = permissionCoordinator
         self.settingsOpener = settingsOpener
@@ -145,6 +155,10 @@ final class SelectionAssistantCoordinator {
     }
 
     func handleSettingsChanged() {
+        clipboardAssistedPolicy.update(
+            enabled: settings.clipboardAssistedSelectionEnabled,
+            identifiers: settings.clipboardAssistedSelectionAppIdentifiers
+        )
         guard settings.selectionAssistantEnabled else {
             cancelInFlightAndDiscardPresentedSelection()
             return

@@ -678,6 +678,56 @@ final class AppSettingsTests: XCTestCase {
         }
     }
 
+    func testClipboardAssistedSelectionDefaultsToOffAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let settings = AppSettings(defaults: defaults)
+        XCTAssertFalse(settings.clipboardAssistedSelectionEnabled)
+        XCTAssertTrue(settings.clipboardAssistedSelectionAppIdentifiers.isEmpty)
+
+        settings.clipboardAssistedSelectionEnabled = true
+        settings.clipboardAssistedSelectionAppIdentifiers = ["org.zotero.zotero"]
+
+        let reloaded = AppSettings(defaults: defaults)
+        XCTAssertTrue(reloaded.clipboardAssistedSelectionEnabled)
+        XCTAssertEqual(reloaded.clipboardAssistedSelectionAppIdentifiers, ["org.zotero.zotero"])
+    }
+
+    func testClipboardAssistedSelectionRequiresTheSwitchAndAListedApp() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let settings = AppSettings(defaults: defaults)
+        let listed = SelectionSourceApplication(
+            processIdentifier: 42,
+            bundleIdentifier: "org.zotero.zotero",
+            localizedName: "Zotero"
+        )
+        let unlisted = SelectionSourceApplication(
+            processIdentifier: 43,
+            bundleIdentifier: "com.example.Reader",
+            localizedName: "Reader"
+        )
+
+        settings.clipboardAssistedSelectionAppIdentifiers = ["org.zotero.zotero"]
+        XCTAssertFalse(settings.usesClipboardAssistedSelection(from: listed))
+
+        settings.clipboardAssistedSelectionEnabled = true
+        XCTAssertTrue(settings.usesClipboardAssistedSelection(from: listed))
+        XCTAssertFalse(settings.usesClipboardAssistedSelection(from: unlisted))
+        XCTAssertFalse(settings.usesClipboardAssistedSelection(from: nil))
+
+        let nameOnlyListed = SelectionSourceApplication(
+            processIdentifier: 44,
+            bundleIdentifier: nil,
+            localizedName: "org.zotero.zotero"
+        )
+        XCTAssertTrue(settings.usesClipboardAssistedSelection(from: nameOnlyListed))
+    }
+
     func testSimplifiedChineseUsesTheSwiftPMPackagedLocalizationDirectory() {
         let bundle = L10n.localizedBundle(for: .simplifiedChinese)
 

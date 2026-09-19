@@ -40,6 +40,15 @@ struct SelectionSourceApplication: Equatable, Sendable {
     let processIdentifier: pid_t
     let bundleIdentifier: String?
     let localizedName: String?
+
+    /// The stable identifier per-app selection settings store: the bundle
+    /// identifier, falling back to the app name for apps that publish none.
+    var selectionIdentifier: String? {
+        guard let identifier = bundleIdentifier ?? localizedName, !identifier.isEmpty else {
+            return nil
+        }
+        return identifier
+    }
 }
 
 enum SelectionAnchor: Equatable, Sendable {
