@@ -39,18 +39,6 @@ The model picker in the chat window changes the model for the current conversati
 - **Use Default Model** returns the conversation to the Settings default.
 - **New Conversation** clears the override and returns to the default model.
 
-```mermaid Model choice: the Settings default versus a model picked for one conversation
-flowchart TD
-  A[New conversation] --> B[Uses the Active model from Settings]
-  B --> C{Change the model in the chat window?}
-  C -->|No| D[The Settings default keeps being used]
-  C -->|Yes| E[Only this conversation uses it]
-  E --> F[Ask again or retry the latest answer]
-  F --> G{Back to the default?}
-  G -->|Use Default Model| B
-  G -->|New Conversation| B
-```
-
 ## If a request fails
 
 When a request fails, SpotAsk offers **Retry** and, where appropriate, **Retry with another model**. Select another model to regenerate the latest answer without losing the conversation.

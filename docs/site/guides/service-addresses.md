@@ -33,16 +33,13 @@ The full address must point to the correct chat endpoint for the selected API fo
 
 Choose **Service Root** unless the provider documentation explicitly gives you a full endpoint that should not be derived from a base address.
 
-```mermaid Address type decision: what the provider documents decides Service Root or Full Request Address
+```mermaid Address type: use Service Root unless the provider gives a complete chat endpoint
 flowchart TD
-  A[What does your provider document?] --> B{Base address or complete chat endpoint?}
-  B -->|Base address| C[Service Root]
-  B -->|Complete chat endpoint| D[Full Request Address]
-  C --> E[SpotAsk appends the chat path]
-  C --> F[Refresh Models can list models]
-  D --> G[Requests go to the exact path you entered]
-  D --> H[Add models manually]
+  A{What does the provider document?}
+  A -->|Base address| B[Service Root]
+  A -->|Complete chat endpoint| C[Full Request Address]
 ```
+
 
 <SpotAskSettingsLink section="provider" />
 

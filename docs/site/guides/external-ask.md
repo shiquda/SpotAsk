@@ -17,19 +17,6 @@ External Ask buttons appear below the prompt presets in a new question window, a
 
 External Ask does not consume API tokens from your configured AI providers, and queries are not stored in conversation history.
 
-```mermaid External Ask routing: an empty input pins a target badge, a non-empty input sends right away
-flowchart TD
-  A[Trigger an External Ask target] --> B{Is there text in the input?}
-  B -->|Empty| C[Target badge is pinned above the composer]
-  C --> D[Type the question, then press Enter]
-  B -->|Not empty| E[The question is sent right away]
-  D --> F{Target action type}
-  E --> F
-  F -->|Web question| G[Opens the page with the question filled in]
-  F -->|Open an app| H[Hands the question to the app's URL format]
-  F -->|Terminal command| I[Runs the command with the question]
-```
-
 ## Action types
 
 Each External Ask entry is one of three action types.

@@ -58,6 +58,92 @@ function errorMessage(error: unknown): string {
   return 'Mermaid could not draw this diagram'
 }
 
+function isMermaid(value: unknown): value is Mermaid {
+  if (!value || typeof value !== 'object') return false
+  if (!('initialize' in value) || !('run' in value)) return false
+  return typeof value.initialize === 'function' && typeof value.run === 'function'
+}
+
+/**
+ * VitePress's mermaid.core browser chunk does not export a top-level
+ * `default`. The renderer sits on `default`, a nested `default`, a named
+ * `mermaid` export, or the `default` of a generated Module namespace.
+ */
+function resolveMermaidExport(module: unknown): Mermaid {
+  const seen = new Set<unknown>()
+  const consider = (value: unknown): Mermaid | null => {
+    let current: unknown = value
+    for (let depth = 0; depth < 4 && current != null && !seen.has(current); depth++) {
+      seen.add(current)
+      if (isMermaid(current)) return current
+      if (typeof current !== 'object') break
+      const named = 'mermaid' in current ? current.mermaid : undefined
+      if (isMermaid(named)) return named
+      current = 'default' in current ? current.default : undefined
+    }
+    return null
+  }
+
+  const fromRoot = consider(module)
+  if (fromRoot) return fromRoot
+
+  if (module && typeof module === 'object') {
+    for (const value of Object.values(module)) {
+      if (!value || typeof value !== 'object') continue
+      if (!(Symbol.toStringTag in value) || value[Symbol.toStringTag] !== 'Module') continue
+      const fromNested = consider(value)
+      if (fromNested) return fromNested
+    }
+  }
+
+  throw new Error('Mermaid export is not a renderer')
+}
+
+function mermaidCssVar(name: string, fallback: string): string {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  return value || fallback
+}
+
+/** `base` + VitePress tokens, so diagrams follow light/dark instead of Mermaid's default look. */
+function mermaidInitOptions(scheme: string) {
+  const isDark = scheme === 'dark'
+  return {
+    startOnLoad: false,
+    securityLevel: 'strict' as const,
+    theme: 'base' as const,
+    themeVariables: {
+      darkMode: isDark,
+      background: 'transparent',
+      fontFamily: mermaidCssVar('--vp-font-family', 'ui-sans-serif, system-ui, sans-serif'),
+      fontSize: '13px',
+      primaryColor: mermaidCssVar('--vp-c-bg-soft', isDark ? '#202127' : '#f6f6f7'),
+      primaryTextColor: mermaidCssVar('--vp-c-text-1', isDark ? '#f6f6f7' : '#3c3c43'),
+      primaryBorderColor: mermaidCssVar('--vp-c-brand-1', isDark ? '#a8b1ff' : '#3451b2'),
+      lineColor: mermaidCssVar('--vp-c-text-2', isDark ? '#c8c8cc' : '#67676c'),
+      secondaryColor: mermaidCssVar('--vp-c-brand-soft', isDark ? '#2a2a40' : '#e8ecff'),
+      tertiaryColor: mermaidCssVar('--vp-c-bg', isDark ? '#1b1b1f' : '#ffffff'),
+      nodeBorder: mermaidCssVar('--vp-c-brand-1', isDark ? '#a8b1ff' : '#3451b2'),
+      mainBkg: mermaidCssVar('--vp-c-bg-soft', isDark ? '#202127' : '#f6f6f7'),
+      nodeTextColor: mermaidCssVar('--vp-c-text-1', isDark ? '#f6f6f7' : '#3c3c43'),
+      clusterBkg: mermaidCssVar('--vp-c-bg-alt', isDark ? '#161618' : '#f1f1f2'),
+      clusterBorder: mermaidCssVar('--vp-c-divider', isDark ? '#3c3c43' : '#c2c2c4'),
+      titleColor: mermaidCssVar('--vp-c-text-1', isDark ? '#f6f6f7' : '#3c3c43'),
+      edgeLabelBackground: mermaidCssVar('--vp-c-bg', isDark ? '#1b1b1f' : '#ffffff'),
+      tertiaryTextColor: mermaidCssVar('--vp-c-text-2', isDark ? '#c8c8cc' : '#67676c'),
+      secondaryTextColor: mermaidCssVar('--vp-c-text-1', isDark ? '#f6f6f7' : '#3c3c43'),
+    },
+    flowchart: {
+      curve: 'basis' as const,
+      padding: 10,
+      nodeSpacing: 28,
+      rankSpacing: 36,
+      htmlLabels: true,
+      useMaxWidth: true,
+      wrappingWidth: 188,
+    },
+  }
+}
+
 export function installMermaidDiagrams(): void {
   if (import.meta.env.SSR) return
 
@@ -97,7 +183,7 @@ export function installMermaidDiagrams(): void {
   const kickLoad = (): void => {
     if (mermaid || mermaidPoisoned) return
     loading ??= import('mermaid').then((module) => {
-      mermaid = module.default
+      mermaid = resolveMermaidExport(module)
     })
     if (watchingLoad) return
     watchingLoad = true
@@ -241,7 +327,7 @@ export function installMermaidDiagrams(): void {
         markFailure(node, current, mermaidPoisoned, source)
         return mermaidPoisoned
       }
-      instance.initialize({ startOnLoad: false, securityLevel: 'strict', theme: current })
+      instance.initialize(mermaidInitOptions(current))
       startedRun = true
       mermaidBusy = true
       const finished = withTimeout(instance.run({ nodes: [stage] }), MERMAID_TIMEOUT)
