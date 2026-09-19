@@ -13,6 +13,9 @@
  *   so each attempt draws on a detached node and only replaces the live diagram
  *   when that attempt is still current. A timed-out `run()` cannot overwrite a
  *   later result, and a node that leaves the document is skipped.
+ * - `run()` is serialized with a gate that this module releases when it
+ *   abandons the wait. Mermaid itself may never settle; holding the next
+ *   drawing on that promise would leave every later page unable to draw.
  *
  * Diagrams are re-drawn when the color scheme changes, because Mermaid bakes
  * its colors into the SVG rather than inheriting them from CSS.
@@ -61,8 +64,11 @@ export function installMermaidDiagrams(): void {
    * epoch they started with and abandon the commit if it moved.
    */
   let epoch = 0
-  /** Chains `mermaid.run` so two drawings never share its global state. */
-  let mermaidRuns: Promise<void> = Promise.resolve()
+  /**
+   * Turns of `mermaid.run`. Released when this module abandons a wait, not
+   * when Mermaid's own promise settles, so a hung `run()` cannot pin the queue.
+   */
+  let mermaidGate: Promise<void> = Promise.resolve()
 
   const load = async (): Promise<Mermaid> => {
     loading ??= import('mermaid').then((module) => {
@@ -167,18 +173,20 @@ export function installMermaidDiagrams(): void {
       || attempts.get(node) !== attempt
       || theme() !== current
 
-    const run = mermaidRuns.then(() => {
-      if (isStale()) return
-      instance.initialize({ startOnLoad: false, securityLevel: 'strict', theme: current })
-      return instance.run({ nodes: [stage] })
-    })
-    mermaidRuns = run.then(
+    const turn = Promise.withResolvers<void>()
+    const previous = mermaidGate
+    mermaidGate = turn.promise.then(
       () => undefined,
       () => undefined,
     )
 
     try {
-      await raceUntil(run, isStale)
+      // Bound the wait for the previous turn. A hung Mermaid run must not pin
+      // this drawing past the timeout; we never call `run()` if that wait dies.
+      await raceUntil(previous, isStale)
+      if (isStale()) return null
+      instance.initialize({ startOnLoad: false, securityLevel: 'strict', theme: current })
+      await raceUntil(instance.run({ nodes: [stage] }), isStale)
       if (isStale()) return null
       if (!stage.querySelector('svg g')) throw new Error('Mermaid produced no drawing')
       node.replaceChildren(...Array.from(stage.childNodes))
@@ -190,6 +198,7 @@ export function installMermaidDiagrams(): void {
       markFailure(node, current, message, source)
       return message
     } finally {
+      turn.resolve()
       stage.remove()
     }
   }
