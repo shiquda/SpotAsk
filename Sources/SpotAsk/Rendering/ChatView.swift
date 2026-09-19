@@ -1253,7 +1253,16 @@ struct ChatView: View {
             focusInput()
             return
         }
-        let formatted = "\(trimmed)\n\n"
+
+        let quoted = trimmed
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { line in
+                line.isEmpty ? ">" : "> \(line)"
+            }
+            .joined(separator: "\n")
+        let formatted = viewModel.input.isEmpty
+            ? "\(quoted)\n\n"
+            : "\(viewModel.input)\n\n\(quoted)\n\n"
         viewModel.selectedPromptPreset = nil
         viewModel.input = formatted
         focusInput()
