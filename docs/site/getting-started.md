@@ -46,24 +46,6 @@ Open Settings from the menu bar (or press `⌘ + ,`), then open **Services**.
 
 If the test succeeds, close Settings and ask your first question. Most connection problems are address, key, or model ID mistakes; see [Troubleshooting](/troubleshooting) when the test fails.
 
-The whole setup is one path with two decisions:
-
-```mermaid Connection setup: choose an API format, choose an address type, then test the connection
-flowchart TD
-  A[Add or select a service] --> B{API Format}
-  B -->|OpenAI Compatible| C[Enter the service address]
-  B -->|Anthropic| C
-  C --> D{Address Type}
-  D -->|Service Root| E[SpotAsk appends the chat path<br/>Model discovery available]
-  D -->|Full Request Address| F[Use the exact chat endpoint<br/>Add models manually]
-  E --> G[Save the access key]
-  F --> G
-  G --> H[Add the Model ID]
-  H --> I{Test Connection}
-  I -->|Success| J[Ask your first question]
-  I -->|Failure| K[Check address, key, and model ID<br/>or see Troubleshooting]
-```
-
 <SpotAskSettingsLink section="provider" />
 
 ## Ask your first question
@@ -79,5 +61,6 @@ The answer streams into the window when the service supports it. You can:
 ## Explore next
 
 - [Explore SpotAsk](/explore) shows what else the app can do.
+- [Service Root vs Full Request Address](/guides/service-addresses) explains which address type to enter.
 - [Connect an OpenAI-Compatible Service](/guides/connect-openai-compatible) explains provider setup in more detail.
 - [Privacy & Local Data](/privacy) explains where your keys, conversations, and selection data stay.
