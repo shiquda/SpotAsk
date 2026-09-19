@@ -145,8 +145,8 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         SpotAskCommandCenter.shared.configure(panelController: panelController)
-        SpotAskCommandCenter.shared.setSettingsPresenter { [weak self] in
-            self?.settingsWindowController.show()
+        SpotAskCommandCenter.shared.setSettingsPresenter { [weak self] section in
+            self?.settingsWindowController.show(section: section)
         }
         statusBarController = StatusBarController(settings: settings)
         entryPresentationCoordinator = AppEntryPresentationCoordinator(

@@ -34,6 +34,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let onClose: () -> Void
 
     private var window: NSWindow?
+    /// Owns the window's page selection, so a deep link survives window reuse.
+    private let model = SettingsWindowModel()
 
     init(
         settings: AppSettings,
@@ -61,8 +63,12 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     /// Shows the settings window, creating it on first use and bringing it to
-    /// the front on every subsequent request.
-    func show() {
+    /// the front on every subsequent request. `section` is the deep-link target
+    /// (`spotask://settings/<section>`); it is applied before the window is
+    /// created so a cold-start link opens directly on that page, and it is
+    /// ignored when `nil` so plain Settings keeps the current page.
+    func show(section: SettingsSection? = nil) {
+        if let section { model.reveal(section) }
         accessibilityPermissionCoordinator.refresh()
         let window = makeWindowIfNeeded()
         applyCurrentAppearance()
@@ -82,6 +88,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             keyStore: keyStore,
             providerFactory: providerFactory,
             accessibilityPermissionCoordinator: accessibilityPermissionCoordinator,
+            model: model,
             settingsWindowProvider: { [weak self] in self?.window }
         )
         let hostingView = NSHostingView(rootView: rootView)

@@ -1,11 +1,23 @@
 import Foundation
 
+/// The `spotask://` contract. `open`, `ask`, `toggle` and `settings` keep
+/// their published behavior; settings pages add one optional, stable target:
+///
+///     spotask://settings                  // plain Settings
+///     spotask://settings/<section-id>     // that page (see `SettingsSection.deepLinkPath`)
+///
+/// A settings target is exactly one path segment, matched case-insensitively.
+/// Anything else — a missing or unknown id, an extra or empty segment, a
+/// fragment — falls back to plain Settings instead of rejecting the URL, so a
+/// link written for another app version still opens the settings window. Query
+/// items are ignored on `settings`, so an unknown parameter cannot change where
+/// the link lands.
 enum SpotAskURLCommand: Equatable {
     case open
     case ask(String)
     case compose(String)
     case toggle
-    case settings
+    case settings(SettingsSection?)
 }
 
 enum SpotAskURLRouter {
@@ -44,8 +56,8 @@ enum SpotAskURLRouter {
             commandCenter.compose(query)
         case .toggle:
             commandCenter.toggle()
-        case .settings:
-            commandCenter.showSettings()
+        case .settings(let section):
+            commandCenter.showSettings(section: section)
         }
     }
 
@@ -59,7 +71,7 @@ enum SpotAskURLRouter {
 
     private static func parse(components: URLComponents) -> SpotAskURLCommand? {
         guard components.scheme?.lowercased() == scheme else { return nil }
-        guard let name = commandName(from: components) else { return nil }
+        guard let (name, arguments) = command(from: components) else { return nil }
 
         switch name {
         case "open":
@@ -67,7 +79,7 @@ enum SpotAskURLRouter {
         case "toggle":
             return .toggle
         case "settings":
-            return .settings
+            return .settings(settingsTarget(from: components, arguments: arguments))
         case "ask":
             return parseAsk(from: components)
         default:
@@ -75,13 +87,31 @@ enum SpotAskURLRouter {
         }
     }
 
-    private static func commandName(from components: URLComponents) -> String? {
+    /// Splits a URL into its command name and the path segments that follow
+    /// it. `spotask://settings/general` carries the name in the host, while the
+    /// path-style `spotask:///settings/general` carries it in the first segment.
+    /// Empty segments are kept, because they are what tells a malformed
+    /// settings target such as `settings//about` from a valid one.
+    private static func command(from components: URLComponents) -> (name: String, arguments: [String])? {
+        var segments = components.path
+            .split(separator: "/", omittingEmptySubsequences: false)
+            .map(String.init)
+        if segments.first == "" { segments.removeFirst() }
         if let host = components.host, !host.isEmpty {
-            return host.lowercased()
+            return (host.lowercased(), segments)
         }
-        let parts = components.path.split(separator: "/").map(String.init)
-        guard let first = parts.first, !first.isEmpty else { return nil }
-        return first.lowercased()
+        guard let first = segments.first, !first.isEmpty else { return nil }
+        return (first.lowercased(), Array(segments.dropFirst()))
+    }
+
+    /// Only the documented `settings` and `settings/<section-id>` forms select a
+    /// page: exactly one non-empty path segment and no fragment. A missing id,
+    /// an unknown id, an extra or empty segment, or a fragment opens plain
+    /// Settings instead, so an undocumented link cannot land on a page the URL
+    /// did not actually name.
+    private static func settingsTarget(from components: URLComponents, arguments: [String]) -> SettingsSection? {
+        guard components.fragment == nil, arguments.count == 1, let id = arguments.first else { return nil }
+        return SettingsSection(deepLinkPath: id)
     }
 
     private static func parseAsk(from components: URLComponents) -> SpotAskURLCommand {
