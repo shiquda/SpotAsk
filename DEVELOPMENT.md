@@ -62,7 +62,8 @@ SPARKLE_ED_PRIVATE_KEY_FILE=.sparkle/eddsa_priv.key \
   --tag v0.2.4 \
   --arm64-dmg dist/SpotAsk-0.2.4-arm64.dmg \
   --x86_64-dmg dist/SpotAsk-0.2.4-x86_64.dmg \
-  --notes path/to/notes.md
+  --notes path/to/notes.md \
+  --notes-zh path/to/notes.zh-CN.md
 ```
 
 That writes `dist/appcast-arm64.xml` and `dist/appcast-x86_64.xml`, then verifies each `sparkle:edSignature` against `Resources/Info.plist` `SUPublicEDKey`. Missing `SPARKLE_ED_PRIVATE_KEY` / `SPARKLE_ED_PRIVATE_KEY_FILE` fails the release; the workflow does not publish unsigned feeds.
