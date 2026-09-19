@@ -40,6 +40,8 @@ struct ModelPickerExternalAskTests {
         #expect(ModelPickerList.externalAsks(asks, matching: "PERPLEXITY").map(\.id) == [custom.id])
         #expect(ModelPickerList.externalAsks(asks, matching: "应用").map(\.id) == [custom.id])
         #expect(ModelPickerList.externalAsks(asks, matching: "终端").map(\.id) == [terminal.id])
+        #expect(ModelPickerList.externalAsks(asks, matching: "外部提问").map(\.id) == asks.map(\.id))
+        #expect(ModelPickerList.externalAsks(asks, matching: "External Ask").map(\.id) == asks.map(\.id))
         #expect(ModelPickerList.externalAsks(asks, matching: "zzz").isEmpty)
     }
 
@@ -184,6 +186,19 @@ struct ModelPickerExternalAskTests {
         #expect(viewModel.selectedPromptPreset == nil)
         #expect(viewModel.messages.isEmpty)
         #expect(executor.performed.isEmpty)
+    }
+
+    @Test("Resetting the coordinator clears pending External Ask and skip flag")
+    func coordinatorResetClearsPendingExternalAsk() {
+        var coordinator = ComposerModeCoordinator()
+        var preset: PromptPreset?
+        coordinator.attachExternalAsk(chatGPT, selectedPreset: &preset)
+        #expect(coordinator.pendingExternalAsk == chatGPT)
+        #expect(coordinator.skipEmptyPendingClear == true)
+
+        coordinator.reset()
+        #expect(coordinator.pendingExternalAsk == nil)
+        #expect(coordinator.skipEmptyPendingClear == false)
     }
 }
 

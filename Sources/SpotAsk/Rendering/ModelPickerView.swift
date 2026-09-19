@@ -87,6 +87,8 @@ init(
 @State private var searchText = ""
 @State private var highlightedID: UUID?
 @FocusState private var isSearchFocused: Bool
+@Environment(\.accessibilityReduceMotion) private var reduceMotion
+
 
 private var filteredGroups: [(provider: ProviderConfiguration, models: [ModelConfiguration])] {
     guard let catalog else { return [] }
@@ -156,58 +158,79 @@ var body: some View {
                 isSearchFocused = true
             }
 
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 2) {
-                if hasSessionOverride, let defaultModelName {
-                    UseDefaultModelRow(modelName: defaultModelName) {
-                        onUseDefault()
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 2) {
+                    if hasSessionOverride, let defaultModelName {
+                        UseDefaultModelRow(modelName: defaultModelName) {
+                            guard !isDisabled else { return }
+                            onUseDefault()
+                        }
+                        .disabled(isDisabled)
+                        Divider().padding(.vertical, 4)
                     }
-                    Divider().padding(.vertical, 4)
+                    ForEach(filteredGroups, id: \.provider.id) { group in
+                        HStack(spacing: 5) {
+                            ProviderBrandIconView(
+                                slug: ProviderBrandIconMatcher.match(
+                                    providerName: group.provider.name,
+                                    address: group.provider.address
+                                ),
+                                size: 12,
+                                fallbackSymbol: "server.rack",
+                                fallbackColor: Brand.muted
+                            )
+                            Text(group.provider.name)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(Brand.muted)
+                                .textCase(.uppercase)
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.top, 6)
+                        .padding(.bottom, 2)
+                        ForEach(group.models) { model in
+                            modelRow(model, provider: group.provider)
+                                .id(model.id)
+                        }
+                    }
+                    if !filteredExternalAsks.isEmpty {
+                        HStack(spacing: 5) {
+                            Image(systemName: "globe")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(Brand.muted)
+                            Text(L10n.string("atCommand.externalAsk"))
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(Brand.muted)
+                                .textCase(.uppercase)
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.top, 6)
+                        .padding(.bottom, 2)
+                        ForEach(filteredExternalAsks) { action in
+                            externalAskRow(action)
+                                .id(action.id)
+                        }
+                    }
                 }
-                ForEach(filteredGroups, id: \.provider.id) { group in
-                    HStack(spacing: 5) {
-                        ProviderBrandIconView(
-                            slug: ProviderBrandIconMatcher.match(
-                                providerName: group.provider.name,
-                                address: group.provider.address
-                            ),
-                            size: 12,
-                            fallbackSymbol: "server.rack",
-                            fallbackColor: Brand.muted
-                        )
-                        Text(group.provider.name)
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(Brand.muted)
-                            .textCase(.uppercase)
-                            .lineLimit(1)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.top, 6)
-                    .padding(.bottom, 2)
-                    ForEach(group.models) { model in
-                        modelRow(model, provider: group.provider)
-                    }
-                }
-                if !filteredExternalAsks.isEmpty {
-                    HStack(spacing: 5) {
-                        Image(systemName: "globe")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(Brand.muted)
-                        Text(L10n.string("atCommand.externalAsk"))
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(Brand.muted)
-                            .textCase(.uppercase)
-                            .lineLimit(1)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.top, 6)
-                    .padding(.bottom, 2)
-                    ForEach(filteredExternalAsks) { action in
-                        externalAskRow(action)
+                .padding(.bottom, 4)
+            }
+            .onChange(of: highlightedID) { _, id in
+                guard let id else { return }
+                if reduceMotion {
+                    proxy.scrollTo(id, anchor: .center)
+                } else {
+                    withAnimation(.easeOut(duration: 0.12)) {
+                        proxy.scrollTo(id, anchor: .center)
                     }
                 }
             }
-            .padding(.bottom, 4)
+            .onAppear {
+                if let highlightedID {
+                    proxy.scrollTo(highlightedID, anchor: .center)
+                }
+            }
         }
     }
     .padding(8)
@@ -271,7 +294,9 @@ private func modelRow(_ model: ModelConfiguration, provider: ProviderConfigurati
 /// outbound arrow instead of the model row's selected checkmark.
 private func externalAskRow(_ action: QuickAction) -> some View {
     let isHighlighted = highlightedID == action.id
+    let rowDisabled = isDisabled || onSelectExternalAsk == nil
     return Button {
+        guard !isDisabled else { return }
         onSelectExternalAsk?(action)
     } label: {
         HStack(spacing: 8) {
@@ -306,15 +331,14 @@ private func externalAskRow(_ action: QuickAction) -> some View {
         .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
-    .disabled(onSelectExternalAsk == nil)
-    .help(action.displayName)
+    .disabled(rowDisabled)
+    .help(isDisabled ? L10n.string("chat.modelChangeDisabledWhileGenerating") : action.displayName)
     .accessibilityLabel("\(action.displayName), \(action.kind.localizedLabel)")
 }
 
 private func selectHighlighted() {
-    guard let highlightedID else { return }
+    guard let highlightedID, !isDisabled else { return }
     if flattenedModels.contains(where: { $0.id == highlightedID }) {
-        guard !isDisabled else { return }
         onSelect(highlightedID)
         return
     }

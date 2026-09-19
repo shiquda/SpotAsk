@@ -153,6 +153,11 @@ struct ComposerModeCoordinator: Equatable {
         selectedPreset = nil
     }
 
+    mutating func reset() {
+        pendingExternalAsk = nil
+        skipEmptyPendingClear = false
+    }
+
     enum SendOutcome: Equatable {
         case launchedExternalAsk
         case launchFailedExternalAsk(QuickAction)

@@ -913,6 +913,11 @@ struct ChatView: View {
 
     private func confirmNewConversation() {
         viewModel.newConversation()
+        composerModeCoordinator.reset()
+        clearAtCommandTokenState()
+        if let textView = composerTextView.textView, !textView.string.isEmpty {
+            textView.string = ""
+        }
         inputFocused = true
         scrollFollowState.resumeFollowing()
     }
