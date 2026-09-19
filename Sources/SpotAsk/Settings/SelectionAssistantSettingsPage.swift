@@ -12,7 +12,10 @@ struct SelectionAssistantSettingsPage: View {
         VStack(alignment: .leading, spacing: 22) {
             SettingsPageHeader(section: .selectionAssistant, settings: settings)
             SettingsCallout(L10n.string("settings.selectionAssistantDescription"))
-            SettingsGroup(title: L10n.string("settings.selectionAssistant")) {
+            SettingsGroup(
+                title: L10n.string("settings.selectionAssistant"),
+                documentation: DocumentationLinks.url(for: .selectionAssistant, language: settings.language)
+            ) {
                 SettingsToggleRow(label: L10n.string("settings.selectionAssistantEnabled"), isOn: Bindable(settings).selectionAssistantEnabled)
                     .onChange(of: settings.selectionAssistantEnabled) { _, enabled in
                         if enabled {

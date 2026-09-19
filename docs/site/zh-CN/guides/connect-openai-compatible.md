@@ -19,6 +19,8 @@ OpenAI 以及提供 OpenAI 兼容聊天 API 的服务商，都选择 **OpenAI �
 8. 添加服务商要求的模型 ID。
 9. 点击“测试连接”。
 
+<SpotAskSettingsLink section="provider" />
+
 ## 地址示例
 
 服务商提供基础地址时，使用**服务根地址**：

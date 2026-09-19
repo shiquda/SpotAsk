@@ -13,7 +13,10 @@ struct ExternalAskSettingsPage: View {
             SettingsPageHeader(section: .externalAsk, settings: settings)
             SettingsCallout(L10n.string("settings.externalAskDescription"))
 
-            SettingsGroup(title: L10n.string("settings.externalAsk")) {
+            SettingsGroup(
+                title: L10n.string("settings.externalAsk"),
+                documentation: DocumentationLinks.url(for: .externalAsk, language: settings.language)
+            ) {
                 Toggle(L10n.string("settings.externalAskEnabled"), isOn: $settings.externalAskEnabled)
 
                 HStack {

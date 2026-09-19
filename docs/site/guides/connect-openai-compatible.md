@@ -19,6 +19,8 @@ Use **OpenAI Compatible** for OpenAI and for any provider that exposes an OpenAI
 8. Add the **Model ID** your provider expects.
 9. Click **Test Connection**.
 
+<SpotAskSettingsLink section="provider" />
+
 ## Address examples
 
 Use **Service Root** when the provider gives you a base address:

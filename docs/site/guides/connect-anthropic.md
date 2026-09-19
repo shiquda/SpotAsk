@@ -18,6 +18,8 @@ Use the **Anthropic** API format when your service speaks the Anthropic Messages
 7. Add the **Model ID** from your Anthropic console or provider documentation.
 8. Click **Test Connection**.
 
+<SpotAskSettingsLink section="provider" />
+
 ## Address examples
 
 Use **Service Root** for a base address:

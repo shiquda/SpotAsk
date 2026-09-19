@@ -3,20 +3,6 @@ import SwiftUI
 
 // MARK: - About Settings Page
 
-enum DocumentationLinks {
-    static let englishUserGuide = URL(string: "https://shiquda.github.io/SpotAsk/")!
-    static let simplifiedChineseUserGuide = URL(string: "https://shiquda.github.io/SpotAsk/zh-CN/")!
-
-    static func userGuideURL(
-        for language: AppLanguage,
-        preferredLanguages: [String] = Locale.preferredLanguages
-    ) -> URL {
-        let usesChineseDocumentation = language == .simplifiedChinese
-            || (language == .system && preferredLanguages.first?.lowercased().hasPrefix("zh") == true)
-        return usesChineseDocumentation ? simplifiedChineseUserGuide : englishUserGuide
-    }
-}
-
 struct AboutSettingsPage: View {
     @Bindable var coordinator: UpdateCoordinator
     let settings: AppSettings

@@ -41,13 +41,50 @@ struct SettingsCallout: View {
     }
 }
 
+/// The documentation link for one settings group.
+///
+/// The visible label is the shared open-documentation action, while the group
+/// title it sits beside names the feature, so the same control repeated across
+/// pages still reads distinctly to VoiceOver. `Link` hands the URL to the
+/// system browser, which keeps Settings editable when the page cannot be
+/// opened.
+struct SettingsDocumentationLink: View {
+    let url: URL
+    /// Localized title of the group this link explains, used for the tooltip
+    /// and the accessibility label.
+    let groupTitle: String
+
+    var body: some View {
+        Link(destination: url) {
+            Label(L10n.string("settings.openDocumentation"), systemImage: "book")
+                .font(.system(size: 12, weight: .medium))
+        }
+        .buttonStyle(.link)
+        .help(actionTitle)
+        .accessibilityLabel(actionTitle)
+    }
+
+    private var actionTitle: String {
+        L10n.string("settings.openDocumentationFor", groupTitle)
+    }
+}
+
 struct SettingsGroup<Content: View>: View {
     let title: String
+    /// Published documentation for the feature this group configures, when the
+    /// group carries behavior worth a guide. Plain toggles keep no link.
+    var documentation: URL? = nil
     @ViewBuilder let content: Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(title).font(.system(size: 17, weight: .semibold))
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(title).font(.system(size: 17, weight: .semibold))
+                if let documentation {
+                    Spacer(minLength: 12)
+                    SettingsDocumentationLink(url: documentation, groupTitle: title)
+                }
+            }
             VStack(alignment: .leading, spacing: 13) {
                 content
             }

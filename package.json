@@ -9,6 +9,7 @@
     "docs:preview": "vitepress preview docs/site"
   },
   "devDependencies": {
+    "mermaid": "^11.17.2",
     "vitepress": "1.6.4"
   }
 }

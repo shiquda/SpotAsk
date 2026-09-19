@@ -1,0 +1,44 @@
+/**
+ * Mermaid diagrams stay hidden until they are drawn, fail, or must wait on a
+ * previous page's in-flight run. Waiting reveals the source so a hung drawing
+ * cannot leave a new page blank.
+ */
+pre.mermaid:not([data-mermaid-drawn]):not([data-mermaid-error]):not([data-mermaid-waiting]) {
+  visibility: hidden;
+}
+
+pre.mermaid {
+  margin: 0;
+  background: none;
+}
+
+pre.mermaid[data-mermaid-error] {
+  padding: 12px 16px;
+  border: 1px solid var(--vp-c-danger-1);
+  border-radius: 8px;
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-1);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+.spotask-diagram {
+  margin: 16px 0;
+  overflow-x: auto;
+}
+
+.spotask-diagram svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.spotask-diagram-error {
+  margin: 8px 0 0;
+  color: var(--vp-c-danger-1);
+  font-size: 13px;
+  line-height: 1.5;
+}

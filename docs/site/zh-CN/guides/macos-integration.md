@@ -7,6 +7,8 @@ description: 通过 Spotlight、Siri、快捷指令或 spotask:// 链接使用 S
 
 官方 SpotAsk 发布版本会注册 macOS 可以暴露给 Spotlight、Siri 和快捷指令的应用操作，并注册 `spotask://` URL scheme，供 Alfred、Raycast、终端脚本和快捷指令调用。
 
+<SpotAskSettingsLink section="shortcuts" />
+
 ## 可用操作
 
 - **打开 SpotAsk**：打开提问窗口。
@@ -37,6 +39,22 @@ description: 通过 Spotlight、Siri、快捷指令或 spotask:// 链接使用 S
 | `spotask://ask?q=Your%20question&submit=false` | 只填入问题，不发送 |
 | `spotask://toggle` | 显示或隐藏提问窗口 |
 | `spotask://settings` | 打开设置 |
+| `spotask://settings/<页面>` | 直接打开设置的某一页 |
+
+`<页面>` 只能使用稳定的英文 ID，不能使用界面上的本地化标题：
+
+| 页面 ID | 打开的设置页 |
+| --- | --- |
+| `provider` | 服务设置 |
+| `prompts` | 提示词 |
+| `external-ask` | 外部提问 |
+| `selection-assistant` | 划词助手 |
+| `shortcuts` | 快捷键 |
+| `general` | 通用 |
+| `appearance` | 外观 |
+| `about` | 关于 |
+
+ID 不区分 ASCII 大小写。缺失或无法识别的 ID、多余的路径段或片段都会安全地回退到设置首页，链接不会报错。
 
 在终端中：
 

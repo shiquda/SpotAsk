@@ -427,7 +427,7 @@ struct AtCommandPaletteView: View {
                 ProviderBrandIconView(
                     slug: action.brandIconSlug,
                     size: 16,
-                    fallbackSymbol: fallbackSymbol(for: action.kind),
+                    fallbackSymbol: action.kind.fallbackSymbolName,
                     fallbackColor: Brand.muted
                 )
                 Text(action.displayName)
@@ -475,14 +475,6 @@ struct AtCommandPaletteView: View {
         case .web: L10n.string("selection.actionBar.kind.web")
         case .uriScheme: L10n.string("selection.actionBar.kind.uriScheme")
         case .terminal: L10n.string("selection.actionBar.kind.terminal")
-        }
-    }
-
-    private func fallbackSymbol(for kind: QuickActionKind) -> String {
-        switch kind {
-        case .web: "globe"
-        case .uriScheme: "app.badge"
-        case .terminal: "terminal"
         }
     }
 }

@@ -7,6 +7,8 @@ description: Use SpotAsk from Spotlight, Siri, Shortcuts, or a spotask:// URL.
 
 The official SpotAsk release registers app actions that macOS can expose to Spotlight, Siri, and Shortcuts. It also registers the `spotask://` URL scheme for Alfred, Raycast, terminal scripts, and Shortcuts.
 
+<SpotAskSettingsLink section="shortcuts" />
+
 ## Available actions
 
 - **Open SpotAsk** opens the question window.
@@ -37,6 +39,22 @@ Open these links from another app, a shortcut, or Terminal. Spaces and other spe
 | `spotask://ask?q=Your%20question&submit=false` | Fills in the question without sending |
 | `spotask://toggle` | Shows or hides the question window |
 | `spotask://settings` | Opens Settings |
+| `spotask://settings/<page>` | Opens one Settings page |
+
+`<page>` is a stable ASCII id, never a localized interface title:
+
+| Page id | Settings page |
+| --- | --- |
+| `provider` | Service |
+| `prompts` | Prompts |
+| `external-ask` | External Ask |
+| `selection-assistant` | Selection Assistant |
+| `shortcuts` | Shortcuts |
+| `general` | General |
+| `appearance` | Appearance |
+| `about` | About |
+
+Ids are case-insensitive. A missing or unknown id, an extra path segment, or a fragment falls back to plain Settings instead of failing.
 
 From Terminal:
 

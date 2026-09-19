@@ -209,3 +209,24 @@ struct QuickAction: Identifiable, Codable, Equatable, Sendable {
         return NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) != nil
     }
 }
+
+extension QuickActionKind {
+    /// Verb-first label for the target, matching the Settings kind picker's
+    /// wording. Used by the model picker's External Ask rows.
+    var localizedLabel: String {
+        switch self {
+        case .web: L10n.string("externalAsk.kind.web")
+        case .uriScheme: L10n.string("externalAsk.kind.uriScheme")
+        case .terminal: L10n.string("externalAsk.kind.terminal")
+        }
+    }
+
+    /// SF Symbol used when no bundled brand icon matches the action.
+    var fallbackSymbolName: String {
+        switch self {
+        case .web: "globe"
+        case .uriScheme: "app.badge"
+        case .terminal: "terminal"
+        }
+    }
+}

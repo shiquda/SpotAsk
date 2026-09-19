@@ -152,6 +152,7 @@
 "settings.source" = "项目来源";
 "settings.userGuide" = "用户手册";
 "settings.openDocumentation" = "打开文档";
+"settings.openDocumentationFor" = "打开%@的文档";
 "settings.updates" = "更新";
 "settings.checkForUpdates" = "检查更新";
 "settings.checkingForUpdates" = "正在检查更新…";
