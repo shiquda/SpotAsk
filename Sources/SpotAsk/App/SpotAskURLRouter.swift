@@ -6,10 +6,12 @@ import Foundation
 ///     spotask://settings                  // plain Settings
 ///     spotask://settings/<section-id>     // that page (see `SettingsSection.deepLinkPath`)
 ///
-/// A settings target travels as a path segment, is matched
-/// case-insensitively, and an unknown or missing id falls back to plain
-/// Settings instead of rejecting the URL. Query items are ignored on
-/// `settings`, so an unknown parameter cannot change where the link lands.
+/// A settings target is exactly one path segment, matched case-insensitively.
+/// Anything else — a missing or unknown id, an extra or empty segment, a
+/// fragment — falls back to plain Settings instead of rejecting the URL, so a
+/// link written for another app version still opens the settings window. Query
+/// items are ignored on `settings`, so an unknown parameter cannot change where
+/// the link lands.
 enum SpotAskURLCommand: Equatable {
     case open
     case ask(String)
@@ -77,7 +79,7 @@ enum SpotAskURLRouter {
         case "toggle":
             return .toggle
         case "settings":
-            return .settings(settingsSection(from: arguments))
+            return .settings(settingsTarget(from: components, arguments: arguments))
         case "ask":
             return parseAsk(from: components)
         default:
@@ -88,19 +90,27 @@ enum SpotAskURLRouter {
     /// Splits a URL into its command name and the path segments that follow
     /// it. `spotask://settings/general` carries the name in the host, while the
     /// path-style `spotask:///settings/general` carries it in the first segment.
+    /// Empty segments are kept, because they are what tells a malformed
+    /// settings target such as `settings//about` from a valid one.
     private static func command(from components: URLComponents) -> (name: String, arguments: [String])? {
-        let parts = components.path.split(separator: "/").map(String.init)
+        var segments = components.path
+            .split(separator: "/", omittingEmptySubsequences: false)
+            .map(String.init)
+        if segments.first == "" { segments.removeFirst() }
         if let host = components.host, !host.isEmpty {
-            return (host.lowercased(), parts)
+            return (host.lowercased(), segments)
         }
-        guard let first = parts.first, !first.isEmpty else { return nil }
-        return (first.lowercased(), Array(parts.dropFirst()))
+        guard let first = segments.first, !first.isEmpty else { return nil }
+        return (first.lowercased(), Array(segments.dropFirst()))
     }
 
-    /// An unknown or missing section id yields a plain Settings request rather
-    /// than rejecting the URL, so stale documentation links stay useful.
-    private static func settingsSection(from arguments: [String]) -> SettingsSection? {
-        guard let id = arguments.first else { return nil }
+    /// Only the documented `settings` and `settings/<section-id>` forms select a
+    /// page: exactly one non-empty path segment and no fragment. A missing id,
+    /// an unknown id, an extra or empty segment, or a fragment opens plain
+    /// Settings instead, so an undocumented link cannot land on a page the URL
+    /// did not actually name.
+    private static func settingsTarget(from components: URLComponents, arguments: [String]) -> SettingsSection? {
+        guard components.fragment == nil, arguments.count == 1, let id = arguments.first else { return nil }
         return SettingsSection(deepLinkPath: id)
     }
 

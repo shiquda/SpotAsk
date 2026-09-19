@@ -264,12 +264,13 @@ struct SpotAskIntentTests {
 
         commandCenter.prepare(promptPreset: preset)
         commandCenter.ask("问题")
+        // Settings are delivered by their own presenter, not by this queue.
         commandCenter.showSettings()
         commandCenter.configure(panelController: panel)
         commandCenter.setPanelContent { EmptyView() }
         commandCenter.setActionConsumer { recorder.actions.append($0) }
 
-        #expect(recorder.actions == [.prepare(preset), .ask("问题", nil), .showSettings(nil)])
+        #expect(recorder.actions == [.prepare(preset), .ask("问题", nil)])
     }
 
     @Test @MainActor func askDuringGenerationKeepsPresetWithPendingDraft() async {

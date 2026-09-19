@@ -1162,8 +1162,6 @@ struct ChatView: View {
             receiveQuestion(question, promptPreset: promptPreset, selectionSnapshot: selectionSnapshot)
         case let .addToChat(text):
             addToChat(text)
-        case let .showSettings(section):
-            commandCenter.showSettings(section: section)
         }
     }
 

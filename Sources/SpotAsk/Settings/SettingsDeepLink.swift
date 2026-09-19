@@ -15,12 +15,13 @@ import Foundation
 /// - **Stable ids, never localized titles.** An id is ASCII, lowercase and
 ///   hyphen-separated; `SettingsSection.title` is presentation text and must
 ///   never be sent over the scheme.
-/// - **Lenient reading.** Ids match case-insensitively and extra path segments
-///   are ignored, so `settings/provider/models` still opens `provider` and
-///   leaves room for finer targets later.
-/// - **Safe fallback.** An unknown or missing id opens plain Settings rather
-///   than failing, so a link written for a newer app version still lands on
-///   the settings window.
+/// - **Exact target only.** The target is exactly one path segment after the
+///   `settings` command. A missing or unknown id, an extra or empty segment, or
+///   a fragment is not a target and opens plain Settings rather than failing,
+///   so a link written for a newer app version still lands on the settings
+///   window.
+/// - **Case-insensitive ids.** `settings/External-Ask` resolves like
+///   `settings/external-ask`.
 /// - **Additive versioning.** New pages add new ids. Existing ids are never
 ///   renamed or reused, because already-published documentation links cannot
 ///   be updated atomically with a release.
