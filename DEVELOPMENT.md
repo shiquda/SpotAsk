@@ -191,10 +191,52 @@ Local Release rebuilds change the code signature even when the Developer ID stay
 ## Release checklist
 
 1. Update `CHANGELOG.md` and `CHANGELOG.zh-CN.md`: rename `## [Unreleased]` to the new version with today's date, then open a fresh `## [Unreleased]` section in both files.
-2. Bump `MARKETING_VERSION` in `SpotAsk.xcodeproj/project.pbxproj` and `CFBundleShortVersionString` in `Resources/Info.plist`.
-3. Run `swift test` and build both DMGs with `Scripts/make-release-dmg.sh`. If Apple secrets are configured, the Release workflow signs and notarizes them automatically.
-4. Tag the release `vX.Y.Z` and push the tag.
-5. GitHub Actions creates the GitHub Release, attaches both DMGs, both architecture appcasts (embedded notes + `sparkle:edSignature` verified against `SUPublicEDKey`), plus the SHA256SUMS file, and copies the changelog sections into the release notes. `Scripts/release-notes-from-changelog.sh` extracts them with `--en`, `--zh`, or `--all`; the GitHub Release gets the bilingual `--all` text (English only for versions missing from `CHANGELOG.zh-CN.md`) while the appcast embeds one description per language. Missing `SPARKLE_ED_PRIVATE_KEY` fails the job.
+2. Audit the release against the merged commits, then verify the two changelogs still match. See [Changelog and release audit SOP](#changelog-and-release-audit-sop):
+   ```sh
+   ./Scripts/audit-changelog-diff.sh                 # what the release section may be missing
+   ./Scripts/verify-changelog.sh                     # the same check CI runs
+   ```
+3. Bump `MARKETING_VERSION` in `SpotAsk.xcodeproj/project.pbxproj` and `CFBundleShortVersionString` in `Resources/Info.plist`.
+4. Run `swift test` and build both DMGs with `Scripts/make-release-dmg.sh`. If Apple secrets are configured, the Release workflow signs and notarizes them automatically.
+5. Tag the release `vX.Y.Z` and push the tag.
+6. GitHub Actions creates the GitHub Release, attaches both DMGs, both architecture appcasts (embedded notes + `sparkle:edSignature` verified against `SUPublicEDKey`), plus the SHA256SUMS file, and copies the changelog sections into the release notes. `Scripts/release-notes-from-changelog.sh` extracts them with `--en`, `--zh`, or `--all`; the GitHub Release gets the bilingual `--all` text (English only for versions missing from `CHANGELOG.zh-CN.md`) while the appcast embeds one description per language. Missing `SPARKLE_ED_PRIVATE_KEY` fails the job.
+
+## Changelog and release audit SOP
+
+`CHANGELOG.md` and `CHANGELOG.zh-CN.md` are the single source of truth for the notes: the documentation site's changelog pages (`Scripts/generate-docs-metadata.mjs`) and the GitHub Release body (`Scripts/release-notes-from-changelog.sh`) are both generated from them. They only stay usable if every release is documented in both languages, so the release process has two checks.
+
+### Consistency gate — run on every change
+
+```sh
+./Scripts/verify-changelog.sh
+```
+
+Compares both files and fails on any drift:
+
+- a version section present in only one language, duplicated, or listed in a different order
+- a missing, malformed, impossible (`2030-02-31`), or language-mismatched ` - YYYY-MM-DD` date
+- an `[Unreleased]` section that carries a release date, or a released section without one
+- a version that does not descend from `[Unreleased]`, or a release dated later than the version above it
+- a missing or renamed `### subsection`, or a subsection whose bullet count differs between the languages
+- a version heading without its `[X.Y.Z]: ...` link reference, which renders the heading as literal text
+
+CI runs it on every pull request and every push to `main` (`.github/workflows/ci.yml`), before the test suite. Each failure names the file, the version, and the actual problem, so no separate run of the script is needed to diagnose it.
+
+### Release audit — run before tagging
+
+```sh
+./Scripts/audit-changelog-diff.sh                    # latest v* tag .. HEAD vs. [Unreleased]
+./Scripts/audit-changelog-diff.sh --section 0.2.4    # audit against a released section instead
+./Scripts/audit-changelog-diff.sh --base v0.2.3      # audit a wider or narrower range
+```
+
+Reads `git log <base>..HEAD` with the file list per commit, compares every commit subject against the text of the section, and prints a Markdown report with the range, the diff stat, and three groups:
+
+- **Needs review** — a commit whose subject shares no keyword with the section. These are the suspected omissions, each with the files it touched and the reason it was flagged. Work through the list and add anything user-visible to the release section of *both* changelogs. Internal tooling and test-only work is expected to land here too; that is for the reviewer to dismiss, not the script.
+- **Possibly recorded** — a commit whose subject already overlaps with the section text. Checked off, with the matched keywords, so a wrong match is visible at a glance.
+- **Not changelog-relevant** — every skipped commit with its reason: `chore` / `docs` / `ci` / `test` / `build` / `style` / `release` subjects, and changes limited to documentation, tests, or CI files. Nothing is dropped silently, so an unusual commit type or path is visible rather than hidden.
+
+The audit is a review aid, not a gate: it always exits 0, never edits the changelog, and its keyword match is a heuristic. Treat **Needs review** as candidates to judge, not as definite errors — the decision about what belongs in the release notes stays with the person tagging the release.
 
 ## Contributing
 

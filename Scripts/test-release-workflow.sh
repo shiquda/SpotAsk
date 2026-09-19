@@ -855,6 +855,255 @@ if "$fixture_notes" v9.9.8 --en --zh >/dev/null 2>&1; then
 fi
 pass "release notes extraction splits languages and merges them with an English-only fallback"
 
+# --- changelog consistency gate: CHANGELOG.md and CHANGELOG.zh-CN.md ---
+CHANGELOG_CHECK="$ROOT_DIR/Scripts/verify-changelog.sh"
+AUDIT="$ROOT_DIR/Scripts/audit-changelog-diff.sh"
+
+new_changelog_fixture() {
+    dir=$1
+    rm -rf "$dir"
+    mkdir -p "$dir/Scripts"
+    cp "$CHANGELOG_CHECK" "$dir/Scripts/verify-changelog.sh"
+    cat > "$dir/CHANGELOG.md" <<'EOF'
+# Changelog
+
+## [Unreleased]
+
+### Added
+
+- Shared entry EN-ALPHA.
+- Second shared entry EN-BETA.
+
+### Fixed
+
+- Shared fix EN-FIX.
+
+## [9.9.9] - 2030-01-01
+
+### Added
+
+- Older shared entry EN-OLD.
+
+[Unreleased]: https://example.test/compare/v9.9.9...HEAD
+[9.9.9]: https://example.test/compare/v9.9.8...v9.9.9
+EOF
+    sed -e 's/EN-ALPHA/ZH-ALPHA/' -e 's/EN-BETA/ZH-BETA/' -e 's/EN-FIX/ZH-FIX/' -e 's/EN-OLD/ZH-OLD/' \
+        "$dir/CHANGELOG.md" > "$dir/CHANGELOG.zh-CN.md"
+}
+
+rewrite() {
+    sed -e "$2" "$1" > "$WORK_DIR/changelog-rewritten" && mv "$WORK_DIR/changelog-rewritten" "$1"
+}
+
+expect_changelog_ok() {
+    if ! "$1/Scripts/verify-changelog.sh" > "$WORK_DIR/changelog-check.out" 2> "$WORK_DIR/changelog-check.err"; then
+        fail "$2 should pass the consistency gate: $(cat "$WORK_DIR/changelog-check.err")"
+    fi
+}
+
+# Assert the gate fails and blames the expected problem, not something incidental.
+expect_changelog_problem() {
+    if "$1/Scripts/verify-changelog.sh" > "$WORK_DIR/changelog-check.out" 2> "$WORK_DIR/changelog-check.err"; then
+        fail "$2 should fail the consistency gate"
+    fi
+    grep -qF "$3" "$WORK_DIR/changelog-check.err" \
+        || fail "$2 failed for the wrong reason: $(cat "$WORK_DIR/changelog-check.err")"
+}
+
+changelog_fixture="$WORK_DIR/changelog-fixture"
+new_changelog_fixture "$changelog_fixture"
+expect_changelog_ok "$changelog_fixture" "a symmetric changelog pair"
+grep -q 'are aligned' "$WORK_DIR/changelog-check.out" \
+    || fail "the consistency gate does not report success on stdout"
+
+# The changelogs shipped in this repository must satisfy the gate CI runs on them.
+expect_changelog_ok "$ROOT_DIR" "the repository changelogs"
+
+new_changelog_fixture "$changelog_fixture"
+sed '/^## \[9.9.9\]/,/^\[9.9.9\]:/d' "$changelog_fixture/CHANGELOG.zh-CN.md" > "$WORK_DIR/changelog-drop"
+mv "$WORK_DIR/changelog-drop" "$changelog_fixture/CHANGELOG.zh-CN.md"
+expect_changelog_problem "$changelog_fixture" "a version missing from one language" \
+    '`[9.9.9]` is missing from CHANGELOG.zh-CN.md'
+
+new_changelog_fixture "$changelog_fixture"
+rewrite "$changelog_fixture/CHANGELOG.zh-CN.md" 's/2030-01-01/2030-01-02/'
+expect_changelog_problem "$changelog_fixture" "a release dated differently per language" \
+    'is dated `2030-01-01` in CHANGELOG.md but `2030-01-02` in CHANGELOG.zh-CN.md'
+
+new_changelog_fixture "$changelog_fixture"
+rewrite "$changelog_fixture/CHANGELOG.md" 's/2030-01-01/2030-02-31/'
+rewrite "$changelog_fixture/CHANGELOG.zh-CN.md" 's/2030-01-01/2030-02-31/'
+expect_changelog_problem "$changelog_fixture" "an impossible release date" \
+    '`[9.9.9]` release date `2030-02-31` has an invalid day'
+
+new_changelog_fixture "$changelog_fixture"
+rewrite "$changelog_fixture/CHANGELOG.md" 's/^## \[Unreleased\]$/## [Unreleased] - 2030-01-01/'
+rewrite "$changelog_fixture/CHANGELOG.zh-CN.md" 's/^## \[Unreleased\]$/## [Unreleased] - 2030-01-01/'
+expect_changelog_problem "$changelog_fixture" "a dated Unreleased section" \
+    '`[Unreleased]` must not carry a release date'
+
+new_changelog_fixture "$changelog_fixture"
+rewrite "$changelog_fixture/CHANGELOG.md" '/^\[9.9.9\]:/d'
+rewrite "$changelog_fixture/CHANGELOG.zh-CN.md" '/^\[9.9.9\]:/d'
+expect_changelog_problem "$changelog_fixture" "a version without a link reference" \
+    '`## [9.9.9]` has no `[9.9.9]: ...` link reference'
+
+new_changelog_fixture "$changelog_fixture"
+rewrite "$changelog_fixture/CHANGELOG.zh-CN.md" '/ZH-BETA/d'
+expect_changelog_problem "$changelog_fixture" "a translation that dropped an entry" \
+    'has 2 bullets in CHANGELOG.md but 1 in CHANGELOG.zh-CN.md'
+
+new_changelog_fixture "$changelog_fixture"
+rewrite "$changelog_fixture/CHANGELOG.zh-CN.md" 's/^### Fixed$/### 修复/'
+expect_changelog_problem "$changelog_fixture" "a renamed subsection" \
+    'subsection 2 is `### Fixed` in CHANGELOG.md but `### 修复` in CHANGELOG.zh-CN.md'
+
+new_changelog_fixture "$changelog_fixture"
+rewrite "$changelog_fixture/CHANGELOG.md" 's/^## \[9.9.9\] - 2030-01-01$/## [9.9] - 2030-01-01/'
+rewrite "$changelog_fixture/CHANGELOG.zh-CN.md" 's/^## \[9.9.9\] - 2030-01-01$/## [9.9] - 2030-01-01/'
+expect_changelog_problem "$changelog_fixture" "a version that is not MAJOR.MINOR.PATCH" \
+    '`[9.9]` is neither `Unreleased` nor `MAJOR.MINOR.PATCH`'
+
+# Introduces a version between [Unreleased] and [9.9.9] that is older and dated earlier.
+new_changelog_fixture "$changelog_fixture"
+for fixture_changelog in "$changelog_fixture/CHANGELOG.md" "$changelog_fixture/CHANGELOG.zh-CN.md"; do
+    awk '$0 == "## [9.9.9] - 2030-01-01" { print "## [9.9.8] - 2029-01-01"; print "" } { print }
+         END { print "[9.9.8]: https://example.test/compare/v9.9.7...v9.9.8" }' \
+        "$fixture_changelog" > "$WORK_DIR/changelog-order"
+    mv "$WORK_DIR/changelog-order" "$fixture_changelog"
+done
+expect_changelog_problem "$changelog_fixture" "versions out of order" \
+    '`[9.9.9]` must be listed before `[9.9.8]` (newest first)'
+
+# Correct order, but the newer version is dated earlier than the one below it.
+new_changelog_fixture "$changelog_fixture"
+for fixture_changelog in "$changelog_fixture/CHANGELOG.md" "$changelog_fixture/CHANGELOG.zh-CN.md"; do
+    awk '$0 == "## [9.9.9] - 2030-01-01" { print "## [9.9.10] - 2029-01-01"; print "" } { print }
+         END { print "[9.9.10]: https://example.test/compare/v9.9.9...v9.9.10" }' \
+        "$fixture_changelog" > "$WORK_DIR/changelog-dates"
+    mv "$WORK_DIR/changelog-dates" "$fixture_changelog"
+done
+expect_changelog_problem "$changelog_fixture" "release dates that contradict the version order" \
+    '`[9.9.10]` is dated 2029-01-01 and comes before `[9.9.9]` dated 2030-01-01'
+
+new_changelog_fixture "$changelog_fixture"
+"$changelog_fixture/Scripts/verify-changelog.sh" --help >/dev/null 2>&1 \
+    || fail "--help should succeed"
+if "$changelog_fixture/Scripts/verify-changelog.sh" --bogus >/dev/null 2>&1; then
+    fail "an unknown option should fail usage"
+fi
+pass "changelog consistency gate aligns both languages and reports each drift"
+
+# --- release audit: commits since the last tag against the pending section ---
+audit_fixture="$WORK_DIR/audit-fixture"
+mkdir -p "$audit_fixture/Scripts" "$audit_fixture/docs" "$audit_fixture/Sources/SpotAsk"
+cp "$AUDIT" "$audit_fixture/Scripts/audit-changelog-diff.sh"
+cat > "$audit_fixture/CHANGELOG.md" <<'EOF'
+# Changelog
+
+## [Unreleased]
+
+### Added
+
+- The composer keeps the caret at the end while composing a question.
+
+[Unreleased]: https://example.test/compare/v9.9.9...HEAD
+[9.9.9]: https://example.test/compare/v9.9.8...v9.9.9
+
+## [9.9.9] - 2030-01-01
+
+### Added
+
+- Baseline entry.
+EOF
+(
+    cd "$audit_fixture"
+    git init -q .
+    git config user.name "SpotAsk Test"
+    git config user.email "test@example.test"
+    git config commit.gpgsign false
+    git add CHANGELOG.md
+    git commit -qm "chore: seed the fixture changelog"
+    git tag v9.9.9
+
+    printf 'let widget = true\n' > Sources/SpotAsk/Widget.swift
+    git add Sources/SpotAsk/Widget.swift
+    git commit -qm "feat(chat): add turquoise widget support"
+
+    printf 'let caret = true\n' > Sources/SpotAsk/Composer.swift
+    git add Sources/SpotAsk/Composer.swift
+    git commit -qm "fix(composer): keep the caret at the end while composing a question"
+
+    printf 'widget notes\n' > docs/widget-notes.md
+    git add docs/widget-notes.md
+    git commit -qm "docs: describe the turquoise widget"
+
+    printf 'widget notes, tidied\n' > docs/widget-notes.md
+    git commit -qam "ui: tidy the turquoise widget notes"
+) >/dev/null 2>&1
+
+audit_report="$WORK_DIR/audit-report.md"
+"$audit_fixture/Scripts/audit-changelog-diff.sh" > "$audit_report" 2> "$WORK_DIR/audit.err" \
+    || fail "the audit should always succeed: $(cat "$WORK_DIR/audit.err")"
+
+audit_group() {
+    awk -v title="$2" '$0 ~ "^## " title { inside = 1; next } /^## / { inside = 0 } inside' "$1"
+}
+audit_group "$audit_report" "Needs review" > "$WORK_DIR/audit-needs.md"
+audit_group "$audit_report" "Possibly recorded" > "$WORK_DIR/audit-recorded.md"
+audit_group "$audit_report" "Not changelog-relevant" > "$WORK_DIR/audit-skipped.md"
+
+grep -q 'v9.9.9\.\.HEAD' "$audit_report" || fail "the report does not name the audited range"
+grep -q 'Sources/SpotAsk/Widget.swift' "$audit_report" || fail "the report does not include the diff stat"
+grep -q 'seed the fixture changelog' "$audit_report" && fail "the audit included a commit from before the base tag"
+
+grep -q '^- \[ \] `[0-9a-f]*` feat(chat): add turquoise widget support' "$WORK_DIR/audit-needs.md" \
+    || fail "a business code change with no changelog entry was not flagged for review"
+grep -q 'no subject keyword found in `\[Unreleased\]`' "$WORK_DIR/audit-needs.md" \
+    || fail "a flagged commit does not explain why it needs review"
+
+grep -q '^- \[x\] `[0-9a-f]*` fix(composer): keep the caret at the end while composing a question' \
+    "$WORK_DIR/audit-recorded.md" || fail "a recorded change was not matched to its changelog entry"
+grep -q '`caret`' "$WORK_DIR/audit-recorded.md" || fail "the report does not name the matched keywords"
+grep -q 'turquoise widget support' "$WORK_DIR/audit-recorded.md" && fail "a commit is listed in two groups"
+
+grep -q 'docs: describe the turquoise widget' "$WORK_DIR/audit-skipped.md" \
+    || fail "a documentation-only commit was not skipped"
+grep -q 'ui: tidy the turquoise widget notes' "$WORK_DIR/audit-skipped.md" \
+    || fail "a commit type outside the exclusion list is never skipped"
+grep -q 'only touches documentation, tests, or CI files' "$WORK_DIR/audit-skipped.md" \
+    || fail "a skipped commit does not state why it was skipped"
+grep -q 'widget notes' "$WORK_DIR/audit-needs.md" && fail "a documentation-only commit was flagged as missing"
+
+# The default base is the newest v* tag, so passing it explicitly changes nothing.
+"$audit_fixture/Scripts/audit-changelog-diff.sh" --base v9.9.9 > "$WORK_DIR/audit-explicit.md"
+cmp -s "$audit_report" "$WORK_DIR/audit-explicit.md" \
+    || fail "--base v9.9.9 does not match the default base"
+
+# Auditing a released section reclassifies every candidate against it.
+"$audit_fixture/Scripts/audit-changelog-diff.sh" --section 9.9.9 > "$WORK_DIR/audit-released.md"
+[ "$(grep -c '^- \[ \] ' "$WORK_DIR/audit-released.md")" -eq 2 ] \
+    || fail "--section 9.9.9 did not re-check the candidates against that section"
+
+if "$audit_fixture/Scripts/audit-changelog-diff.sh" --section 1.2.3 >/dev/null 2>&1; then
+    fail "auditing a section that does not exist should fail"
+fi
+if "$audit_fixture/Scripts/audit-changelog-diff.sh" --base no-such-ref >/dev/null 2>&1; then
+    fail "auditing an unknown base ref should fail"
+fi
+if "$audit_fixture/Scripts/audit-changelog-diff.sh" --base >/dev/null 2>&1; then
+    fail "--base without a value should fail usage"
+fi
+no_git_fixture="$WORK_DIR/audit-fixture-no-git"
+mkdir -p "$no_git_fixture/Scripts"
+cp "$AUDIT" "$no_git_fixture/Scripts/audit-changelog-diff.sh"
+cp "$audit_fixture/CHANGELOG.md" "$no_git_fixture/CHANGELOG.md"
+if "$no_git_fixture/Scripts/audit-changelog-diff.sh" >/dev/null 2>&1; then
+    fail "the audit should fail outside a git checkout"
+fi
+"$audit_fixture/Scripts/audit-changelog-diff.sh" --help >/dev/null 2>&1 || fail "--help should succeed"
+pass "release audit separates missing entries from recorded and irrelevant commits"
+
 # --- script syntax ---
 /bin/sh -n "$PUBLISH"
 /bin/sh -n "$NOTARIZE"
@@ -863,6 +1112,8 @@ pass "release notes extraction splits languages and merges them with an English-
 /bin/sh -n "$ROOT_DIR/Scripts/make-app-bundle.sh"
 /bin/sh -n "$ROOT_DIR/Scripts/generate-appcast.sh"
 /bin/sh -n "$ROOT_DIR/Scripts/release-notes-from-changelog.sh"
+/bin/sh -n "$ROOT_DIR/Scripts/verify-changelog.sh"
+/bin/sh -n "$ROOT_DIR/Scripts/audit-changelog-diff.sh"
 /bin/sh -n "$ROOT_DIR/Scripts/generate-sparkle-keys.sh"
 /bin/sh -n "$ROOT_DIR/Scripts/test-release-workflow.sh"
 pass "release scripts parse"
