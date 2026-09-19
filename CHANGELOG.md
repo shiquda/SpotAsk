@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The documentation site draws flow diagrams for service setup, address types, model selection, External Ask, and the Selection Assistant, and adds an **Open Settings in SpotAsk** button to the English and Simplified Chinese pages that jump to the matching settings page. Each button also states the manual path, so it still works without the app installed.
 - The header's quick model switcher now lists your enabled External Ask targets under an "External Ask" section. Picking one opens that platform with your draft, or with your latest question when the draft is empty, and the current conversation stays exactly as it is.
 
+### Changed
+
+- The header model picker is centered in the title bar, instead of sitting next to the SpotAsk brand. The generating spinner stays grouped with the picker.
+
 ## [0.2.4] - 2026-09-16
 
 ### Added
