@@ -25,8 +25,12 @@ pre.mermaid[data-mermaid-error] {
 }
 
 .spotask-diagram {
-  margin: 16px 0;
+  margin: 20px 0;
+  padding: 16px 12px;
   overflow-x: auto;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  background: var(--vp-c-bg-soft);
 }
 
 .spotask-diagram svg {
@@ -34,6 +38,24 @@ pre.mermaid[data-mermaid-error] {
   max-width: 100%;
   height: auto;
   margin: 0 auto;
+}
+
+.spotask-diagram .node rect {
+  rx: 6px;
+  ry: 6px;
+}
+
+.spotask-diagram .nodeLabel,
+.spotask-diagram .edgeLabel,
+.spotask-diagram .label {
+  font-family: var(--vp-font-family);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.spotask-diagram .edgePath .path,
+.spotask-diagram .flowchart-link {
+  stroke-width: 1.25px;
 }
 
 .spotask-diagram-error {
