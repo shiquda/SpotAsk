@@ -15,7 +15,9 @@
  * - `run()` feeds a module-level execution queue inside Mermaid. An entry that
  *   never settles keeps every later `run()` waiting behind it, so this module
  *   never starts a second `run()` until the first settles, and a timed-out
- *   instance is abandoned: later diagrams show the source instead of calling it.
+ *   instance is abandoned. A hung run still occupies that gate, but the page
+ *   render pass does not wait on it: a new page shows its source instead of
+ *   staying hidden until the timeout.
  *
  * Diagrams are re-drawn when the color scheme changes, because Mermaid bakes
  * its colors into the SVG rather than inheriting them from CSS.
@@ -32,9 +34,12 @@ const DRAWN_ATTRIBUTE = 'data-mermaid-drawn'
 const FAILED_ATTRIBUTE = 'data-mermaid-failed'
 /** Set on the failed element to reveal the fence and its reason. */
 const ERROR_ATTRIBUTE = 'data-mermaid-error'
+/** Reveals source while Mermaid is busy with another page's run. */
+const WAITING_ATTRIBUTE = 'data-mermaid-waiting'
 /** A cold visit downloads Mermaid and the diagram code; give that time. */
 const RENDER_TIMEOUT_MS = 15000
 const MERMAID_TIMEOUT = 'Mermaid did not finish drawing'
+const MERMAID_LOAD_TIMEOUT = 'Mermaid did not load'
 const MERMAID_POISONED = 'Mermaid stopped responding'
 
 /** Mermaid's source for each diagram, so a re-render can start from scratch. */
@@ -58,6 +63,7 @@ export function installMermaidDiagrams(): void {
 
   let mermaid: Mermaid | null = null
   let loading: Promise<void> | null = null
+  let watchingLoad = false
   let scheduled = false
   /** Serializes render passes so we never inspect the DOM mid-commit. */
   let passes: Promise<void> = Promise.resolve()
@@ -67,20 +73,47 @@ export function installMermaidDiagrams(): void {
    */
   let epoch = 0
   /**
-   * Turns of `mermaid.run`. Released when the current `run()` settles or this
-   * module gives up waiting, so a later drawing can fail fast instead of
-   * lining up behind a hung Mermaid queue.
+   * Turns of `mermaid.run`. Released when the current `run()` settles or times
+   * out, not when the page that started it goes away.
    */
   let mermaidGate: Promise<void> = Promise.resolve()
+  /** True while a `run()` is in flight, including after its page has gone. */
+  let mermaidBusy = false
   /** Once a `run()` times out, this instance's execution queue is unusable. */
   let mermaidPoisoned: string | null = null
 
-  const load = async (): Promise<Mermaid> => {
+  const withTimeout = async (work: Promise<unknown>, message: string): Promise<void> => {
+    const timeout = Promise.withResolvers<never>()
+    const timer = window.setTimeout(() => timeout.reject(new Error(message)), RENDER_TIMEOUT_MS)
+    void Promise.resolve(work).catch(() => undefined)
+    void timeout.promise.catch(() => undefined)
+    try {
+      await Promise.race([work, timeout.promise])
+    } finally {
+      window.clearTimeout(timer)
+    }
+  }
+
+  const kickLoad = (): void => {
+    if (mermaid || mermaidPoisoned) return
     loading ??= import('mermaid').then((module) => {
       mermaid = module.default
     })
-    await loading
-    return mermaid!
+    if (watchingLoad) return
+    watchingLoad = true
+    void withTimeout(loading, MERMAID_LOAD_TIMEOUT).then(
+      () => {
+        watchingLoad = false
+        schedule()
+      },
+      (error) => {
+        watchingLoad = false
+        const message = errorMessage(error)
+        if (message === MERMAID_LOAD_TIMEOUT) mermaidPoisoned = MERMAID_LOAD_TIMEOUT
+        else loading = null
+        schedule()
+      },
+    )
   }
 
   const theme = (): string => (document.documentElement.classList.contains('dark') ? 'dark' : 'default')
@@ -105,6 +138,7 @@ export function installMermaidDiagrams(): void {
   const markSuccess = (node: HTMLElement, current: string): void => {
     node.removeAttribute(FAILED_ATTRIBUTE)
     node.removeAttribute(ERROR_ATTRIBUTE)
+    node.removeAttribute(WAITING_ATTRIBUTE)
     node.setAttribute(DRAWN_ATTRIBUTE, current)
     const wrap = wrapperOf(node)
     wrap?.removeAttribute(ERROR_ATTRIBUTE)
@@ -116,12 +150,20 @@ export function installMermaidDiagrams(): void {
     node.textContent = source
     node.removeAttribute('data-processed')
     node.removeAttribute(DRAWN_ATTRIBUTE)
+    node.removeAttribute(WAITING_ATTRIBUTE)
     node.setAttribute(FAILED_ATTRIBUTE, current)
     node.setAttribute(ERROR_ATTRIBUTE, message)
     const wrap = wrapperOf(node)
     wrap?.setAttribute(ERROR_ATTRIBUTE, message)
     wrap?.removeAttribute('role')
     showErrorText(wrap, message)
+  }
+
+  const markWaiting = (node: HTMLElement): void => {
+    const source = sources.get(node) ?? node.textContent ?? ''
+    sources.set(node, source)
+    if (node.getAttribute(DRAWN_ATTRIBUTE) || node.getAttribute(ERROR_ATTRIBUTE)) return
+    node.setAttribute(WAITING_ATTRIBUTE, '')
   }
 
   const waitForTurn = async (work: Promise<unknown>, isStale: () => boolean): Promise<void> => {
@@ -138,21 +180,14 @@ export function installMermaidDiagrams(): void {
     }
   }
 
-  /** Waits for `mermaid.run` without cancelling on navigation; a hung run must
-   *  either settle or time out before anything else may call `run()`. */
-  const waitForRun = async (work: Promise<unknown>): Promise<void> => {
-    const timeout = Promise.withResolvers<never>()
-    const timer = window.setTimeout(
-      () => timeout.reject(new Error(MERMAID_TIMEOUT)),
-      RENDER_TIMEOUT_MS,
-    )
-    void work.catch(() => undefined)
-    void timeout.promise.catch(() => undefined)
-    try {
-      await Promise.race([work, timeout.promise])
-    } finally {
-      window.clearTimeout(timer)
-    }
+  const untilStale = (isStale: () => boolean): { promise: Promise<void>; stop: () => void } => {
+    const done = Promise.withResolvers<void>()
+    const poll = window.setInterval(() => {
+      if (isStale()) done.resolve()
+    }, 50)
+    const stop = (): void => window.clearInterval(poll)
+    void done.promise.then(stop, stop)
+    return { promise: done.promise, stop }
   }
 
   /** Redraws one diagram, resolving to the failure message, if any. */
@@ -174,6 +209,7 @@ export function installMermaidDiagrams(): void {
     node.removeAttribute(DRAWN_ATTRIBUTE)
     node.removeAttribute(ERROR_ATTRIBUTE)
     node.removeAttribute(FAILED_ATTRIBUTE)
+    node.removeAttribute(WAITING_ATTRIBUTE)
     const wrap = wrapperOf(node)
     wrap?.removeAttribute(ERROR_ATTRIBUTE)
     clearErrorText(wrap)
@@ -198,6 +234,7 @@ export function installMermaidDiagrams(): void {
       () => undefined,
       () => undefined,
     )
+    let startedRun = false
 
     try {
       await waitForTurn(previous, isStale)
@@ -207,8 +244,22 @@ export function installMermaidDiagrams(): void {
         return mermaidPoisoned
       }
       instance.initialize({ startOnLoad: false, securityLevel: 'strict', theme: current })
-      await waitForRun(instance.run({ nodes: [stage] }))
+      startedRun = true
+      mermaidBusy = true
+      const finished = withTimeout(instance.run({ nodes: [stage] }), MERMAID_TIMEOUT)
+      void finished.finally(() => {
+        mermaidBusy = false
+        turn.resolve()
+        schedule()
+      })
+      const stale = untilStale(isStale)
+      try {
+        await Promise.race([finished, stale.promise])
+      } finally {
+        stale.stop()
+      }
       if (isStale()) return null
+      mermaidBusy = false
       if (!stage.querySelector('svg g')) throw new Error('Mermaid produced no drawing')
       node.replaceChildren(...Array.from(stage.childNodes))
       markSuccess(node, current)
@@ -222,8 +273,17 @@ export function installMermaidDiagrams(): void {
       markFailure(node, current, shown, source)
       return shown
     } finally {
-      turn.resolve()
+      if (!startedRun) turn.resolve()
       stage.remove()
+    }
+  }
+
+  const failNodes = (nodes: HTMLElement[], current: string, message: string): void => {
+    for (const node of nodes) {
+      if (!node.isConnected) continue
+      const source = sources.get(node) ?? node.textContent ?? ''
+      sources.set(node, source)
+      markFailure(node, current, message, source)
     }
   }
 
@@ -239,37 +299,33 @@ export function installMermaidDiagrams(): void {
     if (nodes.length === 0) return
 
     if (mermaidPoisoned) {
-      for (const node of nodes) {
-        if (!node.isConnected) continue
-        const source = sources.get(node) ?? node.textContent ?? ''
-        sources.set(node, source)
-        markFailure(node, current, mermaidPoisoned, source)
-      }
+      failNodes(nodes, current, mermaidPoisoned)
       return
     }
 
-    let instance: Mermaid
-    try {
-      instance = await load()
-    } catch (error) {
-      // A chunk that never arrives must not leave a blank space behind: show
-      // the fence and keep the reason. The next color scheme change retries.
-      const message = errorMessage(error)
-      loading = null
-      for (const node of nodes) {
-        if (!node.isConnected || epoch !== started) continue
-        const source = sources.get(node) ?? node.textContent ?? ''
-        sources.set(node, source)
-        markFailure(node, current, message, source)
-      }
-      console.error('[spotask-docs] Mermaid could not be loaded', message)
+    // A previous page's run still owns Mermaid. Do not call `run()` again, and
+    // do not wait here: reveal source so the new page is not hidden for 15s.
+    if (mermaidBusy) {
+      for (const node of nodes) markWaiting(node)
       return
     }
+
+    if (!mermaid) {
+      kickLoad()
+      for (const node of nodes) markWaiting(node)
+      return
+    }
+
+    const instance = mermaid
 
     for (const node of nodes) {
       if (epoch !== started) return
       if (!node.isConnected) continue
       if (theme() !== current) return
+      if (mermaidBusy) {
+        markWaiting(node)
+        continue
+      }
       const message = await draw(instance, node, current, started)
       if (message) {
         console.error('[spotask-docs] Mermaid diagram failed to render', message, node)

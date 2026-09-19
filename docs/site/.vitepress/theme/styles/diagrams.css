@@ -1,10 +1,9 @@
 /**
- * Mermaid diagrams are emitted as code during the build and drawn in the
- * browser, so they stay hidden until the drawing replaces the source. A diagram
- * Mermaid cannot draw restores its source and shows the failure reason instead
- * of going blank.
+ * Mermaid diagrams stay hidden until they are drawn, fail, or must wait on a
+ * previous page's in-flight run. Waiting reveals the source so a hung drawing
+ * cannot leave a new page blank.
  */
-pre.mermaid:not([data-mermaid-drawn]):not([data-mermaid-error]) {
+pre.mermaid:not([data-mermaid-drawn]):not([data-mermaid-error]):not([data-mermaid-waiting]) {
   visibility: hidden;
 }
 
