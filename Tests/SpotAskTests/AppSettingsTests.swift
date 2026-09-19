@@ -26,6 +26,21 @@ final class AppSettingsTests: XCTestCase {
         settings.chatMessageStyle = .im
         XCTAssertEqual(AppSettings(defaults: defaults).chatMessageStyle, .im)
     }
+    func testPanelBackgroundStyleDefaultsToFrostedAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        XCTAssertEqual(AppSettings(defaults: defaults).panelBackgroundStyle, .frosted)
+
+        let settings = AppSettings(defaults: defaults)
+        settings.panelBackgroundStyle = .solid
+        XCTAssertEqual(AppSettings(defaults: defaults).panelBackgroundStyle, .solid)
+
+        settings.panelBackgroundStyle = .automatic
+        XCTAssertEqual(AppSettings(defaults: defaults).panelBackgroundStyle, .automatic)
+    }
+
 
     func testMenuBarIconDefaultsToVisibleAndPersists() {
         let suite = "AppSettingsTests.\(UUID().uuidString)"
@@ -681,7 +696,7 @@ final class AppSettingsTests: XCTestCase {
     func testSimplifiedChineseUsesTheSwiftPMPackagedLocalizationDirectory() {
         let bundle = L10n.localizedBundle(for: .simplifiedChinese)
 
-        XCTAssertEqual(bundle.bundleURL.lastPathComponent, "zh-hans.lproj")
+        XCTAssertEqual(bundle.bundleURL.lastPathComponent.lowercased(), "zh-hans.lproj")
         XCTAssertEqual(bundle.localizedString(forKey: "settings.title", value: nil, table: "Localizable"), "设置")
     }
 

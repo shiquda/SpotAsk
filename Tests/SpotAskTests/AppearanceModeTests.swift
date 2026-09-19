@@ -14,6 +14,16 @@ struct AppearanceModeTests {
         #expect(AppearanceMode.dark.nsAppearance?.name == .darkAqua)
     }
 
+    @Test func panelBackgroundStyleCases() {
+        #expect(PanelBackgroundStyle.allCases.count == 3)
+        #expect(PanelBackgroundStyle.automatic.rawValue == "automatic")
+        #expect(PanelBackgroundStyle.solid.rawValue == "solid")
+        #expect(PanelBackgroundStyle.frosted.rawValue == "frosted")
+        #expect(!PanelBackgroundStyle.automatic.localizedTitle.isEmpty)
+        #expect(!PanelBackgroundStyle.solid.localizedTitle.isEmpty)
+        #expect(!PanelBackgroundStyle.frosted.localizedTitle.isEmpty)
+    }
+
     @Test func appliesForcedAndSystemWindowAppearances() {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 320, height: 240),

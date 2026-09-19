@@ -136,6 +136,7 @@ private struct StatusToastCard: View {
             }
             .buttonStyle(.plain)
             .frame(width: 18, height: 18)
+            .help(L10n.string("status.dismiss"))
             .accessibilityLabel(Text(L10n.string("status.dismiss")))
         }
         .padding(.horizontal, 12)

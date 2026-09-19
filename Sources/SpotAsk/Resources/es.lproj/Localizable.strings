@@ -1,6 +1,10 @@
 "appearance.dark" = "Oscuro";
 "appearance.light" = "Claro";
 "appearance.system" = "Sistema";
+"appearance.background.automatic" = "Automático";
+"appearance.background.solid" = "Sólido";
+"appearance.background.frosted" = "Esmerilado";
+"appearance.background.reduceTransparencyNote" = "Vuelve a un fondo opaco cuando se activa «Reducir transparencia» en la accesibilidad de macOS.";
 "chat.model" = "Modelo";
 "chat.answerContent" = "Contenido de la respuesta";
 "chat.askAnything" = "¿Qué te gustaría preguntar?";
@@ -146,6 +150,7 @@
 "settings.accessKeyOnlyOnMac" = "Tu clave de acceso se guarda solo en este Mac.";
 "settings.accessKeyPlaceholder" = "Introduce una clave de acceso para guardar o actualizar";
 "settings.appearance" = "Apariencia";
+"settings.panelBackground" = "Fondo de la ventana";
 "settings.about" = "Acerca de";
 "settings.aboutDescription" = "Consulta la versión, el código fuente y las actualizaciones disponibles.";
 "settings.version" = "Versión";

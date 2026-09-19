@@ -1,6 +1,10 @@
 "appearance.dark" = "ダーク";
 "appearance.light" = "ライト";
 "appearance.system" = "システム";
+"appearance.background.automatic" = "自動";
+"appearance.background.solid" = "単色";
+"appearance.background.frosted" = "すりガラス";
+"appearance.background.reduceTransparencyNote" = "macOS のアクセシビリティで「透明度を下げる」が有効な場合は不透明な背景にフォールバックします。";
 "chat.model" = "モデル";
 "chat.answerContent" = "回答内容";
 "chat.askAnything" = "何を質問しますか？";
@@ -146,6 +150,7 @@
 "settings.accessKeyOnlyOnMac" = "アクセスキーはこの Mac のみに保存されます。";
 "settings.accessKeyPlaceholder" = "保存または更新するアクセスキーを入力";
 "settings.appearance" = "外観";
+"settings.panelBackground" = "ウィンドウの背景";
 "settings.about" = "情報";
 "settings.aboutDescription" = "アプリのバージョン、プロジェクトのソース、利用可能なアップデートを確認します。";
 "settings.version" = "バージョン";

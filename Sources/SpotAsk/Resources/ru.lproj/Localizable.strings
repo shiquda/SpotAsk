@@ -1,6 +1,10 @@
 "appearance.dark" = "Тёмная";
 "appearance.light" = "Светлая";
 "appearance.system" = "Системная";
+"appearance.background.automatic" = "Авто";
+"appearance.background.solid" = "Сплошной";
+"appearance.background.frosted" = "Матовый";
+"appearance.background.reduceTransparencyNote" = "Переключается на непрозрачный фон при включении функции «Уменьшение прозрачности» в настройках универсального доступа macOS.";
 "chat.model" = "Модель";
 "chat.answerContent" = "Содержимое ответа";
 "chat.askAnything" = "О чём вы хотите спросить?";
@@ -146,6 +150,7 @@
 "settings.accessKeyOnlyOnMac" = "Ключ доступа сохраняется только на этом Mac.";
 "settings.accessKeyPlaceholder" = "Введите ключ доступа для сохранения или обновления";
 "settings.appearance" = "Оформление";
+"settings.panelBackground" = "Фон окна";
 "settings.about" = "О программе";
 "settings.aboutDescription" = "Просмотр версии приложения, исходного кода проекта и доступных обновлений.";
 "settings.version" = "Версия";

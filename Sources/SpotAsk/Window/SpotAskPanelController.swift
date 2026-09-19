@@ -141,6 +141,12 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
             name: .spotAskAppearanceChanged,
             object: settings
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(applyCurrentAppearance),
+            name: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification,
+            object: nil
+        )
     }
 
     deinit {
@@ -150,7 +156,15 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
     func setContent(_ content: @escaping () -> AnyView) {
         contentBuilder = content
         if let panel {
-            panel.contentView = NSHostingView(rootView: content())
+            let container: SpotAskPanelContentView
+            if let existing = panel.contentView as? SpotAskPanelContentView {
+                container = existing
+            } else {
+                container = SpotAskPanelContentView(frame: panel.contentView?.bounds ?? NSRect(origin: .zero, size: panel.frame.size))
+                panel.contentView = container
+            }
+            container.setHostingView(NSHostingView(rootView: content()))
+            applyBackgroundStyle(panel: panel, container: container)
         }
     }
 
@@ -236,11 +250,14 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
         panel.hidesOnDeactivate = false
         panel.minSize = NSSize(width: 364, height: 320)
         panel.delegate = self
+        let container = SpotAskPanelContentView(frame: NSRect(origin: .zero, size: initialSize))
         if let contentBuilder {
-            panel.contentView = NSHostingView(rootView: contentBuilder())
+            container.setHostingView(NSHostingView(rootView: contentBuilder()))
         }
+        panel.contentView = container
         applyContentCornerRadius(panel)
         self.panel = panel
+        applyBackgroundStyle(panel: panel, container: container)
         return panel
     }
 
@@ -266,6 +283,36 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
     @objc private func applyCurrentAppearance() {
         guard let panel else { return }
         settings.appearance.apply(to: panel)
+        applyBackgroundStyle()
+    }
+
+    private func applyBackgroundStyle(panel targetPanel: SpotAskPanel? = nil, container targetContainer: SpotAskPanelContentView? = nil) {
+        let currentPanel = targetPanel ?? self.panel
+        guard let panel = currentPanel else { return }
+        let container = targetContainer ?? (panel.contentView as? SpotAskPanelContentView)
+        guard let container else { return }
+
+        let reduceTransparency = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
+        let style = settings.panelBackgroundStyle
+
+        let isFrosted: Bool
+        switch style {
+        case .frosted:
+            isFrosted = !reduceTransparency
+        case .automatic, .solid:
+            isFrosted = false
+        }
+
+        if isFrosted {
+            panel.isOpaque = false
+            panel.backgroundColor = .clear
+            container.updateBackground(isFrosted: true)
+        } else {
+            panel.isOpaque = true
+            panel.backgroundColor = .windowBackgroundColor
+            container.updateBackground(isFrosted: false)
+        }
+        panel.invalidateShadow()
     }
 
     /// Match the header's continuous geometry without relying on a private
@@ -321,6 +368,46 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
 private final class SpotAskPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+}
+private final class SpotAskPanelContentView: NSView {
+    private let backgroundEffectView: NSVisualEffectView
+    private var hostingView: NSView?
+
+    override init(frame frameRect: NSRect) {
+        backgroundEffectView = NSVisualEffectView(frame: NSRect(origin: .zero, size: frameRect.size))
+        backgroundEffectView.autoresizingMask = [.width, .height]
+        backgroundEffectView.blendingMode = .behindWindow
+        backgroundEffectView.material = .popover
+        backgroundEffectView.state = .followsWindowActiveState
+        super.init(frame: frameRect)
+        autoresizingMask = [.width, .height]
+        wantsLayer = true
+        layer?.cornerRadius = 14
+        layer?.cornerCurve = .continuous
+        layer?.masksToBounds = true
+        addSubview(backgroundEffectView)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func setHostingView(_ newHostingView: NSView) {
+        hostingView?.removeFromSuperview()
+        hostingView = newHostingView
+        newHostingView.frame = bounds
+        newHostingView.autoresizingMask = [.width, .height]
+        addSubview(newHostingView)
+    }
+
+    func updateBackground(isFrosted: Bool) {
+        backgroundEffectView.isHidden = !isFrosted
+        if isFrosted {
+            backgroundEffectView.material = .popover
+            backgroundEffectView.blendingMode = .behindWindow
+            backgroundEffectView.state = .followsWindowActiveState
+        }
+    }
 }
 
 @MainActor

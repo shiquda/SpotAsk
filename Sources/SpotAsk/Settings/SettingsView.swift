@@ -61,7 +61,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         case .selectionAssistant: ["selection", "selected text", "accessibility", "application", "划词", "选中文字", "辅助功能", "应用"]
         case .shortcuts: ["shortcut", "keyboard", "command", "快捷键", "键盘"]
         case .general: ["behavior", "proxy", "diagnostics", "language", "launch", "window", "local data", "configuration", "行为", "代理", "诊断", "语言", "启动", "窗口", "数据", "配置"]
-        case .appearance: ["appearance", "reading", "color", "font", "math", "style", "外观", "阅读", "颜色", "字体"]
+        case .appearance: ["appearance", "reading", "color", "font", "math", "style", "background", "frosted", "外观", "阅读", "颜色", "字体", "背景", "磨砂"]
         case .about: ["about", "version", "update", "documentation", "关于", "版本", "更新", "文档"]
         }
     }
@@ -190,7 +190,7 @@ enum SettingsSearchIndex {
         Entry(section: .general, titleKey: "settings.diagnostics", labelKeys: ["settings.diagnosticsEnabled"]),
         Entry(section: .general, titleKey: "settings.localData", labelKeys: ["settings.localDataDescription"]),
         Entry(section: .general, titleKey: "settings.configuration", labelKeys: ["settings.configurationDescription"]),
-        Entry(section: .appearance, titleKey: "settings.reading", labelKeys: ["settings.appearance", "settings.chatMessageStyle", "settings.renderMath", "settings.fontSize"]),
+        Entry(section: .appearance, titleKey: "settings.reading", labelKeys: ["settings.appearance", "settings.panelBackground", "settings.chatMessageStyle", "settings.renderMath", "settings.fontSize"]),
         Entry(section: .about, titleKey: "SpotAsk", labelKeys: ["settings.version", "settings.source", "settings.userGuide"]),
         Entry(section: .about, titleKey: "settings.updates", labelKeys: ["settings.autoCheckForUpdates", "settings.checkForUpdates", "update.restoreReminder", "settings.openGitHubRelease"])
     ]

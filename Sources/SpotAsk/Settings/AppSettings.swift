@@ -199,6 +199,22 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
     }
 }
 
+enum PanelBackgroundStyle: String, CaseIterable, Identifiable, Codable, Sendable {
+    case automatic
+    case solid
+    case frosted
+
+    var id: String { rawValue }
+
+    var localizedTitle: String {
+        switch self {
+        case .automatic: L10n.string("appearance.background.automatic")
+        case .solid: L10n.string("appearance.background.solid")
+        case .frosted: L10n.string("appearance.background.frosted")
+        }
+    }
+}
+
 enum FontSize: String, CaseIterable, Identifiable {
     case small
     case standard
@@ -346,6 +362,7 @@ final class AppSettings {
         static let proxyUsername = "proxyUsername"
         static let diagnosticsEnabled = "diagnosticsEnabled"
         static let appearance = "appearance"
+        static let panelBackgroundStyle = "panelBackgroundStyle"
         static let fontSize = "fontSize"
         static let chatMessageStyle = "chatMessageStyle"
         static let interfaceZoomLevel = "interfaceZoomLevel"
@@ -416,6 +433,12 @@ final class AppSettings {
     var appearance: AppearanceMode {
         didSet {
             defaults.set(appearance.rawValue, forKey: Key.appearance)
+            NotificationCenter.default.post(name: .spotAskAppearanceChanged, object: self)
+        }
+    }
+    var panelBackgroundStyle: PanelBackgroundStyle {
+        didSet {
+            defaults.set(panelBackgroundStyle.rawValue, forKey: Key.panelBackgroundStyle)
             NotificationCenter.default.post(name: .spotAskAppearanceChanged, object: self)
         }
     }
@@ -627,6 +650,7 @@ final class AppSettings {
         proxyUsername = defaults.string(forKey: Key.proxyUsername) ?? ""
         diagnosticsEnabled = defaults.object(forKey: Key.diagnosticsEnabled) as? Bool ?? false
         appearance = AppearanceMode(rawValue: defaults.string(forKey: Key.appearance) ?? "system") ?? .system
+        panelBackgroundStyle = PanelBackgroundStyle(rawValue: defaults.string(forKey: Key.panelBackgroundStyle) ?? "frosted") ?? .frosted
         fontSize = FontSize(rawValue: defaults.string(forKey: Key.fontSize) ?? "standard") ?? .standard
         chatMessageStyle = ChatMessageStyle(rawValue: defaults.string(forKey: Key.chatMessageStyle) ?? "") ?? .standard
         interfaceZoomLevel = InterfaceZoomLevel(rawValue: defaults.string(forKey: Key.interfaceZoomLevel) ?? "standard") ?? .standard
@@ -897,6 +921,7 @@ final class AppSettings {
                 renderMath: renderMath,
                 launchAtLogin: launchAtLogin,
                 appearance: appearance.rawValue,
+                panelBackgroundStyle: panelBackgroundStyle.rawValue,
                 fontSize: fontSize.rawValue,
                 chatMessageStyle: chatMessageStyle.rawValue,
                 interfaceZoomLevel: interfaceZoomLevel.rawValue,
@@ -955,6 +980,10 @@ final class AppSettings {
         renderMath = general.renderMath ?? true
         launchAtLogin = general.launchAtLogin
         appearance = AppearanceMode(rawValue: general.appearance) ?? .system
+        if let rawPanelBackgroundStyle = general.panelBackgroundStyle,
+           let style = PanelBackgroundStyle(rawValue: rawPanelBackgroundStyle) {
+            panelBackgroundStyle = style
+        }
         fontSize = FontSize(rawValue: general.fontSize) ?? .standard
         chatMessageStyle = ChatMessageStyle(rawValue: general.chatMessageStyle ?? "") ?? .standard
         interfaceZoomLevel = InterfaceZoomLevel(rawValue: general.interfaceZoomLevel) ?? .standard

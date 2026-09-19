@@ -25,6 +25,20 @@ struct AppearanceSettingsPage: View {
                         Spacer(minLength: 0)
                     }
                 }
+                SettingsFieldRow(label: L10n.string("settings.panelBackground")) {
+                    HStack(spacing: 0) {
+                        Picker(L10n.string("settings.panelBackground"), selection: Bindable(settings).panelBackgroundStyle) {
+                            Text(L10n.string("appearance.background.automatic")).tag(PanelBackgroundStyle.automatic)
+                            Text(L10n.string("appearance.background.solid")).tag(PanelBackgroundStyle.solid)
+                            Text(L10n.string("appearance.background.frosted")).tag(PanelBackgroundStyle.frosted)
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .help(L10n.string("appearance.background.reduceTransparencyNote"))
+                        .accessibilityLabel(L10n.string("settings.panelBackground"))
+                        Spacer(minLength: 0)
+                    }
+                }
                 SettingsFieldRow(label: L10n.string("settings.chatMessageStyle")) {
                     HStack(spacing: 0) {
                         Picker(L10n.string("settings.chatMessageStyle"), selection: Bindable(settings).chatMessageStyle) {
