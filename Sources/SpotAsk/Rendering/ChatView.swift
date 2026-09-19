@@ -178,6 +178,11 @@ struct ChatView: View {
                     effectiveModelID: viewModel.effectiveModelID,
                     hasSessionOverride: viewModel.sessionModelID != nil,
                     isDisabled: isGenerating,
+                    externalAsks: settings.enabledQuickActions,
+                    onSelectExternalAsk: { action in
+                        isModelPickerPresented = false
+                        selectExternalAskFromModelPicker(action)
+                    },
                     onSelect: { id in
                         viewModel.selectSessionModel(id: id)
                         isModelPickerPresented = false
@@ -1076,6 +1081,33 @@ struct ChatView: View {
 
     private var activeComposerBadge: ComposerModeBadge? {
         composerModeCoordinator.badge(selectedPreset: viewModel.selectedPromptPreset)
+    }
+
+    /// Picking an External Ask in the header's model popover is a side trip:
+    /// the current conversation is left exactly as it is, and only the draft the
+    /// launch just consumed is cleared.
+    private func selectExternalAskFromModelPicker(_ action: QuickAction) {
+        switch ModelPickerExternalAsk.perform(
+            action,
+            viewModel: viewModel,
+            coordinator: &composerModeCoordinator,
+            clearComposerText: {
+                if let textView = composerTextView.textView, !textView.string.isEmpty {
+                    textView.string = ""
+                }
+            }
+        ) {
+        case .launched:
+            clearAtCommandTokenState()
+        case .becamePending:
+            break
+        case let .launchFailed(failed):
+            StatusToastCenter.shared.show(
+                L10n.string("atCommand.launchFailed", failed.displayName),
+                isError: true
+            )
+        }
+        inputFocused = true
     }
 
     private func selectExternalAsk(_ action: QuickAction) {
