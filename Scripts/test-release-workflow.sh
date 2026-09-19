@@ -366,6 +366,10 @@ grep -q -- '--notes-zh' "$ROOT_DIR/Scripts/generate-appcast.sh" || fail "generat
 grep -q 'xml:lang="zh-CN"' "$ROOT_DIR/Scripts/generate-appcast.sh" || fail "generate-appcast.sh does not generate xml:lang=zh-CN"
 grep -q 'if \[ -f dist/appcast-arm64.xml \]' "$ROOT_DIR/.github/workflows/release.yml" && fail "Release workflow still treats appcasts as optional assets"
 grep -q 'test -n "$SPARKLE_ED_PRIVATE_KEY"' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release workflow does not fail closed without SPARKLE_ED_PRIVATE_KEY"
+grep -q -- '--notes-zh' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release workflow does not embed Chinese release notes in the appcast"
+grep -q -- 'release-notes-from-changelog.sh "$RELEASE_TAG" --en' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release workflow does not extract the English release notes"
+grep -q -- 'release-notes-from-changelog.sh "$RELEASE_TAG" --all' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release workflow does not extract bilingual release notes"
+grep -q -- 'release-notes-from-changelog.sh "$RELEASE_TAG" --all' "$ROOT_DIR/.github/workflows/release-notes.yml" || fail "Release notes workflow does not resync bilingual release notes"
 
 VERIFY="$ROOT_DIR/Scripts/verify-sparkle-appcast.py"
 GENERATE_APPCAST="$ROOT_DIR/Scripts/generate-appcast.sh"
@@ -743,6 +747,114 @@ print("signed embedded appcasts ok")
 PY
 pass "generate-appcast embeds notes and verifies sparkle:edSignature against the public key"
 
+# --- release notes extraction: --en / --zh / --all with an English-only fallback ---
+NOTES="$ROOT_DIR/Scripts/release-notes-from-changelog.sh"
+notes_fixture="$WORK_DIR/notes-fixture"
+mkdir -p "$notes_fixture/Scripts"
+cp "$NOTES" "$notes_fixture/Scripts/release-notes-from-changelog.sh"
+cat > "$notes_fixture/CHANGELOG.md" <<'EOF'
+# Changelog
+
+## [Unreleased]
+
+## [9.9.9] - 2030-01-01
+
+### Added
+
+- English only entry EN-ONLY-ALPHA.
+
+## [9.9.8] - 2029-01-01
+
+### Added
+
+- Shared entry EN-BETA.
+
+### Fixed
+
+- Paired fix EN-BETA-FIX.
+
+[Unreleased]: https://example.test/compare/v9.9.9...HEAD
+[9.9.9]: https://example.test/compare/v9.9.8...v9.9.9
+[9.9.8]: https://example.test/compare/v9.9.7...v9.9.8
+EOF
+cat > "$notes_fixture/CHANGELOG.zh-CN.md" <<'EOF'
+# Changelog
+
+## [Unreleased]
+
+## [9.9.8] - 2029-01-01
+
+### Added
+
+- 共享条目 ZH-BETA。
+
+### Fixed
+
+- 成对修复 ZH-BETA-FIX。
+
+[Unreleased]: https://example.test/compare/v9.9.9...HEAD
+[9.9.8]: https://example.test/compare/v9.9.7...v9.9.8
+EOF
+fixture_notes="$notes_fixture/Scripts/release-notes-from-changelog.sh"
+en_notes="$WORK_DIR/notes-en.md"
+zh_notes="$WORK_DIR/notes-zh.md"
+all_notes="$WORK_DIR/notes-all.md"
+
+"$fixture_notes" v9.9.8 --en > "$en_notes"
+"$fixture_notes" v9.9.8 --zh > "$zh_notes"
+"$fixture_notes" v9.9.8 --all > "$all_notes"
+
+grep -q 'EN-BETA' "$en_notes" || fail "--en did not extract the English section"
+grep -q 'EN-BETA-FIX' "$en_notes" || fail "--en dropped the last subsection of the release"
+grep -q 'ZH-BETA' "$en_notes" && fail "--en leaked the Chinese section"
+grep -q 'example.test/compare' "$en_notes" && fail "--en included the changelog link references"
+grep -q 'ZH-BETA' "$zh_notes" || fail "--zh did not extract the Chinese section"
+grep -q 'ZH-BETA-FIX' "$zh_notes" || fail "--zh dropped the last subsection of the release"
+grep -q 'EN-BETA' "$zh_notes" && fail "--zh leaked the English section"
+grep -q 'example.test/compare' "$zh_notes" && fail "--zh included the changelog link references"
+
+grep -q 'ZH-BETA' "$all_notes" || fail "--all is missing the Chinese section"
+grep -q 'EN-BETA' "$all_notes" || fail "--all is missing the English section"
+awk '/ZH-BETA/{zh=NR} /EN-BETA/{en=NR} END{exit !(zh && en && zh < en)}' "$all_notes" \
+    || fail "--all must place the Chinese section above the English one"
+
+# Historical version missing from the Chinese changelog: --all degrades to English only.
+"$fixture_notes" v9.9.9 --all > "$WORK_DIR/notes-fallback.md" 2>"$WORK_DIR/notes-fallback.err"
+"$fixture_notes" v9.9.9 --en > "$WORK_DIR/notes-only-en.md"
+cmp -s "$WORK_DIR/notes-fallback.md" "$WORK_DIR/notes-only-en.md" \
+    || fail "--all without a Chinese section is not the English-only notes"
+grep -q 'EN-ONLY-ALPHA' "$WORK_DIR/notes-fallback.md" || fail "--all fallback dropped the English section"
+grep -q 'CHANGELOG.zh-CN.md' "$WORK_DIR/notes-fallback.err" || fail "--all fallback did not report the missing Chinese section"
+if "$fixture_notes" v9.9.9 --zh >/dev/null 2>&1; then
+    fail "--zh should fail when the release is missing from CHANGELOG.zh-CN.md"
+fi
+
+# A tree without CHANGELOG.zh-CN.md at all still yields notes for every mode.
+no_zh_fixture="$WORK_DIR/notes-fixture-en-only"
+mkdir -p "$no_zh_fixture/Scripts"
+cp "$NOTES" "$no_zh_fixture/Scripts/release-notes-from-changelog.sh"
+cp "$notes_fixture/CHANGELOG.md" "$no_zh_fixture/CHANGELOG.md"
+"$no_zh_fixture/Scripts/release-notes-from-changelog.sh" v9.9.8 --all > "$WORK_DIR/notes-no-zh.md" 2>/dev/null
+cmp -s "$WORK_DIR/notes-no-zh.md" "$en_notes" || fail "--all without CHANGELOG.zh-CN.md is not the English-only notes"
+if "$no_zh_fixture/Scripts/release-notes-from-changelog.sh" v9.9.8 --zh >/dev/null 2>&1; then
+    fail "--zh should fail without CHANGELOG.zh-CN.md"
+fi
+
+# Bare tag keeps working and now yields the merged notes.
+"$fixture_notes" v9.9.8 > "$WORK_DIR/notes-default.md"
+cmp -s "$WORK_DIR/notes-default.md" "$all_notes" || fail "default extraction is not the merged bilingual notes"
+
+if "$fixture_notes" v1.0.0 --en >/dev/null 2>&1; then
+    fail "a version missing from CHANGELOG.md should fail the extraction"
+fi
+if "$fixture_notes" 9.9.8 --en >/dev/null 2>&1; then
+    fail "a tag without the v prefix should fail usage"
+fi
+if "$fixture_notes" v9.9.8 --en --zh >/dev/null 2>&1; then
+    fail "conflicting mode flags should fail usage"
+fi
+pass "release notes extraction splits languages and merges them with an English-only fallback"
+
 # --- script syntax ---
 /bin/sh -n "$PUBLISH"
 /bin/sh -n "$NOTARIZE"
@@ -750,6 +862,7 @@ pass "generate-appcast embeds notes and verifies sparkle:edSignature against the
 /bin/sh -n "$ROOT_DIR/Scripts/make-release-dmg.sh"
 /bin/sh -n "$ROOT_DIR/Scripts/make-app-bundle.sh"
 /bin/sh -n "$ROOT_DIR/Scripts/generate-appcast.sh"
+/bin/sh -n "$ROOT_DIR/Scripts/release-notes-from-changelog.sh"
 /bin/sh -n "$ROOT_DIR/Scripts/generate-sparkle-keys.sh"
 /bin/sh -n "$ROOT_DIR/Scripts/test-release-workflow.sh"
 pass "release scripts parse"
