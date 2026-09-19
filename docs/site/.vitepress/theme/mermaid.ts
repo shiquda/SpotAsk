@@ -58,6 +58,47 @@ function errorMessage(error: unknown): string {
   return 'Mermaid could not draw this diagram'
 }
 
+function isMermaid(value: unknown): value is Mermaid {
+  if (!value || typeof value !== 'object') return false
+  if (!('initialize' in value) || !('run' in value)) return false
+  return typeof value.initialize === 'function' && typeof value.run === 'function'
+}
+
+/**
+ * VitePress's mermaid.core browser chunk does not export a top-level
+ * `default`. The renderer sits on `default`, a nested `default`, a named
+ * `mermaid` export, or the `default` of a generated Module namespace.
+ */
+function resolveMermaidExport(module: unknown): Mermaid {
+  const seen = new Set<unknown>()
+  const consider = (value: unknown): Mermaid | null => {
+    let current: unknown = value
+    for (let depth = 0; depth < 4 && current != null && !seen.has(current); depth++) {
+      seen.add(current)
+      if (isMermaid(current)) return current
+      if (typeof current !== 'object') break
+      const named = 'mermaid' in current ? current.mermaid : undefined
+      if (isMermaid(named)) return named
+      current = 'default' in current ? current.default : undefined
+    }
+    return null
+  }
+
+  const fromRoot = consider(module)
+  if (fromRoot) return fromRoot
+
+  if (module && typeof module === 'object') {
+    for (const value of Object.values(module)) {
+      if (!value || typeof value !== 'object') continue
+      if (!(Symbol.toStringTag in value) || value[Symbol.toStringTag] !== 'Module') continue
+      const fromNested = consider(value)
+      if (fromNested) return fromNested
+    }
+  }
+
+  throw new Error('Mermaid export is not a renderer')
+}
+
 export function installMermaidDiagrams(): void {
   if (import.meta.env.SSR) return
 
@@ -97,7 +138,7 @@ export function installMermaidDiagrams(): void {
   const kickLoad = (): void => {
     if (mermaid || mermaidPoisoned) return
     loading ??= import('mermaid').then((module) => {
-      mermaid = module.default
+      mermaid = resolveMermaidExport(module)
     })
     if (watchingLoad) return
     watchingLoad = true
