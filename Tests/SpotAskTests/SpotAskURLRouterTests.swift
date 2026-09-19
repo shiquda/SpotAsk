@@ -54,6 +54,13 @@ struct SpotAskURLRouterTests {
         #expect(SpotAskURLRouter.parse("spotask://settings//about") == .settings(nil))
         #expect(SpotAskURLRouter.parse("spotask://settings/about/") == .settings(nil))
 
+        // Percent-decoding happens before the id is matched, so an encoded
+        // space, tab, newline, or Unicode look-alike must not be normalized
+        // onto a real id.
+        #expect(SpotAskURLRouter.parse("spotask://settings/%20about%20") == .settings(nil))
+        #expect(SpotAskURLRouter.parse("spotask://settings/%09general%0A") == .settings(nil))
+        #expect(SpotAskURLRouter.parse("spotask://settings/external-as%E2%84%AA") == .settings(nil))
+
         // Query items are ignored on Settings, so an unknown parameter neither
         // picks a different page nor rejects the URL. Other commands keep
         // ignoring them entirely.

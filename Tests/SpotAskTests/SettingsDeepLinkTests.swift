@@ -31,7 +31,6 @@ struct SettingsDeepLinkTests {
     @Test func deepLinkIdentifiersMatchRegardlessOfCase() {
         #expect(SettingsSection(deepLinkPath: "External-Ask") == .externalAsk)
         #expect(SettingsSection(deepLinkPath: "ABOUT") == .about)
-        #expect(SettingsSection(deepLinkPath: " about ") == .about)
     }
 
     @Test func deepLinkIdentifiersRejectUnknownAndLocalizedValues() {
@@ -40,6 +39,14 @@ struct SettingsDeepLinkTests {
         #expect(SettingsSection(deepLinkPath: "nowhere") == nil)
         #expect(SettingsSection(deepLinkPath: "externalask") == nil)
         #expect(SettingsSection(deepLinkPath: "external ask") == nil)
+
+        // The value is percent-decoded before it reaches this initializer, so
+        // surrounding whitespace and Unicode look-alikes must not be folded
+        // onto a real id: the Kelvin sign (U+212A) lowercases to "k".
+        #expect(SettingsSection(deepLinkPath: " about ") == nil)
+        #expect(SettingsSection(deepLinkPath: "\tabout\n") == nil)
+        #expect(SettingsSection(deepLinkPath: "external-as\u{212A}") == nil)
+        #expect(SettingsSection(deepLinkPath: " extern\u{212A} ") == nil)
 
         // Localized titles are presentation text; sending one over the scheme
         // must not select a page.
