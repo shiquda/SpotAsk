@@ -152,6 +152,7 @@
 "settings.source" = "Code source du projet";
 "settings.userGuide" = "Guide d’utilisation";
 "settings.openDocumentation" = "Ouvrir la documentation";
+"settings.openDocumentationFor" = "Ouvrir la documentation de %@";
 "settings.updates" = "Mises à jour";
 "settings.checkForUpdates" = "Rechercher des mises à jour";
 "settings.checkingForUpdates" = "Recherche de mises à jour...";

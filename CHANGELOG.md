@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `spotask://settings/<page>` links open one Settings page directly (Provider, Prompts, External Ask, Selection Assistant, Shortcuts, General, Appearance, About), so documentation, shortcuts, and terminal scripts can send users to the exact page. Plain `spotask://settings` still opens Settings, and an unknown page falls back to it.
+- Settings groups that configure behavior worth explaining now link to their guide (service addresses, models, prompts, External Ask, Selection Assistant, shortcuts reference, proxy, local data, appearance). Links follow the interface language, opening the English or Simplified Chinese page.
 
 ## [0.2.4] - 2026-09-16
 

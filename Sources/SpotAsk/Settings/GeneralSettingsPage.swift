@@ -96,7 +96,10 @@ struct GeneralSettingsPage: View {
                 }
             }
 
-            SettingsGroup(title: L10n.string("settings.proxy")) {
+            SettingsGroup(
+                title: L10n.string("settings.proxy"),
+                documentation: DocumentationLinks.url(for: .proxy, language: settings.language)
+            ) {
                 SettingsToggleRow(label: L10n.string("settings.proxyEnabled"), isOn: Bindable(settings).proxyEnabled)
                 if settings.proxyEnabled {
                     SettingsFieldRow(label: L10n.string("settings.proxyType")) {
@@ -170,7 +173,10 @@ struct GeneralSettingsPage: View {
                 }
             }
 
-            SettingsGroup(title: L10n.string("settings.localData")) {
+            SettingsGroup(
+                title: L10n.string("settings.localData"),
+                documentation: DocumentationLinks.url(for: .privacy, language: settings.language)
+            ) {
                 Text(L10n.string("settings.localDataDescription"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
