@@ -450,6 +450,14 @@
 "settings.selectionAssistantAutoShowSearchPlaceholder" = "Rechercher des apps";
 "settings.selectionAssistantAutoShowSearchNoResults" = "Aucune app correspondante.";
 "settings.selectionAssistantAutoShowSearchClear" = "Effacer la recherche";
+"settings.selectionAssistantClipboardAssisted" = "Sélection assistée par le presse-papiers";
+"settings.selectionAssistantClipboardAssistedDescription" = "Utilisez le presse-papiers pour lire le texte sélectionné dans les apps qui ne le transmettent pas correctement. Activez cette option uniquement pour les apps qui en ont besoin.";
+"settings.selectionAssistantClipboardAssistedEnabled" = "Lire les sélections avec le presse-papiers";
+"settings.selectionAssistantClipboardAssistedApps" = "Apps sélectionnées";
+"settings.selectionAssistantClipboardAssistedChooseApps" = "Choisir des apps";
+"settings.selectionAssistantClipboardAssistedSelectedCount" = "%d apps sélectionnées";
+"settings.selectionAssistantClipboardAssistedClear" = "Effacer";
+"settings.selectionAssistantClipboardAssistedRefresh" = "Actualiser la liste des apps";
 "menu.quickQuestionMode" = "Mode question rapide";
 "chat.insertSelection" = "Remplacer le texte sélectionné";
 "chat.insertSelectionSucceeded" = "Texte sélectionné remplacé.";

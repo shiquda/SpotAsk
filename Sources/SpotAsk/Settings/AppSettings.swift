@@ -371,6 +371,8 @@ final class AppSettings {
         static let selectionAutoInvokeScope = "selectionAutoInvokeScope"
         static let selectionAutoInvokeBlacklist = "selectionAutoInvokeBlacklist"
         static let selectionAutoInvokeWhitelist = "selectionAutoInvokeWhitelist"
+        static let clipboardAssistedSelectionEnabled = "clipboardAssistedSelectionEnabled"
+        static let clipboardAssistedSelectionAppIdentifiers = "clipboardAssistedSelectionAppIdentifiers"
         static let selectionActionBarShowsChatAction = "selectionActionBarShowsChatAction"
         static let selectionActionBarShowsLabels = "selectionActionBarShowsLabels"
         static let selectionActionBarShowsPrompts = "selectionActionBarShowsPrompts"
@@ -501,6 +503,21 @@ final class AppSettings {
     var selectionAutoInvokeWhitelist: [String] {
         didSet { defaults.set(selectionAutoInvokeWhitelist, forKey: Key.selectionAutoInvokeWhitelist) }
     }
+    /// Whether the listed apps are read through the clipboard instead of
+    /// Accessibility alone. Defaults off: the clipboard path briefly owns the
+    /// system pasteboard, so it stays an explicit opt-in per app.
+    var clipboardAssistedSelectionEnabled: Bool {
+        didSet {
+            defaults.set(clipboardAssistedSelectionEnabled, forKey: Key.clipboardAssistedSelectionEnabled)
+            NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+        }
+    }
+    var clipboardAssistedSelectionAppIdentifiers: [String] {
+        didSet {
+            defaults.set(clipboardAssistedSelectionAppIdentifiers, forKey: Key.clipboardAssistedSelectionAppIdentifiers)
+            NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+        }
+    }
     /// Seconds between the selection settling and the quick actions appearing.
     var selectionAutoInvokeDelay: Double {
         didSet {
@@ -516,7 +533,7 @@ final class AppSettings {
     /// Decides whether an automatic trigger may run in the given source app.
     /// Manual shortcuts are intentionally not affected by this filter.
     func allowsAutomaticInvoke(from source: SelectionSourceApplication?) -> Bool {
-        guard let identifier = source?.bundleIdentifier ?? source?.localizedName, !identifier.isEmpty else {
+        guard let identifier = source?.selectionIdentifier else {
             return selectionAutoInvokeScope == .allApps
         }
         switch selectionAutoInvokeScope {
@@ -524,6 +541,16 @@ final class AppSettings {
         case .blacklist: return !selectionAutoInvokeBlacklist.contains(identifier)
         case .whitelist: return selectionAutoInvokeWhitelist.contains(identifier)
         }
+    }
+
+    /// Decides whether a selection read from `source` may use the
+    /// clipboard-assisted path. Both the switch and a listed app are required,
+    /// so an app that is not listed always keeps the plain Accessibility read.
+    func usesClipboardAssistedSelection(from source: SelectionSourceApplication?) -> Bool {
+        guard clipboardAssistedSelectionEnabled, let identifier = source?.selectionIdentifier else {
+            return false
+        }
+        return clipboardAssistedSelectionAppIdentifiers.contains(identifier)
     }
 
     var panelWidth: Double { didSet { defaults.set(panelWidth, forKey: Key.panelWidth) } }
@@ -643,6 +670,8 @@ final class AppSettings {
         selectionAutoInvokeScope = SelectionAutoInvokeScope(rawValue: defaults.string(forKey: Key.selectionAutoInvokeScope) ?? "") ?? .allApps
         selectionAutoInvokeBlacklist = defaults.stringArray(forKey: Key.selectionAutoInvokeBlacklist) ?? []
         selectionAutoInvokeWhitelist = defaults.stringArray(forKey: Key.selectionAutoInvokeWhitelist) ?? []
+        clipboardAssistedSelectionEnabled = defaults.object(forKey: Key.clipboardAssistedSelectionEnabled) as? Bool ?? false
+        clipboardAssistedSelectionAppIdentifiers = defaults.stringArray(forKey: Key.clipboardAssistedSelectionAppIdentifiers) ?? []
         selectionActionBarShowsChatAction = defaults.object(forKey: Key.selectionActionBarShowsChatAction) as? Bool ?? true
         selectionActionBarShowsLabels = defaults.object(forKey: Key.selectionActionBarShowsLabels) as? Bool ?? true
         selectionActionBarShowsPrompts = defaults.object(forKey: Key.selectionActionBarShowsPrompts) as? Bool ?? true
