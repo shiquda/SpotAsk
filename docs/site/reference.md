@@ -12,7 +12,7 @@ description: A compact reference for SpotAsk settings sections, default shortcut
 | Services | AI service formats, addresses, access keys, timeouts, models, model discovery |
 | Prompts | Built-in prompts, custom prompts, order, enabled state, custom instructions |
 | External Ask | External targets, order, enabled state, the feature switch, custom entries |
-| Selection Assistant | Permission, trigger mode, default action, auto-show, app scope, delay |
+| Selection Assistant | Permission, trigger mode, default action, auto-show, app scope, delay, clipboard-assisted reading |
 | Shortcuts | Global hotkey and shortcuts used while the SpotAsk window is open |
 | General | Language, launch behavior, session retention, proxy, diagnostics, local data |
 | Appearance | Appearance, font size, message style, and reading size |

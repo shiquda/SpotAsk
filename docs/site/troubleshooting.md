@@ -32,6 +32,7 @@ If refresh fails, verify the service address and access key first. If your provi
 4. Check **Auto-show apps**. In whitelist mode, only selected apps show the actions; in blacklist mode, excluded apps do not.
 5. Try the selection shortcut manually: the default is `⌥ + ⇧ + Space`.
 6. Remember that SpotAsk cannot read empty selections, secure input fields, or text in apps that do not expose selected text.
+7. If the text arrives shifted or without spaces, add that app under **Clipboard-assisted reading** in Settings > **Selection Assistant**.
 
 ## Global shortcut conflicts
 

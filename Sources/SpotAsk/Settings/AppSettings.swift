@@ -318,6 +318,14 @@ enum UpdateDownloadSource: String, CaseIterable, Identifiable, Codable, Sendable
     }
 }
 
+/// Stored names for the clipboard-assisted selection settings. The selection
+/// reader resolves them from `UserDefaults` on its own queue, so the names live
+/// outside the main actor-isolated settings type that writes them.
+enum ClipboardAssistedSelectionDefaults {
+    static let enabledKey = "clipboardAssistedSelectionEnabled"
+    static let appIdentifiersKey = "clipboardAssistedSelectionAppIdentifiers"
+}
+
 @MainActor
 @Observable
 final class AppSettings {
@@ -371,6 +379,8 @@ final class AppSettings {
         static let selectionAutoInvokeScope = "selectionAutoInvokeScope"
         static let selectionAutoInvokeBlacklist = "selectionAutoInvokeBlacklist"
         static let selectionAutoInvokeWhitelist = "selectionAutoInvokeWhitelist"
+        static let clipboardAssistedSelectionEnabled = ClipboardAssistedSelectionDefaults.enabledKey
+        static let clipboardAssistedSelectionAppIdentifiers = ClipboardAssistedSelectionDefaults.appIdentifiersKey
         static let selectionActionBarShowsChatAction = "selectionActionBarShowsChatAction"
         static let selectionActionBarShowsLabels = "selectionActionBarShowsLabels"
         static let selectionActionBarShowsPrompts = "selectionActionBarShowsPrompts"
@@ -500,6 +510,19 @@ final class AppSettings {
     }
     var selectionAutoInvokeWhitelist: [String] {
         didSet { defaults.set(selectionAutoInvokeWhitelist, forKey: Key.selectionAutoInvokeWhitelist) }
+    }
+    /// Whether listed apps are read through their own Copy command instead of
+    /// the accessibility tree. Defaults off: the trade is a brief clipboard
+    /// write, so it stays an explicit decision per app.
+    var clipboardAssistedSelectionEnabled: Bool {
+        didSet {
+            defaults.set(clipboardAssistedSelectionEnabled, forKey: Key.clipboardAssistedSelectionEnabled)
+            NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+        }
+    }
+    /// Bundle identifiers whose selections are read through their Copy command.
+    var clipboardAssistedSelectionAppIdentifiers: [String] {
+        didSet { defaults.set(clipboardAssistedSelectionAppIdentifiers, forKey: Key.clipboardAssistedSelectionAppIdentifiers) }
     }
     /// Seconds between the selection settling and the quick actions appearing.
     var selectionAutoInvokeDelay: Double {
@@ -643,6 +666,8 @@ final class AppSettings {
         selectionAutoInvokeScope = SelectionAutoInvokeScope(rawValue: defaults.string(forKey: Key.selectionAutoInvokeScope) ?? "") ?? .allApps
         selectionAutoInvokeBlacklist = defaults.stringArray(forKey: Key.selectionAutoInvokeBlacklist) ?? []
         selectionAutoInvokeWhitelist = defaults.stringArray(forKey: Key.selectionAutoInvokeWhitelist) ?? []
+        clipboardAssistedSelectionEnabled = defaults.object(forKey: Key.clipboardAssistedSelectionEnabled) as? Bool ?? false
+        clipboardAssistedSelectionAppIdentifiers = defaults.stringArray(forKey: Key.clipboardAssistedSelectionAppIdentifiers) ?? []
         selectionActionBarShowsChatAction = defaults.object(forKey: Key.selectionActionBarShowsChatAction) as? Bool ?? true
         selectionActionBarShowsLabels = defaults.object(forKey: Key.selectionActionBarShowsLabels) as? Bool ?? true
         selectionActionBarShowsPrompts = defaults.object(forKey: Key.selectionActionBarShowsPrompts) as? Bool ?? true

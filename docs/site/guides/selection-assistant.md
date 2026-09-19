@@ -51,6 +51,16 @@ Use **Auto-show apps** to control where it appears:
 
 The default delay is 0.8 seconds. Set **Wait** from 0 to 3 seconds so the actions do not appear while you are still selecting.
 
+## Clipboard-assisted reading
+
+A few apps report the selected text through macOS inaccurately — the selection arrives shifted, or with the spaces between lines missing. For those apps, SpotAsk can read the selection the way the app's own Copy command does.
+
+1. Open Settings > **Selection Assistant**.
+2. Turn on **Read selections with the app's Copy command**.
+3. Add each app it should apply to, for example Zotero.
+
+SpotAsk first checks that something is selected, so an empty selection never triggers a copy. It then backs up your clipboard, runs the app's Copy command, reads the text, and puts the backed-up contents back — every item and type, so copied images and rich text survive. Apps you leave off the list keep the plain accessibility reading.
+
 ## Manual trigger
 
 The selection shortcut works even when automatic display is off. The default is `⌥ + ⇧ + Space`.

@@ -450,6 +450,10 @@
 "settings.selectionAssistantAutoShowSearchPlaceholder" = "Найти приложения";
 "settings.selectionAssistantAutoShowSearchNoResults" = "Нет подходящих приложений.";
 "settings.selectionAssistantAutoShowSearchClear" = "Очистить поиск";
+"settings.selectionAssistantClipboardAssisted" = "Чтение через буфер обмена";
+"settings.selectionAssistantClipboardAssistedEnabled" = "Читать выделение командой «Скопировать» приложения";
+"settings.selectionAssistantClipboardAssistedDescription" = "Для приложений, в которых macOS сообщает выделенный текст со смещением или без пробелов. SpotAsk ненадолго использует буфер обмена и сразу возвращает его содержимое.";
+"settings.selectionAssistantClipboardAssistedApps" = "Приложения";
 "menu.quickQuestionMode" = "Режим быстрого вопроса";
 "chat.insertSelection" = "Заменить выделенный текст";
 "chat.insertSelectionSucceeded" = "Выделенный текст заменён.";

@@ -27,7 +27,9 @@ struct AccessibilityElementID: Hashable, @unchecked Sendable {
 
 enum AccessibilityValue: Equatable, Hashable, Sendable {
     case string(String)
+    case number(Double)
     case element(AccessibilityElementID)
+    case elements([AccessibilityElementID])
     case range(SelectionCharacterRange)
     case textMarkerRange(AccessibilityTextMarkerRange)
     case point(CGPoint)
@@ -119,7 +121,11 @@ protocol AccessibilityElementWriting: Sendable {
     func setAttribute(_ attribute: String, value: AccessibilityValue, for element: AccessibilityElementID) throws
 }
 
-final class MacOSAccessibilityElementAdapter: AccessibilityElementReading, AccessibilityElementWriting, @unchecked Sendable {
+protocol AccessibilityElementActionPerforming: Sendable {
+    func performAction(_ action: String, on element: AccessibilityElementID) throws
+}
+
+final class MacOSAccessibilityElementAdapter: AccessibilityElementReading, AccessibilityElementWriting, AccessibilityElementActionPerforming, @unchecked Sendable {
     func makeApplicationElement(processIdentifier: pid_t) throws -> AccessibilityElementID {
         AccessibilityElementID(nativeElement: AXUIElementCreateApplication(processIdentifier))
     }
@@ -212,6 +218,10 @@ final class MacOSAccessibilityElementAdapter: AccessibilityElementReading, Acces
         try check(AXUIElementSetAttributeValue(nativeElement, attribute as CFString, rawValue))
     }
 
+    func performAction(_ action: String, on element: AccessibilityElementID) throws {
+        try check(AXUIElementPerformAction(try requireNativeElement(element), action as CFString))
+    }
+
     private func requireNativeElement(_ element: AccessibilityElementID) throws -> AXUIElement {
         guard let nativeElement = element.nativeElement else {
             throw AccessibilityAdapterError.invalidValue
@@ -272,8 +282,25 @@ enum AccessibilityValueDecoder {
         if CFGetTypeID(value) == AXTextMarkerRangeGetTypeID() {
             return .textMarkerRange(AccessibilityTextMarkerRange(value as! AXTextMarkerRange))
         }
+        if CFGetTypeID(value) == CFArrayGetTypeID() {
+            let items = value as! [Any]
+            return .elements(try items.map { item in
+                let reference = unsafeBitCast(item as AnyObject, to: CFTypeRef.self)
+                guard CFGetTypeID(reference) == AXUIElementGetTypeID() else {
+                    throw AccessibilityAdapterError.invalidValue
+                }
+                return AccessibilityElementID(nativeElement: reference as! AXUIElement)
+            })
+        }
         if let string = value as? String {
             return .string(string)
+        }
+        if CFGetTypeID(value) == CFNumberGetTypeID() {
+            var number = 0.0
+            guard CFNumberGetValue(value as! CFNumber, .doubleType, &number) else {
+                throw AccessibilityAdapterError.invalidValue
+            }
+            return .number(number)
         }
         if CFGetTypeID(value) == CFAttributedStringGetTypeID() {
             let attributed = value as! CFAttributedString

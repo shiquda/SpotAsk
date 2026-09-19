@@ -86,7 +86,19 @@ struct SelectionAssistantSettingsPage: View {
                                      : L10n.string("settings.selectionAssistantAutoShowWhitelistDescription"))
                                     .font(.system(size: 12))
                                     .foregroundStyle(.secondary)
-                                SelectionAutoInvokeApplicationPicker(settings: settings, scope: settings.selectionAutoInvokeScope)
+                                SelectionApplicationPicker(
+                                    label: L10n.string("settings.selectionAssistantAutoShowApps"),
+                                    selectedIdentifiers: settings.selectionAutoInvokeScope == .blacklist
+                                        ? settings.selectionAutoInvokeBlacklist
+                                        : settings.selectionAutoInvokeWhitelist,
+                                    onChange: { identifiers in
+                                        switch settings.selectionAutoInvokeScope {
+                                        case .allApps: break
+                                        case .blacklist: settings.selectionAutoInvokeBlacklist = identifiers
+                                        case .whitelist: settings.selectionAutoInvokeWhitelist = identifiers
+                                        }
+                                    }
+                                )
                             }
                             SettingsFieldRow(label: L10n.string("settings.selectionAssistantAutoShowDelay")) {
                                 HStack(spacing: 10) {
@@ -123,6 +135,25 @@ struct SelectionAssistantSettingsPage: View {
                             }
                             .labelsHidden()
                         }
+                    }
+                }
+            }
+            if settings.selectionAssistantEnabled {
+                SettingsGroup(
+                    title: L10n.string("settings.selectionAssistantClipboardAssisted"),
+                    documentation: DocumentationLinks.url(for: .selectionAssistant, language: settings.language)
+                ) {
+                    SettingsToggleRow(
+                        label: L10n.string("settings.selectionAssistantClipboardAssistedEnabled"),
+                        description: L10n.string("settings.selectionAssistantClipboardAssistedDescription"),
+                        isOn: Bindable(settings).clipboardAssistedSelectionEnabled
+                    )
+                    if settings.clipboardAssistedSelectionEnabled {
+                        SelectionApplicationPicker(
+                            label: L10n.string("settings.selectionAssistantClipboardAssistedApps"),
+                            selectedIdentifiers: settings.clipboardAssistedSelectionAppIdentifiers,
+                            onChange: { settings.clipboardAssistedSelectionAppIdentifiers = $0 }
+                        )
                     }
                 }
             }
@@ -172,25 +203,20 @@ private struct SelectionApplicationOption: Identifiable, Hashable {
     var id: String { identifier }
 }
 
-private struct SelectionAutoInvokeApplicationPicker: View {
-    let settings: AppSettings
-    let scope: SelectionAutoInvokeScope
+/// A searchable picker over the running apps' bundle identifiers. Shared by the
+/// auto-show scope lists and the clipboard-assisted selection app list.
+private struct SelectionApplicationPicker: View {
+    let label: String
+    let selectedIdentifiers: [String]
+    let onChange: ([String]) -> Void
 
     @State private var applications: [SelectionApplicationOption] = []
     @State private var refreshToken = 0
     @State private var isPickerPresented = false
     @State private var searchText = ""
 
-    private var selectedIdentifiers: [String] {
-        switch scope {
-        case .allApps: []
-        case .blacklist: settings.selectionAutoInvokeBlacklist
-        case .whitelist: settings.selectionAutoInvokeWhitelist
-        }
-    }
-
     var body: some View {
-        SettingsFieldRow(label: L10n.string("settings.selectionAssistantAutoShowApps")) {
+        SettingsFieldRow(label: label) {
             HStack(spacing: 10) {
                 Text(L10n.string("settings.selectionAssistantAutoShowSelectedCount", selectedIdentifiers.count))
                     .lineLimit(1)
@@ -207,7 +233,7 @@ private struct SelectionAutoInvokeApplicationPicker: View {
 
                 if !selectedIdentifiers.isEmpty {
                     Button(L10n.string("settings.selectionAssistantAutoShowClear")) {
-                        setSelectedIdentifiers([])
+                        onChange([])
                     }
                     .buttonStyle(.borderless)
                 }
@@ -223,7 +249,7 @@ private struct SelectionAutoInvokeApplicationPicker: View {
             }
         }
         .popover(isPresented: $isPickerPresented, arrowEdge: .bottom) {
-            SelectionAutoInvokeApplicationSearchPopover(
+            SelectionApplicationSearchPopover(
                 applications: applications,
                 selectedIdentifiers: selectedIdentifiers,
                 searchText: $searchText,
@@ -242,15 +268,7 @@ private struct SelectionAutoInvokeApplicationPicker: View {
         } else {
             identifiers.append(identifier)
         }
-        setSelectedIdentifiers(identifiers)
-    }
-
-    private func setSelectedIdentifiers(_ identifiers: [String]) {
-        switch scope {
-        case .allApps: break
-        case .blacklist: settings.selectionAutoInvokeBlacklist = identifiers
-        case .whitelist: settings.selectionAutoInvokeWhitelist = identifiers
-        }
+        onChange(identifiers)
     }
 
     private static func loadRunningApplications() -> [SelectionApplicationOption] {
@@ -275,7 +293,7 @@ private struct SelectionAutoInvokeApplicationPicker: View {
     }
 }
 
-private struct SelectionAutoInvokeApplicationSearchPopover: View {
+private struct SelectionApplicationSearchPopover: View {
     let applications: [SelectionApplicationOption]
     let selectedIdentifiers: [String]
     @Binding var searchText: String

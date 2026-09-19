@@ -499,6 +499,23 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(reloaded.selectionAutoInvokeWhitelist, ["com.example.Allowed"])
     }
 
+    func testClipboardAssistedSelectionDefaultsToOffAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let settings = AppSettings(defaults: defaults)
+        XCTAssertFalse(settings.clipboardAssistedSelectionEnabled)
+        XCTAssertTrue(settings.clipboardAssistedSelectionAppIdentifiers.isEmpty)
+
+        settings.clipboardAssistedSelectionEnabled = true
+        settings.clipboardAssistedSelectionAppIdentifiers = ["org.zotero.zotero"]
+
+        let reloaded = AppSettings(defaults: defaults)
+        XCTAssertTrue(reloaded.clipboardAssistedSelectionEnabled)
+        XCTAssertEqual(reloaded.clipboardAssistedSelectionAppIdentifiers, ["org.zotero.zotero"])
+    }
+
     func testAutomaticInvokeFilteringUsesBundleIdentifierWithNameFallback() {
         let suite = "AppSettingsTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!

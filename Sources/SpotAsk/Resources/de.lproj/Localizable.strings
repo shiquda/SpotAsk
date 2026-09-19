@@ -450,6 +450,10 @@
 "settings.selectionAssistantAutoShowSearchPlaceholder" = "Apps durchsuchen";
 "settings.selectionAssistantAutoShowSearchNoResults" = "Keine passenden Apps.";
 "settings.selectionAssistantAutoShowSearchClear" = "Suche leeren";
+"settings.selectionAssistantClipboardAssisted" = "Lesen über die Zwischenablage";
+"settings.selectionAssistantClipboardAssistedEnabled" = "Auswahl mit dem Kopierbefehl der App lesen";
+"settings.selectionAssistantClipboardAssistedDescription" = "Für Apps, deren markierter Text von macOS verschoben oder ohne Leerzeichen gemeldet wird. SpotAsk nutzt dafür kurz die Zwischenablage und stellt den vorherigen Inhalt sofort wieder her.";
+"settings.selectionAssistantClipboardAssistedApps" = "Apps";
 "menu.quickQuestionMode" = "Schnellfragenmodus";
 "chat.insertSelection" = "Ausgewählten Text ersetzen";
 "chat.insertSelectionSucceeded" = "Ausgewählter Text ersetzt.";

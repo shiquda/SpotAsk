@@ -450,6 +450,10 @@
 "settings.selectionAssistantAutoShowSearchPlaceholder" = "搜索应用";
 "settings.selectionAssistantAutoShowSearchNoResults" = "没有匹配的应用。";
 "settings.selectionAssistantAutoShowSearchClear" = "清空搜索";
+"settings.selectionAssistantClipboardAssisted" = "剪贴板辅助取词";
+"settings.selectionAssistantClipboardAssistedEnabled" = "使用应用的复制命令读取所选文字";
+"settings.selectionAssistantClipboardAssistedDescription" = "适用于 macOS 读取所选文字时出现错位或丢失空格的应用。SpotAsk 会短暂借用剪贴板，并立即还原原有内容。";
+"settings.selectionAssistantClipboardAssistedApps" = "应用";
 "menu.quickQuestionMode" = "快速提问模式";
 "chat.insertSelection" = "替换选中文字";
 "chat.insertSelectionSucceeded" = "已替换选中的文字。";

@@ -272,6 +272,181 @@ struct AccessibilitySelectedTextReaderTests {
     }
 }
 
+@Suite("Clipboard-assisted selection reading")
+struct ClipboardAssistedSelectionReaderTests {
+    @Test("A listed app reads the selection through its own Copy command")
+    func listedAppReadsThroughCopyCommand() async throws {
+        let fixture = ReaderFixture()
+        fixture.policy.enabled = true
+        fixture.pasteboard.copyBehaviour = .text("aligned text with spaces")
+        fixture.setFocusedElement(fixture.focusedElement)
+        fixture.elementReader.set(
+            .textMarkerRange(fixture.markerRange),
+            attribute: fixture.selectedTextMarkerRangeAttribute,
+            element: fixture.focusedElement
+        )
+
+        let snapshot = try await fixture.makeReader().readSelection(promptForPermission: false)
+
+        #expect(snapshot.text == "aligned text with spaces")
+        #expect(snapshot.source == fixture.source)
+        #expect(snapshot.isConfirmedSelection)
+        #expect(snapshot.anchor == .pointer(CGPoint(x: 30, y: 40)))
+        #expect(fixture.copyTrigger.triggeredApplications == [fixture.applicationElement])
+        #expect(!fixture.elementReader.calls.contains { call in
+            if case let .parameterized(attribute, _, _) = call {
+                return attribute == fixture.stringForTextMarkerRangeParameterizedAttribute
+            }
+            return false
+        }, "The misaligned accessibility text must never be read for a listed app")
+    }
+
+    @Test("The clipboard is restored to its previous contents right after the copy")
+    func clipboardIsRestoredAfterTheCopy() async throws {
+        let fixture = ReaderFixture(clipboardText: "Rich clipboard contents")
+        fixture.policy.enabled = true
+        fixture.pasteboard.copyBehaviour = .text("copied selection")
+        fixture.setFocusedElement(fixture.focusedElement)
+        fixture.elementReader.set(
+            .textMarkerRange(fixture.markerRange),
+            attribute: fixture.selectedTextMarkerRangeAttribute,
+            element: fixture.focusedElement
+        )
+
+        _ = try await fixture.makeReader().readSelection(promptForPermission: false)
+
+        #expect(fixture.pasteboard.restoredSnapshots.count == 1)
+        #expect(fixture.pasteboard.restoredSnapshots.first?.changeCount == 1, "The backup must be taken before the copy")
+        #expect(fixture.pasteboard.string() == "Rich clipboard contents")
+        #expect(fixture.pasteboard.currentItems == [PasteboardSnapshot.Item(entries: [
+            PasteboardSnapshot.Entry(type: "public.utf8-plain-text", data: Data("Rich clipboard contents".utf8))
+        ])])
+    }
+
+    @Test("An app with no selection never receives a copy")
+    func noSelectionNeverCopies() async {
+        let fixture = ReaderFixture()
+        fixture.policy.enabled = true
+        fixture.pasteboard.copyBehaviour = .text("should never arrive")
+        fixture.setFocusedElement(fixture.focusedElement)
+
+        await #expect(throws: SelectionReadingError.noSelection) {
+            try await fixture.makeReader().readSelection(promptForPermission: false)
+        }
+        #expect(fixture.copyTrigger.triggeredApplications.isEmpty)
+        #expect(fixture.pasteboard.restoredSnapshots.isEmpty)
+    }
+
+    @Test("An empty text marker range is not a selection")
+    func emptyMarkerRangeNeverCopies() async {
+        let fixture = ReaderFixture()
+        fixture.policy.enabled = true
+        fixture.pasteboard.copyBehaviour = .text("should never arrive")
+        fixture.setFocusedElement(fixture.focusedElement)
+        fixture.elementReader.set(
+            .textMarkerRange(fixture.emptyMarkerRange),
+            attribute: fixture.selectedTextMarkerRangeAttribute,
+            element: fixture.focusedElement
+        )
+
+        await #expect(throws: SelectionReadingError.noSelection) {
+            try await fixture.makeReader().readSelection(promptForPermission: false)
+        }
+        #expect(fixture.copyTrigger.triggeredApplications.isEmpty)
+    }
+
+    @Test("A secure text field is rejected before any copy")
+    func sensitiveFieldNeverCopies() async {
+        let fixture = ReaderFixture()
+        fixture.policy.enabled = true
+        fixture.setFocusedElement(fixture.focusedElement)
+        fixture.elementReader.set(
+            .string("AXSecureTextField"),
+            attribute: fixture.subroleAttribute,
+            element: fixture.focusedElement
+        )
+        fixture.elementReader.set(
+            .textMarkerRange(fixture.markerRange),
+            attribute: fixture.selectedTextMarkerRangeAttribute,
+            element: fixture.focusedElement
+        )
+
+        await #expect(throws: SelectionReadingError.sensitiveField) {
+            try await fixture.makeReader().readSelection(promptForPermission: false)
+        }
+        #expect(fixture.copyTrigger.triggeredApplications.isEmpty)
+    }
+
+    @Test("A copy that never reaches the pasteboard reports an unresponsive app")
+    func missingCopyReportsUnresponsiveApplication() async {
+        let fixture = ReaderFixture()
+        fixture.policy.enabled = true
+        fixture.pasteboard.copyBehaviour = .nothing
+        fixture.setFocusedElement(fixture.focusedElement)
+        fixture.elementReader.set(
+            .textMarkerRange(fixture.markerRange),
+            attribute: fixture.selectedTextMarkerRangeAttribute,
+            element: fixture.focusedElement
+        )
+
+        await #expect(throws: SelectionReadingError.applicationUnresponsive) {
+            try await fixture.makeReader().readSelection(promptForPermission: false)
+        }
+        #expect(fixture.pasteboard.restoredSnapshots.count == 1)
+        #expect(fixture.pasteboard.string() == "Original clipboard")
+    }
+
+    @Test("A copy without text is reported as no selection")
+    func nonTextCopyReportsNoSelection() async {
+        let fixture = ReaderFixture()
+        fixture.policy.enabled = true
+        fixture.pasteboard.copyBehaviour = .nonText
+        fixture.setFocusedElement(fixture.focusedElement)
+        fixture.elementReader.set(
+            .textMarkerRange(fixture.markerRange),
+            attribute: fixture.selectedTextMarkerRangeAttribute,
+            element: fixture.focusedElement
+        )
+
+        await #expect(throws: SelectionReadingError.noSelection) {
+            try await fixture.makeReader().readSelection(promptForPermission: false)
+        }
+        #expect(fixture.pasteboard.restoredSnapshots.count == 1)
+    }
+
+    @Test("A readable selection range keeps accessibility replacement available")
+    func readableRangeKeepsReplacementAvailable() async throws {
+        let fixture = ReaderFixture()
+        fixture.policy.enabled = true
+        fixture.pasteboard.copyBehaviour = .text("copied selection")
+        fixture.setFocusedElement(fixture.focusedElement)
+        fixture.elementReader.set(
+            .range(.init(location: 3, length: 7)),
+            attribute: fixture.selectedRangeAttribute,
+            element: fixture.focusedElement
+        )
+        fixture.elementReader.settableAttributes = [fixture.selectedTextAttribute]
+
+        let snapshot = try await fixture.makeReader().readSelection(promptForPermission: false)
+
+        #expect(snapshot.selectedRange == .init(location: 3, length: 7))
+        #expect(snapshot.canReplaceSelection)
+    }
+
+    @Test("Apps outside the list keep the plain accessibility path")
+    func unlistedAppKeepsAccessibilityPath() async throws {
+        let fixture = ReaderFixture()
+        fixture.configureFocusedSelection(text: "Plain accessibility selection", range: .init(location: 0, length: 29))
+
+        let snapshot = try await fixture.makeReader().readSelection(promptForPermission: false)
+
+        #expect(snapshot.text == "Plain accessibility selection")
+        #expect(fixture.copyTrigger.triggeredApplications.isEmpty)
+        #expect(fixture.pasteboard.restoredSnapshots.isEmpty)
+        #expect(!fixture.elementReader.calls.contains(.makeApplicationElement(fixture.source.processIdentifier)))
+    }
+}
+
 @Suite("Selection anchor coordinate conversion")
 struct SelectionAnchorCoordinateConverterTests {
     @Test("Conversion keeps the matching display origin and converts vertical coordinates")
@@ -352,6 +527,9 @@ private final class ReaderFixture: @unchecked Sendable {
     let permissionChecker: FakePermissionChecker
     let applicationProvider: FakeApplicationProvider
     let pointerLocationProvider: FakePointerLocationProvider
+    let policy = FakeClipboardAssistedSelectionPolicy()
+    let pasteboard: FakePasteboard
+    lazy var copyTrigger = FakeSelectionCopyTrigger(pasteboard: pasteboard)
 
     let focusedAttribute = kAXFocusedUIElementAttribute as String
     let parentAttribute = kAXParentAttribute as String
@@ -367,10 +545,11 @@ private final class ReaderFixture: @unchecked Sendable {
     let markerRange = AccessibilityTextMarkerRange(startMarker: Data([0x01, 0x02]), endMarker: Data([0x03, 0x04]))
     let emptyMarkerRange = AccessibilityTextMarkerRange(startMarker: Data(), endMarker: Data())
 
-    init(isTrusted: Bool = true, pointer: CGPoint = CGPoint(x: 30, y: 40)) {
+    init(isTrusted: Bool = true, pointer: CGPoint = CGPoint(x: 30, y: 40), clipboardText: String? = "Original clipboard") {
         permissionChecker = FakePermissionChecker(isTrusted: isTrusted)
         applicationProvider = FakeApplicationProvider(source: source, currentProcessIdentifier: 99)
         pointerLocationProvider = FakePointerLocationProvider(point: pointer)
+        pasteboard = FakePasteboard(text: clipboardText)
         elementReader.applicationElement = applicationElement
         elementReader.systemWideElement = systemWideElement
     }
@@ -380,7 +559,10 @@ private final class ReaderFixture: @unchecked Sendable {
             permissionChecker: permissionChecker,
             applicationProvider: applicationProvider,
             elementReader: elementReader,
-            pointerLocationProvider: pointerLocationProvider
+            pointerLocationProvider: pointerLocationProvider,
+            clipboardAssistedSelectionPolicy: policy,
+            copyTrigger: copyTrigger,
+            pasteboard: pasteboard
         )
     }
 
@@ -446,7 +628,7 @@ private struct FakeScreenProvider: SelectionScreenProviding {
     }
 }
 
-private final class FakeAccessibilityElementReader: AccessibilityElementReading, @unchecked Sendable {
+final class FakeAccessibilityElementReader: AccessibilityElementReading, AccessibilityElementWriting, @unchecked Sendable {
     enum Call: Equatable {
         case makeApplicationElement(pid_t)
         case makeSystemWideElement
@@ -478,6 +660,7 @@ private final class FakeAccessibilityElementReader: AccessibilityElementReading,
     private(set) var maximumConcurrentCopies = 0
     private(set) var calls: [Call] = []
     var copyDelay: TimeInterval = 0
+    var settableAttributes: Set<String> = []
     var applicationElement = AccessibilityElementID(rawValue: 100)
     var systemWideElement = AccessibilityElementID(rawValue: 200)
 
@@ -545,6 +728,15 @@ private final class FakeAccessibilityElementReader: AccessibilityElementReading,
         let response = beginCopy(call: .attribute(attribute, element), response: attributeResponses[AttributeKey(attribute: attribute, element: element)])
         defer { endCopy() }
         return try resolve(response)
+    }
+
+    func isAttributeSettable(_ attribute: String, for _: AccessibilityElementID) throws -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return settableAttributes.contains(attribute)
+    }
+
+    func setAttribute(_: String, value _: AccessibilityValue, for _: AccessibilityElementID) throws {
     }
 
     func copyParameterizedAttribute(

@@ -450,6 +450,10 @@
 "settings.selectionAssistantAutoShowSearchPlaceholder" = "Search apps";
 "settings.selectionAssistantAutoShowSearchNoResults" = "No matching apps.";
 "settings.selectionAssistantAutoShowSearchClear" = "Clear search";
+"settings.selectionAssistantClipboardAssisted" = "Clipboard-assisted reading";
+"settings.selectionAssistantClipboardAssistedEnabled" = "Read selections with the app's Copy command";
+"settings.selectionAssistantClipboardAssistedDescription" = "For apps whose selected text macOS reports shifted or without spaces. SpotAsk uses your clipboard briefly and puts its contents back right away.";
+"settings.selectionAssistantClipboardAssistedApps" = "Apps";
 "menu.quickQuestionMode" = "Quick Question Mode";
 "chat.insertSelection" = "Replace selected text";
 "chat.insertSelectionSucceeded" = "Replaced the selected text.";

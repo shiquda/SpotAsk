@@ -450,6 +450,10 @@
 "settings.selectionAssistantAutoShowSearchPlaceholder" = "アプリを検索";
 "settings.selectionAssistantAutoShowSearchNoResults" = "一致するアプリがありません。";
 "settings.selectionAssistantAutoShowSearchClear" = "検索をクリア";
+"settings.selectionAssistantClipboardAssisted" = "クリップボードを使った読み取り";
+"settings.selectionAssistantClipboardAssistedEnabled" = "アプリのコピーコマンドで選択範囲を読み取る";
+"settings.selectionAssistantClipboardAssistedDescription" = "macOS が選択テキストをずらして報告したり、空白を落としたりするアプリで使用します。SpotAsk はクリップボードを一時的に使い、すぐに元の内容へ戻します。";
+"settings.selectionAssistantClipboardAssistedApps" = "アプリ";
 "menu.quickQuestionMode" = "クイック質問モード";
 "chat.insertSelection" = "選択したテキストを置き換え";
 "chat.insertSelectionSucceeded" = "選択したテキストを置き換えました。";

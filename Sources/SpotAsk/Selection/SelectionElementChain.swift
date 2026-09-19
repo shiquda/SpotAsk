@@ -126,6 +126,63 @@ enum SelectionElementChain {
         }
     }
 
+    /// Positive evidence that the user currently has something selected, found
+    /// without asking for the selection text. The clipboard-assisted path needs
+    /// this only as a guard: an app whose accessibility tree misreports the
+    /// text of a selection (Gecko drops the spaces between PDF.js text lines)
+    /// still reports an empty selection as empty, so probing keeps the copy
+    /// from firing when nothing is selected.
+    struct SelectionEvidence: Equatable {
+        let element: AccessibilityElementID
+        let range: SelectionCharacterRange?
+    }
+
+    static func selectionEvidence(
+        in candidates: [AccessibilityElementID],
+        reader: any AccessibilityElementReading
+    ) throws -> SelectionEvidence? {
+        for element in candidates {
+            if let range = try selectedRange(for: element, reader: reader) {
+                return SelectionEvidence(element: element, range: range)
+            }
+            if try hasNonEmptyTextMarkerRange(element, reader: reader) {
+                return SelectionEvidence(element: element, range: nil)
+            }
+            if try hasNonEmptySelectedText(element, reader: reader) {
+                return SelectionEvidence(element: element, range: nil)
+            }
+        }
+        return nil
+    }
+
+    private static func hasNonEmptyTextMarkerRange(
+        _ element: AccessibilityElementID,
+        reader: any AccessibilityElementReading
+    ) throws -> Bool {
+        do {
+            let value = try reader.copyAttribute(kAXSelectedTextMarkerRangeAttribute as String, from: element)
+            guard case let .textMarkerRange(markerRange) = value else { return false }
+            return markerRange.isNonEmpty
+        } catch {
+            if isAbsentAttribute(error) { return false }
+            throw error
+        }
+    }
+
+    private static func hasNonEmptySelectedText(
+        _ element: AccessibilityElementID,
+        reader: any AccessibilityElementReading
+    ) throws -> Bool {
+        do {
+            let value = try reader.copyAttribute(kAXSelectedTextAttribute as String, from: element)
+            guard case let .string(text) = value else { return false }
+            return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        } catch {
+            if isAbsentAttribute(error) { return false }
+            throw error
+        }
+    }
+
     static func isAbsentAttribute(_ error: Error) -> Bool {
         guard case let .ax(axError) = error as? AccessibilityAdapterError else { return false }
         return [

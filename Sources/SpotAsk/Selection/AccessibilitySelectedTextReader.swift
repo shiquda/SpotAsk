@@ -49,23 +49,34 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, @unchecked Sen
     private static let messagingTimeout: TimeInterval = 1
     private static let readAttempts = 2
     private static let retryDelay: TimeInterval = 0.1
+    private static let clipboardCopyTimeout: TimeInterval = 0.5
+    private static let clipboardPollInterval: TimeInterval = 0.01
 
     private let permissionChecker: any AccessibilityPermissionChecking
     private let applicationProvider: any ForegroundSelectionApplicationProviding
     private let elementReader: any AccessibilityElementReading
     private let pointerLocationProvider: any PointerLocationProviding
+    private let clipboardAssistedSelectionPolicy: any ClipboardAssistedSelectionPolicy
+    private let copyTrigger: any SelectionCopyTriggering
+    private let pasteboard: any PasteboardAccessing
     private let queue: DispatchQueue
 
     init(
         permissionChecker: any AccessibilityPermissionChecking = MacOSAccessibilityPermissionChecker(),
         applicationProvider: any ForegroundSelectionApplicationProviding = MacOSForegroundSelectionApplicationProvider(),
         elementReader: any AccessibilityElementReading = MacOSAccessibilityElementAdapter(),
-        pointerLocationProvider: any PointerLocationProviding = MacOSPointerLocationProvider()
+        pointerLocationProvider: any PointerLocationProviding = MacOSPointerLocationProvider(),
+        clipboardAssistedSelectionPolicy: any ClipboardAssistedSelectionPolicy = UserDefaultsClipboardAssistedSelectionPolicy(),
+        copyTrigger: any SelectionCopyTriggering = MacOSSelectionCopyTrigger(),
+        pasteboard: any PasteboardAccessing = SystemPasteboard()
     ) {
         self.permissionChecker = permissionChecker
         self.applicationProvider = applicationProvider
         self.elementReader = elementReader
         self.pointerLocationProvider = pointerLocationProvider
+        self.clipboardAssistedSelectionPolicy = clipboardAssistedSelectionPolicy
+        self.copyTrigger = copyTrigger
+        self.pasteboard = pasteboard
         queue = DispatchQueue(label: "com.spotask.selection.accessibility", qos: .userInitiated)
     }
 
@@ -122,6 +133,11 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, @unchecked Sen
             reader: elementReader
         )
         try SelectionElementChain.preflightSensitiveFields(in: candidates, reader: elementReader)
+
+        if clipboardAssistedSelectionPolicy.isEnabled(for: source) {
+            return try readSelectionUsingClipboard(from: source, candidates: candidates)
+        }
+
         guard let match = try SelectionElementChain.selectedTextMatch(
             in: candidates,
             reader: elementReader
@@ -133,8 +149,6 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, @unchecked Sen
             for: match.element,
             reader: elementReader
         )
-        let canReplaceSelection = selectedRange != nil && ((try? (elementReader as? any AccessibilityElementWriting)?
-            .isAttributeSettable(kAXSelectedTextAttribute as String, for: match.element)) ?? false)
         let anchor = SelectionAnchor.pointer(pointerLocationProvider.location())
         SafeLogger.selectionAnchorResolved("snapshot=\(SelectionDiagnosticsFormatting.anchor(anchor))")
         return SelectedTextSnapshot(
@@ -142,9 +156,67 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, @unchecked Sen
             source: source,
             selectedRange: selectedRange,
             anchor: anchor,
-            canReplaceSelection: canReplaceSelection,
+            canReplaceSelection: canReplaceSelection(in: match.element, range: selectedRange),
             isConfirmedSelection: selectedRange?.isNonEmpty == true || match.evidence == .textMarkerRange
         )
+    }
+
+    /// Reads the selection by running the source app's own Copy command and
+    /// putting the user's clipboard back, for apps whose accessibility tree
+    /// reports the selection text inaccurately.
+    private func readSelectionUsingClipboard(
+        from source: SelectionSourceApplication,
+        candidates: [AccessibilityElementID]
+    ) throws -> SelectedTextSnapshot {
+        guard let evidence = try SelectionElementChain.selectionEvidence(in: candidates, reader: elementReader) else {
+            throw SelectionReadingError.noSelection
+        }
+
+        let backup = pasteboard.snapshot()
+        defer { pasteboard.restore(backup) }
+
+        SafeLogger.selectionReadProgress("clipboard-assisted-copy")
+        let applicationElement = try elementReader.makeApplicationElement(processIdentifier: source.processIdentifier)
+        copyTrigger.triggerCopy(in: applicationElement)
+        let text = try copiedText(since: backup.changeCount)
+        SafeLogger.selectionReadProgress("clipboard-assisted-restore")
+
+        return SelectedTextSnapshot(
+            text: text,
+            source: source,
+            selectedRange: evidence.range,
+            anchor: SelectionAnchor.pointer(pointerLocationProvider.location()),
+            canReplaceSelection: canReplaceSelection(in: evidence.element, range: evidence.range),
+            isConfirmedSelection: true
+        )
+    }
+
+    /// Waits for the app to write its copy to the pasteboard. Reading the plain
+    /// text is enough: the copy that arrives also proves the copy happened.
+    private func copiedText(since changeCount: Int) throws -> String {
+        let deadline = Date().addingTimeInterval(Self.clipboardCopyTimeout)
+        var copyObserved = false
+        while Date() < deadline {
+            if pasteboard.changeCount != changeCount {
+                copyObserved = true
+            }
+            if copyObserved,
+               let text = pasteboard.string(),
+               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return text
+            }
+            Thread.sleep(forTimeInterval: Self.clipboardPollInterval)
+        }
+        throw copyObserved ? SelectionReadingError.noSelection : SelectionReadingError.applicationUnresponsive
+    }
+
+    private func canReplaceSelection(
+        in element: AccessibilityElementID,
+        range: SelectionCharacterRange?
+    ) -> Bool {
+        guard range != nil else { return false }
+        let writer = elementReader as? any AccessibilityElementWriting
+        return (try? writer?.isAttributeSettable(kAXSelectedTextAttribute as String, for: element)) ?? false
     }
 
     private func shouldRetry(_ error: Error, attempt: Int) -> Bool {
