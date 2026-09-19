@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="images/spotask-icon.png" width="104" alt="SpotAsk 应用图标">
+  <img src="images/spotask-hero-zh.png" width="100%" alt="SpotAsk — 一次提问，分流至应用内回答、网页 AI 或本地 Agent">
 </p>
 
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  一款原生 macOS 菜单栏 AI 助手与查询路由器。按快捷键秒级呼出、随时提问——支持使用自己的 AI 服务（BYOK）极速获取应用内回答，或一键将问题发给 ChatGPT、本地终端 Agent 等外部工具。
+  一款原生 macOS 菜单栏 AI 助手与查询路由器 —— 一个快捷键呼出，问完再决定这句问题交给谁。
 </p>
 
 <p align="center">
@@ -15,15 +15,7 @@
 </p>
 
 <p align="center">
-  纯 Swift 构建 · 安装包约 10MB · 无 Electron · 隐私优先 · macOS 15+ · 支持 Apple silicon 与 Intel · AGPL-3.0
-</p>
-
-<p align="center">
   <a href="#下载">下载</a> · <a href="https://shiquda.github.io/SpotAsk/zh-CN/">文档</a> · <a href="#快速开始">从源码构建</a> · <a href="#开发">开发</a> · <a href="README.md">English</a>
-</p>
-
-<p align="center">
-  <img src="images/spotask-chat.png" width="640" alt="SpotAsk 浅色与深色模式下的提问窗口，含提示词和外部提问入口">
 </p>
 
 ## 主要功能
@@ -32,16 +24,15 @@
   - **网页端平台** — 直接在 ChatGPT、Perplexity、Grok 等网页端展开深入搜索或对话。
   - **桌面端应用** — 通过自定义 URI 协议唤起已安装的桌面工具。
   - **终端与 CLI Agent** — 直接在 macOS 终端中唤醒本地 Agent。
-- **`@` 命令面板与提示词预设** — 在输入框中键入 `@` 快速搜索并切换提示词预设或外部提问出口；内置常用生产力提示词，支持自定义扩展与专属快捷键。
+- **提示词预设** — 内置常用生产力提示词，支持自定义扩展与专属快捷键。
 - **全局划词助手与一键填入对话** — 在 Safari、备忘录、Xcode 等任意应用中选中文字，浮动操作条即刻就近出现；点击专属对话气泡图标一键将选中文字带入提问窗口追问，亦可一键翻译、解释、总结、润色或执行自定义提示词。
-- **应用内更新与国内镜像回退** — 集成 Sparkle 应用内更新，支持在应用内直接检测、下载与安装新版本，并支持大陆镜像源配置与自动超时回退。
 - **全局快捷键秒级捕获** — 按 `Option + Space`（可自定义）随时随地呼出专注提问窗口，使用你自己的 API 密钥（BYOK）极速流式作答，不需要时按 `Esc` 一键关闭窗口。
 - **多模态与贴图提问** — 直接粘贴截图、拖入图片或代码文本文件，后续追问自动保留附件上下文。
-- **极致轻量纯原生** — 纯 Swift 与 AppKit 构建，毫秒级冷启动，静默常驻菜单栏，内存占用极低。
+- **极致轻量纯原生** — 纯 Swift 与 AppKit 构建；安装包约 10 MB，无 Electron 运行时；毫秒级冷启动，静默常驻菜单栏，内存占用极低。
 
 ## 核心哲学与典型用例
 
-SpotAsk 围绕 **“先提问再分流（Ask first. Decide where it goes after.）”** 与 **“问完就走（Done and gone）”** 设计——保持日常 AI 交互轻量、键盘优先且零心智负担。
+SpotAsk 围绕 **“先提问再分流（Ask first. Decide where it goes after.）”** 与 **“随时唤起，随问随走（Summon anytime. Dismiss instantly.）”** 设计——保持日常 AI 交互轻量、键盘优先且零心智负担。
 
 ### 1. 核心交互：快捷呼出、即问即走
 

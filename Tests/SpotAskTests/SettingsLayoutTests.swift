@@ -85,6 +85,36 @@ struct SettingsLayoutTests {
         #expect(unfiltered.contains { $0.target.section == .provider && $0.title == availableModelsTitle })
     }
 
+    // MARK: - Settings deep links
+
+    @Test func coldStartSettingsDeepLinkOpensTheRequestedPage() {
+        let model = SettingsWindowModel()
+        // A cold-start link is applied before the window exists, so the page
+        // must come from the model alone.
+        model.reveal(.about)
+        let fixture = makeWindow(model: model)
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+
+        #expect(isShowingAboutPage(fixture.hostingView))
+        #expect(providerDetailTextFields(in: fixture.hostingView).isEmpty)
+    }
+
+    @Test func warmSettingsDeepLinkSwitchesTheOpenWindowPage() {
+        let fixture = makeWindow(section: .provider)
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+        #expect(!providerDetailTextFields(in: fixture.hostingView).isEmpty)
+        #expect(!isShowingAboutPage(fixture.hostingView))
+
+        fixture.model.reveal(.about)
+        waitForSettingsPage(fixture.hostingView) { isShowingAboutPage(fixture.hostingView) }
+
+        #expect(
+            isShowingAboutPage(fixture.hostingView),
+            "A deep link must switch the page of the already-open settings window"
+        )
+        #expect(providerDetailTextFields(in: fixture.hostingView).isEmpty)
+    }
+
     @Test func providerPageScrollingRevealsBottomControls() throws {
         let fixture = makeWindow(section: .provider)
         defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
@@ -379,6 +409,16 @@ struct SettingsLayoutTests {
         section: SettingsSection,
         includingCustomPrompt: Bool = false
     ) -> SettingsWindowFixture {
+        makeWindow(
+            model: SettingsWindowModel(selectedSection: section),
+            includingCustomPrompt: includingCustomPrompt
+        )
+    }
+
+    private func makeWindow(
+        model: SettingsWindowModel,
+        includingCustomPrompt: Bool = false
+    ) -> SettingsWindowFixture {
         let suiteName = "SettingsLayoutTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         let settings = AppSettings(defaults: defaults)
@@ -392,7 +432,7 @@ struct SettingsLayoutTests {
                 settings: settings,
                 keyStore: EmptyKeyStore(),
                 providerFactory: NoopProviderFactory(),
-                initialSection: section
+                model: model
             )
         ))
         let window = NSWindow(
@@ -407,6 +447,7 @@ struct SettingsLayoutTests {
         return SettingsWindowFixture(
             window: window,
             hostingView: hostingView,
+            model: model,
             defaults: defaults,
             suiteName: suiteName
         )
@@ -441,12 +482,36 @@ struct SettingsLayoutTests {
         )
     }
 
+    /// The Service page is the only one with the provider name field, so its
+    /// presence tells which page the window is showing.
+    private func providerDetailTextFields(in root: NSView) -> [NSTextField] {
+        expectedProviderDetailInputs(from: descendants(of: NSTextField.self, in: root)).providerName
+    }
+
+    /// "Updates" is a group title that only the About page renders, and SwiftUI
+    /// draws static text without an AppKit view, so the page is identified by
+    /// its update-source picker: no other page lists `UpdateDownloadSource`.
+    private func isShowingAboutPage(_ root: NSView) -> Bool {
+        descendants(of: NSPopUpButton.self, in: root)
+            .contains { $0.itemTitles.contains(UpdateDownloadSource.automatic.title) }
+    }
+
+    private func waitForSettingsPage(_ root: NSView, until predicate: () -> Bool) {
+        let deadline = Date().addingTimeInterval(0.5)
+        repeat {
+            root.layoutSubtreeIfNeeded()
+            if predicate() { return }
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.005))
+        } while Date() < deadline
+    }
+
 }
 
 @MainActor
 private struct SettingsWindowFixture {
     let window: NSWindow
     let hostingView: NSHostingView<AnyView>
+    let model: SettingsWindowModel
     let defaults: UserDefaults
     let suiteName: String
 }
