@@ -10,13 +10,14 @@ X86_64_DMG=
 VERSION=
 TAG=
 NOTES=
+NOTES_ZH=
 DOWNLOAD_URL_PREFIX=
 PUBLIC_KEY=
 INFO_PLIST="$ROOT_DIR/Resources/Info.plist"
 VERIFY="$SCRIPT_DIR/verify-sparkle-appcast.py"
 
 usage() {
-    printf '%s\n' "Usage: $0 --version VERSION --tag TAG --arm64-dmg PATH --x86_64-dmg PATH --notes FILE [--output DIR] [--download-url-prefix URL] [--public-key B64] [--info-plist PATH]"
+    printf '%s\n' "Usage: $0 --version VERSION --tag TAG --arm64-dmg PATH --x86_64-dmg PATH --notes FILE [--notes-zh FILE] [--output DIR] [--download-url-prefix URL] [--public-key B64] [--info-plist PATH]"
 }
 
 while [ "$#" -gt 0 ]; do
@@ -43,6 +44,10 @@ while [ "$#" -gt 0 ]; do
             ;;
         --notes)
             NOTES=${2:?"--notes requires a value"}
+            shift 2
+            ;;
+        --notes-zh)
+            NOTES_ZH=${2:?"--notes-zh requires a value"}
             shift 2
             ;;
         --download-url-prefix)
@@ -93,6 +98,34 @@ case "$NOTES" in
     *) NOTES_PATH="$ROOT_DIR/$NOTES" ;;
 esac
 
+if [ -n "$NOTES_ZH" ]; then
+    case "$NOTES_ZH" in
+        /*) NOTES_ZH_PATH=$NOTES_ZH ;;
+        *) NOTES_ZH_PATH="$ROOT_DIR/$NOTES_ZH" ;;
+    esac
+    if [ ! -f "$NOTES_ZH_PATH" ]; then
+        printf 'Chinese release notes file is missing: %s\n' "$NOTES_ZH_PATH" >&2
+        exit 1
+    fi
+    if [ ! -s "$NOTES_ZH_PATH" ]; then
+        printf 'Chinese release notes file is empty: %s\n' "$NOTES_ZH_PATH" >&2
+        exit 1
+    fi
+else
+    case "$NOTES_PATH" in
+        *.md)
+            candidate="${NOTES_PATH%.*}.zh-CN.md"
+            if [ -f "$candidate" ] && [ -s "$candidate" ]; then
+                NOTES_ZH_PATH="$candidate"
+            else
+                NOTES_ZH_PATH="$NOTES_PATH"
+            fi
+            ;;
+        *)
+            NOTES_ZH_PATH="$NOTES_PATH"
+            ;;
+    esac
+fi
 case "$INFO_PLIST" in
     /*) ;;
     *) INFO_PLIST="$ROOT_DIR/$INFO_PLIST" ;;
@@ -136,6 +169,11 @@ fi
 NOTES_TOKEN=$(awk 'NF { print; exit }' "$NOTES_PATH")
 if [ -z "$NOTES_TOKEN" ]; then
     printf 'Release notes file has no text: %s\n' "$NOTES_PATH" >&2
+    exit 1
+fi
+NOTES_ZH_TOKEN=$(awk 'NF { print; exit }' "$NOTES_ZH_PATH")
+if [ -z "$NOTES_ZH_TOKEN" ]; then
+    printf 'Chinese release notes file has no text: %s\n' "$NOTES_ZH_PATH" >&2
     exit 1
 fi
 
@@ -189,6 +227,35 @@ run_generate_appcast() {
             "$archive_dir"
     fi
 }
+embed_bilingual_descriptions() {
+    xml_file=$1
+    python3 - "$xml_file" "$NOTES_PATH" "$NOTES_ZH_PATH" <<'PY'
+import re, sys
+from pathlib import Path
+
+xml_path = Path(sys.argv[1])
+notes_en = Path(sys.argv[2]).read_text(encoding="utf-8")
+notes_zh = Path(sys.argv[3]).read_text(encoding="utf-8")
+
+content = xml_path.read_text(encoding="utf-8")
+
+cdata_en = notes_en.replace("]]>", "]]]]><![CDATA[>")
+cdata_zh = notes_zh.replace("]]>", "]]]]><![CDATA[>")
+
+desc_en = f'<description sparkle:format="markdown" xml:lang="en"><![CDATA[{cdata_en}]]></description>'
+desc_zh = f'<description sparkle:format="markdown" xml:lang="zh-CN"><![CDATA[{cdata_zh}]]></description>'
+replacement = f"{desc_en}\n            {desc_zh}"
+
+pattern = r"(?:[ \t]*<description\b[^>]*>.*?</description>[ \t]*\n?)+"
+if re.search(pattern, content, flags=re.DOTALL):
+    new_content = re.sub(pattern, lambda m: f"            {replacement}\n", content, flags=re.DOTALL)
+else:
+    enclosure_pattern = r"([ \t]*<enclosure\b)"
+    new_content = re.sub(enclosure_pattern, lambda m: f"            {replacement}\n{m.group(1)}", content)
+
+xml_path.write_text(new_content, encoding="utf-8")
+PY
+}
 
 stage_archive() {
     archive_dir=$1
@@ -207,13 +274,15 @@ verify_feed() {
             --xml "$xml_path" \
             --archive "$archive_path" \
             --public-key "$PUBLIC_KEY" \
-            --notes-token "$NOTES_TOKEN"
+            --notes-token "$NOTES_TOKEN" \
+            --notes-zh-token "$NOTES_ZH_TOKEN"
     else
         python3 "$VERIFY" \
             --xml "$xml_path" \
             --archive "$archive_path" \
             --info-plist "$INFO_PLIST" \
-            --notes-token "$NOTES_TOKEN"
+            --notes-token "$NOTES_TOKEN" \
+            --notes-zh-token "$NOTES_ZH_TOKEN"
     fi
 }
 
@@ -227,6 +296,8 @@ stage_archive "$X86_DIR" "$X86_64_DMG"
 run_generate_appcast "$ARM64_DIR" "$OUTPUT_DIR/appcast-arm64.xml"
 run_generate_appcast "$X86_DIR" "$OUTPUT_DIR/appcast-x86_64.xml"
 
+embed_bilingual_descriptions "$OUTPUT_DIR/appcast-arm64.xml"
+embed_bilingual_descriptions "$OUTPUT_DIR/appcast-x86_64.xml"
 if [ ! -s "$OUTPUT_DIR/appcast-arm64.xml" ] || [ ! -s "$OUTPUT_DIR/appcast-x86_64.xml" ]; then
     printf '%s\n' "generate_appcast did not write both architecture feeds" >&2
     exit 1

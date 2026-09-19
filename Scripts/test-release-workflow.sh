@@ -354,6 +354,8 @@ grep -q 'verify-sparkle-appcast.py' "$ROOT_DIR/.github/workflows/release.yml" ||
 grep -q 'SPARKLE_ALLOW_MISSING_ED_KEY' "$ROOT_DIR/.github/workflows/release.yml" && fail "Release workflow still allows missing EdDSA keys"
 grep -q 'SPARKLE_ALLOW_MISSING_ED_KEY' "$ROOT_DIR/Scripts/generate-appcast.sh" && fail "generate-appcast.sh still allows missing EdDSA keys"
 grep -q -- '--embed-release-notes' "$ROOT_DIR/Scripts/generate-appcast.sh" || fail "generate-appcast.sh does not embed release notes"
+grep -q -- '--notes-zh' "$ROOT_DIR/Scripts/generate-appcast.sh" || fail "generate-appcast.sh does not support --notes-zh"
+grep -q 'xml:lang="zh-CN"' "$ROOT_DIR/Scripts/generate-appcast.sh" || fail "generate-appcast.sh does not generate xml:lang=zh-CN"
 grep -q 'if \[ -f dist/appcast-arm64.xml \]' "$ROOT_DIR/.github/workflows/release.yml" && fail "Release workflow still treats appcasts as optional assets"
 grep -q 'test -n "$SPARKLE_ED_PRIVATE_KEY"' "$ROOT_DIR/.github/workflows/release.yml" || fail "Release workflow does not fail closed without SPARKLE_ED_PRIVATE_KEY"
 
@@ -436,6 +438,55 @@ r = subprocess.run(
     text=True,
 )
 assert r.returncode != 0, "mismatched SUPublicEDKey was accepted"
+bilingual_good = work / "bilingual-good.xml"
+bilingual_good.write_text(
+    '<?xml version="1.0" standalone="yes"?>\n'
+    '<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">\n'
+    '    <channel>\n        <item>\n            <title>1.2.3</title>\n'
+    '            <description sparkle:format="markdown" xml:lang="en"><![CDATA[# Dummy 1.2.3\n\nUnique notes token ALPHA-NOTES\n]]></description>\n'
+    '            <description sparkle:format="markdown" xml:lang="zh-CN"><![CDATA[# Dummy 1.2.3\n\nUnique notes token ZH-NOTES\n]]></description>\n'
+    f'            <enclosure url="https://example.test/SpotAsk-1.2.3-arm64.zip" length="10" type="application/octet-stream" sparkle:edSignature="{sig_b64}"/>\n'
+    '        </item>\n    </channel>\n</rss>\n'
+)
+subprocess.check_call(
+    ["python3", verify, "--xml", str(bilingual_good), "--archive", str(archive), "--public-key", pub_b64, "--notes-token", "ALPHA-NOTES", "--notes-zh-token", "ZH-NOTES"]
+)
+
+bilingual_missing_zh = work / "bilingual-missing-zh.xml"
+bilingual_missing_zh.write_text(
+    '<?xml version="1.0" standalone="yes"?>\n'
+    '<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">\n'
+    '    <channel>\n        <item>\n            <title>1.2.3</title>\n'
+    '            <description sparkle:format="markdown" xml:lang="en"><![CDATA[# Dummy 1.2.3\n\nUnique notes token ALPHA-NOTES\n]]></description>\n'
+    f'            <enclosure url="https://example.test/SpotAsk-1.2.3-arm64.zip" length="10" type="application/octet-stream" sparkle:edSignature="{sig_b64}"/>\n'
+    '        </item>\n    </channel>\n</rss>\n'
+)
+r = subprocess.run(
+    ["python3", verify, "--xml", str(bilingual_missing_zh), "--archive", str(archive), "--public-key", pub_b64, "--notes-token", "ALPHA-NOTES", "--notes-zh-token", "ZH-NOTES"],
+    capture_output=True,
+    text=True,
+)
+assert r.returncode != 0, "missing zh description was accepted"
+assert 'xml:lang="zh-CN"' in r.stderr
+
+bilingual_missing_lang = work / "bilingual-missing-lang.xml"
+bilingual_missing_lang.write_text(
+    '<?xml version="1.0" standalone="yes"?>\n'
+    '<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">\n'
+    '    <channel>\n        <item>\n            <title>1.2.3</title>\n'
+    '            <description sparkle:format="markdown"><![CDATA[# Dummy 1.2.3\n\nUnique notes token ALPHA-NOTES\n]]></description>\n'
+    '            <description sparkle:format="markdown" xml:lang="zh-CN"><![CDATA[# Dummy 1.2.3\n\nUnique notes token ZH-NOTES\n]]></description>\n'
+    f'            <enclosure url="https://example.test/SpotAsk-1.2.3-arm64.zip" length="10" type="application/octet-stream" sparkle:edSignature="{sig_b64}"/>\n'
+    '        </item>\n    </channel>\n</rss>\n'
+)
+r = subprocess.run(
+    ["python3", verify, "--xml", str(bilingual_missing_lang), "--archive", str(archive), "--public-key", pub_b64, "--notes-token", "ALPHA-NOTES", "--notes-zh-token", "ZH-NOTES"],
+    capture_output=True,
+    text=True,
+)
+assert r.returncode != 0, "description lacking xml:lang was accepted"
+assert "lacks xml:lang" in r.stderr
+
 print("verifier cases ok")
 PY
 pass "appcast verifier rejects missing signatures, notes links, and key mismatch"
@@ -533,6 +584,8 @@ subprocess.check_call(["ditto", "-c", "-k", "--keepParent", str(app), str(arm)])
 subprocess.check_call(["ditto", "-c", "-k", "--keepParent", str(app), str(x86)])
 notes = work / "notes.md"
 notes.write_text("# Dummy 1.2.3\n\nUnique notes token ALPHA-NOTES\n")
+notes_zh = work / "notes.zh-CN.md"
+notes_zh.write_text("# Dummy 1.2.3\n\nUnique notes token ZH-NOTES\n")
 
 env = os.environ.copy()
 env["SPARKLE_TOOLS_DIR"] = str(tools_bin.parent)
@@ -547,6 +600,7 @@ subprocess.check_call(
         "--arm64-dmg", str(arm),
         "--x86_64-dmg", str(x86),
         "--notes", str(notes),
+        "--notes-zh", str(notes_zh),
         "--output", str(out),
         "--download-url-prefix", "https://example.test/v1.2.3/",
         "--public-key", pub_b64,
@@ -559,7 +613,82 @@ for name in ("appcast-arm64.xml", "appcast-x86_64.xml"):
     assert "sparkle:edSignature=" in xml, name
     assert "releaseNotesLink" not in xml, name
     assert "ALPHA-NOTES" in xml, name
+    assert "ZH-NOTES" in xml, name
+    assert 'xml:lang="en"' in xml, name
+    assert 'xml:lang="zh-CN"' in xml, name
+    assert 'sparkle:format="markdown"' in xml, name
     assert "<description" in xml, name
+
+subprocess.check_call(
+    [
+        "python3",
+        str(root / "Scripts" / "verify-sparkle-appcast.py"),
+        "--xml", str(out / "appcast-arm64.xml"),
+        "--archive", str(arm),
+        "--public-key", pub_b64,
+        "--notes-token", "ALPHA-NOTES",
+        "--notes-zh-token", "ZH-NOTES",
+    ]
+)
+wrong_zh = subprocess.run(
+    [
+        "python3",
+        str(root / "Scripts" / "verify-sparkle-appcast.py"),
+        "--xml", str(out / "appcast-arm64.xml"),
+        "--archive", str(arm),
+        "--public-key", pub_b64,
+        "--notes-token", "ALPHA-NOTES",
+        "--notes-zh-token", "NONEXISTENT-ZH-TOKEN",
+    ],
+    capture_output=True,
+    text=True,
+)
+assert wrong_zh.returncode != 0, "wrong zh notes token was accepted"
+assert "NONEXISTENT-ZH-TOKEN" in wrong_zh.stderr
+
+out_fallback = work / "out_fallback"
+subprocess.check_call(
+    [
+        str(root / "Scripts" / "generate-appcast.sh"),
+        "--version", "1.2.3",
+        "--tag", "v1.2.3",
+        "--arm64-dmg", str(arm),
+        "--x86_64-dmg", str(x86),
+        "--notes", str(notes),
+        "--output", str(out_fallback),
+        "--download-url-prefix", "https://example.test/v1.2.3/",
+        "--public-key", pub_b64,
+    ],
+    env=env,
+)
+for name in ("appcast-arm64.xml", "appcast-x86_64.xml"):
+    xml_fb = (out_fallback / name).read_text()
+    assert 'xml:lang="en"' in xml_fb, name
+    assert 'xml:lang="zh-CN"' in xml_fb, name
+    assert "ZH-NOTES" in xml_fb, name
+
+standalone_notes = work / "standalone.md"
+standalone_notes.write_text("# Standalone 1.2.3\n\nStandalone token SOLO-NOTES\n")
+out_solo = work / "out_solo"
+subprocess.check_call(
+    [
+        str(root / "Scripts" / "generate-appcast.sh"),
+        "--version", "1.2.3",
+        "--tag", "v1.2.3",
+        "--arm64-dmg", str(arm),
+        "--x86_64-dmg", str(x86),
+        "--notes", str(standalone_notes),
+        "--output", str(out_solo),
+        "--download-url-prefix", "https://example.test/v1.2.3/",
+        "--public-key", pub_b64,
+    ],
+    env=env,
+)
+xml_solo = (out_solo / "appcast-arm64.xml").read_text()
+assert 'xml:lang="en"' in xml_solo
+assert 'xml:lang="zh-CN"' in xml_solo
+assert "SOLO-NOTES" in xml_solo
+
 
 wrong = base64.b64encode(bytes(b ^ 0xFF for b in pub)).decode()
 r = subprocess.run(

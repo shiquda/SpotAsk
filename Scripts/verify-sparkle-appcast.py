@@ -38,6 +38,13 @@ def enclosure_attr(elem: ET.Element, name: str) -> str | None:
     return None
 
 
+def xml_lang(elem: ET.Element) -> str | None:
+    for key, value in elem.attrib.items():
+        if key == "{http://www.w3.org/XML/1998/namespace}lang" or key == "xml:lang" or key.endswith(":lang") or key == "lang":
+            return value
+    return None
+
+
 def public_key_from_plist(path: Path) -> str:
     with path.open("rb") as handle:
         plist = plistlib.load(handle)
@@ -111,7 +118,14 @@ def text_content(elem: ET.Element | None) -> str:
     return "".join(parts)
 
 
-def verify_appcast(xml_path: Path, archive: Path, public_b64: str, notes_token: str | None) -> None:
+def verify_appcast(
+    xml_path: Path,
+    archive: Path,
+    public_b64: str,
+    notes_token: str | None,
+    notes_zh_token: str | None = None,
+    bilingual: bool = False,
+) -> None:
     tree = ET.parse(xml_path)
     root = tree.getroot()
     items = [elem for elem in root.iter() if local_name(elem.tag) == "item"]
@@ -136,18 +150,67 @@ def verify_appcast(xml_path: Path, archive: Path, public_b64: str, notes_token: 
             if local_name(child.tag) == "releaseNotesLink":
                 fail(f"{xml_path.name} uses sparkle:releaseNotesLink; notes must be embedded")
 
-        if notes_token:
-            descriptions = [
-                text_content(child)
-                for child in item.iter()
-                if local_name(child.tag) == "description"
+        desc_elems = [
+            child for child in item.iter() if local_name(child.tag) == "description"
+        ]
+        if len(desc_elems) > 1:
+            for d in desc_elems:
+                if not xml_lang(d):
+                    fail(
+                        f"{xml_path.name} has multiple descriptions but at least one lacks xml:lang"
+                    )
+
+        if notes_token and notes_zh_token:
+            en_desc = [d for d in desc_elems if xml_lang(d) in ("en", "en-US")]
+            if not en_desc:
+                fail(f'{xml_path.name} is missing description with xml:lang="en"')
+            if not any(notes_token in text_content(d) for d in en_desc):
+                fail(
+                    f"{xml_path.name} English description does not contain {notes_token!r}"
+                )
+
+            zh_desc = [
+                d for d in desc_elems if xml_lang(d) in ("zh-CN", "zh-Hans", "zh")
             ]
+            if not zh_desc:
+                fail(f'{xml_path.name} is missing description with xml:lang="zh-CN"')
+            if not any(notes_zh_token in text_content(d) for d in zh_desc):
+                fail(
+                    f"{xml_path.name} Chinese description does not contain {notes_zh_token!r}"
+                )
+
+            for d in en_desc + zh_desc:
+                fmt = enclosure_attr(d, "format")
+                if fmt != "markdown":
+                    fail(f"{xml_path.name} description format must be 'markdown', got {fmt!r}")
+        elif bilingual:
+            en_desc = [d for d in desc_elems if xml_lang(d) in ("en", "en-US")]
+            if not en_desc:
+                fail(f'{xml_path.name} is missing description with xml:lang="en"')
+            zh_desc = [
+                d for d in desc_elems if xml_lang(d) in ("zh-CN", "zh-Hans", "zh")
+            ]
+            if not zh_desc:
+                fail(f'{xml_path.name} is missing description with xml:lang="zh-CN"')
+            if notes_token and not any(notes_token in text_content(d) for d in en_desc):
+                fail(f"{xml_path.name} English description does not contain {notes_token!r}")
+            if notes_zh_token and not any(notes_zh_token in text_content(d) for d in zh_desc):
+                fail(f"{xml_path.name} Chinese description does not contain {notes_zh_token!r}")
+        elif notes_token:
+            descriptions = [text_content(child) for child in desc_elems]
             if not any(notes_token in description for description in descriptions):
                 fail(f"{xml_path.name} does not embed release notes containing {notes_token!r}")
+        elif notes_zh_token:
+            zh_desc = [
+                d for d in desc_elems if xml_lang(d) in ("zh-CN", "zh-Hans", "zh")
+            ]
+            if not zh_desc or not any(notes_zh_token in text_content(d) for d in zh_desc):
+                fail(
+                    f"{xml_path.name} does not embed Chinese release notes containing {notes_zh_token!r}"
+                )
 
     if not matched:
         fail(f"{xml_path.name} has no enclosure for {archive.name}")
-
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -156,6 +219,9 @@ def main() -> None:
     parser.add_argument("--public-key")
     parser.add_argument("--info-plist", type=Path)
     parser.add_argument("--notes-token")
+    parser.add_argument("--notes-zh-token")
+    parser.add_argument("--notes-token-zh", dest="notes_zh_token")
+    parser.add_argument("--bilingual", action="store_true")
     args = parser.parse_args()
 
     if not args.xml.is_file():
@@ -169,7 +235,14 @@ def main() -> None:
             fail("Pass --public-key or --info-plist")
         public_b64 = public_key_from_plist(args.info_plist)
 
-    verify_appcast(args.xml, args.archive, public_b64, args.notes_token)
+    verify_appcast(
+        args.xml,
+        args.archive,
+        public_b64,
+        args.notes_token,
+        args.notes_zh_token,
+        args.bilingual,
+    )
     print(f"Verified {args.xml.name} against {args.archive.name}")
 
 
