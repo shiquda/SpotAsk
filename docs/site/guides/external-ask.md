@@ -17,6 +17,19 @@ External Ask buttons appear below the prompt presets in a new question window, a
 
 External Ask does not consume API tokens from your configured AI providers, and queries are not stored in conversation history.
 
+```mermaid External Ask routing: an empty input pins a target badge, a non-empty input sends right away
+flowchart TD
+  A[Trigger an External Ask target] --> B{Is there text in the input?}
+  B -->|Empty| C[Target badge is pinned above the composer]
+  C --> D[Type the question, then press Enter]
+  B -->|Not empty| E[The question is sent right away]
+  D --> F{Target action type}
+  E --> F
+  F -->|Web question| G[Opens the page with the question filled in]
+  F -->|Open an app| H[Hands the question to the app's URL format]
+  F -->|Terminal command| I[Runs the command with the question]
+```
+
 ## Action types
 
 Each External Ask entry is one of three action types.
@@ -52,6 +65,8 @@ omp {query}
 4. Save it. A matching brand icon is picked automatically when one is available.
 
 Entries can be reordered, disabled, edited, or deleted from the same settings page. Disabled entries keep their place but no longer appear in the question window.
+
+<SpotAskSettingsLink section="external-ask" />
 
 ## Shortcuts
 

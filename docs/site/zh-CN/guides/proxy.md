@@ -17,6 +17,8 @@ description: 为 SpotAsk 请求和模型更新配置 HTTP 或 SOCKS5 代理。
 
 代理用于聊天请求和模型更新。“测试代理”成功表示 SpotAsk 可以通过该代理连接。
 
+<SpotAskSettingsLink section="general" />
+
 ## 测试失败时
 
 - 与网络提供方确认服务器主机名和端口。

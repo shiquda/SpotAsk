@@ -1,0 +1,29 @@
+/**
+ * Mermaid diagrams are emitted as code during the build and drawn in the
+ * browser, so they stay hidden until the drawing replaces the source. A diagram
+ * Mermaid cannot draw keeps its source visible instead of going blank.
+ */
+pre.mermaid:not([data-mermaid-drawn]):not([data-mermaid-error]) {
+  visibility: hidden;
+}
+
+pre.mermaid {
+  margin: 0;
+  background: none;
+}
+
+pre.mermaid[data-mermaid-error] {
+  border: 1px solid var(--vp-c-danger-1);
+}
+
+.spotask-diagram {
+  margin: 16px 0;
+  overflow-x: auto;
+}
+
+.spotask-diagram svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}

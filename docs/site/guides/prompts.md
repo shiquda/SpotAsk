@@ -31,6 +31,8 @@ Type `@` at the beginning of the input or after a space to open the floating com
 4. Write the **Content** that tells the model what to do with the provided text.
 5. Save it.
 
+<SpotAskSettingsLink section="prompts" />
+
 Custom prompts appear in the same picker as built-in prompts. Use the up and down buttons to control their order.
 
 ## Enable and disable prompts

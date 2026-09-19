@@ -46,6 +46,26 @@ brew install --cask shiquda/spotask/spotask
 
 测试成功后，关闭设置并开始提问。连接失败大多是地址、密钥或模型 ID 配置问题；请参考[故障排查](/zh-CN/troubleshooting)。
 
+整套配置只有一条路径和两个判断点：
+
+```mermaid 连接服务的流程：选择接口格式、选择地址类型，然后测试连接
+flowchart TD
+  A[添加或选择一个服务] --> B{接口格式}
+  B -->|OpenAI 兼容| C[输入服务地址]
+  B -->|Anthropic| C
+  C --> D{地址类型}
+  D -->|服务根地址| E[SpotAsk 自动拼接聊天路径<br/>支持模型发现]
+  D -->|完整请求地址| F[使用精确的聊天接口<br/>手动添加模型]
+  E --> G[保存访问密钥]
+  F --> G
+  G --> H[添加模型 ID]
+  H --> I{测试连接}
+  I -->|成功| J[开始第一次提问]
+  I -->|失败| K[检查地址、密钥和模型 ID<br/>或查看故障排查]
+```
+
+<SpotAskSettingsLink section="provider" />
+
 ## 第一次提问
 
 点击菜单栏图标或按 `⌥ + Space`，输入问题后按 `↩`。

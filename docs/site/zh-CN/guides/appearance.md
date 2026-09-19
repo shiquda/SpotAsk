@@ -17,6 +17,8 @@ description: 调整外观、阅读尺寸、语言、启动行为、对话保留�
 
 阅读设置会在下次打开提问窗口时生效。你也可以使用配置的缩放快捷键调整界面尺寸。
 
+<SpotAskSettingsLink section="appearance" />
+
 ## 语言
 
 设置 > 通用 > **语言**可切换应用界面语言，使用“自动（跟随系统）”可跟随 macOS。SpotAsk 支持 8 种界面语言。
@@ -38,5 +40,7 @@ description: 调整外观、阅读尺寸、语言、启动行为、对话保留�
 ## 配置、诊断和本地数据
 
 使用“配置备份”导出和导入设置，默认不会移动密钥。使用“诊断”排查问题。使用“清除所有本地数据”删除密钥、设置和已保存对话。
+
+<SpotAskSettingsLink section="general" />
 
 相关：[设置与快捷键参考](/zh-CN/reference)、[隐私与本地数据](/zh-CN/privacy)

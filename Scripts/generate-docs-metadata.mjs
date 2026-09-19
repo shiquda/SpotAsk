@@ -1,4 +1,4 @@
-import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -58,6 +58,19 @@ function llmsSection(title, documents) {
   return lines.join('\n')
 }
 
+/**
+ * Documentation pages render the SpotAsk call to action as a Vue component,
+ * which means nothing outside the site. Markdown consumers get the deep link it
+ * carries instead of a stray tag.
+ */
+function markdownForConsumers(relativePath, source) {
+  const isChinese = relativePath.startsWith('zh-CN/')
+  const label = isChinese ? '在 SpotAsk 中打开设置：' : 'Open Settings in SpotAsk: '
+  return source.replace(/^<SpotAskSettingsLink section="([^"]+)" \/>$/gm, (_match, section) => (
+    `${label}\`spotask://settings/${section}\``
+  ))
+}
+
 await rm(markdownRoot, { recursive: true, force: true })
 await mkdir(markdownRoot, { recursive: true })
 
@@ -68,10 +81,11 @@ for (const relativePath of relativePaths) {
   const sourcePath = path.join(docsRoot, relativePath)
   const destinationPath = path.join(markdownRoot, relativePath)
   const source = await readFile(sourcePath, 'utf8')
+  const markdown = markdownForConsumers(relativePath, source)
 
   await mkdir(path.dirname(destinationPath), { recursive: true })
-  await cp(sourcePath, destinationPath)
-  documents.push({ relativePath, source, ...pageMetadata(relativePath, source) })
+  await writeFile(destinationPath, markdown)
+  documents.push({ relativePath, source: markdown, ...pageMetadata(relativePath, source) })
 }
 
 const englishDocuments = documents.filter((document) => !document.relativePath.startsWith('zh-CN/'))

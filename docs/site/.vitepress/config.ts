@@ -1,4 +1,5 @@
 import { defineConfig, type HeadConfig } from 'vitepress'
+import { mermaidFence } from './mermaidFence'
 
 const docsUrl = 'https://shiquda.github.io/SpotAsk/'
 const socialImageUrl = `${docsUrl}images/spotask-hero.png`
@@ -133,6 +134,9 @@ export default defineConfig({
   srcExclude: ['public/markdown/**/*.md'],
   cleanUrls: true,
   lastUpdated: true,
+  markdown: {
+    config: mermaidFence
+  },
   sitemap: {
     hostname: docsUrl
   },
