@@ -73,109 +73,88 @@ struct ModelPickerExternalAskTests {
         #expect(ModelPickerList.resolvedHighlight(current: nil, preferred: nil, in: []) == nil)
     }
 
-    @Test("The query prefers the draft, then the most recent user turn")
-    func queryPrefersDraftThenLatestUserTurn() {
-        let messages = [
-            ChatMessage(role: .user, content: "first question"),
-            ChatMessage(role: .assistant, content: "first answer"),
-            ChatMessage(role: .user, content: "  latest question  ")
-        ]
+    @Test("Resolving the question extracts the preceding user turn for that assistant message")
+    func questionExtractsUserTurnAnsweringTheTargetAssistantMessage() {
+        let u1 = ChatMessage(role: .user, content: "first question")
+        let a1 = ChatMessage(role: .assistant, content: "first answer")
+        let u2 = ChatMessage(role: .user, content: "  second question  ")
+        let a2 = ChatMessage(role: .assistant, content: "second answer")
+        let messages = [u1, a1, u2, a2]
 
-        #expect(ModelPickerExternalAsk.query(input: "  draft  ", messages: messages) == "draft")
-        #expect(ModelPickerExternalAsk.query(input: "", messages: messages) == "latest question")
-        #expect(ModelPickerExternalAsk.query(input: "   ", messages: messages) == "latest question")
-        #expect(ModelPickerExternalAsk.query(input: "", messages: []) == "")
+        #expect(ModelPickerExternalAsk.question(answering: a1.id, in: messages) == "first question")
+        #expect(ModelPickerExternalAsk.question(answering: a2.id, in: messages) == "second question")
+        #expect(ModelPickerExternalAsk.question(answering: u1.id, in: messages) == "")
+        #expect(ModelPickerExternalAsk.question(answering: UUID(), in: messages) == "")
         #expect(
-            ModelPickerExternalAsk.query(
-                input: "",
-                messages: [ChatMessage(role: .assistant, content: "orphan answer")]
+            ModelPickerExternalAsk.question(
+                answering: a1.id,
+                in: [ChatMessage(role: .assistant, content: "orphan answer")]
             ) == ""
         )
     }
 
-    @Test("Launching from the picker keeps the conversation and clears only the consumed draft")
-    func launchKeepsConversationAndClearsConsumedDraft() {
+    @Test("Launching from the retry picker carries the question and leaves conversation and draft untouched")
+    func launchCarriesAnswerQuestionAndKeepsConversationAndDraft() {
         let viewModel = makeViewModel()
-        viewModel.messages = [
-            ChatMessage(role: .user, content: "first question"),
-            ChatMessage(role: .assistant, content: "first answer")
-        ]
+        let u1 = ChatMessage(role: .user, content: "first question")
+        let a1 = ChatMessage(role: .assistant, content: "first answer")
+        viewModel.messages = [u1, a1]
+        viewModel.input = "unrelated draft"
         var coordinator = ComposerModeCoordinator()
         coordinator.attachExternalAsk(grok, selectedPreset: &viewModel.selectedPromptPreset)
         let executor = RecordingQuickActionExecutor()
-        var clearedComposerText = false
 
         let outcome = ModelPickerExternalAsk.perform(
             chatGPT,
+            answering: a1.id,
             viewModel: viewModel,
             coordinator: &coordinator,
-            clearComposerText: { clearedComposerText = true },
             executor: executor
         )
 
         #expect(outcome == .launched)
-        // The history carried the topic, so the request went out with that text.
         #expect(executor.performed == [ResolvedQuickAction.resolve(chatGPT, query: "first question")])
         #expect(viewModel.messages.map(\.content) == ["first question", "first answer"])
-        #expect(coordinator.pendingExternalAsk == nil)
-        #expect(viewModel.input == "")
-        #expect(clearedComposerText)
+        #expect(viewModel.input == "unrelated draft")
+        #expect(coordinator.pendingExternalAsk == grok)
     }
 
-    @Test("The draft wins over the history and is the text that gets launched")
-    func draftIsWhatGetsLaunched() {
-        let viewModel = makeViewModel()
-        viewModel.messages = [ChatMessage(role: .user, content: "old question")]
-        viewModel.input = "  fresh question  "
-        var coordinator = ComposerModeCoordinator()
-        let executor = RecordingQuickActionExecutor()
-
-        let outcome = ModelPickerExternalAsk.perform(
-            chatGPT,
-            viewModel: viewModel,
-            coordinator: &coordinator,
-            executor: executor
-        )
-
-        #expect(outcome == .launched)
-        #expect(executor.performed == [ResolvedQuickAction.resolve(chatGPT, query: "fresh question")])
-        #expect(viewModel.messages.map(\.content) == ["old question"])
-        #expect(viewModel.input == "")
-    }
-
-    @Test("A failed launch keeps the draft untouched so the user can retry")
+    @Test("A failed launch reports failure and keeps the conversation and draft untouched")
     func failedLaunchKeepsDraft() {
         let viewModel = makeViewModel()
-        viewModel.input = "  hello world  "
+        let u1 = ChatMessage(role: .user, content: "hello world")
+        let a1 = ChatMessage(role: .assistant, content: "answer")
+        viewModel.messages = [u1, a1]
+        viewModel.input = "draft"
         var coordinator = ComposerModeCoordinator()
         let executor = RecordingQuickActionExecutor()
         executor.shouldSucceed = false
-        var clearedComposerText = false
 
         let outcome = ModelPickerExternalAsk.perform(
             chatGPT,
+            answering: a1.id,
             viewModel: viewModel,
             coordinator: &coordinator,
-            clearComposerText: { clearedComposerText = true },
             executor: executor
         )
 
         #expect(outcome == .launchFailed(chatGPT))
-        #expect(viewModel.input == "  hello world  ")
-        #expect(!clearedComposerText)
-        #expect(coordinator.pendingExternalAsk == nil)
+        #expect(viewModel.input == "draft")
         #expect(executor.performed.isEmpty)
     }
 
-    @Test("Without a draft and without a user turn the target mounts on the composer instead")
-    func emptyComposerMountsTheTarget() {
+    @Test("Without a question for the answer the target mounts on the composer instead")
+    func emptyQuestionMountsTheTarget() {
         let viewModel = makeViewModel()
+        let orphanAnswer = ChatMessage(role: .assistant, content: "orphan")
+        viewModel.messages = [orphanAnswer]
         viewModel.selectedPromptPreset = PromptPreset.builtIn[0]
         var coordinator = ComposerModeCoordinator()
         let executor = RecordingQuickActionExecutor()
 
         let outcome = ModelPickerExternalAsk.perform(
             chatGPT,
+            answering: orphanAnswer.id,
             viewModel: viewModel,
             coordinator: &coordinator,
             executor: executor
@@ -184,7 +163,6 @@ struct ModelPickerExternalAskTests {
         #expect(outcome == .becamePending)
         #expect(coordinator.pendingExternalAsk == chatGPT)
         #expect(viewModel.selectedPromptPreset == nil)
-        #expect(viewModel.messages.isEmpty)
         #expect(executor.performed.isEmpty)
     }
 

@@ -431,6 +431,9 @@ enum ModelPickerList {
     }
 }
 
+/// The External Ask rows of the retry-with-another-model picker: the answer
+/// being retried carries the question, so picking a target asks that question
+/// somewhere else instead of restarting the conversation here.
 enum ModelPickerExternalAsk {
     enum Outcome: Equatable {
         case launched
@@ -439,39 +442,36 @@ enum ModelPickerExternalAsk {
         case launchFailed(QuickAction)
     }
 
-    /// The composer draft is what the user is asking right now; with an empty
-    /// draft the most recent user turn carries the topic to the other platform.
-    static func query(input: String, messages: [ChatMessage]) -> String {
-        let draft = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard draft.isEmpty else { return draft }
-        return messages.last(where: { $0.role == .user })?.content
+    /// The user turn an assistant answer was generated for, trimmed. Empty when
+    /// the message is unknown or nothing was asked before it.
+    static func question(answering assistantMessageID: UUID, in messages: [ChatMessage]) -> String {
+        guard let index = messages.firstIndex(where: { $0.id == assistantMessageID }) else { return "" }
+        return messages[..<index]
+            .last(where: { $0.role == .user })?
+            .content
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
-    /// Opens the picked target for the resolved query. Success only clears the
-    /// draft and the pending capsule: the conversation is never restarted and
-    /// `messages` is never touched, so both the visible history and the model
-    /// context of the current window survive the trip.
+    /// Opens the picked target for that question. The conversation, the session
+    /// model, and the composer draft are never touched: both the visible history
+    /// and the model context of the current window survive the trip.
     @MainActor
     @discardableResult
     static func perform(
         _ action: QuickAction,
+        answering assistantMessageID: UUID,
         viewModel: ChatViewModel,
         coordinator: inout ComposerModeCoordinator,
-        clearComposerText: () -> Void = {},
         executor: any QuickActionExecuting = DefaultQuickActionExecutor()
     ) -> Outcome {
-        let text = query(input: viewModel.input, messages: viewModel.messages)
-        guard !text.isEmpty else {
+        let question = question(answering: assistantMessageID, in: viewModel.messages)
+        guard !question.isEmpty else {
             coordinator.attachExternalAsk(action, selectedPreset: &viewModel.selectedPromptPreset)
             return .becamePending
         }
-        guard QuickActionLaunch.perform(action, query: text, executor: executor) else {
+        guard QuickActionLaunch.perform(action, query: question, executor: executor) else {
             return .launchFailed(action)
         }
-        coordinator.pendingExternalAsk = nil
-        viewModel.input = ""
-        clearComposerText()
         return .launched
     }
 }

@@ -87,7 +87,7 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
                 content.addSubview(makeActionButton(
                     frame: frame,
                     title: "",
-                    symbolName: "bubble.left.and.bubble.right",
+                    symbolName: "quote.bubble",
                     brandSlug: nil,
                     showsLabels: false,
                     toolTip: SelectionActionBarLayout.tooltip(
