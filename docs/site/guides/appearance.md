@@ -17,6 +17,8 @@ Settings > **Appearance** controls how SpotAsk looks. Settings > **General** con
 
 Reading changes apply the next time the question window opens. You can also zoom the interface with the configured zoom shortcuts.
 
+<SpotAskSettingsLink section="appearance" />
+
 ## Language
 
 Settings > General > **Language** changes the app interface. Use **Automatic (System Language)** to follow macOS. SpotAsk supports 8 interface languages.
@@ -38,5 +40,7 @@ Settings > General > **Language** changes the app interface. Use **Automatic (Sy
 ## Configuration, diagnostics, and local data
 
 Use **Configuration Backup** to export and import settings without moving keys by default. Use **Diagnostics** for troubleshooting. Use **Clear All Local Data** to remove keys, settings, and saved conversations.
+
+<SpotAskSettingsLink section="general" />
 
 Related: [Settings & Shortcuts Reference](/reference), [Privacy & Local Data](/privacy)

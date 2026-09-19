@@ -1,4 +1,4 @@
-import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -58,6 +58,45 @@ function llmsSection(title, documents) {
   return lines.join('\n')
 }
 
+const sectionTitles = JSON.parse(
+  await readFile(path.join(docsRoot, '.vitepress/settings-sections.json'), 'utf8')
+)
+
+function isSettingsSectionId(value) {
+  return Object.hasOwn(sectionTitles, value)
+}
+
+/**
+ * Documentation pages render the SpotAsk call to action as a Vue component,
+ * which means nothing outside the site. Markdown consumers get the same deep
+ * link, section title, and manual path the component shows, so a reader without
+ * the app still has a way in. Unknown section ids are dropped, matching the
+ * site component, instead of publishing a broken `spotask://` URL.
+ */
+function markdownForConsumers(relativePath, source) {
+  const isChinese = relativePath.startsWith('zh-CN/')
+  return source.replace(/^<SpotAskSettingsLink section="([^"]+)" \/>$/gm, (_match, section) => {
+    if (!isSettingsSectionId(section)) {
+      console.warn(`[spotask-docs] Unknown SpotAsk settings section "${section}"`)
+      return ''
+    }
+    const url = `spotask://settings/${section}`
+    const title = isChinese ? sectionTitles[section]['zh-CN'] : sectionTitles[section].en
+    if (isChinese) {
+      return [
+        `在 SpotAsk 中打开设置：\`${url}\``,
+        '',
+        `打开 SpotAsk 的「${title}」页。未安装 SpotAsk 时此链接不会有反应，可手动打开：SpotAsk 菜单栏图标 → 设置… → ${title}，或按 ⌘ + , 打开设置。`
+      ].join('\n')
+    }
+    return [
+      `Open Settings in SpotAsk: \`${url}\``,
+      '',
+      `Opens the ${title} page in SpotAsk. If SpotAsk is not installed this link does nothing — open it by hand instead: SpotAsk menu bar icon → Settings... → ${title}, or press ⌘ + , to open Settings.`
+    ].join('\n')
+  })
+}
+
 await rm(markdownRoot, { recursive: true, force: true })
 await mkdir(markdownRoot, { recursive: true })
 
@@ -68,10 +107,11 @@ for (const relativePath of relativePaths) {
   const sourcePath = path.join(docsRoot, relativePath)
   const destinationPath = path.join(markdownRoot, relativePath)
   const source = await readFile(sourcePath, 'utf8')
+  const markdown = markdownForConsumers(relativePath, source)
 
   await mkdir(path.dirname(destinationPath), { recursive: true })
-  await cp(sourcePath, destinationPath)
-  documents.push({ relativePath, source, ...pageMetadata(relativePath, source) })
+  await writeFile(destinationPath, markdown)
+  documents.push({ relativePath, source: markdown, ...pageMetadata(relativePath, source) })
 }
 
 const englishDocuments = documents.filter((document) => !document.relativePath.startsWith('zh-CN/'))

@@ -16,6 +16,8 @@ Check these in Settings > **Services**:
 5. The response timeout is long enough for the service.
 6. If you enabled a proxy, **Test Proxy** succeeds and the proxy address is correct.
 
+<SpotAskSettingsLink section="provider" />
+
 ## Models cannot be discovered
 
 Model discovery is available when the service uses **Service Root** and exposes a models list. It is not available for **Full Request Address** mode.
@@ -38,6 +40,8 @@ If another app uses the same global hotkey, record a different shortcut in Setti
 ## SpotAsk says it cannot read saved service settings
 
 Settings > General > **Clear All Local Data** resets corrupted local service data. You will need to add your services and keys again.
+
+<SpotAskSettingsLink section="general" />
 
 ## Need more detail
 
