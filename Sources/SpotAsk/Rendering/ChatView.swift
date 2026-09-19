@@ -167,39 +167,7 @@ struct ChatView: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel(Text("SpotAsk"))
-            ModelPickerHeaderButton(
-                modelName: viewModel.effectiveModel?.displayName ?? "",
-                providerIconSlug: effectiveProviderIconSlug,
-                isDisabled: isGenerating,
-                isPresented: $isModelPickerPresented
-            ) {
-                ModelPickerContent(
-                    catalog: settings.providerRegistry.catalog,
-                    effectiveModelID: viewModel.effectiveModelID,
-                    hasSessionOverride: viewModel.sessionModelID != nil,
-                    isDisabled: isGenerating,
-                    externalAsks: settings.enabledQuickActions,
-                    onSelectExternalAsk: { action in
-                        isModelPickerPresented = false
-                        selectExternalAskFromModelPicker(action)
-                    },
-                    onSelect: { id in
-                        viewModel.selectSessionModel(id: id)
-                        isModelPickerPresented = false
-                        inputFocused = true
-                    },
-                    onUseDefault: {
-                        viewModel.useDefaultModel()
-                        isModelPickerPresented = false
-                        inputFocused = true
-                    }
-                )
-            }
-            if isGenerating {
-                ProgressView()
-                    .controlSize(.small)
-                    .accessibilityLabel(L10n.string("chat.generating"))
-            }
+
             Spacer()
             HeaderIconButton(action: { SpotAskCommandCenter.shared.toggleWindowOnTop() }) {
                 Image(systemName: settings.keepWindowOnTop ? "pin.fill" : "pin")
@@ -236,6 +204,46 @@ struct ChatView: View {
         // Keep the controls and material in the native 32pt titlebar band.
         .frame(height: 32)
         .frame(maxWidth: .infinity, alignment: .leading)
+        // Center on the full header width, not the leftover space between
+        // the asymmetric traffic-light inset and trailing actions.
+        .overlay(alignment: .center) {
+            HStack(spacing: 6) {
+                ModelPickerHeaderButton(
+                    modelName: viewModel.effectiveModel?.displayName ?? "",
+                    providerIconSlug: effectiveProviderIconSlug,
+                    isDisabled: isGenerating,
+                    isPresented: $isModelPickerPresented
+                ) {
+                    ModelPickerContent(
+                        catalog: settings.providerRegistry.catalog,
+                        effectiveModelID: viewModel.effectiveModelID,
+                        hasSessionOverride: viewModel.sessionModelID != nil,
+                        isDisabled: isGenerating,
+                        externalAsks: settings.enabledQuickActions,
+                        onSelectExternalAsk: { action in
+                            isModelPickerPresented = false
+                            selectExternalAskFromModelPicker(action)
+                        },
+                        onSelect: { id in
+                            viewModel.selectSessionModel(id: id)
+                            isModelPickerPresented = false
+                            inputFocused = true
+                        },
+                        onUseDefault: {
+                            viewModel.useDefaultModel()
+                            isModelPickerPresented = false
+                            inputFocused = true
+                        }
+                    )
+                }
+                if isGenerating {
+                    ProgressView()
+                        .controlSize(.small)
+                        .accessibilityLabel(L10n.string("chat.generating"))
+                }
+            }
+            .fixedSize()
+        }
         // The header is the one elevated chrome surface: a system Material
         // (AppKit vibrancy under the hood), not a hand-drawn blur. It sits in
         // the titlebar area and reads as the window's native top bar.
