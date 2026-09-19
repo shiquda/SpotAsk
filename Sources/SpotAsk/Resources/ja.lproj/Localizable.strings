@@ -152,6 +152,7 @@
 "settings.source" = "プロジェクトソース";
 "settings.userGuide" = "ユーザーマニュアル";
 "settings.openDocumentation" = "ドキュメントを開く";
+"settings.openDocumentationFor" = "%@のドキュメントを開く";
 "settings.updates" = "アップデート";
 "settings.checkForUpdates" = "アップデートを確認";
 "settings.checkingForUpdates" = "アップデートを確認中...";

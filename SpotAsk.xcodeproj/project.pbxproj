@@ -32,6 +32,7 @@
 		98A8F92204242C8C229BC165 /* QuickActionTrigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B89D7EC18F63E0A6BA78C27E /* QuickActionTrigger.swift */; };
 		001000000000000000000015 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000015 /* SettingsView.swift */; };
 		001000000000000000000092 /* SettingsDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000092 /* SettingsDeepLink.swift */; };
+		001000000000000000000093 /* DocumentationLinks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000093 /* DocumentationLinks.swift */; };
 		001000000000000000000016 /* Clipboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000016 /* Clipboard.swift */; };
 		001000000000000000000017 /* SafeLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000017 /* SafeLogger.swift */; };
 		001000000000000000000018 /* URLNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000018 /* URLNormalizer.swift */; };
@@ -123,6 +124,7 @@
 		B89D7EC18F63E0A6BA78C27E /* QuickActionTrigger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/QuickActionTrigger.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000015 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/SettingsView.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000092 /* SettingsDeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/SettingsDeepLink.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000093 /* DocumentationLinks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/DocumentationLinks.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000016 /* Clipboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Utilities/Clipboard.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000017 /* SafeLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Utilities/SafeLogger.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000018 /* URLNormalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Utilities/URLNormalizer.swift; sourceTree = SOURCE_ROOT; };
@@ -301,6 +303,7 @@
 				00200000000000000000006E /* AboutSettingsPage.swift */,
 				00200000000000000000006F /* SettingsSidebar.swift */,
 				002000000000000000000092 /* SettingsDeepLink.swift */,
+				002000000000000000000093 /* DocumentationLinks.swift */,
 			);
 			name = Sources;
 			sourceTree = "<group>";
@@ -435,6 +438,7 @@
 				001000000000000000000024,
 				001000000000000000000091 /* UpdateCoordinator.swift in Sources */,
 				001000000000000000000092 /* SettingsDeepLink.swift in Sources */,
+				001000000000000000000093 /* DocumentationLinks.swift in Sources */,
 				001000000000000000000025, 001000000000000000000026,
 				001000000000000000000027, 001000000000000000000028,
 				001000000000000000000029,

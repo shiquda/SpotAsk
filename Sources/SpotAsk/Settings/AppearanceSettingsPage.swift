@@ -9,7 +9,10 @@ struct AppearanceSettingsPage: View {
         VStack(alignment: .leading, spacing: 22) {
             SettingsPageHeader(section: .appearance, settings: settings)
             SettingsCallout(L10n.string("settings.readingDescription"))
-            SettingsGroup(title: L10n.string("settings.reading")) {
+            SettingsGroup(
+                title: L10n.string("settings.reading"),
+                documentation: DocumentationLinks.url(for: .appearance, language: settings.language)
+            ) {
                 SettingsFieldRow(label: L10n.string("settings.appearance")) {
                     HStack(spacing: 0) {
                         Picker(L10n.string("settings.appearance"), selection: Bindable(settings).appearance) {

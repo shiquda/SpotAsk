@@ -16,7 +16,10 @@ struct ShortcutSettingsPage: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            SettingsGroup(title: L10n.string("settings.shortcutActions")) {
+            SettingsGroup(
+                title: L10n.string("settings.shortcutActions"),
+                documentation: DocumentationLinks.url(for: .shortcutsReference, language: settings.language)
+            ) {
                 SelectionAssistantToggleShortcutRow(settings: settings)
                 Divider()
                 ForEach(operations) { operation in

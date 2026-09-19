@@ -12,7 +12,10 @@ struct PromptPresetsSettingsPage: View {
             SettingsPageHeader(section: .prompts, settings: settings)
             SettingsCallout(L10n.string("settings.promptsDescription"))
 
-            SettingsGroup(title: L10n.string("settings.savedPrompts")) {
+            SettingsGroup(
+                title: L10n.string("settings.savedPrompts"),
+                documentation: DocumentationLinks.url(for: .prompts, language: settings.language)
+            ) {
                 HStack {
                     Text(L10n.string("settings.promptCatalogDescription"))
                         .font(.caption)
