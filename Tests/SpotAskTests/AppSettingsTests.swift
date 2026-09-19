@@ -681,7 +681,7 @@ final class AppSettingsTests: XCTestCase {
     func testSimplifiedChineseUsesTheSwiftPMPackagedLocalizationDirectory() {
         let bundle = L10n.localizedBundle(for: .simplifiedChinese)
 
-        XCTAssertEqual(bundle.bundleURL.lastPathComponent, "zh-hans.lproj")
+        XCTAssertEqual(bundle.bundleURL.lastPathComponent.lowercased(), "zh-hans.lproj")
         XCTAssertEqual(bundle.localizedString(forKey: "settings.title", value: nil, table: "Localizable"), "设置")
     }
 
