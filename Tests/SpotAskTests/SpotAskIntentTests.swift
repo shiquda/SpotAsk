@@ -269,7 +269,7 @@ struct SpotAskIntentTests {
         commandCenter.setPanelContent { EmptyView() }
         commandCenter.setActionConsumer { recorder.actions.append($0) }
 
-        #expect(recorder.actions == [.prepare(preset), .ask("问题", nil), .showSettings])
+        #expect(recorder.actions == [.prepare(preset), .ask("问题", nil), .showSettings(nil)])
     }
 
     @Test @MainActor func askDuringGenerationKeepsPresetWithPendingDraft() async {

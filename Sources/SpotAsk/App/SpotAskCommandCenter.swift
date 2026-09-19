@@ -7,7 +7,7 @@ enum SpotAskCommandAction: Equatable {
     case newConversation
     case ask(String, PromptPreset?, SelectedTextSnapshot? = nil)
     case addToChat(String)
-    case showSettings
+    case showSettings(SettingsSection?)
 }
 
 @MainActor
@@ -18,7 +18,7 @@ final class SpotAskCommandCenter {
     private var hasPanelContent = false
     private var pendingActions: [SpotAskCommandAction] = []
     private var actionConsumer: ((SpotAskCommandAction) -> Void)?
-    private var settingsPresenter: (() -> Void)?
+    private var settingsPresenter: ((SettingsSection?) -> Void)?
 
     init() {}
 
@@ -40,7 +40,10 @@ final class SpotAskCommandCenter {
         showAndDeliverPendingActions()
     }
 
-    func setSettingsPresenter(_ presenter: @escaping () -> Void) {
+    /// The presenter receives the requested settings page, or `nil` for plain
+    /// Settings. Requests that arrive before the presenter exists are buffered
+    /// like other panel actions, so a cold-start deep link survives launch.
+    func setSettingsPresenter(_ presenter: @escaping (SettingsSection?) -> Void) {
         settingsPresenter = presenter
     }
 
@@ -103,11 +106,11 @@ final class SpotAskCommandCenter {
         enqueue(.ask(trimmedQuestion, promptPreset, selectionSnapshot))
     }
 
-    func showSettings() {
+    func showSettings(section: SettingsSection? = nil) {
         if let settingsPresenter {
-            settingsPresenter()
+            settingsPresenter(section)
         } else {
-            enqueue(.showSettings)
+            enqueue(.showSettings(section))
         }
     }
 

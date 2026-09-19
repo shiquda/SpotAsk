@@ -6,7 +6,7 @@ struct SpotAskURLRouterTests {
     @Test func parsesHostCommands() {
         #expect(SpotAskURLRouter.parse("spotask://open") == .open)
         #expect(SpotAskURLRouter.parse("spotask://toggle") == .toggle)
-        #expect(SpotAskURLRouter.parse("spotask://settings") == .settings)
+        #expect(SpotAskURLRouter.parse("spotask://settings") == .settings(nil))
         #expect(SpotAskURLRouter.parse("SPOTASK://OPEN") == .open)
         #expect(SpotAskURLRouter.parse("spotask://open/") == .open)
         #expect(SpotAskURLRouter.parse("  spotask://toggle  ") == .toggle)
@@ -14,8 +14,41 @@ struct SpotAskURLRouterTests {
 
     @Test func parsesPathFormWhenHostIsEmpty() {
         #expect(SpotAskURLRouter.parse("spotask:///open") == .open)
-        #expect(SpotAskURLRouter.parse("spotask:/settings") == .settings)
+        #expect(SpotAskURLRouter.parse("spotask:/settings") == .settings(nil))
         #expect(SpotAskURLRouter.parse("spotask:///ask?q=hello") == .ask("hello"))
+    }
+
+    @Test func parsesSettingsDeepLinks() {
+        #expect(SpotAskURLRouter.parse("spotask://settings/provider") == .settings(.provider))
+        #expect(SpotAskURLRouter.parse("spotask://settings/prompts") == .settings(.prompts))
+        #expect(SpotAskURLRouter.parse("spotask://settings/external-ask") == .settings(.externalAsk))
+        #expect(SpotAskURLRouter.parse("spotask://settings/selection-assistant") == .settings(.selectionAssistant))
+        #expect(SpotAskURLRouter.parse("spotask://settings/shortcuts") == .settings(.shortcuts))
+        #expect(SpotAskURLRouter.parse("spotask://settings/general") == .settings(.general))
+        #expect(SpotAskURLRouter.parse("spotask://settings/appearance") == .settings(.appearance))
+        #expect(SpotAskURLRouter.parse("spotask://settings/about") == .settings(.about))
+
+        // The path-style spelling stays readable, and ids are matched
+        // case-insensitively like the command names already are.
+        #expect(SpotAskURLRouter.parse("spotask:///settings/external-ask") == .settings(.externalAsk))
+        #expect(SpotAskURLRouter.parse("spotask://settings/External-Ask") == .settings(.externalAsk))
+        #expect(SpotAskURLRouter.parse("spotask://settings/ABOUT") == .settings(.about))
+    }
+
+    @Test func settingsDeepLinksFallBackToPlainSettings() {
+        // Unknown or missing ids keep the link useful instead of rejecting it.
+        #expect(SpotAskURLRouter.parse("spotask://settings/unknown") == .settings(nil))
+        #expect(SpotAskURLRouter.parse("spotask://settings/") == .settings(nil))
+        #expect(SpotAskURLRouter.parse("spotask://settings/%E5%A4%96%E9%83%A8%E6%8F%90%E9%97%AE") == .settings(nil))
+        #expect(SpotAskURLRouter.parse("spotask://settings/external%20ask") == .settings(nil))
+        #expect(SpotAskURLRouter.parse("spotask://settings#appearance") == .settings(nil))
+
+        // Extra path segments and query items are not part of the contract;
+        // they neither pick a different page nor reject the URL.
+        #expect(SpotAskURLRouter.parse("spotask://settings/provider/models") == .settings(.provider))
+        #expect(SpotAskURLRouter.parse("spotask://settings/provider?utm_source=docs") == .settings(.provider))
+        #expect(SpotAskURLRouter.parse("spotask://open?section=about") == .open)
+        #expect(SpotAskURLRouter.parse("spotask://toggle?section=about") == .toggle)
     }
 
     @Test func parsesAskQueryAndSubmitFlag() {
@@ -108,17 +141,56 @@ struct SpotAskURLRouterTests {
         let commandCenter = SpotAskCommandCenter()
         let panel = PanelControllerSpy()
         let recorder = ActionRecorder()
-        var settingsShown = 0
+        var requestedSections: [SettingsSection?] = []
         commandCenter.configure(panelController: panel)
         commandCenter.setPanelContent { EmptyView() }
         commandCenter.setActionConsumer { recorder.actions.append($0) }
-        commandCenter.setSettingsPresenter { settingsShown += 1 }
+        commandCenter.setSettingsPresenter { requestedSections.append($0) }
 
         SpotAskURLRouter.perform(.compose("草稿"), using: commandCenter)
-        SpotAskURLRouter.perform(.settings, using: commandCenter)
+        SpotAskURLRouter.perform(.settings(nil), using: commandCenter)
 
         #expect(recorder.actions == [.compose("草稿", nil)])
-        #expect(settingsShown == 1)
+        #expect(requestedSections == [nil])
+    }
+
+    @Test @MainActor func warmSettingsDeepLinkPresentsRequestedSection() {
+        let commandCenter = SpotAskCommandCenter()
+        let panel = PanelControllerSpy()
+        var requestedSections: [SettingsSection?] = []
+        commandCenter.configure(panelController: panel)
+        commandCenter.setPanelContent { EmptyView() }
+        commandCenter.setActionConsumer { _ in }
+        commandCenter.setSettingsPresenter { requestedSections.append($0) }
+
+        #expect(SpotAskURLRouter.handle(URL(string: "spotask://settings/general")!, using: commandCenter))
+        #expect(requestedSections == [.general])
+
+        // A second link moves the same window to another page.
+        #expect(SpotAskURLRouter.handle(URL(string: "spotask://settings/about")!, using: commandCenter))
+        #expect(requestedSections == [.general, .about])
+
+        // Unknown targets still open Settings.
+        #expect(SpotAskURLRouter.handle(URL(string: "spotask://settings/nowhere")!, using: commandCenter))
+        #expect(requestedSections == [.general, .about, nil])
+
+        // Opening Settings must never open the question panel.
+        #expect(panel.didShow == false)
+    }
+
+    @Test @MainActor func coldStartSettingsDeepLinkIsBufferedUntilTheCommandCenterIsReady() {
+        let commandCenter = SpotAskCommandCenter()
+        let panel = PanelControllerSpy()
+        let recorder = ActionRecorder()
+
+        #expect(SpotAskURLRouter.handle(URL(string: "spotask://settings/shortcuts")!, using: commandCenter))
+        #expect(panel.didShow == false)
+
+        commandCenter.configure(panelController: panel)
+        commandCenter.setPanelContent { EmptyView() }
+        commandCenter.setActionConsumer { recorder.actions.append($0) }
+
+        #expect(recorder.actions == [.showSettings(.shortcuts)])
     }
 
     @Test @MainActor func unknownURLDoesNotTouchCommandCenter() {

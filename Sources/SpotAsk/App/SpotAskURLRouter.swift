@@ -1,11 +1,21 @@
 import Foundation
 
+/// The `spotask://` contract. `open`, `ask`, `toggle` and `settings` keep
+/// their published behavior; settings pages add one optional, stable target:
+///
+///     spotask://settings                  // plain Settings
+///     spotask://settings/<section-id>     // that page (see `SettingsSection.deepLinkPath`)
+///
+/// A settings target travels as a path segment, is matched
+/// case-insensitively, and an unknown or missing id falls back to plain
+/// Settings instead of rejecting the URL. Query items are ignored on
+/// `settings`, so an unknown parameter cannot change where the link lands.
 enum SpotAskURLCommand: Equatable {
     case open
     case ask(String)
     case compose(String)
     case toggle
-    case settings
+    case settings(SettingsSection?)
 }
 
 enum SpotAskURLRouter {
@@ -44,8 +54,8 @@ enum SpotAskURLRouter {
             commandCenter.compose(query)
         case .toggle:
             commandCenter.toggle()
-        case .settings:
-            commandCenter.showSettings()
+        case .settings(let section):
+            commandCenter.showSettings(section: section)
         }
     }
 
@@ -59,7 +69,7 @@ enum SpotAskURLRouter {
 
     private static func parse(components: URLComponents) -> SpotAskURLCommand? {
         guard components.scheme?.lowercased() == scheme else { return nil }
-        guard let name = commandName(from: components) else { return nil }
+        guard let (name, arguments) = command(from: components) else { return nil }
 
         switch name {
         case "open":
@@ -67,7 +77,7 @@ enum SpotAskURLRouter {
         case "toggle":
             return .toggle
         case "settings":
-            return .settings
+            return .settings(settingsSection(from: arguments))
         case "ask":
             return parseAsk(from: components)
         default:
@@ -75,13 +85,23 @@ enum SpotAskURLRouter {
         }
     }
 
-    private static func commandName(from components: URLComponents) -> String? {
-        if let host = components.host, !host.isEmpty {
-            return host.lowercased()
-        }
+    /// Splits a URL into its command name and the path segments that follow
+    /// it. `spotask://settings/general` carries the name in the host, while the
+    /// path-style `spotask:///settings/general` carries it in the first segment.
+    private static func command(from components: URLComponents) -> (name: String, arguments: [String])? {
         let parts = components.path.split(separator: "/").map(String.init)
+        if let host = components.host, !host.isEmpty {
+            return (host.lowercased(), parts)
+        }
         guard let first = parts.first, !first.isEmpty else { return nil }
-        return first.lowercased()
+        return (first.lowercased(), Array(parts.dropFirst()))
+    }
+
+    /// An unknown or missing section id yields a plain Settings request rather
+    /// than rejecting the URL, so stale documentation links stay useful.
+    private static func settingsSection(from arguments: [String]) -> SettingsSection? {
+        guard let id = arguments.first else { return nil }
+        return SettingsSection(deepLinkPath: id)
     }
 
     private static func parseAsk(from components: URLComponents) -> SpotAskURLCommand {
