@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/spotask-hero.png" width="800" alt="SpotAsk — one prompt routed to an in-app answer, a web AI, or a local CLI agent">
+  <img src="images/spotask-hero.png" width="100%" alt="SpotAsk — one prompt routed to an in-app answer, a web AI, or a local CLI agent">
 </p>
 
 <h1 align="center">SpotAsk</h1>

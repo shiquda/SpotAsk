@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/spotask-hero-zh.png" width="800" alt="SpotAsk — 一次提问，分流至应用内回答、网页 AI 或本地 Agent">
+  <img src="images/spotask-hero-zh.png" width="100%" alt="SpotAsk — 一次提问，分流至应用内回答、网页 AI 或本地 Agent">
 </p>
 
 <h1 align="center">SpotAsk</h1>
