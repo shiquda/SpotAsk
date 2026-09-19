@@ -6,7 +6,12 @@
  * The manual path shown next to a call to action uses the titles the app itself
  * displays (`settings.<id>` in `Sources/SpotAsk/Resources/*.lproj`), so a reader
  * who cannot follow the link can still find the page by hand.
+ *
+ * Titles live in `../settings-sections.json` so the Markdown mirror generator
+ * validates the same ids the site component does.
  */
+
+import sectionTitlesJson from '../settings-sections.json'
 
 export const settingsSectionIds = [
   'provider',
@@ -21,16 +26,19 @@ export const settingsSectionIds = [
 
 export type SettingsSectionId = (typeof settingsSectionIds)[number]
 
-/** Section titles as the app renders them, per documentation locale. */
-const sectionTitles: Record<SettingsSectionId, { en: string; 'zh-CN': string }> = {
-  provider: { en: 'Service', 'zh-CN': '服务设置' },
-  prompts: { en: 'Prompts', 'zh-CN': '提示词' },
-  'external-ask': { en: 'External Ask', 'zh-CN': '外部提问' },
-  'selection-assistant': { en: 'Selection Assistant', 'zh-CN': '划词助手' },
-  shortcuts: { en: 'Shortcuts', 'zh-CN': '快捷键' },
-  general: { en: 'General', 'zh-CN': '通用' },
-  appearance: { en: 'Appearance', 'zh-CN': '外观' },
-  about: { en: 'About', 'zh-CN': '关于' }
+type SectionTitle = { en: string; 'zh-CN': string }
+
+const sectionTitles = sectionTitlesJson as Record<SettingsSectionId, SectionTitle>
+
+for (const id of settingsSectionIds) {
+  if (!(id in sectionTitlesJson)) {
+    throw new Error(`[spotask-docs] Missing settings section "${id}" in settings-sections.json`)
+  }
+}
+for (const id of Object.keys(sectionTitlesJson)) {
+  if (!isSettingsSectionId(id)) {
+    throw new Error(`[spotask-docs] Unknown settings section "${id}" in settings-sections.json`)
+  }
 }
 
 export function isSettingsSectionId(value: string): value is SettingsSectionId {

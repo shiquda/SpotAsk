@@ -1,7 +1,8 @@
 /**
  * Mermaid diagrams are emitted as code during the build and drawn in the
  * browser, so they stay hidden until the drawing replaces the source. A diagram
- * Mermaid cannot draw keeps its source visible instead of going blank.
+ * Mermaid cannot draw restores its source and shows the failure reason instead
+ * of going blank.
  */
 pre.mermaid:not([data-mermaid-drawn]):not([data-mermaid-error]) {
   visibility: hidden;
@@ -13,7 +14,15 @@ pre.mermaid {
 }
 
 pre.mermaid[data-mermaid-error] {
+  padding: 12px 16px;
   border: 1px solid var(--vp-c-danger-1);
+  border-radius: 8px;
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-1);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-x: auto;
 }
 
 .spotask-diagram {
@@ -26,4 +35,11 @@ pre.mermaid[data-mermaid-error] {
   max-width: 100%;
   height: auto;
   margin: 0 auto;
+}
+
+.spotask-diagram-error {
+  margin: 8px 0 0;
+  color: var(--vp-c-danger-1);
+  font-size: 13px;
+  line-height: 1.5;
 }
