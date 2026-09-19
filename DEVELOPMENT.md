@@ -190,11 +190,11 @@ Local Release rebuilds change the code signature even when the Developer ID stay
 
 ## Release checklist
 
-1. Update `CHANGELOG.md`: rename `## [Unreleased]` to the new version with today's date, then open a fresh `## [Unreleased]` section.
+1. Update `CHANGELOG.md` and `CHANGELOG.zh-CN.md`: rename `## [Unreleased]` to the new version with today's date, then open a fresh `## [Unreleased]` section in both files.
 2. Bump `MARKETING_VERSION` in `SpotAsk.xcodeproj/project.pbxproj` and `CFBundleShortVersionString` in `Resources/Info.plist`.
 3. Run `swift test` and build both DMGs with `Scripts/make-release-dmg.sh`. If Apple secrets are configured, the Release workflow signs and notarizes them automatically.
 4. Tag the release `vX.Y.Z` and push the tag.
-5. GitHub Actions creates the GitHub Release, attaches both DMGs, both architecture appcasts (embedded notes + `sparkle:edSignature` verified against `SUPublicEDKey`), plus the SHA256SUMS file, and copies the changelog section into the release notes. Missing `SPARKLE_ED_PRIVATE_KEY` fails the job.
+5. GitHub Actions creates the GitHub Release, attaches both DMGs, both architecture appcasts (embedded notes + `sparkle:edSignature` verified against `SUPublicEDKey`), plus the SHA256SUMS file, and copies the changelog sections into the release notes. `Scripts/release-notes-from-changelog.sh` extracts them with `--en`, `--zh`, or `--all`; the GitHub Release gets the bilingual `--all` text (English only for versions missing from `CHANGELOG.zh-CN.md`) while the appcast embeds one description per language. Missing `SPARKLE_ED_PRIVATE_KEY` fails the job.
 
 ## Contributing
 
