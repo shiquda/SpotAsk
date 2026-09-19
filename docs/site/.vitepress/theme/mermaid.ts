@@ -11,11 +11,11 @@
  *   drawing from a blank one. This module records its own result instead.
  * - It writes the drawing asynchronously, and the page mutates while it does,
  *   so each attempt draws on a detached node and only replaces the live diagram
- *   when that attempt is still current. A timed-out `run()` cannot overwrite a
- *   later result, and a node that leaves the document is skipped.
- * - `run()` is serialized with a gate that this module releases when it
- *   abandons the wait. Mermaid itself may never settle; holding the next
- *   drawing on that promise would leave every later page unable to draw.
+ *   when that attempt is still current.
+ * - `run()` feeds a module-level execution queue inside Mermaid. An entry that
+ *   never settles keeps every later `run()` waiting behind it, so this module
+ *   never starts a second `run()` until the first settles, and a timed-out
+ *   instance is abandoned: later diagrams show the source instead of calling it.
  *
  * Diagrams are re-drawn when the color scheme changes, because Mermaid bakes
  * its colors into the SVG rather than inheriting them from CSS.
@@ -34,6 +34,8 @@ const FAILED_ATTRIBUTE = 'data-mermaid-failed'
 const ERROR_ATTRIBUTE = 'data-mermaid-error'
 /** A cold visit downloads Mermaid and the diagram code; give that time. */
 const RENDER_TIMEOUT_MS = 15000
+const MERMAID_TIMEOUT = 'Mermaid did not finish drawing'
+const MERMAID_POISONED = 'Mermaid stopped responding'
 
 /** Mermaid's source for each diagram, so a re-render can start from scratch. */
 const sources = new WeakMap<Element, string>()
@@ -65,10 +67,13 @@ export function installMermaidDiagrams(): void {
    */
   let epoch = 0
   /**
-   * Turns of `mermaid.run`. Released when this module abandons a wait, not
-   * when Mermaid's own promise settles, so a hung `run()` cannot pin the queue.
+   * Turns of `mermaid.run`. Released when the current `run()` settles or this
+   * module gives up waiting, so a later drawing can fail fast instead of
+   * lining up behind a hung Mermaid queue.
    */
   let mermaidGate: Promise<void> = Promise.resolve()
+  /** Once a `run()` times out, this instance's execution queue is unusable. */
+  let mermaidPoisoned: string | null = null
 
   const load = async (): Promise<Mermaid> => {
     loading ??= import('mermaid').then((module) => {
@@ -119,24 +124,34 @@ export function installMermaidDiagrams(): void {
     showErrorText(wrap, message)
   }
 
-  const raceUntil = async (work: Promise<unknown>, isStale: () => boolean): Promise<void> => {
-    const timeout = Promise.withResolvers<never>()
+  const waitForTurn = async (work: Promise<unknown>, isStale: () => boolean): Promise<void> => {
     const cancelled = Promise.withResolvers<never>()
-    const timer = window.setTimeout(
-      () => timeout.reject(new Error('Mermaid did not finish drawing')),
-      RENDER_TIMEOUT_MS,
-    )
     const poll = window.setInterval(() => {
       if (isStale()) cancelled.reject(new Error('Mermaid render was cancelled'))
     }, 50)
     void work.catch(() => undefined)
-    void timeout.promise.catch(() => undefined)
     void cancelled.promise.catch(() => undefined)
     try {
-      await Promise.race([work, timeout.promise, cancelled.promise])
+      await Promise.race([work, cancelled.promise])
+    } finally {
+      window.clearInterval(poll)
+    }
+  }
+
+  /** Waits for `mermaid.run` without cancelling on navigation; a hung run must
+   *  either settle or time out before anything else may call `run()`. */
+  const waitForRun = async (work: Promise<unknown>): Promise<void> => {
+    const timeout = Promise.withResolvers<never>()
+    const timer = window.setTimeout(
+      () => timeout.reject(new Error(MERMAID_TIMEOUT)),
+      RENDER_TIMEOUT_MS,
+    )
+    void work.catch(() => undefined)
+    void timeout.promise.catch(() => undefined)
+    try {
+      await Promise.race([work, timeout.promise])
     } finally {
       window.clearTimeout(timer)
-      window.clearInterval(poll)
     }
   }
 
@@ -144,6 +159,10 @@ export function installMermaidDiagrams(): void {
   const draw = async (instance: Mermaid, node: HTMLElement, current: string, started: number): Promise<string | null> => {
     const source = sources.get(node) ?? node.textContent ?? ''
     sources.set(node, source)
+    if (mermaidPoisoned) {
+      markFailure(node, current, mermaidPoisoned, source)
+      return mermaidPoisoned
+    }
     const attempt = (attempts.get(node) ?? 0) + 1
     attempts.set(node, attempt)
 
@@ -181,22 +200,27 @@ export function installMermaidDiagrams(): void {
     )
 
     try {
-      // Bound the wait for the previous turn. A hung Mermaid run must not pin
-      // this drawing past the timeout; we never call `run()` if that wait dies.
-      await raceUntil(previous, isStale)
+      await waitForTurn(previous, isStale)
       if (isStale()) return null
+      if (mermaidPoisoned) {
+        markFailure(node, current, mermaidPoisoned, source)
+        return mermaidPoisoned
+      }
       instance.initialize({ startOnLoad: false, securityLevel: 'strict', theme: current })
-      await raceUntil(instance.run({ nodes: [stage] }), isStale)
+      await waitForRun(instance.run({ nodes: [stage] }))
       if (isStale()) return null
       if (!stage.querySelector('svg g')) throw new Error('Mermaid produced no drawing')
       node.replaceChildren(...Array.from(stage.childNodes))
       markSuccess(node, current)
       return null
     } catch (error) {
-      if (isStale()) return null
       const message = errorMessage(error)
-      markFailure(node, current, message, source)
-      return message
+      if (message === MERMAID_TIMEOUT) mermaidPoisoned = MERMAID_POISONED
+      const shown = mermaidPoisoned ?? message
+      if (!node.isConnected) return shown
+      if (isStale() && !mermaidPoisoned) return null
+      markFailure(node, current, shown, source)
+      return shown
     } finally {
       turn.resolve()
       stage.remove()
@@ -213,6 +237,16 @@ export function installMermaidDiagrams(): void {
         && node.getAttribute(FAILED_ATTRIBUTE) !== current,
     )
     if (nodes.length === 0) return
+
+    if (mermaidPoisoned) {
+      for (const node of nodes) {
+        if (!node.isConnected) continue
+        const source = sources.get(node) ?? node.textContent ?? ''
+        sources.set(node, source)
+        markFailure(node, current, mermaidPoisoned, source)
+      }
+      return
+    }
 
     let instance: Mermaid
     try {
