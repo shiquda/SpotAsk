@@ -11,7 +11,7 @@ struct SelectionActionBarView: View {
         HStack(spacing: 2) {
             if showsChat {
                 Button { onSelectChat() } label: {
-                    Image(systemName: "bubble.left.and.bubble.right")
+                    Image(systemName: "quote.bubble")
                         .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.borderless)

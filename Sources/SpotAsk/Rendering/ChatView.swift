@@ -1253,7 +1253,11 @@ struct ChatView: View {
             focusInput()
             return
         }
-        let formatted = "\(trimmed)\n\n"
+        let quoted = Self.quotedMarkdown(trimmed)
+        let current = viewModel.input
+        let formatted = current.isEmpty
+            ? quoted + "\n\n"
+            : current + "\n\n" + quoted + "\n\n"
         viewModel.selectedPromptPreset = nil
         viewModel.input = formatted
         focusInput()
@@ -1265,6 +1269,12 @@ struct ChatView: View {
             textView.setSelectedRange(NSRange(location: targetLocation, length: 0))
             textView.scrollRangeToVisible(NSRange(location: targetLocation, length: 0))
         }
+    }
+
+    private static func quotedMarkdown(_ text: String) -> String {
+        text.components(separatedBy: "\n").map { line in
+            line.isEmpty ? ">" : "> \(line)"
+        }.joined(separator: "\n")
     }
 
     private func scrollToBottom(using proxy: ScrollViewProxy) {

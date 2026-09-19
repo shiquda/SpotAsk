@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - The header model picker is centered in the title bar, instead of sitting next to the SpotAsk brand. The generating spinner stays grouped with the picker.
+- Adding selected text to chat now prefixes each line with Markdown `>`, and the selection action uses a quote bubble icon.
 
 ## [0.2.4] - 2026-09-16
 
