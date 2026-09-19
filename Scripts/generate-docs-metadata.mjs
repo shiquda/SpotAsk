@@ -97,6 +97,49 @@ function markdownForConsumers(relativePath, source) {
   })
 }
 
+/**
+ * The repository root stays the single source of truth for release notes: the
+ * site pages below are build products, rewritten from the root Markdown on
+ * every `docs:prepare` and never edited in place. `source` frontmatter records
+ * the owning root file, which the site turns into that page's edit link (see
+ * `.vitepress/config.ts`).
+ */
+const changelogs = [
+  {
+    page: 'changelog.md',
+    source: 'CHANGELOG.md',
+    title: 'Changelog',
+    description: 'Release history for SpotAsk, newest version first.'
+  },
+  {
+    page: 'zh-CN/changelog.md',
+    source: 'CHANGELOG.zh-CN.md',
+    title: '更新日志',
+    description: 'SpotAsk 各版本更新记录，最新版本在最前。'
+  }
+]
+
+async function writeChangelogPages() {
+  for (const changelog of changelogs) {
+    const contents = await readFile(path.join(repositoryRoot, changelog.source), 'utf8')
+    const destination = path.join(docsRoot, changelog.page)
+    const frontmatter = [
+      '---',
+      `title: ${changelog.title}`,
+      `description: ${changelog.description}`,
+      `source: ${changelog.source}`,
+      '---',
+      '',
+      ''
+    ].join('\n')
+
+    await mkdir(path.dirname(destination), { recursive: true })
+    await writeFile(destination, `${frontmatter}${contents}`)
+  }
+}
+
+await writeChangelogPages()
+
 await rm(markdownRoot, { recursive: true, force: true })
 await mkdir(markdownRoot, { recursive: true })
 
