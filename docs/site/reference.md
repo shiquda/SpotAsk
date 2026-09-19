@@ -39,6 +39,8 @@ description: A compact reference for SpotAsk settings sections, default shortcut
 
 Prompt shortcuts depend on prompt order and which prompts are enabled. In-app shortcuts can be reassigned or cleared in Settings. Numbers after the enabled prompts continue to enabled [External Ask](/guides/external-ask) entries.
 
+<SpotAskSettingsLink section="shortcuts" />
+
 ## Supported attachment types
 
 | Type | Examples |
