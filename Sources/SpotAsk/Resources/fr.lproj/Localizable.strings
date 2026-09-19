@@ -4,7 +4,7 @@
 "appearance.background.automatic" = "Automatique";
 "appearance.background.solid" = "Uni";
 "appearance.background.frosted" = "Dépoli";
-"appearance.background.reduceTransparencyNote" = "Revient à un arrière-plan opaque lorsque « Réduire la transparence » est activé dans l’accessibilité macOS.";
+"appearance.background.reduceTransparencyNote" = "« Automatique » suit « Réduire la transparence » dans l’accessibilité macOS ; « Dépoli » demande toujours le matériau ; « Uni » est toujours opaque.";
 "chat.model" = "Modèle";
 "chat.answerContent" = "Contenu de la réponse";
 "chat.askAnything" = "Que voulez-vous demander ?";

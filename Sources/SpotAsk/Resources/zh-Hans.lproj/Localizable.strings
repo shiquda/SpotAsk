@@ -4,7 +4,7 @@
 "appearance.background.automatic" = "自动";
 "appearance.background.solid" = "纯色";
 "appearance.background.frosted" = "磨砂";
-"appearance.background.reduceTransparencyNote" = "开启系统「降低透明度」辅助功能时自动降级为不透明背景。";
+"appearance.background.reduceTransparencyNote" = "「自动」跟随系统「降低透明度」辅助功能设置；「磨砂」始终请求磨砂材质；「纯色」始终不透明。";
 "chat.model" = "模型";
 "chat.answerContent" = "回答内容";
 "chat.askAnything" = "想问点什么？";

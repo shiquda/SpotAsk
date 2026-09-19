@@ -213,6 +213,22 @@ enum PanelBackgroundStyle: String, CaseIterable, Identifiable, Codable, Sendable
         case .frosted: L10n.string("appearance.background.frosted")
         }
     }
+
+    /// Whether the window should compose a behind-window frosted material.
+    ///
+    /// - `automatic` defers to the system accessibility preference: frosted
+    ///   while transparency is allowed, opaque once Reduce Transparency is on.
+    /// - `frosted` always asks for the material. AppKit itself substitutes an
+    ///   opaque rendering when Reduce Transparency is on, so the window never
+    ///   becomes unreadable.
+    /// - `solid` never uses the material.
+    func usesFrostedBackground(reduceTransparency: Bool) -> Bool {
+        switch self {
+        case .automatic: !reduceTransparency
+        case .frosted: true
+        case .solid: false
+        }
+    }
 }
 
 enum FontSize: String, CaseIterable, Identifiable {

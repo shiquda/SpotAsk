@@ -4,7 +4,7 @@
 "appearance.background.automatic" = "自動";
 "appearance.background.solid" = "単色";
 "appearance.background.frosted" = "すりガラス";
-"appearance.background.reduceTransparencyNote" = "macOS のアクセシビリティで「透明度を下げる」が有効な場合は不透明な背景にフォールバックします。";
+"appearance.background.reduceTransparencyNote" = "「自動」は macOS のアクセシビリティ「透明度を下げる」に従います。「すりガラス」は常にマテリアルを要求し、「単色」は常に不透明です。";
 "chat.model" = "モデル";
 "chat.answerContent" = "回答内容";
 "chat.askAnything" = "何を質問しますか？";

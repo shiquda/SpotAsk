@@ -4,7 +4,7 @@
 "appearance.background.automatic" = "Automático";
 "appearance.background.solid" = "Sólido";
 "appearance.background.frosted" = "Esmerilado";
-"appearance.background.reduceTransparencyNote" = "Vuelve a un fondo opaco cuando se activa «Reducir transparencia» en la accesibilidad de macOS.";
+"appearance.background.reduceTransparencyNote" = "«Automático» sigue «Reducir transparencia» en la accesibilidad de macOS; «Esmerilado» siempre solicita el material; «Sólido» siempre es opaco.";
 "chat.model" = "Modelo";
 "chat.answerContent" = "Contenido de la respuesta";
 "chat.askAnything" = "¿Qué te gustaría preguntar?";

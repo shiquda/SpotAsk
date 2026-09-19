@@ -4,7 +4,7 @@
 "appearance.background.automatic" = "Авто";
 "appearance.background.solid" = "Сплошной";
 "appearance.background.frosted" = "Матовый";
-"appearance.background.reduceTransparencyNote" = "Переключается на непрозрачный фон при включении функции «Уменьшение прозрачности» в настройках универсального доступа macOS.";
+"appearance.background.reduceTransparencyNote" = "«Автоматически» следует параметру «Уменьшение прозрачности» в macOS; «Матовый» всегда запрашивает материал; «Сплошной» всегда непрозрачный.";
 "chat.model" = "Модель";
 "chat.answerContent" = "Содержимое ответа";
 "chat.askAnything" = "О чём вы хотите спросить?";

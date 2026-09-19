@@ -24,6 +24,26 @@ struct AppearanceModeTests {
         #expect(!PanelBackgroundStyle.frosted.localizedTitle.isEmpty)
     }
 
+    @Test func panelBackgroundStyleDecidesFrosting() {
+        // `automatic` follows the system accessibility preference.
+        #expect(PanelBackgroundStyle.automatic.usesFrostedBackground(reduceTransparency: false))
+        #expect(!PanelBackgroundStyle.automatic.usesFrostedBackground(reduceTransparency: true))
+
+        // `frosted` and `solid` are explicit overrides that ignore that preference.
+        #expect(PanelBackgroundStyle.frosted.usesFrostedBackground(reduceTransparency: false))
+        #expect(PanelBackgroundStyle.frosted.usesFrostedBackground(reduceTransparency: true))
+        #expect(!PanelBackgroundStyle.solid.usesFrostedBackground(reduceTransparency: false))
+        #expect(!PanelBackgroundStyle.solid.usesFrostedBackground(reduceTransparency: true))
+
+        // The three options must stay distinguishable in both system states.
+        for reduceTransparency in [false, true] {
+            let outcomes = Set(
+                PanelBackgroundStyle.allCases.map { $0.usesFrostedBackground(reduceTransparency: reduceTransparency) }
+            )
+            #expect(outcomes.count == 2)
+        }
+    }
+
     @Test func appliesForcedAndSystemWindowAppearances() {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 320, height: 240),

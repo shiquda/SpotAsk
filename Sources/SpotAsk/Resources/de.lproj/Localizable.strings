@@ -4,7 +4,7 @@
 "appearance.background.automatic" = "Automatisch";
 "appearance.background.solid" = "Einfarbig";
 "appearance.background.frosted" = "Mattiert";
-"appearance.background.reduceTransparencyNote" = "Fällt auf einen undurchsichtigen Hintergrund zurück, wenn „Transparenz reduzieren“ in den macOS-Bedienungshilfen aktiviert ist.";
+"appearance.background.reduceTransparencyNote" = "„Automatisch“ folgt „Transparenz reduzieren“ in den macOS-Bedienungshilfen; „Mattiert“ fordert immer das Material an; „Einfarbig“ ist immer undurchsichtig.";
 "chat.model" = "Modell";
 "chat.answerContent" = "Antwortinhalt";
 "chat.askAnything" = "Was möchtest du fragen?";

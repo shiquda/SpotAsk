@@ -294,23 +294,20 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
 
         let reduceTransparency = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
         let style = settings.panelBackgroundStyle
+        let isFrosted = style.usesFrostedBackground(reduceTransparency: reduceTransparency)
 
-        let isFrosted: Bool
-        switch style {
-        case .frosted:
-            isFrosted = !reduceTransparency
-        case .automatic, .solid:
-            isFrosted = false
-        }
-
-        if isFrosted {
+        // `frosted` deliberately overrides the accessibility preference, so the
+        // window keeps its own opaque backing whenever Reduce Transparency is
+        // on. AppKit renders the material opaque in that mode; if it ever does
+        // not, the desktop still cannot bleed through the text.
+        if isFrosted && !reduceTransparency {
             panel.isOpaque = false
             panel.backgroundColor = .clear
             container.updateBackground(isFrosted: true)
         } else {
             panel.isOpaque = true
             panel.backgroundColor = .windowBackgroundColor
-            container.updateBackground(isFrosted: false)
+            container.updateBackground(isFrosted: isFrosted)
         }
         panel.invalidateShadow()
     }

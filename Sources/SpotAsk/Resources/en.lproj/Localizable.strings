@@ -4,7 +4,7 @@
 "appearance.background.automatic" = "Automatic";
 "appearance.background.solid" = "Solid";
 "appearance.background.frosted" = "Frosted";
-"appearance.background.reduceTransparencyNote" = "Falls back to an opaque background when Reduce Transparency is enabled in macOS accessibility.";
+"appearance.background.reduceTransparencyNote" = "Automatic follows Reduce Transparency in macOS accessibility; Frosted always asks for the material; Solid is always opaque.";
 "chat.model" = "Model";
 "chat.answerContent" = "Answer content";
 "chat.askAnything" = "What would you like to ask?";
