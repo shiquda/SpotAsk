@@ -459,7 +459,10 @@ private struct ProviderDetailForm: View {
                 }
             }
 
-            SettingsGroup(title: L10n.string("settings.providerInfo")) {
+            SettingsGroup(
+                title: L10n.string("settings.providerInfo"),
+                documentation: DocumentationLinks.url(for: .serviceAddresses, language: state.settings.language)
+            ) {
                 SettingsFieldRow(label: L10n.string("settings.providerName")) {
                     TextField(L10n.string("settings.providerNamePlaceholder"), text: $state.draftProviderName)
                         .textFieldStyle(.roundedBorder)
@@ -553,7 +556,10 @@ private struct ProviderDetailForm: View {
             }
 
             if !isNew, state.selectedProviderSupportsModelRefresh {
-                SettingsGroup(title: L10n.string("settings.availableModels")) {
+                SettingsGroup(
+                    title: L10n.string("settings.availableModels"),
+                    documentation: DocumentationLinks.url(for: .providersAndModels, language: state.settings.language)
+                ) {
                     Text(L10n.string("settings.modelRefreshDescription"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
