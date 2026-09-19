@@ -15,6 +15,17 @@ from pathlib import Path
 SPARKLE_NS = "http://www.andymatuschak.org/xml-namespaces/sparkle"
 ED25519_SPKI_PREFIX = bytes.fromhex("302a300506032b6570032100")
 
+def find_openssl() -> str:
+    import os
+    for candidate in ("/opt/homebrew/bin/openssl", "/usr/local/bin/openssl"):
+        if Path(candidate).is_file() and os.access(candidate, os.X_OK):
+            return candidate
+    return "openssl"
+
+
+OPENSSL_BIN = find_openssl()
+
+
 
 def fail(message: str) -> None:
     print(message, file=sys.stderr)
@@ -60,7 +71,7 @@ def pem_from_public_key(public_b64: str) -> bytes:
         fail(f"SUPublicEDKey must decode to 32 bytes, got {len(raw)}")
     der = ED25519_SPKI_PREFIX + raw
     converted = subprocess.run(
-        ["openssl", "pkey", "-pubin", "-inform", "DER", "-outform", "PEM"],
+        [OPENSSL_BIN, "pkey", "-pubin", "-inform", "DER", "-outform", "PEM"],
         input=der,
         capture_output=True,
         check=False,
@@ -86,7 +97,7 @@ def verify_signature(archive: Path, signature_b64: str, public_b64: str) -> None
         sig_path.write_bytes(signature)
         result = subprocess.run(
             [
-                "openssl",
+                OPENSSL_BIN,
                 "pkeyutl",
                 "-verify",
                 "-pubin",
@@ -160,21 +171,21 @@ def verify_appcast(
                         f"{xml_path.name} has multiple descriptions but at least one lacks xml:lang"
                     )
 
-        if notes_token and notes_zh_token:
+        if (notes_token and notes_zh_token) or bilingual:
             en_desc = [d for d in desc_elems if xml_lang(d) in ("en", "en-US")]
             if not en_desc:
                 fail(f'{xml_path.name} is missing description with xml:lang="en"')
-            if not any(notes_token in text_content(d) for d in en_desc):
-                fail(
-                    f"{xml_path.name} English description does not contain {notes_token!r}"
-                )
-
             zh_desc = [
                 d for d in desc_elems if xml_lang(d) in ("zh-CN", "zh-Hans", "zh")
             ]
             if not zh_desc:
                 fail(f'{xml_path.name} is missing description with xml:lang="zh-CN"')
-            if not any(notes_zh_token in text_content(d) for d in zh_desc):
+
+            if notes_token and not any(notes_token in text_content(d) for d in en_desc):
+                fail(
+                    f"{xml_path.name} English description does not contain {notes_token!r}"
+                )
+            if notes_zh_token and not any(notes_zh_token in text_content(d) for d in zh_desc):
                 fail(
                     f"{xml_path.name} Chinese description does not contain {notes_zh_token!r}"
                 )
@@ -183,19 +194,6 @@ def verify_appcast(
                 fmt = enclosure_attr(d, "format")
                 if fmt != "markdown":
                     fail(f"{xml_path.name} description format must be 'markdown', got {fmt!r}")
-        elif bilingual:
-            en_desc = [d for d in desc_elems if xml_lang(d) in ("en", "en-US")]
-            if not en_desc:
-                fail(f'{xml_path.name} is missing description with xml:lang="en"')
-            zh_desc = [
-                d for d in desc_elems if xml_lang(d) in ("zh-CN", "zh-Hans", "zh")
-            ]
-            if not zh_desc:
-                fail(f'{xml_path.name} is missing description with xml:lang="zh-CN"')
-            if notes_token and not any(notes_token in text_content(d) for d in en_desc):
-                fail(f"{xml_path.name} English description does not contain {notes_token!r}")
-            if notes_zh_token and not any(notes_zh_token in text_content(d) for d in zh_desc):
-                fail(f"{xml_path.name} Chinese description does not contain {notes_zh_token!r}")
         elif notes_token:
             descriptions = [text_content(child) for child in desc_elems]
             if not any(notes_token in description for description in descriptions):

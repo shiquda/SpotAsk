@@ -19,6 +19,14 @@ pass() {
     printf 'PASS: %s\n' "$1"
 }
 
+for openssl_candidate in /opt/homebrew/bin/openssl /usr/local/bin/openssl; do
+    if [ -x "$openssl_candidate" ]; then
+        PATH="$(dirname "$openssl_candidate"):$PATH"
+        export PATH
+        break
+    fi
+done
+
 command -v jq >/dev/null || fail "jq is required"
 command -v shasum >/dev/null || fail "shasum is required"
 
@@ -451,6 +459,27 @@ bilingual_good.write_text(
 subprocess.check_call(
     ["python3", verify, "--xml", str(bilingual_good), "--archive", str(archive), "--public-key", pub_b64, "--notes-token", "ALPHA-NOTES", "--notes-zh-token", "ZH-NOTES"]
 )
+subprocess.check_call(
+    ["python3", verify, "--xml", str(bilingual_good), "--archive", str(archive), "--public-key", pub_b64, "--bilingual"]
+)
+
+bilingual_html = work / "bilingual-html.xml"
+bilingual_html.write_text(
+    '<?xml version="1.0" standalone="yes"?>\n'
+    '<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">\n'
+    '    <channel>\n        <item>\n            <title>1.2.3</title>\n'
+    '            <description sparkle:format="html" xml:lang="en"><![CDATA[# Dummy 1.2.3\n\nUnique notes token ALPHA-NOTES\n]]></description>\n'
+    '            <description sparkle:format="markdown" xml:lang="zh-CN"><![CDATA[# Dummy 1.2.3\n\nUnique notes token ZH-NOTES\n]]></description>\n'
+    f'            <enclosure url="https://example.test/SpotAsk-1.2.3-arm64.zip" length="10" type="application/octet-stream" sparkle:edSignature="{sig_b64}"/>\n'
+    '        </item>\n    </channel>\n</rss>\n'
+)
+r = subprocess.run(
+    ["python3", verify, "--xml", str(bilingual_html), "--archive", str(archive), "--public-key", pub_b64, "--bilingual"],
+    capture_output=True,
+    text=True,
+)
+assert r.returncode != 0, "html format was accepted with --bilingual"
+assert "description format must be 'markdown'" in r.stderr
 
 bilingual_missing_zh = work / "bilingual-missing-zh.xml"
 bilingual_missing_zh.write_text(
@@ -467,6 +496,13 @@ r = subprocess.run(
     text=True,
 )
 assert r.returncode != 0, "missing zh description was accepted"
+assert 'xml:lang="zh-CN"' in r.stderr
+r = subprocess.run(
+    ["python3", verify, "--xml", str(bilingual_missing_zh), "--archive", str(archive), "--public-key", pub_b64, "--bilingual"],
+    capture_output=True,
+    text=True,
+)
+assert r.returncode != 0, "missing zh description was accepted with --bilingual"
 assert 'xml:lang="zh-CN"' in r.stderr
 
 bilingual_missing_lang = work / "bilingual-missing-lang.xml"
