@@ -245,12 +245,15 @@ export function installMermaidDiagrams(): void {
       startedRun = true
       mermaidBusy = true
       const finished = withTimeout(instance.run({ nodes: [stage] }), MERMAID_TIMEOUT)
-      const settleGate = (): void => {
+      const settleGate = (error?: unknown): void => {
+        if (error != null && errorMessage(error) === MERMAID_TIMEOUT) {
+          mermaidPoisoned = MERMAID_POISONED
+        }
         mermaidBusy = false
         turn.resolve()
         schedule()
       }
-      void finished.then(settleGate, settleGate)
+      void finished.then(() => settleGate(), settleGate)
       const stale = untilStale(isStale)
       try {
         await Promise.race([finished, stale.promise])
