@@ -211,8 +211,8 @@ struct QuickAction: Identifiable, Codable, Equatable, Sendable {
 }
 
 extension QuickActionKind {
-    /// Verb-first label for the target, shared by the Settings editor and the
-    /// model picker's External Ask rows.
+    /// Verb-first label for the target, matching the Settings kind picker's
+    /// wording. Used by the model picker's External Ask rows.
     var localizedLabel: String {
         switch self {
         case .web: L10n.string("externalAsk.kind.web")
