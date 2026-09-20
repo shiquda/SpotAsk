@@ -38,6 +38,8 @@ flowchart TD
   A{服务商文档提供了什么？}
   A -->|基础地址| B[服务根地址]
   A -->|完整聊天接口| C[完整请求地址]
+  class A entry
+  class B,C outcome
 ```
 
 

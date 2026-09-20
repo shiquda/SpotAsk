@@ -23,6 +23,9 @@ flowchart TD
   A -->|Granted| C{Trigger mode}
   C -->|Run default action| D[The default prompt runs on the selection]
   C -->|Show quick actions| E[Use the action bar or the selection shortcut]
+  class A entry
+  class C decision
+  class B,D,E outcome
 ```
 
 

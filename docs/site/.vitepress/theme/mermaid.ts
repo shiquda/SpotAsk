@@ -111,6 +111,13 @@ function mermaidInitOptions(scheme: string) {
     startOnLoad: false,
     securityLevel: 'strict' as const,
     theme: 'base' as const,
+    // Root-level key: the per-diagram `flowchart.htmlLabels` is deprecated and
+    // loses to this one. HTML labels live in a `foreignObject` sized from
+    // Mermaid's own line measurement; CJK glyph boxes are taller than that
+    // measurement and the `foreignObject` clips the overflow, cutting the
+    // bottom off every Chinese label. SVG text is measured and drawn with the
+    // same metrics, so the glyph box always fits the node Mermaid sized for it.
+    htmlLabels: false,
     themeVariables: {
       darkMode: isDark,
       background: 'transparent',
@@ -134,12 +141,11 @@ function mermaidInitOptions(scheme: string) {
     },
     flowchart: {
       curve: 'basis' as const,
-      padding: 10,
-      nodeSpacing: 28,
-      rankSpacing: 36,
-      htmlLabels: true,
+      padding: 12,
+      nodeSpacing: 32,
+      rankSpacing: 44,
       useMaxWidth: true,
-      wrappingWidth: 188,
+      wrappingWidth: 200,
     },
   }
 }

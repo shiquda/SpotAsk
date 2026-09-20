@@ -23,6 +23,9 @@ flowchart TD
   A -->|已允许| C{触发方式}
   C -->|直接执行默认动作| D[默认提示词处理选中文字]
   C -->|显示快捷操作| E[用操作条或划词快捷键]
+  class A entry
+  class C decision
+  class B,D,E outcome
 ```
 
 

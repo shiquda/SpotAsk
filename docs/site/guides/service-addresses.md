@@ -38,6 +38,8 @@ flowchart TD
   A{What does the provider document?}
   A -->|Base address| B[Service Root]
   A -->|Complete chat endpoint| C[Full Request Address]
+  class A entry
+  class B,C outcome
 ```
 
 

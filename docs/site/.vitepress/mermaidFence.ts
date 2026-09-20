@@ -18,6 +18,14 @@ import type Token from 'markdown-it/lib/token.mjs'
  *
  * Keep the code inside the fence pure Mermaid: the label belongs in the info
  * string, and explanation belongs in the surrounding prose.
+ *
+ * Labels are drawn as SVG text, so HTML inside a fence (`<br/>`, `<b>`) would
+ * show up literally. Node colors come from three shared classes — `entry`,
+ * `decision`, `outcome` — whose palettes live in `theme/styles/diagrams.css`;
+ * the fence only marks which node is which:
+ *
+ *     class A entry
+ *     class B,C outcome
  */
 export function mermaidFence(markdown: MarkdownIt): void {
   const defaultFence = markdown.renderer.rules.fence

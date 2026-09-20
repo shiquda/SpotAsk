@@ -24,12 +24,30 @@ pre.mermaid[data-mermaid-error] {
   overflow-x: auto;
 }
 
+/**
+ * Palettes for the `entry`, `decision`, and `outcome` classes a fence assigns
+ * to its nodes. Every value is a VitePress token, so the diagrams re-color
+ * themselves with the rest of the page in light and dark mode. Diagram source
+ * only names the class; the palette stays here.
+ */
+:root {
+  --spotask-node-entry-bg: var(--vp-c-brand-soft);
+  --spotask-node-entry-border: var(--vp-c-brand-1);
+  --spotask-node-entry-text: var(--vp-c-text-1);
+  --spotask-node-decision-bg: var(--vp-c-bg-elv);
+  --spotask-node-decision-border: var(--vp-c-brand-2);
+  --spotask-node-decision-text: var(--vp-c-text-1);
+  --spotask-node-outcome-bg: var(--vp-c-success-soft);
+  --spotask-node-outcome-border: var(--vp-c-success-1);
+  --spotask-node-outcome-text: var(--vp-c-text-1);
+}
+
 .spotask-diagram {
   margin: 20px 0;
-  padding: 16px 12px;
+  padding: 18px 14px;
   overflow-x: auto;
   border: 1px solid var(--vp-c-divider);
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--vp-c-bg-soft);
 }
 
@@ -40,22 +58,69 @@ pre.mermaid[data-mermaid-error] {
   margin: 0 auto;
 }
 
-.spotask-diagram .node rect {
-  rx: 6px;
-  ry: 6px;
-}
+/* Typography stays with Mermaid: it measures labels with the same theme font
+   it draws them in, and a CSS override here would size the box for a font the
+   label is not drawn with. */
 
-.spotask-diagram .nodeLabel,
-.spotask-diagram .edgeLabel,
-.spotask-diagram .label {
-  font-family: var(--vp-font-family);
-  font-size: 13px;
-  line-height: 1.4;
+.spotask-diagram .node rect,
+.spotask-diagram .node circle,
+.spotask-diagram .node ellipse {
+  rx: 10px;
+  ry: 10px;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 6%));
 }
 
 .spotask-diagram .edgePath .path,
 .spotask-diagram .flowchart-link {
-  stroke-width: 1.25px;
+  stroke-width: 1.3px;
+}
+
+/**
+ * Per-type node fill. A `class` in the fence marks each node; the palette
+ * lives here so it can follow VitePress tokens across light and dark. Mermaid
+ * scopes its own node colors to the SVG's generated `#mermaid-…` id, which no
+ * class selector can outrank, so these declarations are `!important`.
+ */
+.spotask-diagram .node.entry > rect,
+.spotask-diagram .node.entry > polygon {
+  fill: var(--spotask-node-entry-bg) !important;
+  stroke: var(--spotask-node-entry-border) !important;
+}
+
+.spotask-diagram .node.decision > rect,
+.spotask-diagram .node.decision > polygon {
+  fill: var(--spotask-node-decision-bg) !important;
+  stroke: var(--spotask-node-decision-border) !important;
+}
+
+.spotask-diagram .node.outcome > rect,
+.spotask-diagram .node.outcome > polygon {
+  fill: var(--spotask-node-outcome-bg) !important;
+  stroke: var(--spotask-node-outcome-border) !important;
+}
+
+.spotask-diagram .node.entry text,
+.spotask-diagram .node.entry .nodeLabel {
+  fill: var(--spotask-node-entry-text) !important;
+  color: var(--spotask-node-entry-text) !important;
+}
+
+.spotask-diagram .node.decision text,
+.spotask-diagram .node.decision .nodeLabel {
+  fill: var(--spotask-node-decision-text) !important;
+  color: var(--spotask-node-decision-text) !important;
+}
+
+.spotask-diagram .node.outcome text,
+.spotask-diagram .node.outcome .nodeLabel {
+  fill: var(--spotask-node-outcome-text) !important;
+  color: var(--spotask-node-outcome-text) !important;
+}
+
+.spotask-diagram .edgeLabel rect,
+.spotask-diagram .edgeLabel foreignObject > div {
+  rx: 6px;
+  ry: 6px;
 }
 
 .spotask-diagram-error {
