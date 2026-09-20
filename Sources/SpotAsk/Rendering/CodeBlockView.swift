@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import Textual
 
@@ -5,7 +6,15 @@ struct CodeBlockView: StructuredText.CodeBlockStyle {
 
     @State private var didCopy = false
 
+    /// Pasteboard that copy buttons write to. Tests inject a private pasteboard so that
+    /// exercising the copy flow never clobbers the user's system clipboard.
+    private let pasteboard: NSPasteboard
+
     private let toolbarHeight: CGFloat = 36
+
+    init(pasteboard: NSPasteboard = .general) {
+        self.pasteboard = pasteboard
+    }
 
     func makeBody(configuration: Configuration) -> some View {
         Overflow {
@@ -63,7 +72,7 @@ struct CodeBlockView: StructuredText.CodeBlockStyle {
             Spacer(minLength: 8)
             CopyCodeButton(
                 didCopy: $didCopy,
-                copy: { configuration.codeBlock.copyToPasteboard() },
+                copy: { configuration.codeBlock.copyToPasteboard(to: pasteboard) },
                 label: L10n.string("code.copy"),
                 copiedLabel: L10n.string("code.copied")
             )
