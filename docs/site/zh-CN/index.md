@@ -7,7 +7,6 @@ description: "SpotAsk 是一款免费开源的 macOS 菜单栏 AI 助手与查�
 
 hero:
   name: SpotAsk
-  text: 文档
   tagline: "先提问，去向随心。原生 macOS 菜单栏 AI 助手与查询路由器。"
   actions:
     - theme: brand

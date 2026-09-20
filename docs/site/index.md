@@ -7,7 +7,6 @@ description: "SpotAsk is a free, open-source macOS menu-bar AI assistant and que
 
 hero:
   name: SpotAsk
-  text: Docs
   tagline: "Ask first, decide where it goes after. A fast macOS menu-bar AI assistant & query router."
   actions:
     - theme: brand
