@@ -2,6 +2,16 @@ import AppKit
 import Darwin
 import Foundation
 
+/// Where the text of a snapshot came from.
+enum SelectionTextOrigin: Equatable, Sendable {
+    /// `text` is the selection the app reported.
+    case accessibility
+    /// The app misreports its Accessibility text, so only the presence of a
+    /// selection is known here. `text` is a best-effort hint at most, and the
+    /// authoritative text is read when an action needs it.
+    case deferredToPasteboard
+}
+
 struct SelectedTextSnapshot: Equatable, Sendable {
     let text: String
     let source: SelectionSourceApplication
@@ -9,6 +19,7 @@ struct SelectedTextSnapshot: Equatable, Sendable {
     let anchor: SelectionAnchor
     let canReplaceSelection: Bool
     let isConfirmedSelection: Bool
+    let textOrigin: SelectionTextOrigin
 
     init(
         text: String,
@@ -16,7 +27,8 @@ struct SelectedTextSnapshot: Equatable, Sendable {
         selectedRange: SelectionCharacterRange?,
         anchor: SelectionAnchor,
         canReplaceSelection: Bool = false,
-        isConfirmedSelection: Bool? = nil
+        isConfirmedSelection: Bool? = nil,
+        textOrigin: SelectionTextOrigin = .accessibility
     ) {
         self.text = text
         self.source = source
@@ -24,6 +36,28 @@ struct SelectedTextSnapshot: Equatable, Sendable {
         self.anchor = anchor
         self.canReplaceSelection = canReplaceSelection
         self.isConfirmedSelection = isConfirmedSelection ?? selectedRange?.isNonEmpty == true
+        self.textOrigin = textOrigin
+    }
+
+    /// Whether this selection is substantial enough to wake the assistant. A
+    /// deferred selection is confirmed by its presence alone; its text arrives
+    /// later, when an action runs.
+    var hasUsableSelection: Bool {
+        textOrigin == .deferredToPasteboard || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// The same selection with its text filled in, so whoever receives a
+    /// resolved snapshot never reads the pasteboard for it again.
+    func resolvingText(_ text: String) -> SelectedTextSnapshot {
+        SelectedTextSnapshot(
+            text: text,
+            source: source,
+            selectedRange: selectedRange,
+            anchor: anchor,
+            canReplaceSelection: canReplaceSelection,
+            isConfirmedSelection: isConfirmedSelection,
+            textOrigin: .accessibility
+        )
     }
 }
 
@@ -71,4 +105,14 @@ enum SelectionReadingError: Error, Equatable, Sendable {
 
 protocol SelectedTextReading: Sendable {
     func readSelection(promptForPermission: Bool) async throws -> SelectedTextSnapshot
+}
+
+/// Reads the text of a selection that detection could only locate, by asking
+/// the host application to copy it.
+///
+/// Detection runs on every selection gesture and must stay free of side
+/// effects, so the copy belongs to the moment an action actually needs the
+/// text rather than to the moment a selection is seen.
+protocol DeferredSelectionTextReading: Sendable {
+    func readDeferredSelectionText(for snapshot: SelectedTextSnapshot) async -> String?
 }

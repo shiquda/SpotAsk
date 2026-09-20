@@ -55,7 +55,7 @@ The default delay is 0.8 seconds. Set **Wait** from 0 to 3 seconds so the action
 
 Some apps (such as Zotero's PDF reader) report selected text to macOS Accessibility with missing spaces or shifted boundaries. For these apps, enable **Clipboard-assisted selection** in Settings > **Selection Assistant** and choose which apps it applies to.
 
-When enabled for an app, SpotAsk briefly copies the selection using the app's standard Copy command, reads the accurate text from the clipboard, and immediately restores your previous clipboard content.
+Selections in those apps are still detected the usual way, and nothing is copied while the action bar waits for you. The copy happens when you use an action: SpotAsk copies the selection with the app's standard Copy command, reads the accurate text from the clipboard, and immediately restores your previous clipboard content.
 
 This feature is off by default. It never copies when nothing is selected, and apps not on your list continue using normal Accessibility reading.
 

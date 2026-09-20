@@ -45,7 +45,7 @@ struct MacOSPointerLocationProvider: PointerLocationProviding {
     }
 }
 
-final class AccessibilitySelectedTextReader: SelectedTextReading, @unchecked Sendable {
+final class AccessibilitySelectedTextReader: SelectedTextReading, DeferredSelectionTextReading, @unchecked Sendable {
     private static let messagingTimeout: TimeInterval = 1
     private static let readAttempts = 2
     private static let retryDelay: TimeInterval = 0.1
@@ -145,44 +145,68 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, @unchecked Sen
         return candidates
     }
 
-    /// Clipboard-assisted read for apps whose Accessibility text is unreliable:
-    /// the host app copies the selection itself, so its own selection handling
-    /// (for example Zotero's text-layer alignment) produces the text.
+    /// Detection for apps whose Accessibility text is unreliable.
+    ///
+    /// Only the presence of a selection is established here; the app's own
+    /// Copy command runs later, when an action needs the text. Selecting text
+    /// therefore behaves exactly like it does everywhere else: no pasteboard
+    /// traffic, no copy command per selection gesture.
     private func readClipboardAssistedSelection(
         from source: SelectionSourceApplication,
         candidates: [AccessibilityElementID]
     ) async throws -> SelectedTextSnapshot {
-        // Never copy on a guess: with nothing selected the host would beep or
-        // copy whatever happens to be focused. The probe only checks presence
-        // and never asks for the text the app misreports.
-        let hasSelection = try await withAccessibilityContext {
-            try SelectionElementChain.hasSelection(in: candidates, reader: self.elementReader)
+        // The misreported text stays a hint: it is only used if the copy later
+        // comes back empty-handed. A missing hint is not a missing selection,
+        // because apps that expose no text at all can still copy it.
+        let hint = try? await withAccessibilityContext {
+            try self.readAccessibilitySelection(from: source, candidates: candidates)
         }
-        guard hasSelection else {
-            throw SelectionReadingError.noSelection
+        if hint == nil {
+            // Never wake the assistant on a guess: with nothing selected the
+            // host would beep or copy whatever happens to be focused.
+            let hasSelection = try await withAccessibilityContext {
+                try SelectionElementChain.hasSelection(in: candidates, reader: self.elementReader)
+            }
+            guard hasSelection else {
+                throw SelectionReadingError.noSelection
+            }
         }
-        if let text = await clipboardSelectionReader.readSelectedText(from: source),
-           !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            SafeLogger.selectionReadProgress("clipboard-assisted-selection")
-            let anchor = SelectionAnchor.pointer(pointerLocationProvider.location())
-            SafeLogger.selectionAnchorResolved("snapshot=\(SelectionDiagnosticsFormatting.anchor(anchor))")
-            return SelectedTextSnapshot(
-                text: text,
-                source: source,
-                selectedRange: nil,
-                anchor: anchor,
-                // Replacing a selection re-verifies it through the same
-                // Accessibility text this path works around, so write-back
-                // stays unavailable here instead of writing against a
-                // misreported range.
-                canReplaceSelection: false,
-                isConfirmedSelection: true
-            )
+        let anchor = SelectionAnchor.pointer(pointerLocationProvider.location())
+        SafeLogger.selectionAnchorResolved("snapshot=\(SelectionDiagnosticsFormatting.anchor(anchor))")
+        return SelectedTextSnapshot(
+            text: hint?.text ?? "",
+            source: source,
+            selectedRange: hint?.selectedRange,
+            anchor: anchor,
+            // Replacing a selection re-verifies it through the same
+            // Accessibility text this path works around, so write-back stays
+            // unavailable here instead of writing against a misreported range.
+            canReplaceSelection: false,
+            isConfirmedSelection: true,
+            textOrigin: .deferredToPasteboard
+        )
+    }
+
+    /// Asks the host app to copy the selection it is holding and returns the
+    /// copied text, with the user's pasteboard put back exactly as it was.
+    func readDeferredSelectionText(for snapshot: SelectedTextSnapshot) async -> String? {
+        guard clipboardAssistedPolicy.allowsClipboardAssistedSelection(from: snapshot.source) else {
+            return nil
         }
-        // The host ignored the copy command, so the Accessibility read keeps the
-        // shortcut useful instead of failing outright.
-        SafeLogger.selectionReadProgress("clipboard-assisted-fallback")
-        return try await withAccessibilityContext { try self.readAccessibilitySelection(from: source, candidates: candidates) }
+        let hasSelection = try? await withAccessibilityContext {
+            try SelectionElementChain.hasSelection(in: self.focusedSelectionChain(), reader: self.elementReader)
+        }
+        guard hasSelection == true else {
+            SafeLogger.selectionReadProgress("clipboard-assisted-selection-lost")
+            return nil
+        }
+        guard let text = await clipboardSelectionReader.readSelectedText(from: snapshot.source),
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            SafeLogger.selectionReadProgress("clipboard-assisted-copy-ignored")
+            return nil
+        }
+        SafeLogger.selectionReadProgress("clipboard-assisted-selection")
+        return text
     }
 
     private func readAccessibilitySelection(

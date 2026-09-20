@@ -271,24 +271,8 @@ struct AccessibilitySelectedTextReaderTests {
         #expect(fixture.elementReader.maximumConcurrentCopies == 1)
     }
 
-    @Test("A listed app reads its selection through the clipboard")
-    func clipboardAssistedSelectionFromListedApp() async throws {
-        let fixture = ReaderFixture()
-        fixture.configureClipboardAssistedSelection(for: fixture.source, axText: "and recoverable")
-        fixture.clipboardReader.text = "and recoverable"
-        let reader = fixture.makeReader()
-
-        let snapshot = try await reader.readSelection(promptForPermission: false)
-
-        #expect(snapshot.text == "and recoverable")
-        #expect(snapshot.source == fixture.source)
-        #expect(snapshot.isConfirmedSelection)
-        #expect(!snapshot.canReplaceSelection)
-        #expect(fixture.clipboardReader.readRequests == [fixture.source])
-    }
-
-    @Test("The clipboard read wins over the text the app misreports")
-    func clipboardAssistedSelectionReplacesMisreportedText() async throws {
+    @Test("Detecting a selection in a listed app leaves the pasteboard alone")
+    func clipboardAssistedDetectionDoesNotCopy() async throws {
         let fixture = ReaderFixture()
         fixture.configureClipboardAssistedSelection(
             for: fixture.source,
@@ -299,7 +283,30 @@ struct AccessibilitySelectedTextReaderTests {
 
         let snapshot = try await reader.readSelection(promptForPermission: false)
 
-        #expect(snapshot.text == "elided observations are stored externally and recoverable")
+        #expect(snapshot.textOrigin == .deferredToPasteboard)
+        // The misreported Accessibility text is kept only as a hint.
+        #expect(snapshot.text == "(M2): elided observations are stored externally andrecoverable alon")
+        #expect(snapshot.source == fixture.source)
+        #expect(snapshot.isConfirmedSelection)
+        #expect(!snapshot.canReplaceSelection)
+        #expect(fixture.clipboardReader.readRequests.isEmpty)
+    }
+
+    @Test("The text an action reads is what the app copied, not what it misreports")
+    func clipboardAssistedDeferredReadPrefersTheCopiedText() async throws {
+        let fixture = ReaderFixture()
+        fixture.configureClipboardAssistedSelection(
+            for: fixture.source,
+            axText: "(M2): elided observations are stored externally andrecoverable alon"
+        )
+        fixture.clipboardReader.text = "elided observations are stored externally and recoverable"
+        let reader = fixture.makeReader()
+
+        let snapshot = try await reader.readSelection(promptForPermission: false)
+        let text = await reader.readDeferredSelectionText(for: snapshot)
+
+        #expect(text == "elided observations are stored externally and recoverable")
+        #expect(fixture.clipboardReader.readRequests == [fixture.source])
     }
 
     @Test("An app that is not listed keeps the plain Accessibility read")
@@ -313,6 +320,8 @@ struct AccessibilitySelectedTextReaderTests {
         let snapshot = try await reader.readSelection(promptForPermission: false)
 
         #expect(snapshot.text == "Plain selection")
+        #expect(snapshot.textOrigin == .accessibility)
+        #expect(await reader.readDeferredSelectionText(for: snapshot) == nil)
         #expect(fixture.clipboardReader.readRequests.isEmpty)
     }
 
@@ -347,17 +356,33 @@ struct AccessibilitySelectedTextReaderTests {
         #expect(fixture.clipboardReader.readRequests.isEmpty)
     }
 
-    @Test("An ignored copy command falls back to the Accessibility text")
-    func clipboardAssistedSelectionFallsBackWhenCopyIsIgnored() async throws {
+    @Test("An app that ignores the copy command yields no deferred text")
+    func clipboardAssistedDeferredReadReportsIgnoredCopy() async throws {
         let fixture = ReaderFixture()
         fixture.configureClipboardAssistedSelection(for: fixture.source, axText: "Accessibility text")
         fixture.clipboardReader.text = nil
         let reader = fixture.makeReader()
 
         let snapshot = try await reader.readSelection(promptForPermission: false)
+        let text = await reader.readDeferredSelectionText(for: snapshot)
 
-        #expect(snapshot.text == "Accessibility text")
+        #expect(text == nil)
         #expect(fixture.clipboardReader.readRequests == [fixture.source])
+    }
+
+    @Test("A cleared selection is not copied when an action runs")
+    func clipboardAssistedDeferredReadTracksTheLiveSelection() async throws {
+        let fixture = ReaderFixture()
+        fixture.configureClipboardAssistedSelection(for: fixture.source, axText: "Accessibility text")
+        fixture.clipboardReader.text = "copied text"
+        let reader = fixture.makeReader()
+
+        let snapshot = try await reader.readSelection(promptForPermission: false)
+        fixture.configureFocusedSelection(text: "", range: .init(location: 0, length: 0))
+        let text = await reader.readDeferredSelectionText(for: snapshot)
+
+        #expect(text == nil)
+        #expect(fixture.clipboardReader.readRequests.isEmpty)
     }
 
     @Test("A secure field stops the clipboard path before any copy")

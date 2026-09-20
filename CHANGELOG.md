@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings groups that configure behavior worth explaining now link to their guide (service addresses, models, prompts, External Ask, Selection Assistant, shortcuts reference, proxy, local data, appearance). Links follow the interface language, opening the English or Simplified Chinese page.
 - The documentation site draws flow diagrams for service setup, address types, model selection, External Ask, and the Selection Assistant, and adds an **Open Settings in SpotAsk** button to the English and Simplified Chinese pages that jump to the matching settings page. Each button also states the manual path, so it still works without the app installed.
 - The **retry with another model** picker on an answer now lists your enabled External Ask targets under an "External Ask" section. Picking one opens that platform with the question this answer was generated for, and the conversation, the session model, and the composer draft all stay exactly as they are.
-- An optional, off-by-default clipboard-assisted selection mode in Settings > Selection Assistant for apps you choose, which reads accurate selected text in apps that misreport selections and restores the clipboard afterwards.
+- An optional, off-by-default clipboard-assisted selection mode in Settings > Selection Assistant for apps you choose. Selections in those apps are detected as usual, and the app's own Copy command runs only when you use an action, so accurate text reaches the action while the clipboard is restored afterwards.
 
 ### Changed
 
