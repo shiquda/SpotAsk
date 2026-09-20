@@ -16,18 +16,18 @@ The Selection Assistant reads text you select in another app and sends it to Spo
 
 SpotAsk requests this permission only when you enable the feature. It uses the permission to read text you select; it does not monitor your whole screen.
 
-```mermaid Selection Assistant path: permission, trigger mode, and how an action reaches the selection
+```mermaid Selection Assistant: permission first, then the trigger you chose
 flowchart TD
-  A[Enable Selection Assistant] --> B{Cross-app text access}
-  B -->|Denied| C[Recovery message links to System Settings]
-  B -->|Granted| D{Trigger mode}
-  D -->|Run default action| E[The default prompt runs on the selection]
-  D -->|Show quick actions| F{Auto-show after selecting?}
-  F -->|On| G[The action bar appears after the wait time]
-  F -->|Off| H[Press the selection shortcut]
-  G --> I[Pick a prompt, ask in chat, or an External Ask target]
-  H --> I
+  A{Cross-app text access?}
+  A -->|Denied| B[Open System Settings from the recovery message]
+  A -->|Granted| C{Trigger mode}
+  C -->|Run default action| D[The default prompt runs on the selection]
+  C -->|Show quick actions| E[Use the action bar or the selection shortcut]
+  class A entry
+  class C decision
+  class B,D,E outcome
 ```
+
 
 <SpotAskSettingsLink section="selection-assistant" />
 
