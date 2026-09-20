@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import Textual
 
@@ -5,11 +6,19 @@ struct MarkdownTextView: View {
     let content: String
     let fillsAvailableWidth: Bool
     let rendersMath: Bool
+    /// Pasteboard used by code block copy buttons; tests inject a private pasteboard.
+    let codeBlockPasteboard: NSPasteboard
 
-    init(content: String, fillsAvailableWidth: Bool = true, rendersMath: Bool = true) {
+    init(
+        content: String,
+        fillsAvailableWidth: Bool = true,
+        rendersMath: Bool = true,
+        codeBlockPasteboard: NSPasteboard = .general
+    ) {
         self.content = content
         self.fillsAvailableWidth = fillsAvailableWidth
         self.rendersMath = rendersMath
+        self.codeBlockPasteboard = codeBlockPasteboard
     }
 
     @ViewBuilder
@@ -20,7 +29,7 @@ struct MarkdownTextView: View {
             markdown: markdownSource,
             syntaxExtensions: rendersMath ? [.math] : []
         )
-            .textual.codeBlockStyle(CodeBlockView())
+            .textual.codeBlockStyle(CodeBlockView(pasteboard: codeBlockPasteboard))
             .textual.overflowMode(.wrap)
             .textual.structuredTextStyle(.gitHub)
             .textual.textSelection(.enabled)

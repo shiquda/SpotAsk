@@ -28,12 +28,7 @@ extension StructuredText {
     @available(watchOS, unavailable)
     public func copyToPasteboard() {
       #if TEXTUAL_ENABLE_TEXT_SELECTION && canImport(AppKit) && !targetEnvironment(macCatalyst)
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-
-        let formatter = Formatter(AttributedString(content))
-        pasteboard.setString(formatter.plainText(), forType: .string)
-        pasteboard.setString(formatter.html(), forType: .html)
+        copyToPasteboard(to: .general)
       #elseif TEXTUAL_ENABLE_TEXT_SELECTION && canImport(UIKit)
         let formatter = Formatter(AttributedString(content))
         UIPasteboard.general.setItems(
@@ -46,5 +41,20 @@ extension StructuredText {
         )
       #endif
     }
+
+    #if TEXTUAL_ENABLE_TEXT_SELECTION && canImport(AppKit) && !targetEnvironment(macCatalyst)
+      /// Copies the code block contents to the given pasteboard.
+      ///
+      /// Textual writes both a plain-text and an HTML representation when possible.
+      /// Pass a private pasteboard (`NSPasteboard(name:)`) to keep the contents away from the
+      /// user's system pasteboard.
+      public func copyToPasteboard(to pasteboard: NSPasteboard) {
+        pasteboard.clearContents()
+
+        let formatter = Formatter(AttributedString(content))
+        pasteboard.setString(formatter.plainText(), forType: .string)
+        pasteboard.setString(formatter.html(), forType: .html)
+      }
+    #endif
   }
 }
