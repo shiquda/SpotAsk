@@ -118,7 +118,7 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, DeferredSelect
     }
 
     private func readSelection(from source: SelectionSourceApplication) async throws -> SelectedTextSnapshot {
-        let candidates = try await withAccessibilityContext { try self.focusedSelectionChain() }
+        let candidates = try await withAccessibilityContext { try self.focusedSelectionChain(for: source) }
         let usesClipboardAssistedSelection = clipboardAssistedPolicy.allowsClipboardAssistedSelection(from: source)
 
         guard usesClipboardAssistedSelection else {
@@ -127,22 +127,59 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, DeferredSelect
         return try await readClipboardAssistedSelection(from: source, candidates: candidates)
     }
 
-    private func focusedSelectionChain() throws -> [AccessibilityElementID] {
-        let systemWideElement = try elementReader.makeSystemWideElement()
-        SafeLogger.selectionReadProgress("system-wide-element-ready")
-        try elementReader.setMessagingTimeout(Self.messagingTimeout, for: systemWideElement)
-        SafeLogger.selectionReadProgress("messaging-timeout-set")
-        let focusedElement = try SelectionElementChain.focusedElement(
-            from: systemWideElement,
+    private func focusedSelectionChain(for source: SelectionSourceApplication?) throws -> [AccessibilityElementID] {
+        let focusedElement = try Self.resolveFocusedElement(
+            from: focusedElementSources(for: source),
             reader: elementReader
         )
-        SafeLogger.selectionReadProgress("focused-element-ready")
         let candidates = try SelectionElementChain.chain(
             startingAt: focusedElement,
             reader: elementReader
         )
         try SelectionElementChain.preflightSensitiveFields(in: candidates, reader: elementReader)
         return candidates
+    }
+
+    /// Where macOS is asked for the element the user is working in.
+    ///
+    /// The application element comes first: the system-wide element answers
+    /// `kAXErrorCannotComplete` on machines where it will not resolve global
+    /// focus, which would fail every read in every app before the selection is
+    /// even looked at. System-wide stays as the fallback for the apps whose own
+    /// element reports no focused UI element.
+    private func focusedElementSources(for source: SelectionSourceApplication?) -> [AccessibilityElementID] {
+        var sources: [AccessibilityElementID] = []
+        if let source, let applicationElement = try? elementReader.makeApplicationElement(
+            processIdentifier: source.processIdentifier
+        ) {
+            sources.append(applicationElement)
+        }
+        if let systemWideElement = try? elementReader.makeSystemWideElement() {
+            sources.append(systemWideElement)
+        }
+        return sources
+    }
+
+    private static func resolveFocusedElement(
+        from sources: [AccessibilityElementID],
+        reader: any AccessibilityElementReading
+    ) throws -> AccessibilityElementID {
+        var lastError: Error?
+        for element in sources {
+            // Bound every wait: an unresponsive app must not stall the read.
+            try? reader.setMessagingTimeout(messagingTimeout, for: element)
+            do {
+                let focusedElement = try SelectionElementChain.focusedElement(from: element, reader: reader)
+                SafeLogger.selectionReadProgress("focused-element-ready")
+                return focusedElement
+            } catch {
+                lastError = error
+                SafeLogger.selectionReadProgress(
+                    "focused-element-unavailable error=\(SelectionDiagnosticsFormatting.error(error))"
+                )
+            }
+        }
+        throw lastError ?? SelectionReadingError.noSelection
     }
 
     /// Detection for apps whose Accessibility text is unreliable.
@@ -194,7 +231,12 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, DeferredSelect
             return nil
         }
         let hasSelection = try? await withAccessibilityContext {
-            try SelectionElementChain.hasSelection(in: self.focusedSelectionChain(), reader: self.elementReader)
+            try SelectionElementChain.hasSelection(
+                // The selection belongs to the app it was read from, so focus
+                // is resolved there rather than wherever focus moved since.
+                in: self.focusedSelectionChain(for: snapshot.source),
+                reader: self.elementReader
+            )
         }
         guard hasSelection == true else {
             SafeLogger.selectionReadProgress("clipboard-assisted-selection-lost")

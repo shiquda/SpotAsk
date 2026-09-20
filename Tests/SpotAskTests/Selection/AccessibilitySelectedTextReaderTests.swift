@@ -39,22 +39,6 @@ struct AccessibilitySelectedTextReaderTests {
         #expect(!fixture.elementReader.calls.contains(.setMessagingTimeout(fixture.focusedElement)))
     }
 
-    @Test("The focused element is resolved from the system-wide element, not the application element")
-    func focusedElementUsesSystemWideElement() async throws {
-        let fixture = ReaderFixture()
-        fixture.configureFocusedSelection(text: "Selected", range: .init(location: 0, length: 8))
-        let reader = fixture.makeReader()
-
-        let snapshot = try await reader.readSelection(promptForPermission: false)
-
-        #expect(snapshot.text == "Selected")
-        #expect(fixture.elementReader.calls.contains(.makeSystemWideElement))
-        #expect(!fixture.elementReader.calls.contains { call in
-            if case .makeApplicationElement = call { return true }
-            return false
-        })
-    }
-
     @Test("The reader searches a bounded parent chain")
     func parentChainIsBoundedAtSixElements() async {
         let fixture = ReaderFixture()
@@ -269,6 +253,63 @@ struct AccessibilitySelectedTextReaderTests {
         _ = try await (first, second)
 
         #expect(fixture.elementReader.maximumConcurrentCopies == 1)
+    }
+
+    @Test("Focus comes from the frontmost application, not the system-wide element")
+    func focusedElementComesFromTheApplicationElement() async throws {
+        let fixture = ReaderFixture()
+        fixture.configureFocusedSelection(text: "App focus", range: .init(location: 0, length: 9))
+        // A machine where system-wide focus lookup cannot complete, as happens
+        // when the frontmost app does not answer the global query.
+        fixture.elementReader.setError(
+            .ax(.cannotComplete),
+            attribute: fixture.focusedAttribute,
+            element: fixture.systemWideElement
+        )
+        fixture.elementReader.set(
+            .element(fixture.focusedElement),
+            attribute: fixture.focusedAttribute,
+            element: fixture.applicationElement
+        )
+
+        let snapshot = try await fixture.makeReader().readSelection(promptForPermission: false)
+
+        #expect(snapshot.text == "App focus")
+        #expect(fixture.elementReader.calls.contains(.makeApplicationElement(fixture.source.processIdentifier)))
+        // The application element answers, so the system-wide element is never asked.
+        #expect(!fixture.elementReader.calls.contains(.attribute(fixture.focusedAttribute, fixture.systemWideElement)))
+    }
+
+    @Test("Focus falls back to the system-wide element when the application reports none")
+    func focusedElementFallsBackToSystemWide() async throws {
+        let fixture = ReaderFixture()
+        fixture.configureFocusedSelection(text: "System focus", range: .init(location: 0, length: 12))
+        fixture.elementReader.setError(
+            .ax(.cannotComplete),
+            attribute: fixture.focusedAttribute,
+            element: fixture.applicationElement
+        )
+
+        let snapshot = try await fixture.makeReader().readSelection(promptForPermission: false)
+
+        #expect(snapshot.text == "System focus")
+    }
+
+    @Test("Focus lookup failing everywhere reports the accessibility error")
+    func focusedElementFailureSurfacesTheAccessibilityError() async {
+        let fixture = ReaderFixture()
+        fixture.configureFocusedSelection(text: "Unreachable", range: .init(location: 0, length: 11))
+        for element in [fixture.applicationElement, fixture.systemWideElement] {
+            fixture.elementReader.setError(
+                .ax(.cannotComplete),
+                attribute: fixture.focusedAttribute,
+                element: element
+            )
+        }
+
+        await #expect(throws: SelectionReadingError.applicationUnresponsive) {
+            try await fixture.makeReader().readSelection(promptForPermission: false)
+        }
     }
 
     @Test("Detecting a selection in a listed app leaves the pasteboard alone")
