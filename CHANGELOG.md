@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The header's quick model switcher lists models only again. It switches the model of the current window, so offering External Ask targets there promised a model change that picking one never performed; that entry now lives in the retry picker, where the question to ask elsewhere is already at hand.
 - Adding selected text to chat now prefixes each line with Markdown `>`, and the selection action uses a quote bubble icon.
 
+### Fixed
+
+- The **Open Documentation** link no longer sits under the Settings window's scrollbar. It keeps a 16pt trailing inset, so it lines up with the card below it on every settings page that shows the link.
+
 ## [0.2.4] - 2026-09-16
 
 ### Added
