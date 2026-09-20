@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The header model picker is centered in the title bar, instead of sitting next to the SpotAsk brand. The generating spinner stays grouped with the picker.
 - The header's quick model switcher lists models only again. It switches the model of the current window, so offering External Ask targets there promised a model change that picking one never performed; that entry now lives in the retry picker, where the question to ask elsewhere is already at hand.
 - Adding selected text to chat now prefixes each line with Markdown `>`, and the selection action uses a quote bubble icon.
+- The documentation home page renders the hero flow diagram between the hero actions and the feature cards, in both languages, instead of below them.
 
 ### Fixed
 
