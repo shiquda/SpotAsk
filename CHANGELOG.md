@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - The **Open Documentation** link no longer sits under the Settings window's scrollbar. It keeps a 16pt trailing inset, so it lines up with the card below it on every settings page that shows the link.
+- Running the test suite no longer overwrites your macOS clipboard. Code block copy buttons write to an injectable pasteboard, so tests copy into a private one while the app still copies real code blocks to the system clipboard.
 
 ## [0.2.4] - 2026-09-16
 
