@@ -450,6 +450,14 @@
 "settings.selectionAssistantAutoShowSearchPlaceholder" = "アプリを検索";
 "settings.selectionAssistantAutoShowSearchNoResults" = "一致するアプリがありません。";
 "settings.selectionAssistantAutoShowSearchClear" = "検索をクリア";
+"settings.selectionAssistantClipboardAssisted" = "クリップボード補助による選択";
+"settings.selectionAssistantClipboardAssistedDescription" = "選択テキストを正確に取得できないアプリで、クリップボードを使用して選択したテキストを読み取ります。必要なアプリでのみオンにしてください。";
+"settings.selectionAssistantClipboardAssistedEnabled" = "クリップボードで選択内容を読み取る";
+"settings.selectionAssistantClipboardAssistedApps" = "選択したアプリ";
+"settings.selectionAssistantClipboardAssistedChooseApps" = "アプリを選択";
+"settings.selectionAssistantClipboardAssistedSelectedCount" = "%d 個のアプリを選択中";
+"settings.selectionAssistantClipboardAssistedClear" = "クリア";
+"settings.selectionAssistantClipboardAssistedRefresh" = "アプリ一覧を更新";
 "menu.quickQuestionMode" = "クイック質問モード";
 "chat.insertSelection" = "選択したテキストを置き換え";
 "chat.insertSelectionSucceeded" = "選択したテキストを置き換えました。";

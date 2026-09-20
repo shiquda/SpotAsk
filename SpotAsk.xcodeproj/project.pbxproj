@@ -33,6 +33,9 @@
 		001000000000000000000015 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000015 /* SettingsView.swift */; };
 		001000000000000000000092 /* SettingsDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000092 /* SettingsDeepLink.swift */; };
 		001000000000000000000093 /* DocumentationLinks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000093 /* DocumentationLinks.swift */; };
+		001000000000000000000094 /* ClipboardAssistedSelectionPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000094 /* ClipboardAssistedSelectionPolicy.swift */; };
+		001000000000000000000095 /* ClipboardAssistedSelectionReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000095 /* ClipboardAssistedSelectionReader.swift */; };
+		001000000000000000000096 /* SelectionCopyTrigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000096 /* SelectionCopyTrigger.swift */; };
 		001000000000000000000016 /* Clipboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000016 /* Clipboard.swift */; };
 		001000000000000000000017 /* SafeLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000017 /* SafeLogger.swift */; };
 		001000000000000000000018 /* URLNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000018 /* URLNormalizer.swift */; };
@@ -125,6 +128,9 @@
 		002000000000000000000015 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/SettingsView.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000092 /* SettingsDeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/SettingsDeepLink.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000093 /* DocumentationLinks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/DocumentationLinks.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000094 /* ClipboardAssistedSelectionPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/ClipboardAssistedSelectionPolicy.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000095 /* ClipboardAssistedSelectionReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/ClipboardAssistedSelectionReader.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000096 /* SelectionCopyTrigger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionCopyTrigger.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000016 /* Clipboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Utilities/Clipboard.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000017 /* SafeLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Utilities/SafeLogger.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000018 /* URLNormalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Utilities/URLNormalizer.swift; sourceTree = SOURCE_ROOT; };
@@ -277,6 +283,9 @@
 				002000000000000000000044 /* AccessibilitySelectionReplacementWriter.swift */,
 				002000000000000000000045 /* SelectionAutoInvokeMonitor.swift */,
 				002000000000000000000046 /* SelectionElementChain.swift */,
+				002000000000000000000094 /* ClipboardAssistedSelectionPolicy.swift */,
+				002000000000000000000095 /* ClipboardAssistedSelectionReader.swift */,
+				002000000000000000000096 /* SelectionCopyTrigger.swift */,
 				002000000000000000000048 /* SelectionDiagnosticsFormatting.swift */,
 				002000000000000000000058 /* ChatAttachment.swift */,
 				002000000000000000000059 /* AttachmentProcessor.swift */,
@@ -469,6 +478,9 @@
 				001000000000000000000044,
 				001000000000000000000045,
 				001000000000000000000046,
+				001000000000000000000094,
+				001000000000000000000095,
+				001000000000000000000096,
 				001000000000000000000047,
 				001000000000000000000048,
 				001000000000000000000049,

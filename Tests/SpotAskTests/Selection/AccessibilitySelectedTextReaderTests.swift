@@ -39,22 +39,6 @@ struct AccessibilitySelectedTextReaderTests {
         #expect(!fixture.elementReader.calls.contains(.setMessagingTimeout(fixture.focusedElement)))
     }
 
-    @Test("The focused element is resolved from the system-wide element, not the application element")
-    func focusedElementUsesSystemWideElement() async throws {
-        let fixture = ReaderFixture()
-        fixture.configureFocusedSelection(text: "Selected", range: .init(location: 0, length: 8))
-        let reader = fixture.makeReader()
-
-        let snapshot = try await reader.readSelection(promptForPermission: false)
-
-        #expect(snapshot.text == "Selected")
-        #expect(fixture.elementReader.calls.contains(.makeSystemWideElement))
-        #expect(!fixture.elementReader.calls.contains { call in
-            if case .makeApplicationElement = call { return true }
-            return false
-        })
-    }
-
     @Test("The reader searches a bounded parent chain")
     func parentChainIsBoundedAtSixElements() async {
         let fixture = ReaderFixture()
@@ -270,6 +254,191 @@ struct AccessibilitySelectedTextReaderTests {
 
         #expect(fixture.elementReader.maximumConcurrentCopies == 1)
     }
+
+    @Test("Focus comes from the frontmost application, not the system-wide element")
+    func focusedElementComesFromTheApplicationElement() async throws {
+        let fixture = ReaderFixture()
+        fixture.configureFocusedSelection(text: "App focus", range: .init(location: 0, length: 9))
+        // A machine where system-wide focus lookup cannot complete, as happens
+        // when the frontmost app does not answer the global query.
+        fixture.elementReader.setError(
+            .ax(.cannotComplete),
+            attribute: fixture.focusedAttribute,
+            element: fixture.systemWideElement
+        )
+        fixture.elementReader.set(
+            .element(fixture.focusedElement),
+            attribute: fixture.focusedAttribute,
+            element: fixture.applicationElement
+        )
+
+        let snapshot = try await fixture.makeReader().readSelection(promptForPermission: false)
+
+        #expect(snapshot.text == "App focus")
+        #expect(fixture.elementReader.calls.contains(.makeApplicationElement(fixture.source.processIdentifier)))
+        // The application element answers, so the system-wide element is never asked.
+        #expect(!fixture.elementReader.calls.contains(.attribute(fixture.focusedAttribute, fixture.systemWideElement)))
+    }
+
+    @Test("Focus falls back to the system-wide element when the application reports none")
+    func focusedElementFallsBackToSystemWide() async throws {
+        let fixture = ReaderFixture()
+        fixture.configureFocusedSelection(text: "System focus", range: .init(location: 0, length: 12))
+        fixture.elementReader.setError(
+            .ax(.cannotComplete),
+            attribute: fixture.focusedAttribute,
+            element: fixture.applicationElement
+        )
+
+        let snapshot = try await fixture.makeReader().readSelection(promptForPermission: false)
+
+        #expect(snapshot.text == "System focus")
+    }
+
+    @Test("Focus lookup failing everywhere reports the accessibility error")
+    func focusedElementFailureSurfacesTheAccessibilityError() async {
+        let fixture = ReaderFixture()
+        fixture.configureFocusedSelection(text: "Unreachable", range: .init(location: 0, length: 11))
+        for element in [fixture.applicationElement, fixture.systemWideElement] {
+            fixture.elementReader.setError(
+                .ax(.cannotComplete),
+                attribute: fixture.focusedAttribute,
+                element: element
+            )
+        }
+
+        await #expect(throws: SelectionReadingError.applicationUnresponsive) {
+            try await fixture.makeReader().readSelection(promptForPermission: false)
+        }
+    }
+
+    @Test("Detecting a selection in a listed app leaves the pasteboard alone")
+    func clipboardAssistedDetectionDoesNotCopy() async throws {
+        let fixture = ReaderFixture()
+        fixture.configureClipboardAssistedSelection(
+            for: fixture.source,
+            axText: "(M2): elided observations are stored externally andrecoverable alon"
+        )
+        fixture.clipboardReader.text = "elided observations are stored externally and recoverable"
+        let reader = fixture.makeReader()
+
+        let snapshot = try await reader.readSelection(promptForPermission: false)
+
+        #expect(snapshot.textOrigin == .deferredToPasteboard)
+        // The misreported Accessibility text is kept only as a hint.
+        #expect(snapshot.text == "(M2): elided observations are stored externally andrecoverable alon")
+        #expect(snapshot.source == fixture.source)
+        #expect(snapshot.isConfirmedSelection)
+        #expect(!snapshot.canReplaceSelection)
+        #expect(fixture.clipboardReader.readRequests.isEmpty)
+    }
+
+    @Test("The text an action reads is what the app copied, not what it misreports")
+    func clipboardAssistedDeferredReadPrefersTheCopiedText() async throws {
+        let fixture = ReaderFixture()
+        fixture.configureClipboardAssistedSelection(
+            for: fixture.source,
+            axText: "(M2): elided observations are stored externally andrecoverable alon"
+        )
+        fixture.clipboardReader.text = "elided observations are stored externally and recoverable"
+        let reader = fixture.makeReader()
+
+        let snapshot = try await reader.readSelection(promptForPermission: false)
+        let text = await reader.readDeferredSelectionText(for: snapshot)
+
+        #expect(text == "elided observations are stored externally and recoverable")
+        #expect(fixture.clipboardReader.readRequests == [fixture.source])
+    }
+
+    @Test("An app that is not listed keeps the plain Accessibility read")
+    func clipboardAssistedSelectionSkipsUnlistedApps() async throws {
+        let fixture = ReaderFixture()
+        fixture.configureFocusedSelection(text: "Plain selection", range: .init(location: 0, length: 15))
+        fixture.clipboardPolicy.update(enabled: true, identifiers: ["org.zotero.zotero"])
+        fixture.clipboardReader.text = "Clipboard selection"
+        let reader = fixture.makeReader()
+
+        let snapshot = try await reader.readSelection(promptForPermission: false)
+
+        #expect(snapshot.text == "Plain selection")
+        #expect(snapshot.textOrigin == .accessibility)
+        #expect(await reader.readDeferredSelectionText(for: snapshot) == nil)
+        #expect(fixture.clipboardReader.readRequests.isEmpty)
+    }
+
+    @Test("An empty selection never triggers the clipboard copy")
+    func clipboardAssistedSelectionRequiresAnExistingSelection() async {
+        let fixture = ReaderFixture()
+        fixture.clipboardPolicy.update(enabled: true, identifiers: ["com.example.Editor"])
+        fixture.setFocusedElement(fixture.focusedElement)
+        let reader = fixture.makeReader()
+
+        await #expect(throws: SelectionReadingError.noSelection) {
+            try await reader.readSelection(promptForPermission: false)
+        }
+        #expect(fixture.clipboardReader.readRequests.isEmpty)
+    }
+
+    @Test("A zero-length marker range does not count as a selection for the clipboard path")
+    func clipboardAssistedSelectionRejectsZeroLengthMarkerRange() async {
+        let fixture = ReaderFixture()
+        fixture.clipboardPolicy.update(enabled: true, identifiers: ["com.example.Editor"])
+        fixture.setFocusedElement(fixture.focusedElement)
+        fixture.elementReader.set(
+            .textMarkerRange(fixture.emptyMarkerRange),
+            attribute: fixture.selectedTextMarkerRangeAttribute,
+            element: fixture.focusedElement
+        )
+        let reader = fixture.makeReader()
+
+        await #expect(throws: SelectionReadingError.noSelection) {
+            try await reader.readSelection(promptForPermission: false)
+        }
+        #expect(fixture.clipboardReader.readRequests.isEmpty)
+    }
+
+    @Test("An app that ignores the copy command yields no deferred text")
+    func clipboardAssistedDeferredReadReportsIgnoredCopy() async throws {
+        let fixture = ReaderFixture()
+        fixture.configureClipboardAssistedSelection(for: fixture.source, axText: "Accessibility text")
+        fixture.clipboardReader.text = nil
+        let reader = fixture.makeReader()
+
+        let snapshot = try await reader.readSelection(promptForPermission: false)
+        let text = await reader.readDeferredSelectionText(for: snapshot)
+
+        #expect(text == nil)
+        #expect(fixture.clipboardReader.readRequests == [fixture.source])
+    }
+
+    @Test("A cleared selection is not copied when an action runs")
+    func clipboardAssistedDeferredReadTracksTheLiveSelection() async throws {
+        let fixture = ReaderFixture()
+        fixture.configureClipboardAssistedSelection(for: fixture.source, axText: "Accessibility text")
+        fixture.clipboardReader.text = "copied text"
+        let reader = fixture.makeReader()
+
+        let snapshot = try await reader.readSelection(promptForPermission: false)
+        fixture.configureFocusedSelection(text: "", range: .init(location: 0, length: 0))
+        let text = await reader.readDeferredSelectionText(for: snapshot)
+
+        #expect(text == nil)
+        #expect(fixture.clipboardReader.readRequests.isEmpty)
+    }
+
+    @Test("A secure field stops the clipboard path before any copy")
+    func clipboardAssistedSelectionRespectsSecureFields() async {
+        let fixture = ReaderFixture()
+        fixture.clipboardPolicy.update(enabled: true, identifiers: ["com.example.Editor"])
+        fixture.setFocusedElement(fixture.focusedElement)
+        fixture.elementReader.set(.string("AXSecureTextField"), attribute: fixture.subroleAttribute, element: fixture.focusedElement)
+        let reader = fixture.makeReader()
+
+        await #expect(throws: SelectionReadingError.sensitiveField) {
+            try await reader.readSelection(promptForPermission: false)
+        }
+        #expect(fixture.clipboardReader.readRequests.isEmpty)
+    }
 }
 
 @Suite("Selection anchor coordinate conversion")
@@ -352,6 +521,8 @@ private final class ReaderFixture: @unchecked Sendable {
     let permissionChecker: FakePermissionChecker
     let applicationProvider: FakeApplicationProvider
     let pointerLocationProvider: FakePointerLocationProvider
+    let clipboardPolicy = ClipboardAssistedSelectionPolicy()
+    let clipboardReader = FakeClipboardSelectionReader()
 
     let focusedAttribute = kAXFocusedUIElementAttribute as String
     let parentAttribute = kAXParentAttribute as String
@@ -380,8 +551,19 @@ private final class ReaderFixture: @unchecked Sendable {
             permissionChecker: permissionChecker,
             applicationProvider: applicationProvider,
             elementReader: elementReader,
-            pointerLocationProvider: pointerLocationProvider
+            pointerLocationProvider: pointerLocationProvider,
+            clipboardAssistedPolicy: clipboardPolicy,
+            clipboardSelectionReader: clipboardReader
         )
+    }
+
+    /// Lists `source` for clipboard-assisted reading and leaves the
+    /// Accessibility path holding the text an app like Zotero misreports.
+    func configureClipboardAssistedSelection(for source: SelectionSourceApplication, axText: String) {
+        clipboardPolicy.update(enabled: true, identifiers: [source.selectionIdentifier ?? ""])
+        setFocusedElement(focusedElement)
+        elementReader.set(.string(axText), attribute: selectedTextAttribute, element: focusedElement)
+        elementReader.set(.range(.init(location: 0, length: axText.count)), attribute: selectedRangeAttribute, element: focusedElement)
     }
 
     func setFocusedElement(_ element: AccessibilityElementID) {
@@ -435,6 +617,43 @@ private struct FakePointerLocationProvider: PointerLocationProviding {
 
     func location() -> CGPoint {
         point
+    }
+}
+
+private final class FakeClipboardSelectionReader: ClipboardAssistedSelectionReading, @unchecked Sendable {
+    private let lock = NSLock()
+    private var textValue: String?
+    private var requests: [SelectionSourceApplication] = []
+
+    var text: String? {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return textValue
+        }
+        set {
+            lock.lock()
+            textValue = newValue
+            lock.unlock()
+        }
+    }
+
+    var readRequests: [SelectionSourceApplication] {
+        lock.lock()
+        defer { lock.unlock() }
+        return requests
+    }
+
+    func readSelectedText(from source: SelectionSourceApplication) async -> String? {
+        record(source)
+    }
+
+    private func record(_ source: SelectionSourceApplication) -> String? {
+        lock.lock()
+        requests.append(source)
+        let result = textValue
+        lock.unlock()
+        return result
     }
 }
 

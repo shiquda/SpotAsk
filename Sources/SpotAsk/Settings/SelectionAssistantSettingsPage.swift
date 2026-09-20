@@ -86,7 +86,11 @@ struct SelectionAssistantSettingsPage: View {
                                      : L10n.string("settings.selectionAssistantAutoShowWhitelistDescription"))
                                     .font(.system(size: 12))
                                     .foregroundStyle(.secondary)
-                                SelectionAutoInvokeApplicationPicker(settings: settings, scope: settings.selectionAutoInvokeScope)
+                                SelectionApplicationPicker(
+                                    selectedIdentifiers: autoInvokeSelectedIdentifiers,
+                                    labels: .autoInvoke,
+                                    onChange: setAutoInvokeSelectedIdentifiers
+                                )
                             }
                             SettingsFieldRow(label: L10n.string("settings.selectionAssistantAutoShowDelay")) {
                                 HStack(spacing: 10) {
@@ -126,6 +130,27 @@ struct SelectionAssistantSettingsPage: View {
                     }
                 }
             }
+            if settings.selectionAssistantEnabled {
+                SettingsGroup(
+                    title: L10n.string("settings.selectionAssistantClipboardAssisted"),
+                    documentation: DocumentationLinks.url(for: .selectionAssistant, language: settings.language)
+                ) {
+                    Text(L10n.string("settings.selectionAssistantClipboardAssistedDescription"))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                    SettingsToggleRow(
+                        label: L10n.string("settings.selectionAssistantClipboardAssistedEnabled"),
+                        isOn: Bindable(settings).clipboardAssistedSelectionEnabled
+                    )
+                    if settings.clipboardAssistedSelectionEnabled {
+                        SelectionApplicationPicker(
+                            selectedIdentifiers: settings.clipboardAssistedSelectionAppIdentifiers,
+                            labels: .clipboardAssisted,
+                            onChange: { settings.clipboardAssistedSelectionAppIdentifiers = $0 }
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -142,6 +167,22 @@ struct SelectionAssistantSettingsPage: View {
 
     private var showsActionBarCrowdingHint: Bool {
         (settings.selectionActionBarShowsChatAction ? 1 : 0) + settings.enabledPromptPresets.count + settings.enabledQuickActions.count > 4
+    }
+
+    private var autoInvokeSelectedIdentifiers: [String] {
+        switch settings.selectionAutoInvokeScope {
+        case .allApps: []
+        case .blacklist: settings.selectionAutoInvokeBlacklist
+        case .whitelist: settings.selectionAutoInvokeWhitelist
+        }
+    }
+
+    private func setAutoInvokeSelectedIdentifiers(_ identifiers: [String]) {
+        switch settings.selectionAutoInvokeScope {
+        case .allApps: break
+        case .blacklist: settings.selectionAutoInvokeBlacklist = identifiers
+        case .whitelist: settings.selectionAutoInvokeWhitelist = identifiers
+        }
     }
 
     private var permissionStatusDescription: String {
@@ -172,27 +213,48 @@ private struct SelectionApplicationOption: Identifiable, Hashable {
     var id: String { identifier }
 }
 
-private struct SelectionAutoInvokeApplicationPicker: View {
-    let settings: AppSettings
-    let scope: SelectionAutoInvokeScope
+private struct SelectionApplicationPickerLabels {
+    let field: String
+    let chooseApps: String
+    let clear: String
+    let refresh: String
+    let selectedCount: (Int) -> String
+
+    static var autoInvoke: Self {
+        Self(
+            field: L10n.string("settings.selectionAssistantAutoShowApps"),
+            chooseApps: L10n.string("settings.selectionAssistantAutoShowChooseApps"),
+            clear: L10n.string("settings.selectionAssistantAutoShowClear"),
+            refresh: L10n.string("settings.selectionAssistantAutoShowRefresh"),
+            selectedCount: { L10n.string("settings.selectionAssistantAutoShowSelectedCount", $0) }
+        )
+    }
+
+    static var clipboardAssisted: Self {
+        Self(
+            field: L10n.string("settings.selectionAssistantClipboardAssistedApps"),
+            chooseApps: L10n.string("settings.selectionAssistantClipboardAssistedChooseApps"),
+            clear: L10n.string("settings.selectionAssistantClipboardAssistedClear"),
+            refresh: L10n.string("settings.selectionAssistantClipboardAssistedRefresh"),
+            selectedCount: { L10n.string("settings.selectionAssistantClipboardAssistedSelectedCount", $0) }
+        )
+    }
+}
+
+private struct SelectionApplicationPicker: View {
+    let selectedIdentifiers: [String]
+    let labels: SelectionApplicationPickerLabels
+    let onChange: ([String]) -> Void
 
     @State private var applications: [SelectionApplicationOption] = []
     @State private var refreshToken = 0
     @State private var isPickerPresented = false
     @State private var searchText = ""
 
-    private var selectedIdentifiers: [String] {
-        switch scope {
-        case .allApps: []
-        case .blacklist: settings.selectionAutoInvokeBlacklist
-        case .whitelist: settings.selectionAutoInvokeWhitelist
-        }
-    }
-
     var body: some View {
-        SettingsFieldRow(label: L10n.string("settings.selectionAssistantAutoShowApps")) {
+        SettingsFieldRow(label: labels.field) {
             HStack(spacing: 10) {
-                Text(L10n.string("settings.selectionAssistantAutoShowSelectedCount", selectedIdentifiers.count))
+                Text(labels.selectedCount(selectedIdentifiers.count))
                     .lineLimit(1)
                     .foregroundStyle(.secondary)
 
@@ -201,13 +263,13 @@ private struct SelectionAutoInvokeApplicationPicker: View {
                     refreshToken += 1
                     isPickerPresented = true
                 } label: {
-                    Label(L10n.string("settings.selectionAssistantAutoShowChooseApps"), systemImage: "app.badge.checkmark")
+                    Label(labels.chooseApps, systemImage: "app.badge.checkmark")
                 }
                 .buttonStyle(.bordered)
 
                 if !selectedIdentifiers.isEmpty {
-                    Button(L10n.string("settings.selectionAssistantAutoShowClear")) {
-                        setSelectedIdentifiers([])
+                    Button(labels.clear) {
+                        onChange([])
                     }
                     .buttonStyle(.borderless)
                 }
@@ -218,12 +280,12 @@ private struct SelectionAutoInvokeApplicationPicker: View {
                     Image(systemName: "arrow.clockwise")
                 }
                 .buttonStyle(.borderless)
-                .help(L10n.string("settings.selectionAssistantAutoShowRefresh"))
-                .accessibilityLabel(L10n.string("settings.selectionAssistantAutoShowRefresh"))
+                .help(labels.refresh)
+                .accessibilityLabel(labels.refresh)
             }
         }
         .popover(isPresented: $isPickerPresented, arrowEdge: .bottom) {
-            SelectionAutoInvokeApplicationSearchPopover(
+            SelectionApplicationSearchPopover(
                 applications: applications,
                 selectedIdentifiers: selectedIdentifiers,
                 searchText: $searchText,
@@ -242,15 +304,7 @@ private struct SelectionAutoInvokeApplicationPicker: View {
         } else {
             identifiers.append(identifier)
         }
-        setSelectedIdentifiers(identifiers)
-    }
-
-    private func setSelectedIdentifiers(_ identifiers: [String]) {
-        switch scope {
-        case .allApps: break
-        case .blacklist: settings.selectionAutoInvokeBlacklist = identifiers
-        case .whitelist: settings.selectionAutoInvokeWhitelist = identifiers
-        }
+        onChange(identifiers)
     }
 
     private static func loadRunningApplications() -> [SelectionApplicationOption] {
@@ -275,7 +329,7 @@ private struct SelectionAutoInvokeApplicationPicker: View {
     }
 }
 
-private struct SelectionAutoInvokeApplicationSearchPopover: View {
+private struct SelectionApplicationSearchPopover: View {
     let applications: [SelectionApplicationOption]
     let selectedIdentifiers: [String]
     @Binding var searchText: String

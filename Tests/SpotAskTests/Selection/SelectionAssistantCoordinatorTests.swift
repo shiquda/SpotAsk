@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import SwiftUI
 import Testing
 @testable import SpotAsk
 
@@ -164,6 +165,200 @@ struct SelectionAssistantCoordinatorTests {
 
         #expect(reader.promptRequests == [false])
         #expect(overlay.hideCount == 1)
+    }
+
+    @Test("Auto-detected clipboard-assisted selection shows the bar without touching the clipboard")
+    func automaticTriggerShowsTheBarWithoutCopying() async {
+        let settings = makeSettings()
+        settings.selectionAutoInvokeEnabled = true
+        settings.selectionAutoInvokeDelay = 0
+
+        let overlay = SelectionOverlayStub()
+        let reader = SelectionReaderStub(snapshot: makeDeferredSnapshot())
+        reader.deferredText = "elided observations are stored externally and recoverable"
+        let coordinator = makeCoordinator(settings: settings, reader: reader, overlay: overlay)
+
+        coordinator.scheduleAutomaticTrigger()
+        for _ in 0 ..< 50 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+
+        #expect(!overlay.shownPresets.isEmpty)
+        #expect(reader.deferredReadRequests.isEmpty)
+    }
+
+    @Test("Choosing an action copies the selection and asks with the copied text")
+    func choosingActionCopiesTheSelectionOnDemand() async {
+        let settings = makeSettings()
+        let overlay = SelectionOverlayStub()
+        let reader = SelectionReaderStub(snapshot: makeDeferredSnapshot(text: "(M2): elided observations andrecoverable alon"))
+        reader.deferredText = "elided observations are stored externally and recoverable"
+        let commandCenter = SpotAskCommandCenter()
+        let recorder = CommandActionRecorder()
+        commandCenter.configure(panelController: SelectionPanelControllerSpy())
+        commandCenter.setPanelContent { EmptyView() }
+        commandCenter.setActionConsumer { recorder.actions.append($0) }
+        let coordinator = makeCoordinator(
+            settings: settings,
+            reader: reader,
+            overlay: overlay,
+            commandCenter: commandCenter
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 50 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+        #expect(reader.deferredReadRequests.isEmpty)
+        overlay.chooseFirstAction()
+        for _ in 0 ..< 50 where recorder.actions.isEmpty {
+            await Task.yield()
+        }
+
+        #expect(reader.deferredReadRequests == [sampleSnapshot.source])
+        guard case let .ask(question, _, snapshot) = recorder.actions.first else {
+            Issue.record("Expected an ask action, got \(recorder.actions)")
+            return
+        }
+        #expect(question == "elided observations are stored externally and recoverable")
+        // Later stages of the flow act on the copied text, never the hint.
+        #expect(snapshot?.text == "elided observations are stored externally and recoverable")
+        #expect(snapshot?.textOrigin == .accessibility)
+    }
+
+    @Test("Choosing the chat action copies the selection before filling the input")
+    func choosingChatActionCopiesTheSelectionOnDemand() async {
+        let settings = makeSettings()
+        let overlay = SelectionOverlayStub()
+        let reader = SelectionReaderStub(snapshot: makeDeferredSnapshot())
+        reader.deferredText = "elided observations are stored externally and recoverable"
+        let commandCenter = SpotAskCommandCenter()
+        let recorder = CommandActionRecorder()
+        commandCenter.configure(panelController: SelectionPanelControllerSpy())
+        commandCenter.setPanelContent { EmptyView() }
+        commandCenter.setActionConsumer { recorder.actions.append($0) }
+        let coordinator = makeCoordinator(
+            settings: settings,
+            reader: reader,
+            overlay: overlay,
+            commandCenter: commandCenter
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 50 where !overlay.hasChatHandler {
+            await Task.yield()
+        }
+        overlay.chooseChatAction()
+        for _ in 0 ..< 50 where recorder.actions.isEmpty {
+            await Task.yield()
+        }
+
+        #expect(reader.deferredReadRequests == [sampleSnapshot.source])
+        #expect(recorder.actions == [.addToChat("elided observations are stored externally and recoverable")])
+    }
+
+    @Test("The shortcut in direct mode copies before asking")
+    func directModeCopiesBeforeAsking() async {
+        let settings = makeSettings()
+        settings.selectionAssistantMode = .direct
+        let reader = SelectionReaderStub(snapshot: makeDeferredSnapshot())
+        reader.deferredText = "elided observations are stored externally and recoverable"
+        let commandCenter = SpotAskCommandCenter()
+        let recorder = CommandActionRecorder()
+        commandCenter.configure(panelController: SelectionPanelControllerSpy())
+        commandCenter.setPanelContent { EmptyView() }
+        commandCenter.setActionConsumer { recorder.actions.append($0) }
+        let coordinator = makeCoordinator(
+            settings: settings,
+            reader: reader,
+            overlay: SelectionOverlayStub(),
+            commandCenter: commandCenter
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 50 where recorder.actions.isEmpty {
+            await Task.yield()
+        }
+
+        #expect(reader.deferredReadRequests == [sampleSnapshot.source])
+        guard case let .ask(question, _, _) = recorder.actions.first else {
+            Issue.record("Expected an ask action, got \(recorder.actions)")
+            return
+        }
+        #expect(question == "elided observations are stored externally and recoverable")
+    }
+
+    @Test("An ignored copy falls back to the Accessibility hint")
+    func ignoredCopyFallsBackToTheAccessibilityHint() async {
+        let settings = makeSettings()
+        let overlay = SelectionOverlayStub()
+        let reader = SelectionReaderStub(snapshot: makeDeferredSnapshot(text: "misreported hint"))
+        reader.deferredText = nil
+        let commandCenter = SpotAskCommandCenter()
+        let recorder = CommandActionRecorder()
+        commandCenter.configure(panelController: SelectionPanelControllerSpy())
+        commandCenter.setPanelContent { EmptyView() }
+        commandCenter.setActionConsumer { recorder.actions.append($0) }
+        let coordinator = makeCoordinator(
+            settings: settings,
+            reader: reader,
+            overlay: overlay,
+            commandCenter: commandCenter
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 50 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+        overlay.chooseFirstAction()
+        for _ in 0 ..< 50 where recorder.actions.isEmpty {
+            await Task.yield()
+        }
+
+        guard case let .ask(question, _, _) = recorder.actions.first else {
+            Issue.record("Expected an ask action, got \(recorder.actions)")
+            return
+        }
+        #expect(question == "misreported hint")
+    }
+
+    @Test("A clipboard-assisted action with nothing to read reports no selection")
+    func clipboardAssistedActionWithoutAnyTextReportsNoSelection() async {
+        let settings = makeSettings()
+        let overlay = SelectionOverlayStub()
+        let reader = SelectionReaderStub(snapshot: makeDeferredSnapshot(text: ""))
+        reader.deferredText = nil
+        let coordinator = makeCoordinator(settings: settings, reader: reader, overlay: overlay)
+
+        coordinator.trigger()
+        for _ in 0 ..< 50 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+        overlay.chooseFirstAction()
+        for _ in 0 ..< 50 where overlay.messages.isEmpty {
+            await Task.yield()
+        }
+
+        #expect(overlay.messages == [.noSelection])
+    }
+
+    @Test("A plain Accessibility selection never reaches the clipboard")
+    func accessibilitySelectionNeverCopies() async {
+        let settings = makeSettings()
+        let overlay = SelectionOverlayStub()
+        let reader = SelectionReaderStub(snapshot: sampleSnapshot)
+        let coordinator = makeCoordinator(settings: settings, reader: reader, overlay: overlay)
+
+        coordinator.trigger()
+        for _ in 0 ..< 50 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+        overlay.chooseFirstAction()
+        for _ in 0 ..< 50 where overlay.hideCount == 0 {
+            await Task.yield()
+        }
+
+        #expect(reader.deferredReadRequests.isEmpty)
     }
 
     @Test("Automatic trigger is skipped for a blacklisted source app")
@@ -410,6 +605,9 @@ struct SelectionAssistantCoordinatorTests {
             await Task.yield()
         }
         overlay.chooseFirstQuickAction()
+        for _ in 0 ..< 20 where executor.performed.isEmpty {
+            await Task.yield()
+        }
 
         #expect(overlay.hideCount == 1)
         #expect(executor.performed.count == 1)
@@ -438,6 +636,9 @@ struct SelectionAssistantCoordinatorTests {
             await Task.yield()
         }
         overlay.chooseFirstQuickAction()
+        for _ in 0 ..< 20 where overlay.messages.isEmpty {
+            await Task.yield()
+        }
 
         #expect(overlay.hideCount == 1)
         #expect(overlay.messages == [.temporaryFailure])
@@ -544,7 +745,8 @@ struct SelectionAssistantCoordinatorTests {
         settings: AppSettings,
         reader: any SelectedTextReading,
         overlay: SelectionOverlayStub = SelectionOverlayStub(),
-        executor: any QuickActionExecuting = DefaultQuickActionExecutor()
+        executor: any QuickActionExecuting = DefaultQuickActionExecutor(),
+        commandCenter: SpotAskCommandCenter = SpotAskCommandCenter()
     ) -> SelectionAssistantCoordinator {
         SelectionAssistantCoordinator(
             settings: settings,
@@ -554,7 +756,7 @@ struct SelectionAssistantCoordinatorTests {
                 checker: SelectionPermissionChecker(isTrusted: true)
             ),
             settingsOpener: SelectionSettingsOpenerStub(),
-            commandCenter: SpotAskCommandCenter(),
+            commandCenter: commandCenter,
             overlay: overlay,
             executor: executor
         )
@@ -582,6 +784,19 @@ struct SelectionAssistantCoordinatorTests {
             anchor: .pointer(CGPoint(x: 20, y: 20))
         )
     }
+
+    /// A selection found in an app that misreports its Accessibility text: only
+    /// its presence is known until an action asks the app to copy it.
+    private func makeDeferredSnapshot(text: String = "misreported hint") -> SelectedTextSnapshot {
+        SelectedTextSnapshot(
+            text: text,
+            source: SelectionSourceApplication(processIdentifier: 42, bundleIdentifier: "com.example.Source", localizedName: "Source"),
+            selectedRange: nil,
+            anchor: .pointer(CGPoint(x: 20, y: 20)),
+            isConfirmedSelection: true,
+            textOrigin: .deferredToPasteboard
+        )
+    }
 }
 
 private final class SelectionPermissionChecker: AccessibilityPermissionChecking, @unchecked Sendable {
@@ -607,10 +822,12 @@ private final class MemorySelectionGrantIdentityStore: AccessibilityGrantIdentit
     var lastResetIdentity: String?
 }
 
-private final class SelectionReaderStub: SelectedTextReading, @unchecked Sendable {
+private final class SelectionReaderStub: SelectedTextReading, DeferredSelectionTextReading, @unchecked Sendable {
     var snapshot: SelectedTextSnapshot
     var error: (any Error)?
+    var deferredText: String?
     private(set) var promptRequests: [Bool] = []
+    private(set) var deferredReadRequests: [SelectionSourceApplication] = []
 
     init(snapshot: SelectedTextSnapshot = .init(
         text: "Selected text",
@@ -626,6 +843,25 @@ private final class SelectionReaderStub: SelectedTextReading, @unchecked Sendabl
         if let error { throw error }
         return snapshot
     }
+
+    func readDeferredSelectionText(for snapshot: SelectedTextSnapshot) async -> String? {
+        deferredReadRequests.append(snapshot.source)
+        return deferredText
+    }
+}
+
+@MainActor
+private final class CommandActionRecorder {
+    var actions: [SpotAskCommandAction] = []
+}
+
+private final class SelectionPanelControllerSpy: SpotAskPanelControlling {
+    var isVisible = false
+    func setContent(_ content: @escaping () -> AnyView) {}
+    func show() { isVisible = true }
+    func hide() { isVisible = false }
+    func toggle() { isVisible.toggle() }
+    func toggleWindowOnTop() {}
 }
 
 private actor SuspendingSelectionReader: SelectedTextReading {
