@@ -164,13 +164,29 @@ jobs:
           echo "Stapling notarization tickets..."
           ./Scripts/notarize-dmg.sh staple "$arm64_dmg"
           ./Scripts/notarize-dmg.sh staple "$x86_64_dmg"
-      - name: Generate release notes from CHANGELOG
+      - name: Generate release notes from the changelogs
         if: env.RELEASE_STATE != 'published'
         run: |
           set -eu
-          ./Scripts/release-notes-from-changelog.sh "$RELEASE_TAG" > "$RUNNER_TEMP/release-notes.md"
-          test -s "$RUNNER_TEMP/release-notes.md"
-          echo "RELEASE_NOTES_FILE=$RUNNER_TEMP/release-notes.md" >> "$GITHUB_ENV"
+          notes_dir="$RUNNER_TEMP/release-notes"
+          mkdir -p "$notes_dir"
+          en_notes="$notes_dir/en.md"
+          zh_notes="$notes_dir/zh-CN.md"
+          bilingual_notes="$notes_dir/bilingual.md"
+
+          ./Scripts/release-notes-from-changelog.sh "$RELEASE_TAG" --en > "$en_notes"
+          ./Scripts/release-notes-from-changelog.sh "$RELEASE_TAG" --all > "$bilingual_notes"
+          if ! ./Scripts/release-notes-from-changelog.sh "$RELEASE_TAG" --zh > "$zh_notes"; then
+            echo "CHANGELOG.zh-CN.md has no notes for $RELEASE_TAG; the Chinese appcast description falls back to English." >&2
+            cp "$en_notes" "$zh_notes"
+          fi
+          test -s "$en_notes"
+          test -s "$zh_notes"
+          test -s "$bilingual_notes"
+
+          echo "RELEASE_NOTES_FILE=$bilingual_notes" >> "$GITHUB_ENV"
+          echo "RELEASE_NOTES_EN_FILE=$en_notes" >> "$GITHUB_ENV"
+          echo "RELEASE_NOTES_ZH_FILE=$zh_notes" >> "$GITHUB_ENV"
       - name: Generate Sparkle appcasts
         if: env.RELEASE_STATE != 'published'
         env:
@@ -184,7 +200,8 @@ jobs:
             --arm64-dmg "dist/SpotAsk-${APP_VERSION}-arm64.dmg" \
             --x86_64-dmg "dist/SpotAsk-${APP_VERSION}-x86_64.dmg" \
             --output dist \
-            --notes "$RUNNER_TEMP/release-notes.md"
+            --notes "$RELEASE_NOTES_EN_FILE" \
+            --notes-zh "$RELEASE_NOTES_ZH_FILE"
       - name: Create checksums
         if: env.RELEASE_STATE != 'published'
         run: |

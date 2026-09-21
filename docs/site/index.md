@@ -7,7 +7,6 @@ description: "SpotAsk is a free, open-source macOS menu-bar AI assistant and que
 
 hero:
   name: SpotAsk
-  text: Docs
   tagline: "Ask first, decide where it goes after. A fast macOS menu-bar AI assistant & query router."
   actions:
     - theme: brand
@@ -26,9 +25,12 @@ features:
     details: "Connect OpenAI-compatible or Anthropic endpoints. Access keys stay encrypted on your Mac with zero telemetry or middle servers."
   - title: "Lightweight & pure native"
     details: "~10 MB installer, pure Swift/AppKit, zero Electron runtime, keyboard-first with Esc-to-close, and instant cold launch."
----
 
-![SpotAsk — one prompt routed to an in-app answer, a web AI, or a local CLI agent](/images/spotask-hero.png)
+# Rendered between the hero actions and the feature cards by SpotAskHeroShowcase.
+heroShowcase:
+  src: /images/spotask-hero.png
+  alt: "SpotAsk — one prompt routed to an in-app answer, a web AI, or a local CLI agent"
+---
 
 ## What is SpotAsk
 

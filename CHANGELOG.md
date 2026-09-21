@@ -7,17 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-09-20
+
 ### Added
 
 - `spotask://settings/<page>` links open one Settings page directly (Provider, Prompts, External Ask, Selection Assistant, Shortcuts, General, Appearance, About), so documentation, shortcuts, and terminal scripts can send users to the exact page. Plain `spotask://settings` still opens Settings, and an unknown page falls back to it.
 - Settings groups that configure behavior worth explaining now link to their guide (service addresses, models, prompts, External Ask, Selection Assistant, shortcuts reference, proxy, local data, appearance). Links follow the interface language, opening the English or Simplified Chinese page.
-- The documentation site draws flow diagrams for service setup, address types, model selection, External Ask, and the Selection Assistant, and adds an **Open Settings in SpotAsk** button to the English and Simplified Chinese pages that jump to the matching settings page. Each button also states the manual path, so it still works without the app installed.
-- The header's quick model switcher now lists your enabled External Ask targets under an "External Ask" section. Picking one opens that platform with your draft, or with your latest question when the draft is empty, and the current conversation stays exactly as it is.
+- The documentation site draws two diagrams, for address types and the Selection Assistant, styled to follow the light and dark theme, and adds an **Open Settings in SpotAsk** button to the English and Simplified Chinese pages that jump to the matching settings page. Each button also states the manual path, so it still works without the app installed.
+- The **retry with another model** picker on an answer now lists your enabled External Ask targets under an "External Ask" section. Picking one opens that platform with the question this answer was generated for, and the conversation, the session model, and the composer draft all stay exactly as they are.
+- An optional, off-by-default clipboard-assisted selection mode in Settings > Selection Assistant for apps you choose (such as Zotero, where Accessibility selection reads can be unreliable). Selections in those apps are detected as usual, and the app's own Copy command runs only when you use an action, so accurate text reaches the action while the clipboard is restored afterwards.
 
 ### Changed
 
 - The header model picker is centered in the title bar, instead of sitting next to the SpotAsk brand. The generating spinner stays grouped with the picker.
+- The header's quick model switcher lists models only again. It switches the model of the current window, so offering External Ask targets there promised a model change that picking one never performed; that entry now lives in the retry picker, where the question to ask elsewhere is already at hand.
 - Adding selected text to chat now prefixes each line with Markdown `>`, and the selection action uses a quote bubble icon.
+- The documentation home page renders the hero flow diagram between the hero actions and the feature cards, in both languages, instead of below them.
+- The documentation home page hero keeps only the SpotAsk wordmark; the `Docs` / `文档` second line is gone.
+
+### Fixed
+
+- The **Open Documentation** link no longer sits under the Settings window's scrollbar. It keeps a 16pt trailing inset, so it lines up with the card below it on every settings page that shows the link.
+- Running the test suite no longer overwrites your macOS clipboard. Code block copy buttons write to an injectable pasteboard, so tests copy into a private one while the app still copies real code blocks to the system clipboard.
 
 ## [0.2.4] - 2026-09-16
 
@@ -174,9 +185,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provider cards can be expanded and collapsed reliably.
 - Thinking expansion behavior: when enabled, thinking stays expanded during reasoning and collapses for the final answer; when disabled, it stays collapsed.
 
-[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/shiquda/SpotAsk/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/shiquda/SpotAsk/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/shiquda/SpotAsk/compare/v0.2.2...v0.2.3
+[0.2.2]: https://github.com/shiquda/SpotAsk/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/shiquda/SpotAsk/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/shiquda/SpotAsk/compare/v0.1.6...v0.2.0
 [0.1.6]: https://github.com/shiquda/SpotAsk/compare/v0.1.5...v0.1.6

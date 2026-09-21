@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: v* tag whose release notes should be updated from CHANGELOG.md
+        description: v* tag whose release notes should be updated from CHANGELOG.md and CHANGELOG.zh-CN.md
         required: true
         type: string
 
@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ github.event.release.tag_name || inputs.release_tag }}
-      - name: Update release notes from CHANGELOG
+      - name: Update release notes from the changelogs
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
@@ -34,6 +34,6 @@ jobs:
             v*) ;;
             *) echo "Release tag must start with v" >&2; exit 1 ;;
           esac
-          ./Scripts/release-notes-from-changelog.sh "$RELEASE_TAG" > "$RUNNER_TEMP/release-notes.md"
+          ./Scripts/release-notes-from-changelog.sh "$RELEASE_TAG" --all > "$RUNNER_TEMP/release-notes.md"
           test -s "$RUNNER_TEMP/release-notes.md"
           gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes-file "$RUNNER_TEMP/release-notes.md"

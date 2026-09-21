@@ -33,16 +33,15 @@ https://api.openai.com/v1/chat/completions
 
 除非服务商文档明确要求填写完整接口，否则优先使用**服务根地址**。
 
-```mermaid 地址类型判断：服务商给的是基础地址还是完整接口
+```mermaid 地址类型：除非服务商给了完整接口，否则用服务根地址
 flowchart TD
-  A[服务商文档提供了什么？] --> B{基础地址还是完整聊天接口？}
-  B -->|基础地址| C[服务根地址]
-  B -->|完整聊天接口| D[完整请求地址]
-  C --> E[SpotAsk 自动拼接聊天路径]
-  C --> F[可以使用“更新模型”拉取模型列表]
-  D --> G[请求直接发送到你填写的路径]
-  D --> H[手动添加模型]
+  A{服务商文档提供了什么？}
+  A -->|基础地址| B[服务根地址]
+  A -->|完整聊天接口| C[完整请求地址]
+  class A entry
+  class B,C outcome
 ```
+
 
 <SpotAskSettingsLink section="provider" />
 

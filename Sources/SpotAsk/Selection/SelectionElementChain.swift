@@ -135,6 +135,40 @@ enum SelectionElementChain {
         ].contains(axError)
     }
 
+    /// Presence probe used before any clipboard-assisted copy. It only reports
+    /// whether the focus chain owns a non-empty selection; it never asks the
+    /// app to hand over the text, which is the part Gecko misreports.
+    static func hasSelection(
+        in candidates: [AccessibilityElementID],
+        reader: any AccessibilityElementReading
+    ) throws -> Bool {
+        for element in candidates where try hasSelection(in: element, reader: reader) {
+            return true
+        }
+        return false
+    }
+
+    private static func hasSelection(
+        in element: AccessibilityElementID,
+        reader: any AccessibilityElementReading
+    ) throws -> Bool {
+        if let text = try optionalStringAttribute(kAXSelectedTextAttribute as String, from: element, reader: reader),
+           !text.isEmpty {
+            return true
+        }
+        if let range = try selectedRange(for: element, reader: reader), range.isNonEmpty {
+            return true
+        }
+        do {
+            let value = try reader.copyAttribute(kAXSelectedTextMarkerRangeAttribute as String, from: element)
+            guard case let .textMarkerRange(markerRange) = value else { return false }
+            return markerRange.isNonEmpty
+        } catch {
+            if isAbsentAttribute(error) { return false }
+            throw error
+        }
+    }
+
     private static func parent(of element: AccessibilityElementID, reader: any AccessibilityElementReading) throws -> AccessibilityElementID? {
         do {
             let value = try reader.copyAttribute(kAXParentAttribute as String, from: element)

@@ -11,6 +11,8 @@ final class SelectionAssistantCoordinator {
     private let commandCenter: SpotAskCommandCenter
     private let overlay: any SelectionOverlayControlling
     private let executor: any QuickActionExecuting
+    private let clipboardAssistedPolicy: ClipboardAssistedSelectionPolicy
+    private let deferredTextReader: (any DeferredSelectionTextReading)?
     private var triggerToken = 0
     private var snapshot: SelectedTextSnapshot?
     private var hasShownPermissionRecovery = false
@@ -18,7 +20,7 @@ final class SelectionAssistantCoordinator {
 
     init(
         settings: AppSettings,
-        reader: any SelectedTextReading = AccessibilitySelectedTextReader(),
+        reader: (any SelectedTextReading)? = nil,
         applicationProvider: any ForegroundSelectionApplicationProviding = MacOSForegroundSelectionApplicationProvider(),
         permissionCoordinator: AccessibilityPermissionCoordinator,
         settingsOpener: any AccessibilityPermissionSettingsOpening = MacOSAccessibilityPermissionSettingsOpener(),
@@ -26,8 +28,21 @@ final class SelectionAssistantCoordinator {
         overlay: any SelectionOverlayControlling,
         executor: any QuickActionExecuting = DefaultQuickActionExecutor()
     ) {
+        // The reader works on its own queue, so it cannot read main-actor
+        // settings mid-read. Keep a mirror of the clipboard preferences and
+        // refresh it whenever the selection settings change.
+        let clipboardAssistedPolicy = ClipboardAssistedSelectionPolicy()
+        clipboardAssistedPolicy.update(
+            enabled: settings.clipboardAssistedSelectionEnabled,
+            identifiers: settings.clipboardAssistedSelectionAppIdentifiers
+        )
+        self.clipboardAssistedPolicy = clipboardAssistedPolicy
         self.settings = settings
+        let reader = reader ?? AccessibilitySelectedTextReader(clipboardAssistedPolicy: clipboardAssistedPolicy)
         self.reader = reader
+        // A reader that can find a selection without reading it hands the copy
+        // to the moment an action runs: `readDeferredSelectionText`.
+        deferredTextReader = reader as? any DeferredSelectionTextReading
         self.applicationProvider = applicationProvider
         self.permissionCoordinator = permissionCoordinator
         self.settingsOpener = settingsOpener
@@ -84,8 +99,10 @@ final class SelectionAssistantCoordinator {
             do {
                 let current = try await reader.readSelection(promptForPermission: false)
                 guard token == triggerToken else { return }
-                // An empty or whitespace-only selection must not wake the assistant.
-                guard !current.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                // An empty or whitespace-only selection must not wake the
+                // assistant. A clipboard-assisted selection is confirmed by its
+                // presence alone: its text is only read once an action runs.
+                guard current.hasUsableSelection else {
                     discardPresentedSelection()
                     return
                 }
@@ -96,8 +113,16 @@ final class SelectionAssistantCoordinator {
                 snapshot = current
                 if settings.selectionAssistantMode == .direct {
                     let preset = settings.selectionPromptPreset()
-                    if let preset { commandCenter.ask(current.text, promptPreset: preset, selectionSnapshot: current) }
-                    else { commandCenter.compose(current.text) }
+                    let resolved = await resolveText(of: current)
+                    guard token == triggerToken else { return }
+                    guard let resolved else {
+                        discardPresentedSelection()
+                        if showsFeedback { overlay.showMessage(.noSelection) }
+                        return
+                    }
+                    snapshot = resolved
+                    if let preset { commandCenter.ask(resolved.text, promptPreset: preset, selectionSnapshot: resolved) }
+                    else { commandCenter.compose(resolved.text) }
                 } else {
                     let showsChat = settings.selectionActionBarShowsChatAction
                     let presets = selectionActionBarPresets
@@ -126,7 +151,7 @@ final class SelectionAssistantCoordinator {
                             self?.apply(preset: preset)
                         },
                         onSelectExternalAsk: { [weak self] action in
-                            self?.performExternalAsk(action, snapshot: current)
+                            self?.performExternalAsk(action)
                         }
                     )
                 }
@@ -145,6 +170,10 @@ final class SelectionAssistantCoordinator {
     }
 
     func handleSettingsChanged() {
+        clipboardAssistedPolicy.update(
+            enabled: settings.clipboardAssistedSelectionEnabled,
+            identifiers: settings.clipboardAssistedSelectionAppIdentifiers
+        )
         guard settings.selectionAssistantEnabled else {
             cancelInFlightAndDiscardPresentedSelection()
             return
@@ -163,18 +192,54 @@ final class SelectionAssistantCoordinator {
         overlay.hide()
     }
 
-    private func apply(preset: PromptPreset) {
-        guard let snapshot else { return }
+    /// Hides the action bar and hands the selection over, so an action that
+    /// needs the text can read it without the overlay lingering.
+    private func takePresentedSelection() -> SelectedTextSnapshot? {
+        guard let snapshot else { return nil }
         overlay.hide()
         self.snapshot = nil
-        commandCenter.ask(snapshot.text, promptPreset: settings.enabledPromptPreset(id: preset.id), selectionSnapshot: snapshot)
+        return snapshot
+    }
+
+    /// The selection an action should act on, with its text in hand.
+    ///
+    /// Clipboard-assisted selections arrive without text: the host app is asked
+    /// to copy it now, at the moment an action runs. What it copies is the text
+    /// the action uses, which is the whole point of that mode — anything the
+    /// app misreports through Accessibility never becomes an answer or a prompt.
+    private func resolveText(of presented: SelectedTextSnapshot) async -> SelectedTextSnapshot? {
+        guard presented.textOrigin == .deferredToPasteboard else { return presented }
+        let text = await deferredTextReader?.readDeferredSelectionText(for: presented) ?? presented.text
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return presented.resolvingText(text)
+    }
+
+    private func apply(preset: PromptPreset) {
+        guard let presented = takePresentedSelection() else { return }
+        Task { [weak self] in
+            guard let self else { return }
+            guard let resolved = await resolveText(of: presented) else {
+                overlay.showMessage(.noSelection)
+                return
+            }
+            commandCenter.ask(
+                resolved.text,
+                promptPreset: settings.enabledPromptPreset(id: preset.id),
+                selectionSnapshot: resolved
+            )
+        }
     }
 
     private func addToChat() {
-        guard let snapshot else { return }
-        overlay.hide()
-        self.snapshot = nil
-        commandCenter.addToChat(snapshot.text)
+        guard let presented = takePresentedSelection() else { return }
+        Task { [weak self] in
+            guard let self else { return }
+            guard let resolved = await resolveText(of: presented) else {
+                overlay.showMessage(.noSelection)
+                return
+            }
+            commandCenter.addToChat(resolved.text)
+        }
     }
 
     private var selectionActionBarPresets: [PromptPreset] {
@@ -190,9 +255,8 @@ final class SelectionAssistantCoordinator {
         return Array(settings.enabledQuickActions.prefix(remaining))
     }
 
-    private func performExternalAsk(_ action: QuickAction, snapshot: SelectedTextSnapshot) {
-        overlay.hide()
-        self.snapshot = nil
+    private func performExternalAsk(_ action: QuickAction) {
+        guard let presented = takePresentedSelection() else { return }
         guard settings.externalAskEnabled,
               settings.selectionActionBarShowsExternalAsk,
               let currentAction = settings.enabledQuickAction(id: action.id)
@@ -200,8 +264,15 @@ final class SelectionAssistantCoordinator {
             overlay.showMessage(.temporaryFailure)
             return
         }
-        if !QuickActionLaunch.perform(currentAction, query: snapshot.text, executor: executor) {
-            overlay.showMessage(.temporaryFailure)
+        Task { [weak self] in
+            guard let self else { return }
+            guard let resolved = await resolveText(of: presented) else {
+                overlay.showMessage(.noSelection)
+                return
+            }
+            if !QuickActionLaunch.perform(currentAction, query: resolved.text, executor: executor) {
+                overlay.showMessage(.temporaryFailure)
+            }
         }
     }
 }

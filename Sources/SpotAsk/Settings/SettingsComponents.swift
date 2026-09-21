@@ -83,6 +83,10 @@ struct SettingsGroup<Content: View>: View {
                 if let documentation {
                     Spacer(minLength: 12)
                     SettingsDocumentationLink(url: documentation, groupTitle: title)
+                        // Keep the trailing edge of the link flush with the card
+                        // content below it (`.padding(16)`), instead of letting
+                        // it run under the panel's overlay scrollbar.
+                        .padding(.trailing, 16)
                 }
             }
             VStack(alignment: .leading, spacing: 13) {

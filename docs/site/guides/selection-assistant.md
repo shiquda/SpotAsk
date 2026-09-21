@@ -16,18 +16,18 @@ The Selection Assistant reads text you select in another app and sends it to Spo
 
 SpotAsk requests this permission only when you enable the feature. It uses the permission to read text you select; it does not monitor your whole screen.
 
-```mermaid Selection Assistant path: permission, trigger mode, and how an action reaches the selection
+```mermaid Selection Assistant: permission first, then the trigger you chose
 flowchart TD
-  A[Enable Selection Assistant] --> B{Cross-app text access}
-  B -->|Denied| C[Recovery message links to System Settings]
-  B -->|Granted| D{Trigger mode}
-  D -->|Run default action| E[The default prompt runs on the selection]
-  D -->|Show quick actions| F{Auto-show after selecting?}
-  F -->|On| G[The action bar appears after the wait time]
-  F -->|Off| H[Press the selection shortcut]
-  G --> I[Pick a prompt, ask in chat, or an External Ask target]
-  H --> I
+  A{Cross-app text access?}
+  A -->|Denied| B[Open System Settings from the recovery message]
+  A -->|Granted| C{Trigger mode}
+  C -->|Run default action| D[The default prompt runs on the selection]
+  C -->|Show quick actions| E[Use the action bar or the selection shortcut]
+  class A entry
+  class C decision
+  class B,D,E outcome
 ```
+
 
 <SpotAskSettingsLink section="selection-assistant" />
 
@@ -50,6 +50,14 @@ Use **Auto-show apps** to control where it appears:
 - **Blacklist**: hide in selected apps.
 
 The default delay is 0.8 seconds. Set **Wait** from 0 to 3 seconds so the actions do not appear while you are still selecting.
+
+## Clipboard-assisted selection
+
+Some apps (such as Zotero's PDF reader) report selected text to macOS Accessibility with missing spaces or shifted boundaries. For these apps, enable **Clipboard-assisted selection** in Settings > **Selection Assistant** and choose which apps it applies to.
+
+Selections in those apps are still detected the usual way, and nothing is copied while the action bar waits for you. The copy happens when you use an action: SpotAsk copies the selection with the app's standard Copy command, reads the accurate text from the clipboard, and immediately restores your previous clipboard content.
+
+This feature is off by default. It never copies when nothing is selected, and apps not on your list continue using normal Accessibility reading.
 
 ## Manual trigger
 

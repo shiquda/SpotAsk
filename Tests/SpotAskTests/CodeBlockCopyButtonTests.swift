@@ -8,8 +8,12 @@ final class CodeBlockCopyButtonTests: XCTestCase {
     @MainActor
     func testCopyButtonReceivesClickPastTextSelectionOverlay() throws {
         StructuredText.CodeBlockProxy.interactiveExclusionRects.removeAll()
+        let pasteboard = makeIsolatedPasteboard()
+        defer { pasteboard.releaseGlobally() }
+        let systemChangeCount = NSPasteboard.general.changeCount
         let markdown = MarkdownTextView(
-            content: "```swift\nlet answer = \"ready\"\nprint(answer)\n```"
+            content: "```swift\nlet answer = \"ready\"\nprint(answer)\n```",
+            codeBlockPasteboard: pasteboard
         )
         let hosting = NSHostingView(rootView: AnyView(markdown.frame(width: 520, height: 240)))
         let window = NSWindow(
@@ -39,16 +43,26 @@ final class CodeBlockCopyButtonTests: XCTestCase {
             "Copy button must receive the hit instead of the text selection overlay"
         )
 
-        NSPasteboard.general.clearContents()
         button!.performClick(nil)
-        let copied = NSPasteboard.general.string(forType: .string)
+        let copied = pasteboard.string(forType: .string)
         XCTAssertTrue(copied?.contains("let answer = \"ready\"") == true)
         XCTAssertTrue(copied?.contains("print(answer)") == true)
+        let html = pasteboard.string(forType: .html)
+        XCTAssertTrue(html?.contains("<pre><code") == true)
+        XCTAssertTrue(html?.contains("print(answer)") == true)
+        XCTAssertEqual(
+            NSPasteboard.general.changeCount,
+            systemChangeCount,
+            "Copying a code block must not touch the system pasteboard"
+        )
     }
 
     @MainActor
     func testMultipleCodeBlockCopyButtonsDoNotOverwriteExclusionRegions() throws {
         StructuredText.CodeBlockProxy.interactiveExclusionRects.removeAll()
+        let pasteboard = makeIsolatedPasteboard()
+        defer { pasteboard.releaseGlobally() }
+        let systemChangeCount = NSPasteboard.general.changeCount
         let markdown = MarkdownTextView(
             content: """
             ```swift
@@ -58,7 +72,8 @@ final class CodeBlockCopyButtonTests: XCTestCase {
             ```python
             second = 2
             ```
-            """
+            """,
+            codeBlockPasteboard: pasteboard
         )
         let hosting = NSHostingView(rootView: AnyView(markdown.frame(width: 520, height: 360)))
         let window = NSWindow(
@@ -79,16 +94,29 @@ final class CodeBlockCopyButtonTests: XCTestCase {
         XCTAssertEqual(buttons.count, 2)
 
         let expectedFragments = ["let first = 1", "second = 2"]
+        let expectedHTMLClasses = ["language-swift", "language-python"]
         for (index, button) in buttons.enumerated() {
             let center = NSPoint(x: button.bounds.midX, y: button.bounds.midY)
             let hit = window.contentView?.hitTest(button.convert(center, to: nil))
             XCTAssertTrue(hit === button)
 
-            NSPasteboard.general.clearContents()
             button.performClick(nil)
-            let copied = NSPasteboard.general.string(forType: .string)
+            let copied = pasteboard.string(forType: .string)
             XCTAssertTrue(copied?.contains(expectedFragments[index]) == true)
+            let html = pasteboard.string(forType: .html)
+            XCTAssertTrue(html?.contains(expectedHTMLClasses[index]) == true)
         }
+        XCTAssertEqual(
+            NSPasteboard.general.changeCount,
+            systemChangeCount,
+            "Copying a code block must not touch the system pasteboard"
+        )
+    }
+
+    /// A private pasteboard keeps the copy flow away from the user's system clipboard.
+    @MainActor
+    private func makeIsolatedPasteboard() -> NSPasteboard {
+        NSPasteboard(name: NSPasteboard.Name("SpotAskTests.\(UUID().uuidString)"))
     }
 
     @MainActor

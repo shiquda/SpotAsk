@@ -93,6 +93,8 @@ struct AtCommandPaletteTests {
         #expect(AtCommandMatcher.ranked([web, app, terminal], keyword: "web") { AtCommandMatcher.searchFields(for: $0) }.map(\.name) == ["ChatGPT"])
         #expect(AtCommandMatcher.ranked([web, app, terminal], keyword: "应用") { AtCommandMatcher.searchFields(for: $0) }.map(\.name) == ["Notes"])
         #expect(AtCommandMatcher.ranked([web, app, terminal], keyword: "terminal") { AtCommandMatcher.searchFields(for: $0) }.map(\.name) == ["omp"])
+        #expect(AtCommandMatcher.ranked([web, app, terminal], keyword: "外部提问") { AtCommandMatcher.searchFields(for: $0) }.count == 3)
+        #expect(AtCommandMatcher.ranked([web, app, terminal], keyword: "External Ask") { AtCommandMatcher.searchFields(for: $0) }.count == 3)
     }
 }
 

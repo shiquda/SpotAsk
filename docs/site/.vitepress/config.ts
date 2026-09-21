@@ -1,9 +1,26 @@
-import { defineConfig, type HeadConfig } from 'vitepress'
+import { defineConfig, type HeadConfig, type PageData } from 'vitepress'
 import { mermaidFence } from './mermaidFence'
 
 const docsUrl = 'https://shiquda.github.io/SpotAsk/'
+const repositoryUrl = 'https://github.com/shiquda/SpotAsk'
 const socialImageUrl = `${docsUrl}images/spotask-hero.png`
 const socialImageUrlZh = `${docsUrl}images/spotask-hero-zh.png`
+
+/**
+ * Generated pages name the repository file that owns their text in `source`
+ * frontmatter (see `Scripts/generate-docs-metadata.mjs`), so their edit link
+ * points at that file instead of at the generated page. The pattern is
+ * serialized into the client bundle, so its body must stay self-contained.
+ */
+function editLinkForPage(page: PageData): string {
+  const source = typeof page.frontmatter.source === 'string'
+    ? page.frontmatter.source
+    : `docs/site/${page.filePath}`
+  return `https://github.com/shiquda/SpotAsk/edit/main/${source}`
+}
+
+const englishEditLink = { pattern: editLinkForPage, text: 'Edit this page' }
+const chineseEditLink = { pattern: editLinkForPage, text: '编辑此页' }
 
 function routeForPage(page: string): string {
   const withoutExtension = page.replace(/\.md$/, '')
@@ -86,7 +103,8 @@ const englishSidebar = [
     text: 'Help',
     items: [
       { text: 'Troubleshooting', link: '/troubleshooting' },
-      { text: 'Settings & Shortcuts Reference', link: '/reference' }
+      { text: 'Settings & Shortcuts Reference', link: '/reference' },
+      { text: 'Changelog', link: '/changelog' }
     ]
   }
 ]
@@ -121,7 +139,8 @@ const chineseSidebar = [
     text: '帮助',
     items: [
       { text: '故障排查', link: '/zh-CN/troubleshooting' },
-      { text: '设置与快捷键参考', link: '/zh-CN/reference' }
+      { text: '设置与快捷键参考', link: '/zh-CN/reference' },
+      { text: '更新日志', link: '/zh-CN/changelog' }
     ]
   }
 ]
@@ -205,7 +224,8 @@ export default defineConfig({
           { text: 'Philosophy', link: '/philosophy' },
           { text: 'Guides', link: '/guides/connect-openai-compatible' },
           { text: 'Troubleshooting', link: '/troubleshooting' },
-          { text: 'Reference', link: '/reference' }
+          { text: 'Reference', link: '/reference' },
+          { text: 'Changelog', link: '/changelog' }
         ],
         sidebar: englishSidebar
       }
@@ -235,7 +255,8 @@ export default defineConfig({
           { text: '设计理念', link: '/zh-CN/philosophy' },
           { text: '指南', link: '/zh-CN/guides/connect-openai-compatible' },
           { text: '故障排查', link: '/zh-CN/troubleshooting' },
-          { text: '参考', link: '/zh-CN/reference' }
+          { text: '参考', link: '/zh-CN/reference' },
+          { text: '更新日志', link: '/zh-CN/changelog' }
         ],
         sidebar: chineseSidebar,
         outlineTitle: '本页目录',
@@ -244,9 +265,7 @@ export default defineConfig({
           prev: '上一页',
           next: '下一页'
         },
-        editLink: {
-          text: '编辑此页'
-        },
+        editLink: chineseEditLink,
         sidebarMenuLabel: '目录',
         returnToTopLabel: '返回顶部',
         darkModeSwitchLabel: '深色模式',
@@ -322,11 +341,9 @@ export default defineConfig({
       }
     },
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/shiquda/SpotAsk' }
+      { icon: 'github', link: repositoryUrl }
     ],
-    editLink: {
-      pattern: 'https://github.com/shiquda/SpotAsk/edit/main/docs/site/:path'
-    },
+    editLink: englishEditLink,
     footer: {
       message: 'Native macOS menu-bar AI assistant',
       copyright: 'Copyright © SpotAsk Contributors'

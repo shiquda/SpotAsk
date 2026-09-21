@@ -14,6 +14,16 @@ enum SelectionDiagnosticsFormatting {
         String(format: "(%.1f,%.1f)", size.width, size.height)
     }
 
+    static func error(_ error: Error) -> String {
+        if let adapterError = error as? AccessibilityAdapterError {
+            switch adapterError {
+            case let .ax(axError): return "ax(\(axError.rawValue))"
+            case .invalidValue: return "invalidValue"
+            }
+        }
+        return String(describing: error)
+    }
+
     static func anchor(_ anchor: SelectionAnchor) -> String {
         switch anchor {
         case let .selectionRect(rect): "selection=\(Self.rect(rect))"

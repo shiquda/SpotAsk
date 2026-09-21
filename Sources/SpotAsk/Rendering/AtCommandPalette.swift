@@ -209,6 +209,9 @@ enum AtCommandMatcher {
     static func searchFields(for action: QuickAction) -> [String] {
         var fields = [action.displayName, action.name]
         fields.append(contentsOf: kindAliases(for: action.kind))
+        fields.append(L10n.string("atCommand.externalAsk"))
+        fields.append(L10n.string("atCommand.externalAsk", language: .english))
+        fields.append(L10n.string("atCommand.externalAsk", language: .simplifiedChinese))
         return fields
     }
 

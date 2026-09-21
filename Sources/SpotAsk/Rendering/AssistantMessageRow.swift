@@ -15,6 +15,8 @@ let canRetryWithModel: Bool
 let onRegenerate: () -> Void
 let onRetryWithModel: (UUID) -> Void
 let onRetryWithDefaultModel: () -> Void
+let externalAsks: [QuickAction]
+let onRetryWithExternalAsk: (QuickAction) -> Void
 let isCopied: Bool
 let onCopy: () -> Void
 let canInsertSelection: Bool
@@ -41,7 +43,9 @@ var body: some View {
             hasSessionOverride: viewModel.sessionModelID != nil,
             canRetryWithModel: canRetryWithModel,
             onRetryWithModel: onRetryWithModel,
-            onRetryWithDefaultModel: onRetryWithDefaultModel
+            onRetryWithDefaultModel: onRetryWithDefaultModel,
+            externalAsks: externalAsks,
+            onRetryWithExternalAsk: onRetryWithExternalAsk
         )
 
         if let reasoning = displayedMessage.reasoningContent, !reasoning.isEmpty {
@@ -178,6 +182,8 @@ fileprivate struct AssistantMessageHeader: View {
     let canRetryWithModel: Bool
     let onRetryWithModel: (UUID) -> Void
     let onRetryWithDefaultModel: () -> Void
+    let externalAsks: [QuickAction]
+    let onRetryWithExternalAsk: (QuickAction) -> Void
 
     @State private var isRetryPickerPresented = false
 
@@ -221,6 +227,11 @@ fileprivate struct AssistantMessageHeader: View {
                     catalog: catalog,
                     effectiveModelID: effectiveModelID,
                     hasSessionOverride: hasSessionOverride,
+                    externalAsks: externalAsks,
+                    onRetryWithExternalAsk: { action in
+                        isRetryPickerPresented = false
+                        onRetryWithExternalAsk(action)
+                    },
                     onRetryWithModel: { modelID in
                         isRetryPickerPresented = false
                         onRetryWithModel(modelID)
@@ -240,6 +251,8 @@ private struct RetryWithModelButton: View {
     let catalog: ProviderModelCatalog?
     let effectiveModelID: UUID?
     let hasSessionOverride: Bool
+    let externalAsks: [QuickAction]
+    let onRetryWithExternalAsk: (QuickAction) -> Void
     let onRetryWithModel: (UUID) -> Void
     let onRetryWithDefaultModel: () -> Void
 
@@ -269,6 +282,8 @@ private struct RetryWithModelButton: View {
                 effectiveModelID: effectiveModelID,
                 hasSessionOverride: hasSessionOverride,
                 isDisabled: false,
+                externalAsks: externalAsks,
+                onSelectExternalAsk: onRetryWithExternalAsk,
                 onSelect: onRetryWithModel,
                 onUseDefault: onRetryWithDefaultModel
             )
