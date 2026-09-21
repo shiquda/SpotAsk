@@ -21,9 +21,14 @@ jobs:
           - arch: x86_64
             runner: macos-26-intel
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: ./Scripts/verify-changelog.sh
       - run: ./Scripts/test-release-workflow.sh
         if: matrix.arch == 'arm64'
       - run: swift test
-      - run: ./Scripts/make-release-dmg.sh --arch "${{ matrix.arch }}" --output dist
+      # Pull requests stop at the test gate. Packaging only runs after a merge,
+      # so a runner difference in this step cannot fail a reviewer's PR; the
+      # Release workflow builds the signed DMGs for a tag.
+      - name: Package the DMG
+        if: github.event_name == 'push'
+        run: ./Scripts/make-release-dmg.sh --arch "${{ matrix.arch }}" --output dist
