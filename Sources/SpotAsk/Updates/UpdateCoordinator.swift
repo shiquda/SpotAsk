@@ -3,6 +3,17 @@ import Foundation
 import Observation
 import Sparkle
 
+@MainActor
+final class SpotAskUserDriver: SPUStandardUserDriver {
+    weak var coordinator: UpdateCoordinator?
+
+    @objc(showUpdateNotFoundWithError:acknowledgement:)
+    func showUpdateNotFound(withError error: NSError, acknowledgement: @escaping () -> Void) {
+        dismissUpdateInstallation()
+        acknowledgement()
+        coordinator?.handleNoUpdateFound()
+    }
+}
 protocol SkippedVersionStoring {
     var skippedVersion: String? { get set }
 }
@@ -48,25 +59,30 @@ extension UpdateDriver {
 
 @MainActor
 final class SparkleUpdateDriver: NSObject, UpdateDriver, SPUUpdaterDelegate {
-    private var controller: SPUStandardUpdaterController?
+    private var updater: SPUUpdater?
+    private var userDriver: SpotAskUserDriver?
     private var pendingAutomaticChecks = true
     private(set) var currentSource: UpdateDownloadSource = .official
-    weak var coordinator: UpdateCoordinator?
+    weak var coordinator: UpdateCoordinator? {
+        didSet {
+            userDriver?.coordinator = coordinator
+        }
+    }
 
     var activeUpdater: SPUUpdater? {
-        controller?.updater
+        updater
     }
 
     var automaticallyChecksForUpdates: Bool {
-        get { controller?.updater.automaticallyChecksForUpdates ?? pendingAutomaticChecks }
+        get { updater?.automaticallyChecksForUpdates ?? pendingAutomaticChecks }
         set {
             pendingAutomaticChecks = newValue
-            controller?.updater.automaticallyChecksForUpdates = newValue
+            updater?.automaticallyChecksForUpdates = newValue
         }
     }
 
     private func isCurrentUpdater(_ updater: SPUUpdater) -> Bool {
-        controller?.updater === updater
+        self.updater === updater
     }
 
     func start() {
@@ -74,17 +90,26 @@ final class SparkleUpdateDriver: NSObject, UpdateDriver, SPUUpdaterDelegate {
     }
 
     func start(forceRestart: Bool) {
-        if forceRestart || controller == nil {
-            let controller = SPUStandardUpdaterController(
-                startingUpdater: false,
-                updaterDelegate: self,
-                userDriverDelegate: nil
+        if forceRestart || updater == nil {
+            let hostBundle = Bundle.main
+            let driver = SpotAskUserDriver(hostBundle: hostBundle, delegate: nil)
+            driver.coordinator = coordinator
+            let updater = SPUUpdater(
+                hostBundle: hostBundle,
+                applicationBundle: hostBundle,
+                userDriver: driver,
+                delegate: self
             )
-            controller.updater.automaticallyChecksForUpdates = pendingAutomaticChecks
-            controller.updater.automaticallyDownloadsUpdates = false
-            self.controller = controller
+            updater.automaticallyChecksForUpdates = pendingAutomaticChecks
+            updater.automaticallyDownloadsUpdates = false
+            self.userDriver = driver
+            self.updater = updater
         }
-        controller?.startUpdater()
+        do {
+            try updater?.start()
+        } catch {
+            // Sparkle start failure is handled gracefully
+        }
     }
 
     func checkForUpdates() {
@@ -92,16 +117,15 @@ final class SparkleUpdateDriver: NSObject, UpdateDriver, SPUUpdaterDelegate {
     }
 
     func checkForUpdates(using source: UpdateDownloadSource) {
-        let isChangingSource = (controller != nil && source != currentSource)
+        let isChangingSource = (updater != nil && source != currentSource)
         currentSource = source
-        if controller == nil {
+        if updater == nil {
             start()
-        } else if controller?.updater.sessionInProgress == true || isChangingSource {
+        } else if updater?.sessionInProgress == true || isChangingSource {
             start(forceRestart: true)
         }
-        controller?.checkForUpdates(nil)
+        updater?.checkForUpdates()
     }
-
     func feedURLString(for updater: SPUUpdater) -> String? {
         guard isCurrentUpdater(updater) else { return nil }
         if let currentAttempt = coordinator?.currentAttemptSource, coordinator?.hasFallenBackInCurrentCycle == false {
@@ -170,6 +194,7 @@ final class UpdateCoordinator {
     private var skippedStore: any SkippedVersionStoring
     private let settings: AppSettings
     private let openURL: (URL) -> Void
+    private let notifyUpToDate: () -> Void
 
     var status: Status = .idle
     var skippedVersion: String?
@@ -192,11 +217,13 @@ final class UpdateCoordinator {
         driver: (any UpdateDriver)? = nil,
         skippedStore: any SkippedVersionStoring = UserDefaultsSkippedVersionStore(),
         settings: AppSettings = .shared,
-        openURL: @escaping (URL) -> Void = { NSWorkspace.shared.open($0) }
+        openURL: @escaping (URL) -> Void = { NSWorkspace.shared.open($0) },
+        notifyUpToDate: @escaping () -> Void = { StatusToastCenter.shared.show(L10n.string("settings.upToDate")) }
     ) {
         self.skippedStore = skippedStore
         self.settings = settings
         self.openURL = openURL
+        self.notifyUpToDate = notifyUpToDate
         if let driver {
             self.driver = driver
         } else {
@@ -273,6 +300,11 @@ final class UpdateCoordinator {
         resetCycleState()
         refreshSkippedVersion()
     }
+    func handleNoUpdateFound() {
+        markIdle()
+        notifyUpToDate()
+    }
+
 
     func markUnavailable() {
         cancelTimeoutWatchdog()
