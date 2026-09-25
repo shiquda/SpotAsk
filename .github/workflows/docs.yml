@@ -19,6 +19,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # VitePress dates each page with `git log -1` on its file, which needs
+          # the history: a shallow clone holds one commit, so every page would
+          # report that commit's date.
+          fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
           node-version: 22

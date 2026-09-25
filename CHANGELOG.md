@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The documentation site dates every page from the file that owns its text again. The build now checks out full Git history, so a commit that touches no page no longer moves every page's "Last updated" time, and the generated changelog pages show a date instead of none.
+
 ## [0.2.5] - 2026-09-20
 
 ### Added
