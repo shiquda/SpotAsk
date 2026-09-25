@@ -1,3 +1,5 @@
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { defineConfig, type HeadConfig, type PageData } from 'vitepress'
 import { mermaidFence } from './mermaidFence'
 
@@ -5,6 +7,34 @@ const docsUrl = 'https://shiquda.github.io/SpotAsk/'
 const repositoryUrl = 'https://github.com/shiquda/SpotAsk'
 const socialImageUrl = `${docsUrl}images/spotask-hero.png`
 const socialImageUrlZh = `${docsUrl}images/spotask-hero-zh.png`
+
+const runGit = promisify(execFile)
+
+/**
+ * VitePress dates a page with `git log -1` on the page file itself, which finds
+ * nothing for a file Git does not track. The generated changelog pages are
+ * build products (see `Scripts/generate-docs-metadata.mjs`), so their date comes
+ * from the tracked file named in `source` frontmatter instead: `:(top)` keeps the
+ * lookup anchored at the repository root whatever directory the build runs in.
+ * Without Git history (or without Git) the hook leaves VitePress' own value, so a
+ * page never renders a date it cannot back with a commit.
+ */
+const sourceLastUpdated = new Map<string, Promise<number | undefined>>()
+
+function lastUpdatedFromSource(source: string): Promise<number | undefined> {
+  const cached = sourceLastUpdated.get(source)
+  if (cached) return cached
+
+  const pending = runGit('git', ['log', '-1', '--pretty=%ai', '--', `:(top)${source}`])
+    .then(({ stdout }) => {
+      const timestamp = Date.parse(stdout.trim())
+      return Number.isNaN(timestamp) ? undefined : timestamp
+    })
+    .catch(() => undefined)
+
+  sourceLastUpdated.set(source, pending)
+  return pending
+}
 
 /**
  * Generated pages name the repository file that owns their text in `source`
@@ -158,6 +188,18 @@ export default defineConfig({
   },
   sitemap: {
     hostname: docsUrl
+  },
+  async transformPageData(page: PageData) {
+    const source = typeof page.frontmatter.source === 'string'
+      ? page.frontmatter.source
+      : undefined
+    // VitePress skips pages opting out with `lastUpdated: false`; mirror that.
+    if (!source || page.frontmatter.lastUpdated === false) return
+
+    const lastUpdated = await lastUpdatedFromSource(source)
+    if (lastUpdated === undefined) return
+
+    return { lastUpdated }
   },
   transformHead({ page, title, description }): HeadConfig[] {
     if (page === '404.md') {
