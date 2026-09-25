@@ -54,6 +54,20 @@ func shouldSendExternalAskImmediately(
     return !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 }
 
+/// A question that actually left for another app ends this window's job: the
+/// target owns the focus now, and a lingering window would cover it — pinned
+/// above every Space in particular. Everything else keeps the window: a mounted
+/// target, a rejected send, and a failed launch still need the composer, the
+/// draft, and the error toast on screen. The retry picker on an answer is a
+/// separate side trip whose outcome type never reaches these policies.
+func shouldDismissAfterComposerSend(_ outcome: ComposerModeCoordinator.SendOutcome) -> Bool {
+    outcome == .launchedExternalAsk
+}
+
+func shouldDismissAfterAtCommandAction(_ outcome: AtCommandSelection.Outcome) -> Bool {
+    outcome == .launched
+}
+
 enum ComposerModeBadge: Equatable {
     case preset(title: String, icon: String)
     case externalAsk(title: String, icon: String, brandIconSlug: String?)

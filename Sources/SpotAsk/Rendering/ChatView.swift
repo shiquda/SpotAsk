@@ -684,17 +684,19 @@ struct ChatView: View {
 
     @discardableResult
     private func sendFromComposer() -> Bool {
-        switch composerModeCoordinator.handleSend(
+        let outcome = composerModeCoordinator.handleSend(
             input: &viewModel.input,
             resolve: resolveEnabledQuickAction
-        ) {
+        )
+        let handled: Bool
+        switch outcome {
         case .launchedExternalAsk:
             clearAtCommandTokenState()
             if let textView = composerTextView.textView, !textView.string.isEmpty {
                 textView.string = ""
             }
             inputFocused = true
-            return true
+            handled = true
         case let .launchFailedExternalAsk(action):
             clearAtCommandTokenState()
             StatusToastCenter.shared.show(
@@ -702,17 +704,22 @@ struct ChatView: View {
                 isError: true
             )
             inputFocused = true
-            return false
+            handled = false
         case .rejectedExternalAsk:
-            return false
+            handled = false
         case .proceedWithStandardSend:
             synchronizeSelectedPromptPreset()
-            if viewModel.send() {
+            handled = viewModel.send()
+            if handled {
                 scrollFollowState.resumeFollowing()
-                return true
             }
-            return false
         }
+        // Runs for every outcome so the close rule stays in one place: only a
+        // question that reached another app dismisses this window.
+        if shouldDismissAfterComposerSend(outcome) {
+            dismiss()
+        }
+        return handled
     }
 
     private func installShortcutDispatcher() {
@@ -1046,9 +1053,10 @@ struct ChatView: View {
 
     @discardableResult
     private func applyAtCommandActionOutcome(_ outcome: AtCommandSelection.Outcome) -> Bool {
+        let handled: Bool
         switch outcome {
         case .rejected, .appliedPreset:
-            return false
+            handled = false
         case let .becamePending(action):
             clearAtCommandTokenState()
             composerModeCoordinator.attachExternalAsk(
@@ -1056,7 +1064,7 @@ struct ChatView: View {
                 selectedPreset: &viewModel.selectedPromptPreset
             )
             inputFocused = true
-            return false
+            handled = false
         case .launched:
             clearAtCommandTokenState()
             composerModeCoordinator.pendingExternalAsk = nil
@@ -1065,7 +1073,7 @@ struct ChatView: View {
             }
             viewModel.input = ""
             inputFocused = true
-            return true
+            handled = true
         case let .launchFailed(action):
             clearAtCommandTokenState()
             composerModeCoordinator.pendingExternalAsk = action
@@ -1074,8 +1082,14 @@ struct ChatView: View {
                 isError: true
             )
             inputFocused = true
-            return false
+            handled = false
         }
+        // The `@` send that left for another app closes the window; a mounted
+        // target or a launch failure keeps it, with the draft and the toast.
+        if shouldDismissAfterAtCommandAction(outcome) {
+            dismiss()
+        }
+        return handled
     }
 
     private func clearAtCommandTokenState() {
@@ -1098,6 +1112,9 @@ struct ChatView: View {
     /// Picking an External Ask in the retry popover is a side trip: the question
     /// that produced this answer travels to the other platform, while the
     /// conversation, the session model, and the composer draft stay as they are.
+    /// This path never dismisses the window — the answer being compared against
+    /// stays on screen — which is why its outcome type is kept out of the
+    /// `shouldDismissAfter…` policies.
     private func retryWithExternalAsk(_ action: QuickAction, answering messageID: UUID) {
         switch ModelPickerExternalAsk.perform(
             action,

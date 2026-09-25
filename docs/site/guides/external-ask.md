@@ -11,9 +11,10 @@ External Ask lets you start every question in SpotAsk, then continue in any AI y
 
 External Ask buttons appear below the prompt presets in a new question window, and can also be triggered via the `@` command palette or the preset popover menu:
 
-- **When the input is empty**: Clicking an External Ask button, pressing its shortcut (e.g. `⌘ + 5`), or selecting it from the `@` palette pins a pending target badge at the top-left above the composer. Enter your question and press `↩` to send. Click its `×`, press `Esc`, or clear the input to cancel.
-- **When input is already present**: Selecting an External Ask button, pressing its shortcut, or choosing it from a menu immediately sends the question to the target.
+- **When the input is empty**: Clicking an External Ask button, pressing its shortcut (e.g. `⌘ + 5`), or selecting it from the `@` palette pins a pending target badge at the top-left above the composer. Enter your question and press `↩` to send; nothing has left yet, so the window stays open. Click its `×`, press `Esc`, or clear the input to cancel.
+- **When input is already present**: Selecting an External Ask button, pressing its shortcut, or choosing it from a menu immediately sends the question to the target and closes the question window. If the target cannot be opened, the window stays open with your question and an error, ready to send again.
 - **In ongoing conversations**: Click the preset popover menu at the bottom-left of the composer to access enabled External Ask targets alongside prompt presets.
+- **Retrying an answer elsewhere**: Picking an External Ask target in an answer's model picker sends the question that answer was generated for and keeps the window open, so you can compare the other platform's answer with this conversation.
 
 External Ask does not consume API tokens from your configured AI providers, and queries are not stored in conversation history.
 
