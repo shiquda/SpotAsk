@@ -450,21 +450,72 @@ final class UpdateCoordinatorTests: XCTestCase {
         XCTAssertNil(defaults.object(forKey: "SUSkippedVersion"))
         XCTAssertNil(store.skippedVersion)
     }
+    func testHandleNoUpdateFoundSetsIdleAndTriggersNotification() {
+        var notified = false
+        let coordinator = makeCoordinator(notifyUpToDate: { notified = true })
+        coordinator.checkForUpdates()
+        XCTAssertEqual(coordinator.status, .checking)
+
+        coordinator.handleNoUpdateFound()
+
+        XCTAssertEqual(coordinator.status, .idle)
+        XCTAssertTrue(notified)
+    }
+
+    func testSpotAskUserDriverShowUpdateNotFoundAcknowledgesAndNotifies() {
+        var notified = false
+        let coordinator = makeCoordinator(notifyUpToDate: { notified = true })
+        coordinator.checkForUpdates()
+        XCTAssertEqual(coordinator.status, .checking)
+
+        let userDriver = SpotAskUserDriver(hostBundle: Bundle.main, delegate: nil)
+        userDriver.coordinator = coordinator
+
+        var acknowledged = false
+        userDriver.showUpdateNotFound(withError: sparkleError(code: 1001)) {
+            acknowledged = true
+        }
+
+        XCTAssertTrue(acknowledged)
+        XCTAssertEqual(coordinator.status, .idle)
+        XCTAssertTrue(notified)
+    }
+
+    func testBackgroundCheckWithNoUpdateDoesNotTriggerNotification() {
+        var notified = false
+        let driver = SparkleUpdateDriver()
+        let coordinator = makeCoordinator(driver: driver, notifyUpToDate: { notified = true })
+        driver.coordinator = coordinator
+
+        driver.start()
+        guard let updater = driver.activeUpdater else {
+            XCTFail("Missing active updater")
+            return
+        }
+
+        // Background update check finishes without finding update
+        driver.updaterDidNotFindUpdate(updater, error: sparkleError(code: 1001))
+        driver.updater(updater, didFinishUpdateCycleFor: .updatesInBackground, error: sparkleError(code: 1001))
+
+        XCTAssertEqual(coordinator.status, .idle)
+        XCTAssertFalse(notified)
+    }
 
     private func makeCoordinator(
         driver: (any UpdateDriver)? = nil,
         store: MemorySkippedVersionStore = MemorySkippedVersionStore(),
         settings: AppSettings? = nil,
-        openURL: @escaping (URL) -> Void = { _ in }
+        openURL: @escaping (URL) -> Void = { _ in },
+        notifyUpToDate: @escaping () -> Void = {}
     ) -> UpdateCoordinator {
         UpdateCoordinator(
             driver: driver ?? FakeUpdateDriver(),
             skippedStore: store,
             settings: settings ?? makeSettings(),
-            openURL: openURL
+            openURL: openURL,
+            notifyUpToDate: notifyUpToDate
         )
     }
-
     private func makeSettings() -> AppSettings {
         let suite = "UpdateCoordinatorTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
