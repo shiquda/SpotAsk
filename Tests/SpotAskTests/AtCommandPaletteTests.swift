@@ -368,6 +368,65 @@ struct AtCommandSelectionTests {
         #expect(executor.performedActions.count == 1)
     }
 
+    @Test("Only a launched @ palette pick dismisses the window")
+    func palettePickDismissesOnlyAfterLaunch() {
+        let action = makeAction()
+
+        // 1. Text beyond the token: the pick launches and the window closes.
+        let sendingView = makeTextView("ask @gpt")
+        let sendingState = AtCommandDetector.state(
+            in: sendingView.string,
+            selectedRange: sendingView.selectedRange()
+        )
+        let launched = AtCommandSelection.selectAction(
+            action,
+            state: sendingState,
+            textView: sendingView,
+            resolve: resolve(action),
+            executor: FakeActionExecutor()
+        )
+        #expect(launched == .launched)
+        #expect(shouldDismissAfterAtCommandAction(launched))
+
+        // 2. Bare token: the target mounts and the user keeps typing here.
+        let pendingView = makeTextView("@gpt")
+        let pendingState = AtCommandDetector.state(
+            in: pendingView.string,
+            selectedRange: pendingView.selectedRange()
+        )
+        let becamePending = AtCommandSelection.selectAction(
+            action,
+            state: pendingState,
+            textView: pendingView,
+            resolve: resolve(action),
+            executor: FakeActionExecutor()
+        )
+        #expect(becamePending == .becamePending(action))
+        #expect(!shouldDismissAfterAtCommandAction(becamePending))
+
+        // 3. Failed launch: the window stays so the draft and toast are visible.
+        let failingView = makeTextView("ask @gpt")
+        let failingState = AtCommandDetector.state(
+            in: failingView.string,
+            selectedRange: failingView.selectedRange()
+        )
+        let failingExecutor = FakeActionExecutor()
+        failingExecutor.shouldSucceed = false
+        let launchFailed = AtCommandSelection.selectAction(
+            action,
+            state: failingState,
+            textView: failingView,
+            resolve: resolve(action),
+            executor: failingExecutor
+        )
+        #expect(launchFailed == .launchFailed(action))
+        #expect(!shouldDismissAfterAtCommandAction(launchFailed))
+
+        // 4. A preset pick and a rejected token are not External Ask sends either.
+        #expect(!shouldDismissAfterAtCommandAction(.appliedPreset))
+        #expect(!shouldDismissAfterAtCommandAction(.rejected))
+    }
+
     @Test("Return submit keeps editor when pending query is empty")
     func submitPathKeepsDraftOnEmptyPendingQuery() {
         let textView = makeTextView("   ")

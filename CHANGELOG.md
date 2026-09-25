@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A question sent from the composer to another app now closes the question window again once the target opens, so a pinned window no longer covers the ChatGPT, app, or Terminal window it just opened. A launch that fails keeps the window with your question and the error, a target mounted while the input is empty keeps it, and retrying from an answer's model picker keeps it so you can compare answers.
 - The documentation site dates every page from the file that owns its text again. The build now checks out full Git history, so a commit that touches no page no longer moves every page's "Last updated" time, and the generated changelog pages show a date instead of none.
 
 ## [0.2.5] - 2026-09-20

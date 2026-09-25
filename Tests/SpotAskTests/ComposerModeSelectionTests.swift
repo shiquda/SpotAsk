@@ -166,6 +166,39 @@ struct ComposerModeSelectionTests {
         }
     }
 
+    @Test("Only an External Ask that actually left for another app dismisses the window")
+    func dismissesOnlyAfterRealLaunch() {
+        var coordinator = ComposerModeCoordinator()
+        var preset: PromptPreset?
+        let executor = FailingThenSucceedingExecutor()
+        let resolve: (UUID) -> QuickAction? = { id in id == self.chatGPT.id ? self.chatGPT : nil }
+
+        // 1. Standard send: no External Ask target, so the window stays.
+        var standardInput = "hello"
+        let standardOutcome = coordinator.handleSend(input: &standardInput, resolve: resolve, executor: executor)
+        #expect(!shouldDismissAfterComposerSend(standardOutcome))
+
+        // 2. Mounted target with nothing to send: still nothing left the window.
+        coordinator.attachExternalAsk(chatGPT, selectedPreset: &preset)
+        var blankInput = "   "
+        let mountedOutcome = coordinator.handleSend(input: &blankInput, resolve: resolve, executor: executor)
+        #expect(!shouldDismissAfterComposerSend(mountedOutcome))
+
+        // 3. Failed launch: keeps the window, the draft, and the mounted target.
+        executor.shouldSucceed = false
+        var draft = "question to retry"
+        let failedOutcome = coordinator.handleSend(input: &draft, resolve: resolve, executor: executor)
+        #expect(!shouldDismissAfterComposerSend(failedOutcome))
+        #expect(draft == "question to retry")
+        #expect(coordinator.pendingExternalAsk == chatGPT)
+
+        // 4. The send that reaches the target dismisses the window.
+        executor.shouldSucceed = true
+        let launchedOutcome = coordinator.handleSend(input: &draft, resolve: resolve, executor: executor)
+        #expect(shouldDismissAfterComposerSend(launchedOutcome))
+        #expect(draft.isEmpty)
+    }
+
     @Test("External Ask immediate send policy requires canSend and non-empty trimmed text")
     func immediateExternalAskSendPolicy() {
         #expect(shouldSendExternalAskImmediately(sendIfReady: true, canSend: true, input: "如何理解量子力学"))
