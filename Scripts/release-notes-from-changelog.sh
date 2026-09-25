@@ -10,7 +10,7 @@ usage() {
     printf '%s\n' \
         '  --en   English section from CHANGELOG.md' \
         '  --zh   Chinese section from CHANGELOG.zh-CN.md' \
-        '  --all  Chinese section first, English section second (default);' \
+        '  --all  English section first, Chinese section second (default);' \
         '         degrades to English only when the Chinese section is missing' >&2
 }
 
@@ -113,7 +113,7 @@ if [ "$MODE" = zh ]; then
 fi
 
 if [ "$ZH_AVAILABLE" -eq 1 ]; then
-    printf '**中文**\n\n%s\n\n---\n\n**English**\n\n%s\n' "$ZH_NOTES" "$EN_NOTES"
+    printf '**English**\n\n%s\n\n---\n\n**中文**\n\n%s\n' "$EN_NOTES" "$ZH_NOTES"
 else
     printf 'CHANGELOG.zh-CN.md has no release notes for %s; writing English-only release notes\n' "$RELEASE_TAG" >&2
     printf '%s\n' "$EN_NOTES"

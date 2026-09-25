@@ -815,8 +815,8 @@ grep -q 'example.test/compare' "$zh_notes" && fail "--zh included the changelog 
 
 grep -q 'ZH-BETA' "$all_notes" || fail "--all is missing the Chinese section"
 grep -q 'EN-BETA' "$all_notes" || fail "--all is missing the English section"
-awk '/ZH-BETA/{zh=NR} /EN-BETA/{en=NR} END{exit !(zh && en && zh < en)}' "$all_notes" \
-    || fail "--all must place the Chinese section above the English one"
+awk '/EN-BETA/{en=NR} /ZH-BETA/{zh=NR} END{exit !(zh && en && en < zh)}' "$all_notes" \
+    || fail "--all must place the English section above the Chinese one"
 
 # Historical version missing from the Chinese changelog: --all degrades to English only.
 "$fixture_notes" v9.9.9 --all > "$WORK_DIR/notes-fallback.md" 2>"$WORK_DIR/notes-fallback.err"
