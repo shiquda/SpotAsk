@@ -19,13 +19,41 @@ pass() {
     printf 'PASS: %s\n' "$1"
 }
 
-for openssl_candidate in /opt/homebrew/bin/openssl /usr/local/bin/openssl; do
-    if [ -x "$openssl_candidate" ]; then
-        PATH="$(dirname "$openssl_candidate"):$PATH"
-        export PATH
+# macOS ships LibreSSL at /usr/bin/openssl, which lacks ED25519 and fails the
+# Sparkle key checks below. Probe for an OpenSSL 3 that really supports ED25519
+# instead of trusting a path that merely exists.
+openssl_candidates="/opt/homebrew/bin/openssl /usr/local/bin/openssl"
+if command -v brew >/dev/null 2>&1; then
+    for formula in openssl openssl@3; do
+        prefix=$(brew --prefix "$formula" 2>/dev/null || true)
+        if [ -n "$prefix" ]; then
+            openssl_candidates="$openssl_candidates $prefix/bin/openssl"
+        fi
+    done
+fi
+
+openssl_bin=""
+for openssl_candidate in $openssl_candidates; do
+    [ -x "$openssl_candidate" ] || continue
+    if "$openssl_candidate" genpkey -algorithm ED25519 -out /dev/null >/dev/null 2>&1; then
+        openssl_bin="$openssl_candidate"
         break
     fi
 done
+
+if [ -z "$openssl_bin" ]; then
+    if command -v openssl >/dev/null 2>&1 \
+        && openssl genpkey -algorithm ED25519 -out /dev/null >/dev/null 2>&1; then
+        openssl_bin=$(command -v openssl)
+    fi
+fi
+
+if [ -z "$openssl_bin" ]; then
+    fail "no OpenSSL with ED25519 support found; install it with 'brew install openssl@3'"
+fi
+
+PATH="$(dirname "$openssl_bin"):$PATH"
+export PATH
 
 command -v jq >/dev/null || fail "jq is required"
 command -v shasum >/dev/null || fail "shasum is required"
