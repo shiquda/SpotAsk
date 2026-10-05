@@ -97,6 +97,8 @@
 		001000000000000000000056 /* SettingsSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000006F /* SettingsSidebar.swift */; };
 		001000000000000000000057 /* SpotAskURLRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000070 /* SpotAskURLRouter.swift */; };
 		001000000000000000000058 /* AtCommandPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000071 /* AtCommandPalette.swift */; };
+		001000000000000000000097 /* SelectionActionBarContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000097 /* SelectionActionBarContent.swift */; };
+		001000000000000000000098 /* SelectionActionBarContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000098 /* SelectionActionBarContentView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -206,6 +208,8 @@
 		00200000000000000000006F /* SettingsSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/SettingsSidebar.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000070 /* SpotAskURLRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/App/SpotAskURLRouter.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000071 /* AtCommandPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/AtCommandPalette.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000097 /* SelectionActionBarContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionActionBarContent.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000098 /* SelectionActionBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionActionBarContentView.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -307,7 +311,9 @@
 				00200000000000000000006F /* SettingsSidebar.swift */,
 				002000000000000000000092 /* SettingsDeepLink.swift */,
 				002000000000000000000093 /* DocumentationLinks.swift */,
-			);
+					002000000000000000000097 /* SelectionActionBarContent.swift */,
+				002000000000000000000098 /* SelectionActionBarContentView.swift */,
+		);
 			name = Sources;
 			sourceTree = "<group>";
 		};
@@ -493,7 +499,7 @@
 				001000000000000000000056,
 				001000000000000000000058,
 				001000000000000000000057,
-			);
+		);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
