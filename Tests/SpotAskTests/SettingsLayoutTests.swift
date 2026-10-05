@@ -36,6 +36,13 @@ struct SettingsLayoutTests {
         let language = SettingsSearchIndex.results(for: "language")
         #expect(language.contains { $0.target.section == .general })
     }
+
+    @Test func settingsSearchIndexFindsTheActionBarPreviewRow() {
+        for query in ["Action bar preview", "动作栏预览"] {
+            let results = SettingsSearchIndex.results(for: query)
+            #expect(results.contains { $0.target.section == .selectionAssistant }, "no hit for \(query)")
+        }
+    }
     @Test func settingsSearchRanksTitlesBeforeDescriptions() {
         let prompts = SettingsSearchIndex.results(for: "prompt")
         #expect(prompts.map(\.matchPriority) == prompts.map(\.matchPriority).sorted())

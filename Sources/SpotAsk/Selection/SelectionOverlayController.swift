@@ -75,72 +75,19 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
             externalAsks: externalAsks,
             showsLabels: showsLabels
         )
-        let size = layout.size
-        let content = makeContainer(size: size)
-        buttonTargets = []
+        let content = SelectionActionBarContentView(
+            layout: layout,
+            actions: SelectionActionBarActions(
+                onSelectChat: onSelectChat,
+                onSelectPreset: onSelectPreset,
+                onSelectExternalAsk: onSelectExternalAsk,
+                shortcutForChat: shortcutForChat,
+                shortcutForPreset: shortcutForPreset,
+                shortcutForExternalAsk: shortcutForExternalAsk
+            )
+        )
 
-        for item in layout.placedItems {
-            switch item {
-            case let .chat(frame):
-                let target = OverlayButtonTarget { onSelectChat() }
-                buttonTargets.append(target)
-                content.addSubview(makeActionButton(
-                    frame: frame,
-                    title: "",
-                    symbolName: "quote.bubble",
-                    brandSlug: nil,
-                    showsLabels: false,
-                    toolTip: SelectionActionBarLayout.tooltip(
-                        name: L10n.string("selection.actionBar.chatTooltip"),
-                        shortcut: shortcutForChat
-                    ),
-                    accessibilityLabel: L10n.string("selection.actionBar.chatTooltip"),
-                    target: target
-                ))
-            case let .preset(index, frame):
-                let preset = layout.visiblePresets[index]
-                let target = OverlayButtonTarget { onSelectPreset(preset) }
-                buttonTargets.append(target)
-                content.addSubview(makeActionButton(
-                    frame: frame,
-                    title: preset.title,
-                    symbolName: preset.symbolName,
-                    brandSlug: nil,
-                    showsLabels: showsLabels,
-                    toolTip: SelectionActionBarLayout.tooltip(
-                        name: preset.title,
-                        shortcut: shortcutForPreset?(preset)
-                    ),
-                    accessibilityLabel: preset.title,
-                    target: target
-                ))
-            case let .divider(frame):
-                let divider = NSView(frame: frame)
-                divider.wantsLayer = true
-                divider.layer?.backgroundColor = NSColor.separatorColor.cgColor
-                divider.setAccessibilityElement(false)
-                content.addSubview(divider)
-            case let .externalAsk(index, frame):
-                let action = layout.visibleExternalAsks[index]
-                let target = OverlayButtonTarget { onSelectExternalAsk(action) }
-                buttonTargets.append(target)
-                content.addSubview(makeActionButton(
-                    frame: frame,
-                    title: action.displayName,
-                    symbolName: action.symbolName,
-                    brandSlug: action.brandIconSlug,
-                    showsLabels: showsLabels,
-                    toolTip: SelectionActionBarLayout.tooltip(
-                        name: action.displayName,
-                        shortcut: shortcutForExternalAsk?(action)
-                    ),
-                    accessibilityLabel: L10n.string("selection.actionBar.externalAskAccessibility", action.displayName),
-                    target: target
-                ))
-            }
-        }
-
-        present(content: content, size: size, anchor: snapshot.anchor)
+        present(content: content, size: layout.size, anchor: snapshot.anchor)
         scheduleDismiss(after: SelectionActionBarLayout.actionBarDismissDelay)
     }
 
@@ -230,58 +177,6 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
         return label
     }
 
-    private func makeActionButton(
-        frame: NSRect,
-        title: String,
-        symbolName: String,
-        brandSlug: String?,
-        showsLabels: Bool,
-        toolTip: String,
-        accessibilityLabel: String,
-        target: OverlayButtonTarget
-    ) -> NSButton {
-        let button = NSButton(frame: frame)
-        let iconPointSize = showsLabels
-            ? SelectionActionBarLayout.labeledIconSize
-            : SelectionActionBarLayout.compactIconSize
-
-        if let brandImage = brandImage(for: brandSlug, pointSize: showsLabels ? 13 : SelectionActionBarLayout.compactBrandIconSize) {
-            button.image = brandImage
-        } else if let symbol = NSImage(systemSymbolName: symbolName, accessibilityDescription: accessibilityLabel) {
-            button.image = symbol.withSymbolConfiguration(.init(pointSize: iconPointSize, weight: .regular))
-        }
-
-        if showsLabels {
-            button.title = title
-            button.font = .systemFont(ofSize: SelectionActionBarLayout.labelFontSize)
-            button.imagePosition = .imageLeading
-            button.imageHugsTitle = true
-            button.alignment = .left
-            button.lineBreakMode = .byTruncatingTail
-        } else {
-            button.title = ""
-            button.imagePosition = .imageOnly
-        }
-
-        button.isBordered = false
-        button.contentTintColor = .labelColor
-        button.toolTip = toolTip
-        button.target = target
-        button.action = #selector(OverlayButtonTarget.invoke)
-        button.setAccessibilityLabel(accessibilityLabel)
-        return button
-    }
-
-    private func brandImage(for slug: String?, pointSize: CGFloat) -> NSImage? {
-        guard let slug else { return nil }
-        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        guard let image = ProviderBrandIcon.image(for: slug, dark: isDark) else { return nil }
-        let resized = image.copy() as? NSImage ?? image
-        resized.size = NSSize(width: pointSize, height: pointSize)
-        resized.isTemplate = false
-        return resized
-    }
-
     private func makePanel(size: NSSize) -> NSPanel {
         let panel = NSPanel(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         panel.isFloatingPanel = true
@@ -333,18 +228,6 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
     }
 }
 
-private final class OverlayButtonTarget: NSObject {
-    private let handler: () -> Void
-
-    init(handler: @escaping () -> Void) {
-        self.handler = handler
-    }
-
-    @objc func invoke() {
-        handler()
-    }
-}
-
 enum SelectionActionBarPlacedItem: Equatable {
     case chat(frame: NSRect)
     case preset(index: Int, frame: NSRect)
@@ -378,6 +261,7 @@ struct SelectionActionBarLayout: Equatable {
     static let minimumSize = NSSize(width: 44, height: 36)
 
     var showsChat: Bool
+    var showsLabels: Bool
     var chatWidth: CGFloat
     var visiblePresets: [PromptPreset]
     var visiblePresetWidths: [CGFloat]
@@ -465,6 +349,7 @@ struct SelectionActionBarLayout: Equatable {
             let totalWidth = compactWidth(hasChat: showsChat, pCount: cappedPresets.count, eCount: chosenExternalAsks.count)
             return SelectionActionBarLayout(
                 showsChat: showsChat,
+                showsLabels: false,
                 chatWidth: showsChat ? controlSize.width : 0,
                 visiblePresets: cappedPresets,
                 visiblePresetWidths: Array(repeating: controlSize.width, count: cappedPresets.count),
@@ -537,6 +422,7 @@ struct SelectionActionBarLayout: Equatable {
 
         return SelectionActionBarLayout(
             showsChat: showsChat,
+            showsLabels: true,
             chatWidth: chatWidth,
             visiblePresets: cappedPresets,
             visiblePresetWidths: presetWidths,

@@ -66,6 +66,9 @@ struct SelectionAssistantSettingsPage: View {
                             label: L10n.string("settings.selectionAssistantActionExternalAsk"),
                             isOn: Bindable(settings).selectionActionBarShowsExternalAsk
                         )
+                        SettingsFieldRow(label: L10n.string("settings.selectionAssistantActionBarPreview")) {
+                            actionBarPreview
+                        }
                         if showsActionBarCrowdingHint {
                             Text(L10n.string("settings.selectionAssistantActionBarCrowdingHint"))
                                 .font(.system(size: 12))
@@ -167,6 +170,23 @@ struct SelectionAssistantSettingsPage: View {
 
     private var showsActionBarCrowdingHint: Bool {
         (settings.selectionActionBarShowsChatAction ? 1 : 0) + settings.enabledPromptPresets.count + settings.enabledQuickActions.count > 4
+    }
+
+    /// A 1:1 render of the action bar the four switches above produce. The
+    /// content and its layout come from the same types the live overlay uses,
+    /// so the preview cannot drift from what a real selection presents.
+    @ViewBuilder
+    private var actionBarPreview: some View {
+        let content = SelectionActionBarContent.resolve(from: settings)
+        if content.isEmpty {
+            Text(L10n.string("settings.selectionAssistantActionBarPreviewEmpty"))
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            SelectionActionBarPreview(layout: content.layout)
+                .frame(width: content.layout.size.width, height: content.layout.size.height)
+        }
     }
 
     private var autoInvokeSelectedIdentifiers: [String] {
@@ -418,6 +438,21 @@ private struct SelectionApplicationSearchPopover: View {
             }
         }
         .frame(width: 320, height: 380)
+    }
+}
+
+/// Hosts the overlay's own AppKit content view in Settings. `actions: nil`
+/// keeps the bar inert there: it looks and hovers exactly like the real one,
+/// but pressing a preview button does nothing.
+private struct SelectionActionBarPreview: NSViewRepresentable {
+    let layout: SelectionActionBarLayout
+
+    func makeNSView(context: Context) -> SelectionActionBarContentView {
+        SelectionActionBarContentView(layout: layout, actions: nil)
+    }
+
+    func updateNSView(_ nsView: SelectionActionBarContentView, context: Context) {
+        nsView.update(layout: layout, actions: nil)
     }
 }
 

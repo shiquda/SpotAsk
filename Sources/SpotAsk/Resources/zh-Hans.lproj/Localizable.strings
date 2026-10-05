@@ -405,6 +405,8 @@
 "settings.selectionAssistantActionExternalAsk" = "在划词动作栏中显示外部提问";
 "settings.selectionAssistantActionPrompts" = "在划词动作栏中显示提示词";
 "settings.selectionAssistantActionBarCrowdingHint" = "动作较多时动作栏可能过长。建议移除不常用的动作，或关闭「显示标签」仅显示图标。";
+"settings.selectionAssistantActionBarPreview" = "动作栏预览";
+"settings.selectionAssistantActionBarPreviewEmpty" = "当前配置下动作栏没有可显示的动作，划词时不会弹出。";
 "settings.selectionAssistantShowsExternalAsk" = "在划词动作栏中显示外部提问";
 "settings.selectionAssistantShowsExternalAskDescription" = "显示的动作与顺序沿用「外部提问」设置";
 "selection.actionBar.more" = "更多";

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Settings > Selection Assistant previews the action bar itself: the four display switches above it redraw a real bar as you flip them, so you can see what **show labels beside icons**, the chat icon, prompts, and External Ask actually look like when you select text. The bar in Settings is a preview only — its buttons are not clickable, and a configuration with no action shows an explanation instead of an empty bar.
+
 ### Fixed
 
 - A question sent from the composer to another app now closes the question window again once the target opens, so a pinned window no longer covers the ChatGPT, app, or Terminal window it just opened. A launch that fails keeps the window with your question and the error, a target mounted while the input is empty keeps it, and retrying from an answer's model picker keeps it so you can compare answers.
