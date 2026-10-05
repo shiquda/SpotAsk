@@ -198,4 +198,39 @@ final class SandboxDataMigratorTests: XCTestCase {
         let destCredsURL = destSpotAskDir.appendingPathComponent("credentials.json")
         XCTAssertTrue(FileManager.default.fileExists(atPath: destCredsURL.path))
     }
+    func testSandboxDataMigratorEnforcesPermissionsOnExistingFilesAndRetries() throws {
+        let bundleID = "com.spotask.app"
+
+        // Old container has credentials
+        let credsDir = containerURL.appendingPathComponent("Application Support/SpotAsk", isDirectory: true)
+        try FileManager.default.createDirectory(at: credsDir, withIntermediateDirectories: true)
+        let oldCredsURL = credsDir.appendingPathComponent("credentials.json")
+        try "{\"secret\": \"token\"}".data(using: .utf8)!.write(to: oldCredsURL)
+
+        // Destination already has credentials file (e.g. copied in prior failed round) but with 0644 mode
+        let destSpotAskDir = appSupportURL.appendingPathComponent("SpotAsk", isDirectory: true)
+        try FileManager.default.createDirectory(at: destSpotAskDir, withIntermediateDirectories: true)
+        let destCredsURL = destSpotAskDir.appendingPathComponent("credentials.json")
+        try "{\"secret\": \"token\"}".data(using: .utf8)!.write(to: destCredsURL)
+        try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: destCredsURL.path)
+
+        let migrator = SandboxDataMigrator(
+            bundleIdentifier: bundleID,
+            containerBaseURL: containerURL,
+            applicationSupportURL: appSupportURL,
+            defaults: defaults
+        )
+
+        let result = migrator.migrateIfNeeded()
+        XCTAssertTrue(result.didMigrate)
+
+        // Verify permissions were enforced to 0600 on the existing file!
+        let attrs = try FileManager.default.attributesOfItem(atPath: destCredsURL.path)
+        let perms = (attrs[.posixPermissions] as? NSNumber)?.intValue ?? 0
+        XCTAssertEqual(perms & 0o777, 0o600)
+
+        // Marker file exists
+        let markerFile = appSupportURL.appendingPathComponent("SpotAsk/.sandbox-migration-completed")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: markerFile.path))
+    }
 }

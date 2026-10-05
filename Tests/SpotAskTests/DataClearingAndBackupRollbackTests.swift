@@ -5,8 +5,12 @@ private final class InMemoryKeyStore: APIKeyStoring, @unchecked Sendable {
     private var keys: [UUID: String] = [:]
     var shouldFailOnSave = false
     var failOnProviderID: UUID?
+    var failOnReadProviderID: UUID?
     func readAPIKey(for providerID: UUID) throws -> String? {
-        keys[providerID]
+        if failOnReadProviderID == providerID {
+            throw NSError(domain: "test", code: -2, userInfo: [NSLocalizedDescriptionKey: "Simulated read failure"])
+        }
+        return keys[providerID]
     }
 
     func saveAPIKey(_ apiKey: String, for providerID: UUID) throws {
@@ -310,5 +314,83 @@ final class DataClearingAndBackupRollbackTests: XCTestCase {
         XCTAssertEqual(settings.systemPrompt, "Original System Prompt")
         XCTAssertEqual(settings.providerRegistry.catalog?.providers.count, 1)
         XCTAssertEqual(settings.providerRegistry.catalog?.providers.first?.id, provider1.id)
+    }
+    @MainActor
+    func testApplyConfigurationBackupReadFailureDoesNotDeleteExistingKey() throws {
+        let suiteName = "SpotAskReadFailureRollbackTest.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let settings = AppSettings(defaults: defaults)
+        let keyStore = InMemoryKeyStore()
+
+        settings.systemPrompt = "Original System Prompt"
+
+        let provider1 = ProviderConfiguration(
+            name: "Provider 1",
+            address: "https://p1.com/v1",
+            addressMode: .baseURL,
+            timeout: 25
+        )
+        let provider2 = ProviderConfiguration(
+            name: "Provider 2",
+            address: "https://p2.com/v1",
+            addressMode: .baseURL,
+            timeout: 25
+        )
+        let model1 = ModelConfiguration(displayName: "M1", upstreamModelID: "m1", providerID: provider1.id, isStreamingEnabled: true)
+        let model2 = ModelConfiguration(displayName: "M2", upstreamModelID: "m2", providerID: provider2.id, isStreamingEnabled: true)
+        let initialCatalog = ProviderModelCatalog(providers: [provider1, provider2], models: [model1, model2], selectedModelID: model1.id)
+        try settings.providerRegistry.replaceCatalog(with: initialCatalog)
+
+        // Store existing keys
+        try keyStore.saveAPIKey("original-secret-1", for: provider1.id)
+        try keyStore.saveAPIKey("original-secret-2", for: provider2.id)
+
+        var backup = SpotAskConfigBackup(
+            general: .init(
+                systemPrompt: "New Backup Prompt",
+                contextLimit: 80,
+                retainSession: true,
+                clearInputOnClose: false,
+                confirmBeforeStartingNewConversation: true,
+                escapeStartsNewConversation: true,
+                defaultExpandReasoning: true,
+                renderMath: true,
+                launchAtLogin: false,
+                appearance: "system",
+                fontSize: "standard",
+                chatMessageStyle: "standard",
+                interfaceZoomLevel: "standard",
+                language: "system",
+                hotKeyPreset: "optionSpace",
+                keepWindowOnTop: false,
+                showsMenuBarIcon: true
+            ),
+            promptPresetCatalog: PromptPreset.builtIn,
+            quickActionCatalog: QuickAction.builtIn,
+            shortcutConfiguration: InAppShortcutConfiguration(),
+            providerCatalog: initialCatalog
+        )
+        backup.apiKeys = [
+            provider1.id.uuidString: "new-key-1",
+            provider2.id.uuidString: "new-key-2"
+        ]
+
+        // Fail reading provider 2's existing key
+        keyStore.failOnReadProviderID = provider2.id
+
+        XCTAssertThrowsError(try settings.applyConfigurationBackup(backup, keyStore: keyStore))
+
+        // Re-enable reads to verify persisted values
+        keyStore.failOnReadProviderID = nil
+
+        // Provider 1 was touched and written, then rolled back to original-secret-1
+        XCTAssertEqual(try keyStore.readAPIKey(for: provider1.id), "original-secret-1")
+        // Provider 2 failed during read: must NOT have been treated as nil or deleted!
+        XCTAssertEqual(try keyStore.readAPIKey(for: provider2.id), "original-secret-2")
+
+        // Settings rolled back
+        XCTAssertEqual(settings.systemPrompt, "Original System Prompt")
     }
 }

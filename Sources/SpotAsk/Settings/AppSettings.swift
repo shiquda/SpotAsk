@@ -1027,7 +1027,7 @@ final class AppSettings {
                     guard let providerID = UUID(uuidString: rawID),
                           providerID == ProxyCredentialSlot.providerID || providerIDs.contains(providerID) else { continue }
                     if !touchedKeySlots.keys.contains(providerID) {
-                        let original = try? keyStore.readAPIKey(for: providerID)
+                        let original = try keyStore.readAPIKey(for: providerID)
                         touchedKeySlots[providerID] = original
                     }
                     try keyStore.saveAPIKey(key, for: providerID)

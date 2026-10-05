@@ -106,8 +106,10 @@ struct SandboxDataMigrator {
                 try fileManager.createDirectory(at: destSpotAskDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
                 if !fileManager.fileExists(atPath: destCredentialsURL.path) {
                     try fileManager.copyItem(at: containerCredentialsURL, to: destCredentialsURL)
-                    try? fileManager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: destCredentialsURL.path)
                     migratedCredentials = true
+                }
+                if fileManager.fileExists(atPath: destCredentialsURL.path) {
+                    try fileManager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: destCredentialsURL.path)
                 }
             } catch {
                 migrationErrors.append(error)
@@ -145,12 +147,16 @@ struct SandboxDataMigrator {
         let destDiagnosticsDir = destSpotAskDir.appendingPathComponent("Diagnostics", isDirectory: true)
         let destDiagnosticsURL = destDiagnosticsDir.appendingPathComponent("diagnostics.json", isDirectory: false)
 
-        if fileManager.fileExists(atPath: containerDiagnosticsURL.path) && !fileManager.fileExists(atPath: destDiagnosticsURL.path) {
+        if fileManager.fileExists(atPath: containerDiagnosticsURL.path) {
             do {
                 try fileManager.createDirectory(at: destDiagnosticsDir, withIntermediateDirectories: true)
-                try fileManager.copyItem(at: containerDiagnosticsURL, to: destDiagnosticsURL)
-                try? fileManager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: destDiagnosticsURL.path)
-                migratedDiagnostics = true
+                if !fileManager.fileExists(atPath: destDiagnosticsURL.path) {
+                    try fileManager.copyItem(at: containerDiagnosticsURL, to: destDiagnosticsURL)
+                    migratedDiagnostics = true
+                }
+                if fileManager.fileExists(atPath: destDiagnosticsURL.path) {
+                    try fileManager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: destDiagnosticsURL.path)
+                }
             } catch {
                 migrationErrors.append(error)
             }
@@ -168,23 +174,31 @@ struct SandboxDataMigrator {
         }
 
         // 6. Write migration record & marker (non-destructive, keeps original container intact!)
-        try? fileManager.createDirectory(at: destSpotAskDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-        try? fileManager.createDirectory(at: migrationHistoryDirectoryURL, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        do {
+            try fileManager.createDirectory(at: destSpotAskDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+            try fileManager.createDirectory(at: migrationHistoryDirectoryURL, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
 
-        let record = [
-            "timestamp": ISO8601DateFormatter().string(from: Date()),
-            "sourceContainer": containerBaseURL.path,
-            "migratedPreferencesCount": "\(migratedPrefsCount)",
-            "migratedCredentials": "\(migratedCredentials)",
-            "migratedSession": "\(migratedSession)",
-            "migratedDiagnostics": "\(migratedDiagnostics)"
-        ]
-        if let data = try? JSONSerialization.data(withJSONObject: record, options: [.prettyPrinted]) {
+            let record = [
+                "timestamp": ISO8601DateFormatter().string(from: Date()),
+                "sourceContainer": containerBaseURL.path,
+                "migratedPreferencesCount": "\(migratedPrefsCount)",
+                "migratedCredentials": "\(migratedCredentials)",
+                "migratedSession": "\(migratedSession)",
+                "migratedDiagnostics": "\(migratedDiagnostics)"
+            ]
+            let data = try JSONSerialization.data(withJSONObject: record, options: [.prettyPrinted])
             let recordURL = migrationHistoryDirectoryURL.appendingPathComponent("sandbox-v0.1-migration.json")
-            try? data.write(to: recordURL, options: .atomic)
-            try? data.write(to: markerFileURL, options: .atomic)
+            try data.write(to: recordURL, options: .atomic)
+            try data.write(to: markerFileURL, options: .atomic)
+        } catch {
+            return SandboxDataMigrationResult(
+                didMigrate: false,
+                migratedPreferencesCount: migratedPrefsCount,
+                migratedCredentials: migratedCredentials,
+                migratedSession: migratedSession,
+                migratedDiagnostics: migratedDiagnostics
+            )
         }
-
         return SandboxDataMigrationResult(
             didMigrate: true,
             migratedPreferencesCount: migratedPrefsCount,
