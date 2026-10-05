@@ -1,5 +1,40 @@
 import AppKit
 
+
+@MainActor
+enum ModalSheetPresenter {
+    static func resolveWindow(
+        preferred: NSWindow? = nil,
+        provider: (() -> NSWindow?)? = nil
+    ) -> NSWindow? {
+        preferred ?? provider?() ?? NSApp.keyWindow ?? NSApp.mainWindow
+    }
+
+    static func present(
+        _ panel: NSSavePanel,
+        in window: NSWindow?,
+        handleResponse: @escaping (NSApplication.ModalResponse) -> Void
+    ) {
+        NSApp.activate(ignoringOtherApps: true)
+        if let window {
+            panel.beginSheetModal(for: window, completionHandler: handleResponse)
+        } else {
+            handleResponse(panel.runModal())
+        }
+    }
+
+    static func present(
+        _ alert: NSAlert,
+        in window: NSWindow?,
+        handleResponse: @escaping (NSApplication.ModalResponse) -> Void
+    ) {
+        if let window {
+            alert.beginSheetModal(for: window, completionHandler: handleResponse)
+        } else {
+            handleResponse(alert.runModal())
+        }
+    }
+}
 @MainActor
 enum NewConversationConfirmation {
     static func present(
@@ -29,11 +64,7 @@ enum NewConversationConfirmation {
             onConfirm()
         }
 
-        if let window {
-            alert.beginSheetModal(for: window, completionHandler: handleResponse)
-        } else {
-            handleResponse(alert.runModal())
-        }
+        ModalSheetPresenter.present(alert, in: window, handleResponse: handleResponse)
     }
 }
 

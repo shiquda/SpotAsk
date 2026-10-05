@@ -909,7 +909,7 @@ struct ChatView: View {
             }
             NewConversationConfirmation.present(
                 settings: settings,
-                window: NSApp.keyWindow ?? NSApp.mainWindow,
+                window: ModalSheetPresenter.resolveWindow(),
                 onConfirm: confirmNewConversation
             )
             return

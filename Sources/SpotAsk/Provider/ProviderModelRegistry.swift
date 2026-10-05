@@ -42,7 +42,6 @@ final class ProviderModelRegistry {
     private(set) var catalog: ProviderModelCatalog?
     private(set) var loadError: ProviderModelCatalogLoadError?
     private(set) var pendingLegacyAPIKeyMigrationProviderID: UUID?
-    private var onCatalogChange: (() -> Void)?
 
     init(defaults: UserDefaults, legacy: LegacyProviderConfiguration) {
         self.defaults = defaults
@@ -100,9 +99,6 @@ final class ProviderModelRegistry {
         return normalized
     }
 
-    func setCatalogChangeHandler(_ handler: @escaping () -> Void) {
-        onCatalogChange = handler
-    }
 
     @discardableResult
     func saveModel(_ model: ModelConfiguration) throws -> ModelConfiguration {
@@ -137,7 +133,6 @@ final class ProviderModelRegistry {
         try Self.persist(normalized, to: defaults)
         self.catalog = normalized
         loadError = nil
-        onCatalogChange?()
     }
 
     func replaceDiscoveredModels(for providerID: UUID, upstreamModelIDs: [String]) throws {
@@ -221,7 +216,6 @@ final class ProviderModelRegistry {
         try keyStore.deleteAPIKey(for: id)
         try Self.persist(updated, to: defaults)
         catalog = updated
-        onCatalogChange?()
     }
 
     func completeLegacyAPIKeyMigration(to providerID: UUID) {
@@ -236,7 +230,6 @@ final class ProviderModelRegistry {
         updated = try Self.normalized(catalog: updated)
         try Self.persist(updated, to: defaults)
         catalog = updated
-        onCatalogChange?()
     }
 
     private static func pendingLegacyAPIKeyMigrationProviderID(from defaults: UserDefaults) -> UUID? {

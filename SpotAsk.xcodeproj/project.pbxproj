@@ -58,10 +58,8 @@
 		00100000000000000000002F /* AccessibilityElementReading.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003C /* AccessibilityElementReading.swift */; };
 		001000000000000000000030 /* AccessibilitySelectedTextReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003D /* AccessibilitySelectedTextReader.swift */; };
 		001000000000000000000031 /* SelectedTextSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003E /* SelectedTextSnapshot.swift */; };
-		001000000000000000000032 /* SelectionAnchorCoordinates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003F /* SelectionAnchorCoordinates.swift */; };
 		001000000000000000000033 /* SelectionAssistantCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000040 /* SelectionAssistantCoordinator.swift */; };
 		001000000000000000000034 /* SelectionOverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000041 /* SelectionOverlayController.swift */; };
-		001000000000000000000035 /* SelectionActionBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000042 /* SelectionActionBarView.swift */; };
 		001000000000000000000036 /* AccessibilityPermissionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000043 /* AccessibilityPermissionCoordinator.swift */; };
 		001000000000000000000037 /* AccessibilitySelectionReplacementWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000044 /* AccessibilitySelectionReplacementWriter.swift */; };
 		001000000000000000000038 /* SelectionAutoInvokeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000045 /* SelectionAutoInvokeMonitor.swift */; };
@@ -159,10 +157,8 @@
 		00200000000000000000003D /* AccessibilitySelectedTextReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/AccessibilitySelectedTextReader.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000003E /* SelectedTextSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectedTextSnapshot.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000091 /* UpdateCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Updates/UpdateCoordinator.swift; sourceTree = SOURCE_ROOT; };
-		00200000000000000000003F /* SelectionAnchorCoordinates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionAnchorCoordinates.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000040 /* SelectionAssistantCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionAssistantCoordinator.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000041 /* SelectionOverlayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionOverlayController.swift; sourceTree = SOURCE_ROOT; };
-		002000000000000000000042 /* SelectionActionBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionActionBarView.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000043 /* AccessibilityPermissionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/AccessibilityPermissionCoordinator.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000044 /* AccessibilitySelectionReplacementWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/AccessibilitySelectionReplacementWriter.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000045 /* SelectionAutoInvokeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionAutoInvokeMonitor.swift; sourceTree = SOURCE_ROOT; };
@@ -275,10 +271,8 @@
 				00200000000000000000003C /* AccessibilityElementReading.swift */,
 				00200000000000000000003D /* AccessibilitySelectedTextReader.swift */,
 				00200000000000000000003E /* SelectedTextSnapshot.swift */,
-				00200000000000000000003F /* SelectionAnchorCoordinates.swift */,
 				002000000000000000000040 /* SelectionAssistantCoordinator.swift */,
 				002000000000000000000041 /* SelectionOverlayController.swift */,
-				002000000000000000000042 /* SelectionActionBarView.swift */,
 				002000000000000000000043 /* AccessibilityPermissionCoordinator.swift */,
 				002000000000000000000044 /* AccessibilitySelectionReplacementWriter.swift */,
 				002000000000000000000045 /* SelectionAutoInvokeMonitor.swift */,

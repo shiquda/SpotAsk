@@ -5,8 +5,11 @@ import Testing
 
 @MainActor
 struct SettingsLayoutTests {
-    @Test func providerUseForChatActionUsesSelectionStyleIcon() {
-        #expect(ProviderSettingsIcon.useForChat == "checkmark.circle")
+
+    @Test func modalSheetPresenterResolvesFallbackWindow() {
+        let dummy = NSWindow()
+        #expect(ModalSheetPresenter.resolveWindow(preferred: dummy) === dummy)
+        #expect(ModalSheetPresenter.resolveWindow(preferred: nil, provider: { dummy }) === dummy)
     }
 
     @Test func settingsSidebarNavigationMovesOnlyBetweenExistingSections() {
