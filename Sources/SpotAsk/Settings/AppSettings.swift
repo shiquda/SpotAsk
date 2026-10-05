@@ -978,6 +978,7 @@ final class AppSettings {
 
         // Snapshot current configuration for atomic rollback on failure
         let snapshot = try makeConfigurationBackup(includeAccessKeys: keyStore != nil, keyStore: keyStore)
+        var touchedKeySlots: [UUID: String?] = [:]
 
         do {
             let general = backup.general
@@ -1025,19 +1026,36 @@ final class AppSettings {
                 for (rawID, key) in apiKeys {
                     guard let providerID = UUID(uuidString: rawID),
                           providerID == ProxyCredentialSlot.providerID || providerIDs.contains(providerID) else { continue }
+                    if !touchedKeySlots.keys.contains(providerID) {
+                        let original = try? keyStore.readAPIKey(for: providerID)
+                        touchedKeySlots[providerID] = original
+                    }
                     try keyStore.saveAPIKey(key, for: providerID)
                 }
             }
         } catch {
-            rollbackConfiguration(from: snapshot, keyStore: keyStore)
+            let rollbackErrors = rollbackConfiguration(
+                from: snapshot,
+                touchedKeySlots: touchedKeySlots,
+                keyStore: keyStore
+            )
+            if !rollbackErrors.isEmpty {
+                throw SpotAskConfigBackupError.rollbackFailed(
+                    originalErrorDescription: error.localizedDescription,
+                    rollbackErrorDescriptions: rollbackErrors.map(\.localizedDescription)
+                )
+            }
             throw error
         }
     }
 
+    @discardableResult
     private func rollbackConfiguration(
         from snapshot: SpotAskConfigBackup,
+        touchedKeySlots: [UUID: String?] = [:],
         keyStore: (any APIKeyStoring)?
-    ) {
+    ) -> [any Error] {
+        var rollbackErrors: [any Error] = []
         let general = snapshot.general
         systemPrompt = general.systemPrompt
         contextLimit = general.contextLimit
@@ -1077,15 +1095,26 @@ final class AppSettings {
         saveInAppShortcutConfiguration()
         cleanUpShortcutAssignments()
 
-        try? providerRegistry.replaceCatalog(with: snapshot.providerCatalog)
-        if let apiKeys = snapshot.apiKeys, let keyStore {
-            let providerIDs = Set(providerRegistry.catalog?.providers.map(\.id) ?? [])
-            for (rawID, key) in apiKeys {
-                guard let providerID = UUID(uuidString: rawID),
-                      providerID == ProxyCredentialSlot.providerID || providerIDs.contains(providerID) else { continue }
-                try? keyStore.saveAPIKey(key, for: providerID)
+        do {
+            try providerRegistry.replaceCatalog(with: snapshot.providerCatalog)
+        } catch {
+            rollbackErrors.append(error)
+        }
+
+        if let keyStore {
+            for (slot, original) in touchedKeySlots {
+                do {
+                    if let original {
+                        try keyStore.saveAPIKey(original, for: slot)
+                    } else {
+                        try keyStore.deleteAPIKey(for: slot)
+                    }
+                } catch {
+                    rollbackErrors.append(error)
+                }
             }
         }
+        return rollbackErrors
     }
 
     func resetToDefaults() {

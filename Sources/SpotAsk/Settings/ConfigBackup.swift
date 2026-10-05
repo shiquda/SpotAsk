@@ -6,7 +6,7 @@ enum SpotAskConfigBackupError: LocalizedError, Equatable {
     case unsupportedSchemaVersion(Int)
     case decodingFailed
     case encodingFailed
-
+    case rollbackFailed(originalErrorDescription: String, rollbackErrorDescriptions: [String])
     var errorDescription: String? {
         switch self {
         case .catalogUnavailable:
@@ -19,6 +19,8 @@ enum SpotAskConfigBackupError: LocalizedError, Equatable {
             L10n.string("settings.configDecodingFailed")
         case .encodingFailed:
             L10n.string("settings.configEncodingFailed")
+        case let .rollbackFailed(orig, rollbacks):
+            "\(orig) (Rollback failed: \(rollbacks.joined(separator: ", ")))"
         }
     }
 }

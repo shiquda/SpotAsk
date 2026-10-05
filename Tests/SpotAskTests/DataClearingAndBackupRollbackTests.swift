@@ -4,13 +4,13 @@ import XCTest
 private final class InMemoryKeyStore: APIKeyStoring, @unchecked Sendable {
     private var keys: [UUID: String] = [:]
     var shouldFailOnSave = false
-
+    var failOnProviderID: UUID?
     func readAPIKey(for providerID: UUID) throws -> String? {
         keys[providerID]
     }
 
     func saveAPIKey(_ apiKey: String, for providerID: UUID) throws {
-        if shouldFailOnSave {
+        if shouldFailOnSave || failOnProviderID == providerID {
             throw NSError(domain: "test", code: -1, userInfo: [NSLocalizedDescriptionKey: "Simulated save failure"])
         }
         keys[providerID] = apiKey
@@ -236,5 +236,79 @@ final class DataClearingAndBackupRollbackTests: XCTestCase {
 
         XCTAssertEqual(settings.systemPrompt, "Unchanged Prompt")
         XCTAssertEqual(settings.contextLimit, 22)
+    }
+    @MainActor
+    func testApplyConfigurationBackupRollsBackPartiallyWrittenKeys() throws {
+        let suiteName = "SpotAskPartialKeyRollbackTest.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let settings = AppSettings(defaults: defaults)
+        let keyStore = InMemoryKeyStore()
+
+        settings.systemPrompt = "Original System Prompt"
+
+        let provider1 = ProviderConfiguration(
+            name: "Provider 1",
+            address: "https://p1.com/v1",
+            addressMode: .baseURL,
+            timeout: 25
+        )
+        let provider2 = ProviderConfiguration(
+            name: "Provider 2",
+            address: "https://p2.com/v1",
+            addressMode: .baseURL,
+            timeout: 25
+        )
+        let model1 = ModelConfiguration(displayName: "M1", upstreamModelID: "m1", providerID: provider1.id, isStreamingEnabled: true)
+        let model2 = ModelConfiguration(displayName: "M2", upstreamModelID: "m2", providerID: provider2.id, isStreamingEnabled: true)
+        let initialCatalog = ProviderModelCatalog(providers: [provider1], models: [model1], selectedModelID: model1.id)
+        try settings.providerRegistry.replaceCatalog(with: initialCatalog)
+
+        // New backup with both provider 1 and provider 2
+        let newCatalog = ProviderModelCatalog(providers: [provider1, provider2], models: [model1, model2], selectedModelID: model1.id)
+        var backup = SpotAskConfigBackup(
+            general: .init(
+                systemPrompt: "New Backup Prompt",
+                contextLimit: 80,
+                retainSession: true,
+                clearInputOnClose: false,
+                confirmBeforeStartingNewConversation: true,
+                escapeStartsNewConversation: true,
+                defaultExpandReasoning: true,
+                renderMath: true,
+                launchAtLogin: false,
+                appearance: "system",
+                fontSize: "standard",
+                chatMessageStyle: "standard",
+                interfaceZoomLevel: "standard",
+                language: "system",
+                hotKeyPreset: "optionSpace",
+                keepWindowOnTop: false,
+                showsMenuBarIcon: true
+            ),
+            promptPresetCatalog: PromptPreset.builtIn,
+            quickActionCatalog: QuickAction.builtIn,
+            shortcutConfiguration: InAppShortcutConfiguration(),
+            providerCatalog: newCatalog
+        )
+        backup.apiKeys = [
+            provider1.id.uuidString: "key-1",
+            provider2.id.uuidString: "key-2"
+        ]
+
+        // Fail only on provider 2: provider 1 will succeed on first iteration, then provider 2 will throw
+        keyStore.failOnProviderID = provider2.id
+
+        XCTAssertThrowsError(try settings.applyConfigurationBackup(backup, keyStore: keyStore))
+
+        // Assert: provider 1's newly written key must NOT be left behind in keyStore!
+        XCTAssertNil(try keyStore.readAPIKey(for: provider1.id))
+        XCTAssertNil(try keyStore.readAPIKey(for: provider2.id))
+
+        // Assert: settings rolled back
+        XCTAssertEqual(settings.systemPrompt, "Original System Prompt")
+        XCTAssertEqual(settings.providerRegistry.catalog?.providers.count, 1)
+        XCTAssertEqual(settings.providerRegistry.catalog?.providers.first?.id, provider1.id)
     }
 }

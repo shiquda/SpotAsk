@@ -151,4 +151,51 @@ final class SandboxDataMigratorTests: XCTestCase {
         // Existing credentials were preserved
         XCTAssertEqual(try Data(contentsOf: destCredsURL), existingCreds)
     }
+    func testSandboxDataMigratorFailureDoesNotWriteMarkerAndAllowsRetry() throws {
+        let bundleID = "com.spotask.app"
+
+        // Old container has credentials
+        let credsDir = containerURL.appendingPathComponent("Application Support/SpotAsk", isDirectory: true)
+        try FileManager.default.createDirectory(at: credsDir, withIntermediateDirectories: true)
+        let oldCredsURL = credsDir.appendingPathComponent("credentials.json")
+        try "{\"secret\": \"token\"}".data(using: .utf8)!.write(to: oldCredsURL)
+
+        // Simulate failure by making destSpotAskDir read-only so copyItem fails
+        let destSpotAskDir = appSupportURL.appendingPathComponent("SpotAsk", isDirectory: true)
+        try FileManager.default.createDirectory(at: destSpotAskDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o500])
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: destSpotAskDir.path)
+        }
+
+        let migrator = SandboxDataMigrator(
+            bundleIdentifier: bundleID,
+            containerBaseURL: containerURL,
+            applicationSupportURL: appSupportURL,
+            defaults: defaults
+        )
+
+        // Attempt 1: copy fails due to permissions
+        let result1 = migrator.migrateIfNeeded()
+        XCTAssertFalse(result1.didMigrate)
+        XCTAssertFalse(result1.migratedCredentials)
+
+        // Marker file must NOT exist!
+        let markerFile = appSupportURL.appendingPathComponent("SpotAsk/.sandbox-migration-completed")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: markerFile.path))
+
+        // Restore write permissions
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: destSpotAskDir.path)
+
+        // Attempt 2: retry should now succeed!
+        let result2 = migrator.migrateIfNeeded()
+        XCTAssertTrue(result2.didMigrate)
+        XCTAssertTrue(result2.migratedCredentials)
+
+        // Marker file now exists!
+        XCTAssertTrue(FileManager.default.fileExists(atPath: markerFile.path))
+
+        // Destination credentials exist!
+        let destCredsURL = destSpotAskDir.appendingPathComponent("credentials.json")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: destCredsURL.path))
+    }
 }

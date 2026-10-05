@@ -69,7 +69,7 @@ struct SandboxDataMigrator {
                 migratedDiagnostics: false
             )
         }
-
+        var migrationErrors: [any Error] = []
         var migratedPrefsCount = 0
         var migratedCredentials = false
         var migratedSession = false
@@ -78,15 +78,20 @@ struct SandboxDataMigrator {
         // 1. Preferences migration: ~/Library/Containers/.../Data/Library/Preferences/<bundleID>.plist
         let containerPrefsURL = containerBaseURL
             .appendingPathComponent("Preferences/\(bundleIdentifier).plist", isDirectory: false)
-        if fileManager.fileExists(atPath: containerPrefsURL.path),
-           let plistData = try? Data(contentsOf: containerPrefsURL),
-           let plistDict = try? PropertyListSerialization.propertyList(from: plistData, options: [], format: nil) as? [String: Any] {
-            for (key, value) in plistDict {
-                // Non-destructive: only migrate keys not already present in defaults
-                if defaults.object(forKey: key) == nil {
-                    defaults.set(value, forKey: key)
-                    migratedPrefsCount += 1
+        if fileManager.fileExists(atPath: containerPrefsURL.path) {
+            do {
+                let plistData = try Data(contentsOf: containerPrefsURL)
+                if let plistDict = try PropertyListSerialization.propertyList(from: plistData, options: [], format: nil) as? [String: Any] {
+                    for (key, value) in plistDict {
+                        // Non-destructive: only migrate keys not already present in defaults
+                        if defaults.object(forKey: key) == nil {
+                            defaults.set(value, forKey: key)
+                            migratedPrefsCount += 1
+                        }
+                    }
                 }
+            } catch {
+                migrationErrors.append(error)
             }
         }
 
@@ -97,12 +102,15 @@ struct SandboxDataMigrator {
         let destCredentialsURL = destSpotAskDir.appendingPathComponent("credentials.json", isDirectory: false)
 
         if fileManager.fileExists(atPath: containerCredentialsURL.path) {
-            try? fileManager.createDirectory(at: destSpotAskDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-            if !fileManager.fileExists(atPath: destCredentialsURL.path) {
-                if (try? fileManager.copyItem(at: containerCredentialsURL, to: destCredentialsURL)) != nil {
+            do {
+                try fileManager.createDirectory(at: destSpotAskDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+                if !fileManager.fileExists(atPath: destCredentialsURL.path) {
+                    try fileManager.copyItem(at: containerCredentialsURL, to: destCredentialsURL)
                     try? fileManager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: destCredentialsURL.path)
                     migratedCredentials = true
                 }
+            } catch {
+                migrationErrors.append(error)
             }
         }
 
@@ -119,10 +127,13 @@ struct SandboxDataMigrator {
         if !fileManager.fileExists(atPath: destSessionURL.path) {
             for candidateURL in candidateSessionURLs {
                 if fileManager.fileExists(atPath: candidateURL.path) {
-                    try? fileManager.createDirectory(at: destSessionDir, withIntermediateDirectories: true)
-                    if (try? fileManager.copyItem(at: candidateURL, to: destSessionURL)) != nil {
+                    do {
+                        try fileManager.createDirectory(at: destSessionDir, withIntermediateDirectories: true)
+                        try fileManager.copyItem(at: candidateURL, to: destSessionURL)
                         migratedSession = true
                         break
+                    } catch {
+                        migrationErrors.append(error)
                     }
                 }
             }
@@ -135,14 +146,28 @@ struct SandboxDataMigrator {
         let destDiagnosticsURL = destDiagnosticsDir.appendingPathComponent("diagnostics.json", isDirectory: false)
 
         if fileManager.fileExists(atPath: containerDiagnosticsURL.path) && !fileManager.fileExists(atPath: destDiagnosticsURL.path) {
-            try? fileManager.createDirectory(at: destDiagnosticsDir, withIntermediateDirectories: true)
-            if (try? fileManager.copyItem(at: containerDiagnosticsURL, to: destDiagnosticsURL)) != nil {
+            do {
+                try fileManager.createDirectory(at: destDiagnosticsDir, withIntermediateDirectories: true)
+                try fileManager.copyItem(at: containerDiagnosticsURL, to: destDiagnosticsURL)
                 try? fileManager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: destDiagnosticsURL.path)
                 migratedDiagnostics = true
+            } catch {
+                migrationErrors.append(error)
             }
         }
 
-        // 5. Write migration record & marker (non-destructive, keeps original container intact!)
+        // 5. If any operation failed, do NOT write the marker file so the migration can be retried
+        guard migrationErrors.isEmpty else {
+            return SandboxDataMigrationResult(
+                didMigrate: false,
+                migratedPreferencesCount: migratedPrefsCount,
+                migratedCredentials: migratedCredentials,
+                migratedSession: migratedSession,
+                migratedDiagnostics: migratedDiagnostics
+            )
+        }
+
+        // 6. Write migration record & marker (non-destructive, keeps original container intact!)
         try? fileManager.createDirectory(at: destSpotAskDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         try? fileManager.createDirectory(at: migrationHistoryDirectoryURL, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
 
