@@ -59,32 +59,19 @@ struct AnthropicProvider: ChatProvider {
 
     func testConnection() async throws {
         let request = ChatRequest(model: configuration.model, messages: [ChatMessage(role: .user, content: "ping")], stream: false)
-        let urlRequest = try makeURLRequest(for: request, stream: false)
-        _ = try await transport.data(for: urlRequest)
+        try await ChatStreamingDriver.testConnection(transport: transport) {
+            try makeURLRequest(for: request, stream: false)
+        }
     }
 
     private func nonStreaming(request: ChatRequest) -> AsyncThrowingStream<ChatStreamEvent, Error> {
-        return AsyncThrowingStream { continuation in
-            let task = Task {
-                do {
-                    let urlRequest = try makeURLRequest(for: request, stream: false)
-                    let data = try await transport.data(for: urlRequest)
-                    let completion = try JSONDecoder().decode(AnthropicNonStreamingResponse.self, from: data)
-                    for event in completion.events { continuation.yield(event) }
-                    continuation.yield(.completed)
-                    continuation.finish()
-                } catch is CancellationError {
-                    continuation.finish(throwing: ChatError.cancelled)
-                } catch let error as ChatError {
-                    continuation.finish(throwing: error)
-                } catch let error as URLError {
-                    continuation.finish(throwing: ChatHTTP.mapURLError(error))
-                } catch {
-                    continuation.finish(throwing: ChatError.decodingFailed)
-                }
+        ChatStreamingDriver.nonStreaming(
+            transport: transport,
+            makeRequest: { try makeURLRequest(for: request, stream: false) },
+            decode: { data in
+                try JSONDecoder().decode(AnthropicNonStreamingResponse.self, from: data).events
             }
-            continuation.onTermination = { _ in task.cancel() }
-        }
+        )
     }
 
     private func makeURLRequest(for request: ChatRequest, stream: Bool) throws -> URLRequest {
@@ -112,10 +99,10 @@ struct AnthropicProvider: ChatProvider {
         let conversation = try request.messages
             .filter { $0.role != .system }
             .map { message in
-                try ModelJSONValue.object([
-                    "role": .string(message.role.rawValue),
-                    "content": .wrapping(Self.anthropicContent(for: message))
-                ])
+                try ChatRequestBodyBuilder.formatMessage(
+                    role: message.role.rawValue,
+                    content: Self.anthropicContent(for: message)
+                )
             }
         var body: [String: ModelJSONValue] = [
             "model": .string(request.model),
@@ -126,20 +113,12 @@ struct AnthropicProvider: ChatProvider {
         if !system.isEmpty {
             body["system"] = .string(system)
         }
-        let automatic = configuration.compatibilityProfile.automaticReasoningParameters(for: configuration.thinkingMode)
-        let extras = configuration.extraRequestParameters ?? [:]
-        if extras.keys.contains(where: { RequestCompatibilityProfile.reasoningControlKeys.contains($0) }) {
-            for key in automatic.keys { body.removeValue(forKey: key) }
-        } else {
-            for (key, value) in automatic {
-                body[key] = value
-            }
-        }
-        if extras.keys.contains(where: { RequestCompatibilityProfile.protectedStructuralKeys.contains($0) }) {
-            throw ChatError.invalidConfiguration
-        }
-        body.mergeModelJSON(extras)
-        return try JSONEncoder().encode(body)
+        return try ChatRequestBodyBuilder.buildJSONData(
+            body: &body,
+            compatibilityProfile: configuration.compatibilityProfile,
+            thinkingMode: configuration.thinkingMode,
+            extraParameters: configuration.extraRequestParameters
+        )
     }
 
     /// Text-only messages keep the historical `content: "string"` shape. Only
