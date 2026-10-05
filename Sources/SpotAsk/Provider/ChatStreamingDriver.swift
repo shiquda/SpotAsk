@@ -18,7 +18,18 @@ private final class ChatStreamingOperations: @unchecked Sendable {
         self.mapUnexpectedError = mapUnexpectedError
     }
 }
+private final class ChatNonStreamingOperations: @unchecked Sendable {
+    let makeRequest: () throws -> URLRequest
+    let decode: (Data) throws -> [ChatStreamEvent]
 
+    init(
+        makeRequest: @escaping () throws -> URLRequest,
+        decode: @escaping (Data) throws -> [ChatStreamEvent]
+    ) {
+        self.makeRequest = makeRequest
+        self.decode = decode
+    }
+}
 enum ChatStreamingDriver {
     static func stream(
         transport: HTTPChatTransport,
@@ -81,6 +92,46 @@ enum ChatStreamingDriver {
             }
             continuation.onTermination = { _ in task.cancel() }
         }
+    }
+
+    static func nonStreaming(
+        transport: HTTPChatTransport,
+        makeRequest: @escaping () throws -> URLRequest,
+        decode: @escaping (Data) throws -> [ChatStreamEvent]
+    ) -> AsyncThrowingStream<ChatStreamEvent, Error> {
+        let operations = ChatNonStreamingOperations(
+            makeRequest: makeRequest,
+            decode: decode
+        )
+        return AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    var urlRequest = try operations.makeRequest()
+                    urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
+                    let data = try await transport.data(for: urlRequest)
+                    for event in try operations.decode(data) { continuation.yield(event) }
+                    continuation.yield(.completed)
+                    continuation.finish()
+                } catch is CancellationError {
+                    continuation.finish(throwing: ChatError.cancelled)
+                } catch let error as ChatError {
+                    continuation.finish(throwing: error)
+                } catch let error as URLError {
+                    continuation.finish(throwing: ChatHTTP.mapURLError(error))
+                } catch {
+                    continuation.finish(throwing: ChatError.decodingFailed)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    static func testConnection(
+        transport: HTTPChatTransport,
+        makeRequest: () throws -> URLRequest
+    ) async throws {
+        let urlRequest = try makeRequest()
+        _ = try await transport.data(for: urlRequest)
     }
 }
 
