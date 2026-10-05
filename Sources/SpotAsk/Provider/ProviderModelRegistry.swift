@@ -251,7 +251,7 @@ final class ProviderModelRegistry {
         }
     }
 
-    private static func normalized(catalog: ProviderModelCatalog) throws -> ProviderModelCatalog {
+    static func normalized(catalog: ProviderModelCatalog) throws -> ProviderModelCatalog {
         var result = catalog
         guard result.schemaVersion == ProviderModelCatalog.currentSchemaVersion else {
             throw ProviderModelRegistryError.invalidSchemaVersion(result.schemaVersion)

@@ -7,10 +7,12 @@ import Observation
 final class GeneralSettingsState {
     private let settings: AppSettings
     private let keyStore: any APIKeyStoring
+    private let sessionStore: SessionStore
     private let settingsWindowProvider: (() -> NSWindow?)?
     var status = ""
     var statusIsError = false
     private let onConfigurationImported: () -> Void
+    private let onClearAllData: (() -> Void)?
 
     var proxyPasswordDraft: String
     var isTestingProxy = false
@@ -18,13 +20,17 @@ final class GeneralSettingsState {
     init(
         settings: AppSettings,
         keyStore: any APIKeyStoring,
+        sessionStore: SessionStore = SessionStore(),
         settingsWindowProvider: (() -> NSWindow?)? = nil,
-        onConfigurationImported: @escaping () -> Void
+        onConfigurationImported: @escaping () -> Void,
+        onClearAllData: (() -> Void)? = nil
     ) {
         self.settings = settings
         self.keyStore = keyStore
+        self.sessionStore = sessionStore
         self.settingsWindowProvider = settingsWindowProvider
         self.onConfigurationImported = onConfigurationImported
+        self.onClearAllData = onClearAllData
         proxyPasswordDraft = (try? keyStore.readAPIKey(for: ProxyCredentialSlot.providerID)) ?? ""
     }
 
@@ -126,6 +132,8 @@ final class GeneralSettingsState {
                 let data = try Data(contentsOf: url)
                 let backup = try JSONDecoder().decode(SpotAskConfigBackup.self, from: data)
                 try self.settings.applyConfigurationBackup(backup, keyStore: self.keyStore)
+                self.proxyPasswordDraft = (try? self.keyStore.readAPIKey(for: ProxyCredentialSlot.providerID)) ?? ""
+                UpdateCoordinator.shared.setAutomaticChecksEnabled(self.settings.automaticUpdateCheckEnabled)
                 self.onConfigurationImported()
                 self.setStatus(L10n.string("settings.configImported"), isError: false)
             } catch {
@@ -143,7 +151,13 @@ final class GeneralSettingsState {
     func clearAllLocalData() {
         do {
             try keyStore.deleteAllAPIKeys()
-            UserDefaults.standard.removePersistentDomain(forName: Bundle.main.bundleIdentifier ?? "com.spotask.app")
+            try sessionStore.clear()
+            DiagnosticLogStore.shared.clear()
+            let bundleID = Bundle.main.bundleIdentifier ?? "com.spotask.app"
+            UserDefaults.standard.removePersistentDomain(forName: bundleID)
+            settings.resetToDefaults()
+            proxyPasswordDraft = ""
+            onClearAllData?()
             setStatus(L10n.string("settings.resetSuccess"), isError: false)
         } catch {
             setStatus(L10n.string("settings.resetFailure"), isError: true)

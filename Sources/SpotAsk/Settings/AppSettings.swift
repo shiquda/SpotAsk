@@ -973,7 +973,90 @@ final class AppSettings {
             throw SpotAskConfigBackupError.unsupportedSchemaVersion(backup.schemaVersion)
         }
 
-        let general = backup.general
+        // Validate provider catalog before touching any settings
+        _ = try ProviderModelRegistry.normalized(catalog: backup.providerCatalog)
+
+        // Snapshot current configuration for atomic rollback on failure
+        let snapshot = try makeConfigurationBackup(includeAccessKeys: keyStore != nil, keyStore: keyStore)
+        var touchedKeySlots: [UUID: String?] = [:]
+
+        do {
+            let general = backup.general
+            systemPrompt = general.systemPrompt
+            contextLimit = general.contextLimit
+            retainSession = general.retainSession
+            clearInputOnClose = general.clearInputOnClose
+            confirmBeforeStartingNewConversation = general.confirmBeforeStartingNewConversation
+            escapeStartsNewConversation = general.escapeStartsNewConversation
+            defaultExpandReasoning = general.defaultExpandReasoning
+            renderMath = general.renderMath ?? true
+            launchAtLogin = general.launchAtLogin
+            appearance = AppearanceMode(rawValue: general.appearance) ?? .system
+            fontSize = FontSize(rawValue: general.fontSize) ?? .standard
+            chatMessageStyle = ChatMessageStyle(rawValue: general.chatMessageStyle ?? "") ?? .standard
+            interfaceZoomLevel = InterfaceZoomLevel(rawValue: general.interfaceZoomLevel) ?? .standard
+            language = AppLanguage(rawValue: general.language) ?? .system
+            hotKeyPreset = HotKeyPreset(rawValue: general.hotKeyPreset) ?? .optionSpace
+            keepWindowOnTop = general.keepWindowOnTop
+            showsMenuBarIcon = general.showsMenuBarIcon
+            if let automaticUpdateCheckEnabled = general.automaticUpdateCheckEnabled {
+                self.automaticUpdateCheckEnabled = automaticUpdateCheckEnabled
+            }
+            if let rawUpdateSource = general.updateDownloadSource,
+               let source = UpdateDownloadSource(rawValue: rawUpdateSource) {
+                self.updateDownloadSource = source
+            }
+            if let proxyEnabled = general.proxyEnabled { self.proxyEnabled = proxyEnabled }
+            if let proxyType = general.proxyType, let type = ProxyType(rawValue: proxyType) { self.proxyType = type }
+            if let proxyHost = general.proxyHost { self.proxyHost = proxyHost }
+            if let proxyPort = general.proxyPort { self.proxyPort = proxyPort }
+            if let proxyUsername = general.proxyUsername { self.proxyUsername = proxyUsername }
+
+            promptPresetCatalog = Self.normalizedPromptPresetCatalog(backup.promptPresetCatalog)
+            if let quickActionCatalog = backup.quickActionCatalog {
+                self.quickActionCatalog = Self.normalizedQuickActionCatalog(quickActionCatalog)
+            }
+            inAppShortcutConfiguration = backup.shortcutConfiguration
+            saveInAppShortcutConfiguration()
+            cleanUpShortcutAssignments()
+
+            try providerRegistry.replaceCatalog(with: backup.providerCatalog)
+            if let apiKeys = backup.apiKeys, let keyStore {
+                let providerIDs = Set(providerRegistry.catalog?.providers.map(\.id) ?? [])
+                for (rawID, key) in apiKeys {
+                    guard let providerID = UUID(uuidString: rawID),
+                          providerID == ProxyCredentialSlot.providerID || providerIDs.contains(providerID) else { continue }
+                    if !touchedKeySlots.keys.contains(providerID) {
+                        let original = try keyStore.readAPIKey(for: providerID)
+                        touchedKeySlots[providerID] = original
+                    }
+                    try keyStore.saveAPIKey(key, for: providerID)
+                }
+            }
+        } catch {
+            let rollbackErrors = rollbackConfiguration(
+                from: snapshot,
+                touchedKeySlots: touchedKeySlots,
+                keyStore: keyStore
+            )
+            if !rollbackErrors.isEmpty {
+                throw SpotAskConfigBackupError.rollbackFailed(
+                    originalErrorDescription: error.localizedDescription,
+                    rollbackErrorDescriptions: rollbackErrors.map(\.localizedDescription)
+                )
+            }
+            throw error
+        }
+    }
+
+    @discardableResult
+    private func rollbackConfiguration(
+        from snapshot: SpotAskConfigBackup,
+        touchedKeySlots: [UUID: String?] = [:],
+        keyStore: (any APIKeyStoring)?
+    ) -> [any Error] {
+        var rollbackErrors: [any Error] = []
+        let general = snapshot.general
         systemPrompt = general.systemPrompt
         contextLimit = general.contextLimit
         retainSession = general.retainSession
@@ -1004,23 +1087,133 @@ final class AppSettings {
         if let proxyPort = general.proxyPort { self.proxyPort = proxyPort }
         if let proxyUsername = general.proxyUsername { self.proxyUsername = proxyUsername }
 
-        promptPresetCatalog = Self.normalizedPromptPresetCatalog(backup.promptPresetCatalog)
-        if let quickActionCatalog = backup.quickActionCatalog {
+        promptPresetCatalog = Self.normalizedPromptPresetCatalog(snapshot.promptPresetCatalog)
+        if let quickActionCatalog = snapshot.quickActionCatalog {
             self.quickActionCatalog = Self.normalizedQuickActionCatalog(quickActionCatalog)
         }
-        inAppShortcutConfiguration = backup.shortcutConfiguration
+        inAppShortcutConfiguration = snapshot.shortcutConfiguration
         saveInAppShortcutConfiguration()
         cleanUpShortcutAssignments()
 
-        try providerRegistry.replaceCatalog(with: backup.providerCatalog)
-        if let apiKeys = backup.apiKeys, let keyStore {
-            let providerIDs = Set(providerRegistry.catalog?.providers.map(\.id) ?? [])
-            for (rawID, key) in apiKeys {
-                guard let providerID = UUID(uuidString: rawID),
-                      providerID == ProxyCredentialSlot.providerID || providerIDs.contains(providerID) else { continue }
-                try keyStore.saveAPIKey(key, for: providerID)
+        do {
+            try providerRegistry.replaceCatalog(with: snapshot.providerCatalog)
+        } catch {
+            rollbackErrors.append(error)
+        }
+
+        if let keyStore {
+            for (slot, original) in touchedKeySlots {
+                do {
+                    if let original {
+                        try keyStore.saveAPIKey(original, for: slot)
+                    } else {
+                        try keyStore.deleteAPIKey(for: slot)
+                    }
+                } catch {
+                    rollbackErrors.append(error)
+                }
             }
         }
+        return rollbackErrors
+    }
+
+    func resetToDefaults() {
+        let keysToRemove = [
+            Key.baseURL, Key.useFullEndpoint, Key.model, Key.streaming, Key.timeout,
+            Key.systemPrompt, Key.contextLimit, Key.retainSession, Key.clearInputOnClose,
+            Key.confirmBeforeStartingNewConversation, Key.escapeStartsNewConversation,
+            Key.defaultExpandReasoning, Key.renderMath, Key.launchAtLogin, Key.silentLaunch,
+            Key.proxyEnabled, Key.proxyType, Key.proxyHost, Key.proxyPort, Key.proxyUsername,
+            Key.diagnosticsEnabled, Key.appearance, Key.fontSize, Key.chatMessageStyle,
+            Key.interfaceZoomLevel, Key.language, Key.hotKeyPreset, Key.globalShortcut,
+            Key.selectionAssistantEnabled, Key.selectionAssistantMode, Key.selectionHotKeyPreset,
+            Key.selectionDefaultPromptID, Key.selectionAssistantToggleShortcut,
+            Key.selectionAutoInvokeEnabled, Key.selectionAutoInvokeScope,
+            Key.selectionAutoInvokeBlacklist, Key.selectionAutoInvokeWhitelist,
+            Key.clipboardAssistedSelectionEnabled, Key.clipboardAssistedSelectionAppIdentifiers,
+            Key.selectionActionBarShowsChatAction, Key.selectionActionBarShowsLabels,
+            Key.selectionActionBarShowsPrompts, Key.selectionActionBarShowsExternalAsk,
+            Key.automaticUpdateCheckEnabled, Key.updateDownloadSource,
+            Key.selectionAutoInvokeDelay, Key.panelWidth, Key.panelHeight,
+            Key.showsMenuBarIcon, Key.keepWindowOnTop, Key.externalAskEnabled,
+            Key.customPromptPresets, Key.promptPresetCatalog, Key.quickActionCatalog,
+            Key.inAppShortcutConfiguration, ProviderModelRegistry.defaultsKey,
+            ProviderModelRegistry.pendingLegacyAPIKeyMigrationProviderIDDefaultsKey
+        ]
+        for key in keysToRemove {
+            defaults.removeObject(forKey: key)
+        }
+
+        systemPrompt = ""
+        contextLimit = 20
+        retainSession = true
+        clearInputOnClose = false
+        confirmBeforeStartingNewConversation = true
+        escapeStartsNewConversation = true
+        defaultExpandReasoning = false
+        renderMath = true
+        launchAtLogin = false
+        silentLaunch = false
+        proxyEnabled = false
+        proxyType = .http
+        proxyHost = ""
+        proxyPort = 1080
+        proxyUsername = ""
+        diagnosticsEnabled = false
+        appearance = .system
+        fontSize = .standard
+        chatMessageStyle = .standard
+        interfaceZoomLevel = .standard
+        language = .system
+        hotKeyPreset = .optionSpace
+        globalShortcut = HotKeyPreset.optionSpace.shortcut
+        selectionAssistantEnabled = false
+        selectionAssistantMode = .actionBar
+        selectionHotKeyPreset = .optionShiftSpace
+        selectionDefaultPromptID = PromptPreset.builtIn.first?.id
+        selectionAssistantToggleShortcut = nil
+        selectionAutoInvokeEnabled = false
+        selectionAutoInvokeScope = .allApps
+        selectionAutoInvokeBlacklist = []
+        selectionAutoInvokeWhitelist = []
+        clipboardAssistedSelectionEnabled = false
+        clipboardAssistedSelectionAppIdentifiers = []
+        selectionActionBarShowsChatAction = true
+        selectionActionBarShowsLabels = true
+        selectionActionBarShowsPrompts = true
+        selectionActionBarShowsExternalAsk = true
+        automaticUpdateCheckEnabled = true
+        updateDownloadSource = .automatic
+        selectionAutoInvokeDelay = SelectionAutoInvokeDelay.defaultValue
+        panelWidth = 720
+        panelHeight = 520
+        showsMenuBarIcon = true
+        keepWindowOnTop = false
+        externalAskEnabled = true
+        promptPresetCatalog = PromptPreset.builtIn
+        quickActionCatalog = Self.loadQuickActionCatalog(from: defaults)
+        inAppShortcutConfiguration = InAppShortcutConfiguration()
+
+        let provider = ProviderConfiguration(
+            name: "OpenAI Compatible",
+            address: "https://api.openai.com/v1",
+            addressMode: .baseURL,
+            timeout: 60
+        )
+        let model = ModelConfiguration(
+            displayName: "gpt-5-mini",
+            upstreamModelID: "gpt-5-mini",
+            providerID: provider.id,
+            isStreamingEnabled: true
+        )
+        let defaultCatalog = ProviderModelCatalog(providers: [provider], models: [model], selectedModelID: model.id)
+        try? providerRegistry.replaceCatalog(with: defaultCatalog)
+
+        savePromptPresetCatalog()
+        saveQuickActionCatalog()
+        saveCustomPromptPresets()
+        saveInAppShortcutConfiguration()
+        cleanUpShortcutAssignments()
     }
 
     private func saveCustomPromptPresets() {
