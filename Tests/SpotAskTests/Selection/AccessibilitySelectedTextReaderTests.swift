@@ -441,72 +441,6 @@ struct AccessibilitySelectedTextReaderTests {
     }
 }
 
-@Suite("Selection anchor coordinate conversion")
-struct SelectionAnchorCoordinateConverterTests {
-    @Test("Conversion keeps the matching display origin and converts vertical coordinates")
-    func usesMatchingDisplayWithNegativeCoordinates() {
-        let main = SelectionScreenCoordinateSpace(
-            displayBounds: CGRect(x: 0, y: 0, width: 2_000, height: 1_200),
-            appKitFrame: CGRect(x: 0, y: 0, width: 1_000, height: 600),
-            scaleFactor: 2
-        )
-        let leftDisplay = SelectionScreenCoordinateSpace(
-            displayBounds: CGRect(x: -1_280, y: 200, width: 1_280, height: 1_024),
-            appKitFrame: CGRect(x: -1_280, y: -424, width: 1_280, height: 1_024),
-            scaleFactor: 1
-        )
-        let rect = CGRect(x: -1_180, y: 300, width: 160, height: 40)
-
-        let converted = SelectionAnchorCoordinateConverter.appKitRect(
-            fromAccessibilityRect: rect,
-            coordinateSpaces: [main, leftDisplay]
-        )
-
-        #expect(converted == CGRect(x: -1_180, y: 460, width: 160, height: 40))
-    }
-
-    @Test("Missing display bounds leaves the reader to use a lower-priority anchor")
-    func missingDisplayReturnsNil() {
-        #expect(
-            SelectionAnchorCoordinateConverter.appKitRect(
-                fromAccessibilityRect: CGRect(x: 5_000, y: 5_000, width: 10, height: 10),
-                coordinateSpaces: []
-            ) == nil
-        )
-    }
-
-    @Test("Retina display bounds are already expressed in points")
-    func retinaCoordinatesAreNotScaledTwice() {
-        let main = SelectionScreenCoordinateSpace(
-            displayBounds: CGRect(x: 0, y: 0, width: 1_512, height: 982),
-            appKitFrame: CGRect(x: 0, y: 0, width: 1_512, height: 982),
-            scaleFactor: 2
-        )
-
-        let converted = SelectionAnchorCoordinateConverter.appKitRect(
-            fromAccessibilityRect: CGRect(x: 100, y: 700, width: 120, height: 24),
-            coordinateSpaces: [main]
-        )
-
-        #expect(converted == CGRect(x: 100, y: 258, width: 120, height: 24))
-    }
-
-    @Test("Conversion does not depend on pointer location")
-    func conversionDoesNotRequirePointerLocation() {
-        let main = SelectionScreenCoordinateSpace(
-            displayBounds: CGRect(x: 0, y: 0, width: 1_512, height: 982),
-            appKitFrame: CGRect(x: 0, y: 0, width: 1_512, height: 982),
-            scaleFactor: 2
-        )
-
-        let converted = SelectionAnchorCoordinateConverter.appKitRect(
-            fromAccessibilityRect: CGRect(x: 100, y: 700, width: 120, height: 24),
-            coordinateSpaces: [main]
-        )
-
-        #expect(converted == CGRect(x: 100, y: 258, width: 120, height: 24))
-    }
-}
 
 private final class ReaderFixture: @unchecked Sendable {
     let applicationElement = AccessibilityElementID(rawValue: 100)
@@ -657,13 +591,6 @@ private final class FakeClipboardSelectionReader: ClipboardAssistedSelectionRead
     }
 }
 
-private struct FakeScreenProvider: SelectionScreenProviding {
-    let spaces: [SelectionScreenCoordinateSpace]
-
-    func coordinateSpaces() -> [SelectionScreenCoordinateSpace] {
-        spaces
-    }
-}
 
 private final class FakeAccessibilityElementReader: AccessibilityElementReading, @unchecked Sendable {
     enum Call: Equatable {

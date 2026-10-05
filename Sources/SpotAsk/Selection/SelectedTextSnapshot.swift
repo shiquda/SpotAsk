@@ -86,8 +86,6 @@ struct SelectionSourceApplication: Equatable, Sendable {
 }
 
 enum SelectionAnchor: Equatable, Sendable {
-    case selectionRect(CGRect)
-    case elementRect(CGRect)
     case pointer(CGPoint)
 }
 

@@ -27,19 +27,8 @@ struct OpenAICompatibleProviderFactory: ChatProviderFactory {
     let keyStore: any APIKeyStoring
     let resolver: any ProviderTargetResolving = ProviderTargetResolver()
 
-    private var proxyPassword: String {
-        (try? keyStore.readAPIKey(for: ProxyCredentialSlot.providerID)) ?? ""
-    }
-
     private var proxyConfiguration: [String: Any]? {
-        guard settings.proxyEnabled else { return nil }
-        return ChatNetworking.proxyConfiguration(
-            type: settings.proxyType,
-            host: settings.proxyHost,
-            port: settings.proxyPort,
-            username: settings.proxyUsername,
-            password: proxyPassword
-        )
+        ChatNetworking.proxyConfiguration(settings: settings, keyStore: keyStore)
     }
 
     func makeProvider() throws -> any ChatProvider {

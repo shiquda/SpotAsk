@@ -78,4 +78,46 @@ final class ProxyConfigurationTests: XCTestCase {
         XCTAssertNil(configuration["HTTPProxyUsername"])
         XCTAssertNil(configuration["HTTPProxyPassword"])
     }
+
+    @MainActor
+    func testProxyConfigurationFromSettingsAndKeyStore() throws {
+        let defaults = UserDefaults(suiteName: "ProxyConfigurationTests.\(UUID().uuidString)")!
+        defer { defaults.removePersistentDomain(forName: defaults.description) }
+        let settings = AppSettings(defaults: defaults)
+        let keyStore = TestProxyKeyStore()
+
+        settings.proxyEnabled = false
+        XCTAssertNil(ChatNetworking.proxyConfiguration(settings: settings, keyStore: keyStore))
+
+        settings.proxyEnabled = true
+        settings.proxyType = .http
+        settings.proxyHost = "proxy.example.com"
+        settings.proxyPort = 8080
+        settings.proxyUsername = "user"
+        try keyStore.saveAPIKey("secret", for: ProxyCredentialSlot.providerID)
+
+        let config = try XCTUnwrap(ChatNetworking.proxyConfiguration(settings: settings, keyStore: keyStore))
+        XCTAssertEqual(config["HTTPProxy"] as? String, "proxy.example.com")
+        XCTAssertEqual(config["HTTPProxyPassword"] as? String, "secret")
+    }
+}
+
+private final class TestProxyKeyStore: APIKeyStoring, @unchecked Sendable {
+    private var keys: [UUID: String] = [:]
+
+    func readAPIKey(for providerID: UUID) throws -> String? {
+        keys[providerID]
+    }
+
+    func saveAPIKey(_ key: String, for providerID: UUID) throws {
+        keys[providerID] = key
+    }
+
+    func deleteAPIKey(for providerID: UUID) throws {
+        keys.removeValue(forKey: providerID)
+    }
+
+    func deleteAllAPIKeys() throws {
+        keys.removeAll()
+    }
 }
