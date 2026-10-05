@@ -406,7 +406,6 @@
 "settings.selectionAssistantActionPrompts" = "Показывать подсказки на панели выделения";
 "settings.selectionAssistantActionBarCrowdingHint" = "При большом числе действий панель может стать слишком длинной. Уберите редко используемые действия или отключите «Показывать подписи рядом со значками», чтобы оставить только значки.";
 "settings.selectionAssistantActionBarPreview" = "Предпросмотр панели действий";
-"settings.selectionAssistantActionBarPreviewHint" = "Только для предпросмотра — кнопки не нажимаются.";
 "settings.selectionAssistantActionBarPreviewEmpty" = "Нет действий для показа — при текущих настройках панель действий не появится.";
 "settings.selectionAssistantShowsExternalAsk" = "Показывать External Ask на панели выделения";
 "settings.selectionAssistantShowsExternalAskDescription" = "Состав и порядок действий берутся из настроек External Ask";

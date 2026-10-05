@@ -406,7 +406,6 @@
 "settings.selectionAssistantActionPrompts" = "Show prompts in the selection action bar";
 "settings.selectionAssistantActionBarCrowdingHint" = "The action bar may get too long when there are many actions. Remove unused ones, or turn off “Show labels beside icons” to show icons only.";
 "settings.selectionAssistantActionBarPreview" = "Action bar preview";
-"settings.selectionAssistantActionBarPreviewHint" = "For preview only — buttons are not clickable.";
 "settings.selectionAssistantActionBarPreviewEmpty" = "No actions to show — the action bar won’t appear with the current configuration.";
 "settings.selectionAssistantShowsExternalAsk" = "Show External Ask in the selection action bar";
 "settings.selectionAssistantShowsExternalAskDescription" = "Shown actions and order follow the External Ask settings";

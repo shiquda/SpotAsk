@@ -406,7 +406,6 @@
 "settings.selectionAssistantActionPrompts" = "Mostrar prompts en la barra de selección";
 "settings.selectionAssistantActionBarCrowdingHint" = "Con muchas acciones, la barra puede resultar demasiado larga. Quite las que no use, o desactive «Mostrar etiquetas junto a los iconos» para ver solo iconos.";
 "settings.selectionAssistantActionBarPreview" = "Vista previa de la barra de acciones";
-"settings.selectionAssistantActionBarPreviewHint" = "Solo para previsualización: los botones no se pueden pulsar.";
 "settings.selectionAssistantActionBarPreviewEmpty" = "No hay acciones que mostrar: con la configuración actual, la barra de acciones no aparecerá.";
 "settings.selectionAssistantShowsExternalAsk" = "Mostrar External Ask en la barra de selección";
 "settings.selectionAssistantShowsExternalAskDescription" = "Las acciones y el orden siguen los ajustes de External Ask";

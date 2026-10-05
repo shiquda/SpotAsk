@@ -178,19 +178,14 @@ struct SelectionAssistantSettingsPage: View {
     @ViewBuilder
     private var actionBarPreview: some View {
         let content = SelectionActionBarContent.resolve(from: settings)
-        VStack(alignment: .leading, spacing: 6) {
-            if content.isEmpty {
-                Text(L10n.string("settings.selectionAssistantActionBarPreviewEmpty"))
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else {
-                SelectionActionBarPreview(layout: content.layout)
-                    .frame(width: content.layout.size.width, height: content.layout.size.height)
-                Text(L10n.string("settings.selectionAssistantActionBarPreviewHint"))
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-            }
+        if content.isEmpty {
+            Text(L10n.string("settings.selectionAssistantActionBarPreviewEmpty"))
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            SelectionActionBarPreview(layout: content.layout)
+                .frame(width: content.layout.size.width, height: content.layout.size.height)
         }
     }
 
