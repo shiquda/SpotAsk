@@ -383,149 +383,92 @@ final class AppSettings {
         static let externalAskEnabled = "webQuickAskEnabled"
     }
 
-    private let defaults: UserDefaults
+    let defaults: UserDefaults
+    private var isInitializing = true
+    var dynamicSettingStorage: [String: Any] = [:]
     private var inAppShortcutConfiguration: InAppShortcutConfiguration
     private var providerRegistryStorage: ProviderModelRegistry!
     var providerRegistry: ProviderModelRegistry { providerRegistryStorage }
     var catalogLoadError: ProviderModelCatalogLoadError? { providerRegistry.loadError }
-    var systemPrompt: String { didSet { defaults.set(systemPrompt, forKey: Key.systemPrompt) } }
-    var contextLimit: Int { didSet { defaults.set(contextLimit, forKey: Key.contextLimit) } }
-    var retainSession: Bool { didSet { defaults.set(retainSession, forKey: Key.retainSession) } }
-    var clearInputOnClose: Bool { didSet { defaults.set(clearInputOnClose, forKey: Key.clearInputOnClose) } }
-    var confirmBeforeStartingNewConversation: Bool {
-        didSet { defaults.set(confirmBeforeStartingNewConversation, forKey: Key.confirmBeforeStartingNewConversation) }
+
+    func saveSetting(_ key: String) {
+        guard !isInitializing else { return }
+        SettingRegistry.shared.descriptor(forKey: key)?.save(from: self, to: defaults)
     }
-    var escapeStartsNewConversation: Bool {
-        didSet { defaults.set(escapeStartsNewConversation, forKey: Key.escapeStartsNewConversation) }
-    }
-    var defaultExpandReasoning: Bool {
-        didSet { defaults.set(defaultExpandReasoning, forKey: Key.defaultExpandReasoning) }
-    }
-    var renderMath: Bool { didSet { defaults.set(renderMath, forKey: Key.renderMath) } }
-    var launchAtLogin: Bool { didSet { defaults.set(launchAtLogin, forKey: Key.launchAtLogin) } }
-    var silentLaunch: Bool { didSet { defaults.set(silentLaunch, forKey: Key.silentLaunch) } }
-    var proxyEnabled: Bool { didSet { defaults.set(proxyEnabled, forKey: Key.proxyEnabled) } }
-    var proxyType: ProxyType { didSet { defaults.set(proxyType.rawValue, forKey: Key.proxyType) } }
-    var proxyHost: String { didSet { defaults.set(proxyHost, forKey: Key.proxyHost) } }
-    var proxyPort: Int { didSet { defaults.set(proxyPort, forKey: Key.proxyPort) } }
-    var proxyUsername: String { didSet { defaults.set(proxyUsername, forKey: Key.proxyUsername) } }
-    var diagnosticsEnabled: Bool {
-        didSet {
-            defaults.set(diagnosticsEnabled, forKey: Key.diagnosticsEnabled)
-            DiagnosticLogStore.shared.setEnabled(diagnosticsEnabled)
+
+    subscript<T>(descriptor: SettingDescriptor<T>) -> T {
+        get { descriptor.getValue(self) }
+        set {
+            descriptor.setValue(self, newValue)
+            descriptor.save(from: self, to: defaults)
         }
     }
-    var appearance: AppearanceMode {
-        didSet {
-            defaults.set(appearance.rawValue, forKey: Key.appearance)
-            NotificationCenter.default.post(name: .spotAskAppearanceChanged, object: self)
-        }
+
+    static func register(_ descriptor: any AnySettingDescriptor) {
+        SettingRegistry.shared.register(descriptor)
     }
-    var fontSize: FontSize { didSet { defaults.set(fontSize.rawValue, forKey: Key.fontSize) } }
-    var chatMessageStyle: ChatMessageStyle { didSet { defaults.set(chatMessageStyle.rawValue, forKey: Key.chatMessageStyle) } }
-    var interfaceZoomLevel: InterfaceZoomLevel {
-        didSet { defaults.set(interfaceZoomLevel.rawValue, forKey: Key.interfaceZoomLevel) }
+
+    static func unregister(_ descriptor: any AnySettingDescriptor) {
+        SettingRegistry.shared.unregister(key: descriptor.key)
     }
-    var language: AppLanguage {
-        didSet {
-            defaults.set(language.rawValue, forKey: Key.language)
-            NotificationCenter.default.post(name: .spotAskLanguageChanged, object: nil)
-        }
+
+    static func resetToStandardSettings() {
+        SettingRegistry.shared.resetToStandardSettings()
     }
-    var hotKeyPreset: HotKeyPreset { didSet { defaults.set(hotKeyPreset.rawValue, forKey: Key.hotKeyPreset) } }
-    var globalShortcut: InAppShortcut? {
-        didSet {
-            if let globalShortcut {
-                if let data = try? JSONEncoder().encode(globalShortcut) {
-                    defaults.set(data, forKey: Key.globalShortcut)
-                }
-            } else {
-                defaults.set(Data(), forKey: Key.globalShortcut)
-            }
-            NotificationCenter.default.post(name: .spotAskHotKeyChanged, object: nil)
-        }
+
+    var systemPrompt: String = "You are a helpful assistant." { didSet { saveSetting("systemPrompt") } }
+    var contextLimit: Int = 20 { didSet { saveSetting("contextLimit") } }
+    var retainSession: Bool = false { didSet { saveSetting("retainSession") } }
+    var clearInputOnClose: Bool = false { didSet { saveSetting("clearInputOnClose") } }
+    var confirmBeforeStartingNewConversation: Bool = true {
+        didSet { saveSetting("confirmBeforeStartingNewConversation") }
     }
-    var selectionAssistantEnabled: Bool {
-        didSet {
-            defaults.set(selectionAssistantEnabled, forKey: Key.selectionAssistantEnabled)
-            NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
-        }
+    var escapeStartsNewConversation: Bool = false {
+        didSet { saveSetting("escapeStartsNewConversation") }
     }
-    var selectionAssistantMode: SelectionAssistantMode { didSet { defaults.set(selectionAssistantMode.rawValue, forKey: Key.selectionAssistantMode) } }
-    var selectionHotKeyPreset: SelectionHotKeyPreset { didSet { defaults.set(selectionHotKeyPreset.rawValue, forKey: Key.selectionHotKeyPreset) } }
-    var selectionDefaultPromptID: UUID? {
-        didSet {
-            if let selectionDefaultPromptID { defaults.set(selectionDefaultPromptID.uuidString, forKey: Key.selectionDefaultPromptID) }
-            else { defaults.removeObject(forKey: Key.selectionDefaultPromptID) }
-        }
+    var defaultExpandReasoning: Bool = false {
+        didSet { saveSetting("defaultExpandReasoning") }
     }
-    var selectionAssistantToggleShortcut: InAppShortcut? {
-        didSet {
-            if let selectionAssistantToggleShortcut,
-               let data = try? JSONEncoder().encode(selectionAssistantToggleShortcut) {
-                defaults.set(data, forKey: Key.selectionAssistantToggleShortcut)
-            } else {
-                defaults.removeObject(forKey: Key.selectionAssistantToggleShortcut)
-            }
-            NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
-        }
-    }
-    var selectionActionBarShowsChatAction: Bool {
-        didSet {
-            defaults.set(selectionActionBarShowsChatAction, forKey: Key.selectionActionBarShowsChatAction)
-            NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
-        }
-    }
-    var selectionActionBarShowsLabels: Bool { didSet { defaults.set(selectionActionBarShowsLabels, forKey: Key.selectionActionBarShowsLabels) } }
-    var selectionActionBarShowsPrompts: Bool { didSet { defaults.set(selectionActionBarShowsPrompts, forKey: Key.selectionActionBarShowsPrompts) } }
-    var selectionActionBarShowsExternalAsk: Bool { didSet { defaults.set(selectionActionBarShowsExternalAsk, forKey: Key.selectionActionBarShowsExternalAsk) } }
-    var automaticUpdateCheckEnabled: Bool {
-        didSet { defaults.set(automaticUpdateCheckEnabled, forKey: Key.automaticUpdateCheckEnabled) }
-    }
-    var updateDownloadSource: UpdateDownloadSource {
-        didSet { defaults.set(updateDownloadSource.rawValue, forKey: Key.updateDownloadSource) }
-    }
-    /// Whether a cross-app selection automatically shows the quick actions after
-    /// `selectionAutoInvokeDelay` seconds. Defaults off so granting high-impact
-    /// accessibility access remains an explicit user decision.
-    var selectionAutoInvokeEnabled: Bool {
-        didSet {
-            defaults.set(selectionAutoInvokeEnabled, forKey: Key.selectionAutoInvokeEnabled)
-            NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
-        }
-    }
-    var selectionAutoInvokeScope: SelectionAutoInvokeScope {
-        didSet { defaults.set(selectionAutoInvokeScope.rawValue, forKey: Key.selectionAutoInvokeScope) }
-    }
-    var selectionAutoInvokeBlacklist: [String] {
-        didSet { defaults.set(selectionAutoInvokeBlacklist, forKey: Key.selectionAutoInvokeBlacklist) }
-    }
-    var selectionAutoInvokeWhitelist: [String] {
-        didSet { defaults.set(selectionAutoInvokeWhitelist, forKey: Key.selectionAutoInvokeWhitelist) }
-    }
-    /// Whether the listed apps are read through the clipboard instead of
-    /// Accessibility alone. Defaults off: the clipboard path briefly owns the
-    /// system pasteboard, so it stays an explicit opt-in per app.
-    var clipboardAssistedSelectionEnabled: Bool {
-        didSet {
-            defaults.set(clipboardAssistedSelectionEnabled, forKey: Key.clipboardAssistedSelectionEnabled)
-            NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
-        }
-    }
-    var clipboardAssistedSelectionAppIdentifiers: [String] {
-        didSet {
-            defaults.set(clipboardAssistedSelectionAppIdentifiers, forKey: Key.clipboardAssistedSelectionAppIdentifiers)
-            NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
-        }
-    }
-    /// Seconds between the selection settling and the quick actions appearing.
-    var selectionAutoInvokeDelay: Double {
+    var renderMath: Bool = true { didSet { saveSetting("renderMath") } }
+    var launchAtLogin: Bool = false { didSet { saveSetting("launchAtLogin") } }
+    var silentLaunch: Bool = false { didSet { saveSetting("silentLaunch") } }
+    var proxyEnabled: Bool = false { didSet { saveSetting("proxyEnabled") } }
+    var proxyType: ProxyType = .http { didSet { saveSetting("proxyType") } }
+    var proxyHost: String = "" { didSet { saveSetting("proxyHost") } }
+    var proxyPort: Int = 1080 { didSet { saveSetting("proxyPort") } }
+    var proxyUsername: String = "" { didSet { saveSetting("proxyUsername") } }
+    var diagnosticsEnabled: Bool = false { didSet { saveSetting("diagnosticsEnabled") } }
+    var appearance: AppearanceMode = .system { didSet { saveSetting("appearance") } }
+    var fontSize: FontSize = .standard { didSet { saveSetting("fontSize") } }
+    var chatMessageStyle: ChatMessageStyle = .standard { didSet { saveSetting("chatMessageStyle") } }
+    var interfaceZoomLevel: InterfaceZoomLevel = .standard { didSet { saveSetting("interfaceZoomLevel") } }
+    var language: AppLanguage = .system { didSet { saveSetting(AppLanguage.defaultsKey) } }
+    var hotKeyPreset: HotKeyPreset = .optionSpace { didSet { saveSetting("hotKeyPreset") } }
+    var globalShortcut: InAppShortcut? = nil { didSet { saveSetting("globalShortcut") } }
+    var selectionAssistantEnabled: Bool = false { didSet { saveSetting("selectionAssistantEnabled") } }
+    var selectionAssistantMode: SelectionAssistantMode = .actionBar { didSet { saveSetting("selectionAssistantMode") } }
+    var selectionHotKeyPreset: SelectionHotKeyPreset = .optionShiftSpace { didSet { saveSetting("selectionHotKeyPreset") } }
+    var selectionDefaultPromptID: UUID? = PromptPreset.builtIn.first?.id { didSet { saveSetting("selectionDefaultPromptID") } }
+    var selectionAssistantToggleShortcut: InAppShortcut? = nil { didSet { saveSetting("selectionAssistantToggleShortcut") } }
+    var selectionActionBarShowsChatAction: Bool = true { didSet { saveSetting("selectionActionBarShowsChatAction") } }
+    var selectionActionBarShowsLabels: Bool = true { didSet { saveSetting("selectionActionBarShowsLabels") } }
+    var selectionActionBarShowsPrompts: Bool = true { didSet { saveSetting("selectionActionBarShowsPrompts") } }
+    var selectionActionBarShowsExternalAsk: Bool = true { didSet { saveSetting("selectionActionBarShowsExternalAsk") } }
+    var automaticUpdateCheckEnabled: Bool = true { didSet { saveSetting("automaticUpdateCheckEnabled") } }
+    var updateDownloadSource: UpdateDownloadSource = .automatic { didSet { saveSetting("updateDownloadSource") } }
+    var selectionAutoInvokeEnabled: Bool = false { didSet { saveSetting("selectionAutoInvokeEnabled") } }
+    var selectionAutoInvokeScope: SelectionAutoInvokeScope = .allApps { didSet { saveSetting("selectionAutoInvokeScope") } }
+    var selectionAutoInvokeBlacklist: [String] = [] { didSet { saveSetting("selectionAutoInvokeBlacklist") } }
+    var selectionAutoInvokeWhitelist: [String] = [] { didSet { saveSetting("selectionAutoInvokeWhitelist") } }
+    var clipboardAssistedSelectionEnabled: Bool = false { didSet { saveSetting("clipboardAssistedSelectionEnabled") } }
+    var clipboardAssistedSelectionAppIdentifiers: [String] = [] { didSet { saveSetting("clipboardAssistedSelectionAppIdentifiers") } }
+    var selectionAutoInvokeDelay: Double = SelectionAutoInvokeDelay.defaultValue {
         didSet {
             let normalized = SelectionAutoInvokeDelay.normalized(selectionAutoInvokeDelay)
             if selectionAutoInvokeDelay != normalized {
                 selectionAutoInvokeDelay = normalized
             } else {
-                defaults.set(selectionAutoInvokeDelay, forKey: Key.selectionAutoInvokeDelay)
+                saveSetting("selectionAutoInvokeDelay")
             }
         }
     }
@@ -553,14 +496,9 @@ final class AppSettings {
         return clipboardAssistedSelectionAppIdentifiers.contains(identifier)
     }
 
-    var panelWidth: Double { didSet { defaults.set(panelWidth, forKey: Key.panelWidth) } }
-    var panelHeight: Double { didSet { defaults.set(panelHeight, forKey: Key.panelHeight) } }
-    var showsMenuBarIcon: Bool {
-        didSet {
-            defaults.set(showsMenuBarIcon, forKey: Key.showsMenuBarIcon)
-            NotificationCenter.default.post(name: .spotAskMenuBarIconVisibilityChanged, object: self)
-        }
-    }
+    var panelWidth: Double = 720 { didSet { saveSetting("panelWidth") } }
+    var panelHeight: Double = 520 { didSet { saveSetting("panelHeight") } }
+    var showsMenuBarIcon: Bool = true { didSet { saveSetting("showsMenuBarIcon") } }
 
     /// Last window position, remembered across launches. Nil until the window
     /// has been shown once, or after the saved spot falls off every screen.
@@ -580,7 +518,7 @@ final class AppSettings {
             defaults.set(newValue.y, forKey: Key.panelOriginY)
         }
     }
-    var keepWindowOnTop: Bool { didSet { defaults.set(keepWindowOnTop, forKey: Key.keepWindowOnTop) } }
+    var keepWindowOnTop: Bool = false { didSet { saveSetting("keepWindowOnTop") } }
     private var promptPresetCatalog: [PromptPreset] {
         didSet {
             savePromptPresetCatalog()
@@ -615,8 +553,8 @@ final class AppSettings {
     /// Master switch for the External Ask feature. Defaults to on; when off,
     /// the chips strip, shortcut targets, and shortcut-settings rows all hide.
     /// Catalog data and shortcut assignments are preserved for re-enabling.
-    var externalAskEnabled: Bool {
-        didSet { defaults.set(externalAskEnabled, forKey: Key.externalAskEnabled) }
+    var externalAskEnabled: Bool = true {
+        didSet { saveSetting("webQuickAskEnabled") }
     }
 
     var enabledQuickActions: [QuickAction] {
@@ -637,60 +575,6 @@ final class AppSettings {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        systemPrompt = defaults.string(forKey: Key.systemPrompt) ?? "You are a helpful assistant."
-        contextLimit = defaults.object(forKey: Key.contextLimit) as? Int ?? 20
-        retainSession = defaults.bool(forKey: Key.retainSession)
-        clearInputOnClose = defaults.object(forKey: Key.clearInputOnClose) as? Bool ?? false
-        confirmBeforeStartingNewConversation = defaults.object(forKey: Key.confirmBeforeStartingNewConversation) as? Bool ?? true
-        escapeStartsNewConversation = defaults.object(forKey: Key.escapeStartsNewConversation) as? Bool ?? false
-        defaultExpandReasoning = defaults.object(forKey: Key.defaultExpandReasoning) as? Bool ?? false
-        renderMath = defaults.object(forKey: Key.renderMath) as? Bool ?? true
-        launchAtLogin = defaults.bool(forKey: Key.launchAtLogin)
-        silentLaunch = defaults.object(forKey: Key.silentLaunch) as? Bool ?? false
-        proxyEnabled = defaults.object(forKey: Key.proxyEnabled) as? Bool ?? false
-        proxyType = ProxyType(rawValue: defaults.string(forKey: Key.proxyType) ?? "") ?? .http
-        proxyHost = defaults.string(forKey: Key.proxyHost) ?? ""
-        proxyPort = defaults.object(forKey: Key.proxyPort) as? Int ?? 1080
-        proxyUsername = defaults.string(forKey: Key.proxyUsername) ?? ""
-        diagnosticsEnabled = defaults.object(forKey: Key.diagnosticsEnabled) as? Bool ?? false
-        appearance = AppearanceMode(rawValue: defaults.string(forKey: Key.appearance) ?? "system") ?? .system
-        fontSize = FontSize(rawValue: defaults.string(forKey: Key.fontSize) ?? "standard") ?? .standard
-        chatMessageStyle = ChatMessageStyle(rawValue: defaults.string(forKey: Key.chatMessageStyle) ?? "") ?? .standard
-        interfaceZoomLevel = InterfaceZoomLevel(rawValue: defaults.string(forKey: Key.interfaceZoomLevel) ?? "standard") ?? .standard
-        language = AppLanguage(rawValue: defaults.string(forKey: Key.language) ?? "system") ?? .system
-        let loadedHotKeyPreset = HotKeyPreset(rawValue: defaults.string(forKey: Key.hotKeyPreset) ?? "optionSpace") ?? .optionSpace
-        hotKeyPreset = loadedHotKeyPreset
-        globalShortcut = Self.loadGlobalShortcut(from: defaults, hotKeyPreset: loadedHotKeyPreset)
-        selectionAssistantEnabled = defaults.object(forKey: Key.selectionAssistantEnabled) as? Bool ?? false
-        selectionAssistantMode = SelectionAssistantMode(rawValue: defaults.string(forKey: Key.selectionAssistantMode) ?? "actionBar") ?? .actionBar
-        selectionHotKeyPreset = SelectionHotKeyPreset(rawValue: defaults.string(forKey: Key.selectionHotKeyPreset) ?? "optionShiftSpace") ?? .optionShiftSpace
-        selectionDefaultPromptID = UUID(uuidString: defaults.string(forKey: Key.selectionDefaultPromptID) ?? "") ?? PromptPreset.builtIn.first?.id
-        selectionAssistantToggleShortcut = defaults.data(forKey: Key.selectionAssistantToggleShortcut).flatMap { try? JSONDecoder().decode(InAppShortcut.self, from: $0) }
-        selectionAutoInvokeEnabled = defaults.object(forKey: Key.selectionAutoInvokeEnabled) as? Bool ?? false
-        selectionAutoInvokeScope = SelectionAutoInvokeScope(rawValue: defaults.string(forKey: Key.selectionAutoInvokeScope) ?? "") ?? .allApps
-        selectionAutoInvokeBlacklist = defaults.stringArray(forKey: Key.selectionAutoInvokeBlacklist) ?? []
-        selectionAutoInvokeWhitelist = defaults.stringArray(forKey: Key.selectionAutoInvokeWhitelist) ?? []
-        clipboardAssistedSelectionEnabled = defaults.object(forKey: Key.clipboardAssistedSelectionEnabled) as? Bool ?? false
-        clipboardAssistedSelectionAppIdentifiers = defaults.stringArray(forKey: Key.clipboardAssistedSelectionAppIdentifiers) ?? []
-        selectionActionBarShowsChatAction = defaults.object(forKey: Key.selectionActionBarShowsChatAction) as? Bool ?? true
-        selectionActionBarShowsLabels = defaults.object(forKey: Key.selectionActionBarShowsLabels) as? Bool ?? true
-        selectionActionBarShowsPrompts = defaults.object(forKey: Key.selectionActionBarShowsPrompts) as? Bool ?? true
-        selectionActionBarShowsExternalAsk = defaults.object(forKey: Key.selectionActionBarShowsExternalAsk) as? Bool ?? true
-        automaticUpdateCheckEnabled = defaults.object(forKey: Key.automaticUpdateCheckEnabled) as? Bool ?? true
-        if let rawUpdateSource = defaults.string(forKey: Key.updateDownloadSource),
-           let source = UpdateDownloadSource(rawValue: rawUpdateSource) {
-            updateDownloadSource = source
-        } else {
-            updateDownloadSource = .automatic
-        }
-        selectionAutoInvokeDelay = SelectionAutoInvokeDelay.normalized(
-            defaults.object(forKey: Key.selectionAutoInvokeDelay) as? Double ?? SelectionAutoInvokeDelay.defaultValue
-        )
-        panelWidth = defaults.object(forKey: Key.panelWidth) as? Double ?? 720
-        panelHeight = defaults.object(forKey: Key.panelHeight) as? Double ?? 520
-        showsMenuBarIcon = defaults.object(forKey: Key.showsMenuBarIcon) as? Bool ?? true
-        keepWindowOnTop = defaults.object(forKey: Key.keepWindowOnTop) as? Bool ?? false
-        externalAskEnabled = defaults.object(forKey: Key.externalAskEnabled) as? Bool ?? true
         promptPresetCatalog = Self.loadPromptPresetCatalog(from: defaults)
         quickActionCatalog = Self.loadQuickActionCatalog(from: defaults)
         inAppShortcutConfiguration = Self.loadInAppShortcutConfiguration(from: defaults)
@@ -704,10 +588,14 @@ final class AppSettings {
                 timeout: defaults.object(forKey: Key.timeout) as? Double ?? 60
             )
         )
+        for descriptor in SettingRegistry.shared.descriptors {
+            descriptor.load(into: self, from: defaults)
+        }
         savePromptPresetCatalog()
         saveQuickActionCatalog()
         saveCustomPromptPresets()
         cleanUpShortcutAssignments()
+        isInitializing = false
     }
 
     /// Missing key keeps the historical hot-key preset. Empty data is an
@@ -914,33 +802,12 @@ final class AppSettings {
         guard let providerCatalog = providerRegistry.catalog else {
             throw SpotAskConfigBackupError.catalogUnavailable
         }
+        var general = SpotAskConfigBackup.General()
+        for descriptor in SettingRegistry.shared.descriptors {
+            descriptor.exportValue(from: self, to: &general)
+        }
         var backup = SpotAskConfigBackup(
-            general: .init(
-                systemPrompt: systemPrompt,
-                contextLimit: contextLimit,
-                retainSession: retainSession,
-                clearInputOnClose: clearInputOnClose,
-                confirmBeforeStartingNewConversation: confirmBeforeStartingNewConversation,
-                escapeStartsNewConversation: escapeStartsNewConversation,
-                defaultExpandReasoning: defaultExpandReasoning,
-                renderMath: renderMath,
-                launchAtLogin: launchAtLogin,
-                appearance: appearance.rawValue,
-                fontSize: fontSize.rawValue,
-                chatMessageStyle: chatMessageStyle.rawValue,
-                interfaceZoomLevel: interfaceZoomLevel.rawValue,
-                language: language.rawValue,
-                hotKeyPreset: hotKeyPreset.rawValue,
-                keepWindowOnTop: keepWindowOnTop,
-                showsMenuBarIcon: showsMenuBarIcon,
-                automaticUpdateCheckEnabled: automaticUpdateCheckEnabled,
-                updateDownloadSource: updateDownloadSource.rawValue,
-                proxyEnabled: proxyEnabled,
-                proxyType: proxyType.rawValue,
-                proxyHost: proxyHost,
-                proxyPort: proxyPort,
-                proxyUsername: proxyUsername
-            ),
+            general: general,
             promptPresetCatalog: promptPresetCatalog,
             quickActionCatalog: quickActionCatalog,
             shortcutConfiguration: inAppShortcutConfiguration,
@@ -981,37 +848,9 @@ final class AppSettings {
         var touchedKeySlots: [UUID: String?] = [:]
 
         do {
-            let general = backup.general
-            systemPrompt = general.systemPrompt
-            contextLimit = general.contextLimit
-            retainSession = general.retainSession
-            clearInputOnClose = general.clearInputOnClose
-            confirmBeforeStartingNewConversation = general.confirmBeforeStartingNewConversation
-            escapeStartsNewConversation = general.escapeStartsNewConversation
-            defaultExpandReasoning = general.defaultExpandReasoning
-            renderMath = general.renderMath ?? true
-            launchAtLogin = general.launchAtLogin
-            appearance = AppearanceMode(rawValue: general.appearance) ?? .system
-            fontSize = FontSize(rawValue: general.fontSize) ?? .standard
-            chatMessageStyle = ChatMessageStyle(rawValue: general.chatMessageStyle ?? "") ?? .standard
-            interfaceZoomLevel = InterfaceZoomLevel(rawValue: general.interfaceZoomLevel) ?? .standard
-            language = AppLanguage(rawValue: general.language) ?? .system
-            hotKeyPreset = HotKeyPreset(rawValue: general.hotKeyPreset) ?? .optionSpace
-            keepWindowOnTop = general.keepWindowOnTop
-            showsMenuBarIcon = general.showsMenuBarIcon
-            if let automaticUpdateCheckEnabled = general.automaticUpdateCheckEnabled {
-                self.automaticUpdateCheckEnabled = automaticUpdateCheckEnabled
+            for descriptor in SettingRegistry.shared.descriptors {
+                descriptor.importValue(into: self, from: backup.general)
             }
-            if let rawUpdateSource = general.updateDownloadSource,
-               let source = UpdateDownloadSource(rawValue: rawUpdateSource) {
-                self.updateDownloadSource = source
-            }
-            if let proxyEnabled = general.proxyEnabled { self.proxyEnabled = proxyEnabled }
-            if let proxyType = general.proxyType, let type = ProxyType(rawValue: proxyType) { self.proxyType = type }
-            if let proxyHost = general.proxyHost { self.proxyHost = proxyHost }
-            if let proxyPort = general.proxyPort { self.proxyPort = proxyPort }
-            if let proxyUsername = general.proxyUsername { self.proxyUsername = proxyUsername }
-
             promptPresetCatalog = Self.normalizedPromptPresetCatalog(backup.promptPresetCatalog)
             if let quickActionCatalog = backup.quickActionCatalog {
                 self.quickActionCatalog = Self.normalizedQuickActionCatalog(quickActionCatalog)
@@ -1056,37 +895,9 @@ final class AppSettings {
         keyStore: (any APIKeyStoring)?
     ) -> [any Error] {
         var rollbackErrors: [any Error] = []
-        let general = snapshot.general
-        systemPrompt = general.systemPrompt
-        contextLimit = general.contextLimit
-        retainSession = general.retainSession
-        clearInputOnClose = general.clearInputOnClose
-        confirmBeforeStartingNewConversation = general.confirmBeforeStartingNewConversation
-        escapeStartsNewConversation = general.escapeStartsNewConversation
-        defaultExpandReasoning = general.defaultExpandReasoning
-        renderMath = general.renderMath ?? true
-        launchAtLogin = general.launchAtLogin
-        appearance = AppearanceMode(rawValue: general.appearance) ?? .system
-        fontSize = FontSize(rawValue: general.fontSize) ?? .standard
-        chatMessageStyle = ChatMessageStyle(rawValue: general.chatMessageStyle ?? "") ?? .standard
-        interfaceZoomLevel = InterfaceZoomLevel(rawValue: general.interfaceZoomLevel) ?? .standard
-        language = AppLanguage(rawValue: general.language) ?? .system
-        hotKeyPreset = HotKeyPreset(rawValue: general.hotKeyPreset) ?? .optionSpace
-        keepWindowOnTop = general.keepWindowOnTop
-        showsMenuBarIcon = general.showsMenuBarIcon
-        if let automaticUpdateCheckEnabled = general.automaticUpdateCheckEnabled {
-            self.automaticUpdateCheckEnabled = automaticUpdateCheckEnabled
+        for descriptor in SettingRegistry.shared.descriptors {
+            descriptor.importValue(into: self, from: snapshot.general)
         }
-        if let rawUpdateSource = general.updateDownloadSource,
-           let source = UpdateDownloadSource(rawValue: rawUpdateSource) {
-            self.updateDownloadSource = source
-        }
-        if let proxyEnabled = general.proxyEnabled { self.proxyEnabled = proxyEnabled }
-        if let proxyType = general.proxyType, let type = ProxyType(rawValue: proxyType) { self.proxyType = type }
-        if let proxyHost = general.proxyHost { self.proxyHost = proxyHost }
-        if let proxyPort = general.proxyPort { self.proxyPort = proxyPort }
-        if let proxyUsername = general.proxyUsername { self.proxyUsername = proxyUsername }
-
         promptPresetCatalog = Self.normalizedPromptPresetCatalog(snapshot.promptPresetCatalog)
         if let quickActionCatalog = snapshot.quickActionCatalog {
             self.quickActionCatalog = Self.normalizedQuickActionCatalog(quickActionCatalog)
@@ -1118,82 +929,14 @@ final class AppSettings {
     }
 
     func resetToDefaults() {
-        let keysToRemove = [
-            Key.baseURL, Key.useFullEndpoint, Key.model, Key.streaming, Key.timeout,
-            Key.systemPrompt, Key.contextLimit, Key.retainSession, Key.clearInputOnClose,
-            Key.confirmBeforeStartingNewConversation, Key.escapeStartsNewConversation,
-            Key.defaultExpandReasoning, Key.renderMath, Key.launchAtLogin, Key.silentLaunch,
-            Key.proxyEnabled, Key.proxyType, Key.proxyHost, Key.proxyPort, Key.proxyUsername,
-            Key.diagnosticsEnabled, Key.appearance, Key.fontSize, Key.chatMessageStyle,
-            Key.interfaceZoomLevel, Key.language, Key.hotKeyPreset, Key.globalShortcut,
-            Key.selectionAssistantEnabled, Key.selectionAssistantMode, Key.selectionHotKeyPreset,
-            Key.selectionDefaultPromptID, Key.selectionAssistantToggleShortcut,
-            Key.selectionAutoInvokeEnabled, Key.selectionAutoInvokeScope,
-            Key.selectionAutoInvokeBlacklist, Key.selectionAutoInvokeWhitelist,
-            Key.clipboardAssistedSelectionEnabled, Key.clipboardAssistedSelectionAppIdentifiers,
-            Key.selectionActionBarShowsChatAction, Key.selectionActionBarShowsLabels,
-            Key.selectionActionBarShowsPrompts, Key.selectionActionBarShowsExternalAsk,
-            Key.automaticUpdateCheckEnabled, Key.updateDownloadSource,
-            Key.selectionAutoInvokeDelay, Key.panelWidth, Key.panelHeight,
-            Key.showsMenuBarIcon, Key.keepWindowOnTop, Key.externalAskEnabled,
-            Key.customPromptPresets, Key.promptPresetCatalog, Key.quickActionCatalog,
-            Key.inAppShortcutConfiguration, ProviderModelRegistry.defaultsKey,
-            ProviderModelRegistry.pendingLegacyAPIKeyMigrationProviderIDDefaultsKey
-        ]
-        for key in keysToRemove {
-            defaults.removeObject(forKey: key)
+        for descriptor in SettingRegistry.shared.descriptors {
+            descriptor.reset(in: self, defaults: defaults)
         }
-
-        systemPrompt = ""
-        contextLimit = 20
-        retainSession = true
-        clearInputOnClose = false
-        confirmBeforeStartingNewConversation = true
-        escapeStartsNewConversation = true
-        defaultExpandReasoning = false
-        renderMath = true
-        launchAtLogin = false
-        silentLaunch = false
-        proxyEnabled = false
-        proxyType = .http
-        proxyHost = ""
-        proxyPort = 1080
-        proxyUsername = ""
-        diagnosticsEnabled = false
-        appearance = .system
-        fontSize = .standard
-        chatMessageStyle = .standard
-        interfaceZoomLevel = .standard
-        language = .system
-        hotKeyPreset = .optionSpace
-        globalShortcut = HotKeyPreset.optionSpace.shortcut
-        selectionAssistantEnabled = false
-        selectionAssistantMode = .actionBar
-        selectionHotKeyPreset = .optionShiftSpace
-        selectionDefaultPromptID = PromptPreset.builtIn.first?.id
-        selectionAssistantToggleShortcut = nil
-        selectionAutoInvokeEnabled = false
-        selectionAutoInvokeScope = .allApps
-        selectionAutoInvokeBlacklist = []
-        selectionAutoInvokeWhitelist = []
-        clipboardAssistedSelectionEnabled = false
-        clipboardAssistedSelectionAppIdentifiers = []
-        selectionActionBarShowsChatAction = true
-        selectionActionBarShowsLabels = true
-        selectionActionBarShowsPrompts = true
-        selectionActionBarShowsExternalAsk = true
-        automaticUpdateCheckEnabled = true
-        updateDownloadSource = .automatic
-        selectionAutoInvokeDelay = SelectionAutoInvokeDelay.defaultValue
-        panelWidth = 720
-        panelHeight = 520
-        showsMenuBarIcon = true
-        keepWindowOnTop = false
-        externalAskEnabled = true
+        defaults.removeObject(forKey: ProviderModelRegistry.defaultsKey)
+        defaults.removeObject(forKey: ProviderModelRegistry.pendingLegacyAPIKeyMigrationProviderIDDefaultsKey)
         promptPresetCatalog = PromptPreset.builtIn
         quickActionCatalog = Self.loadQuickActionCatalog(from: defaults)
         inAppShortcutConfiguration = InAppShortcutConfiguration()
-
         let provider = ProviderConfiguration(
             name: "OpenAI Compatible",
             address: "https://api.openai.com/v1",
