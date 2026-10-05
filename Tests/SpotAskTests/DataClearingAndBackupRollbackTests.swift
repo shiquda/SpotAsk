@@ -6,7 +6,13 @@ private final class InMemoryKeyStore: APIKeyStoring, @unchecked Sendable {
     var shouldFailOnSave = false
     var failOnProviderID: UUID?
     var failOnReadProviderID: UUID?
+    var failOnSecondReadProviderID: UUID?
+    var readCounts: [UUID: Int] = [:]
     func readAPIKey(for providerID: UUID) throws -> String? {
+        readCounts[providerID, default: 0] += 1
+        if failOnSecondReadProviderID == providerID && readCounts[providerID] == 2 {
+            throw NSError(domain: "test", code: -3, userInfo: [NSLocalizedDescriptionKey: "Simulated second read failure"])
+        }
         if failOnReadProviderID == providerID {
             throw NSError(domain: "test", code: -2, userInfo: [NSLocalizedDescriptionKey: "Simulated read failure"])
         }
@@ -377,13 +383,13 @@ final class DataClearingAndBackupRollbackTests: XCTestCase {
             provider2.id.uuidString: "new-key-2"
         ]
 
-        // Fail reading provider 2's existing key
-        keyStore.failOnReadProviderID = provider2.id
+        // Fail reading provider 2's existing key during applyConfigurationBackup (second read, after snapshot)
+        keyStore.failOnSecondReadProviderID = provider2.id
 
         XCTAssertThrowsError(try settings.applyConfigurationBackup(backup, keyStore: keyStore))
 
         // Re-enable reads to verify persisted values
-        keyStore.failOnReadProviderID = nil
+        keyStore.failOnSecondReadProviderID = nil
 
         // Provider 1 was touched and written, then rolled back to original-secret-1
         XCTAssertEqual(try keyStore.readAPIKey(for: provider1.id), "original-secret-1")
