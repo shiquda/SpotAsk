@@ -7,14 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-10-05
+
 ### Added
 
-- Settings > Selection Assistant previews the action bar itself: the four display switches above it redraw a real bar as you flip them, so you can see what **show labels beside icons**, the chat icon, prompts, and External Ask actually look like when you select text. The bar in Settings is a preview only — its buttons are not clickable, and a configuration with no action shows an explanation instead of an empty bar.
+- Settings > Selection Assistant previews the action bar live: the four display switches above it redraw a real 1:1 render of the action bar as you toggle them, making the effect of **show labels beside icons**, the chat icon, prompt presets, and External Ask visible without needing to select text. The bar in Settings is a preview only — its buttons are not clickable, and a configuration with no action shows an explanation instead of an empty bar.
+- Checking for updates when already up to date now displays a lightweight in-app toast notification instead of an intrusive modal dialog.
 
 ### Fixed
 
 - A question sent from the composer to another app now closes the question window again once the target opens, so a pinned window no longer covers the ChatGPT, app, or Terminal window it just opened. A launch that fails keeps the window with your question and the error, a target mounted while the input is empty keeps it, and retrying from an answer's model picker keeps it so you can compare answers.
-- The documentation site dates every page from the file that owns its text again. The build now checks out full Git history, so a commit that touches no page no longer moves every page's "Last updated" time, and the generated changelog pages show a date instead of none.
+- Clearing local data in Settings now thoroughly purges session history; failed configuration backup imports now atomically roll back to prevent corrupted partial settings.
 
 ## [0.2.5] - 2026-09-20
 
@@ -194,7 +197,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provider cards can be expanded and collapsed reliably.
 - Thinking expansion behavior: when enabled, thinking stays expanded during reasoning and collapses for the final answer; when disabled, it stays collapsed.
 
-[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/shiquda/SpotAsk/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/shiquda/SpotAsk/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/shiquda/SpotAsk/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/shiquda/SpotAsk/compare/v0.2.2...v0.2.3
