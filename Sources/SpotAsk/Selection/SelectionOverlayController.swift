@@ -325,7 +325,6 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
     private func panelOrigin(for anchor: SelectionAnchor, size: NSSize) -> NSPoint {
         let point: NSPoint
         switch anchor {
-        case let .selectionRect(rect), let .elementRect(rect): point = NSPoint(x: rect.midX - size.width / 2, y: rect.minY - size.height - 8)
         case let .pointer(pointValue): point = NSPoint(x: pointValue.x + 8, y: pointValue.y - size.height - 8)
         }
         let screen = NSScreen.screens.first { $0.visibleFrame.contains(point) } ?? NSScreen.main

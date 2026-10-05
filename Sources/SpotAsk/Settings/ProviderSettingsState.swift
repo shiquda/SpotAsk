@@ -178,7 +178,7 @@ final class ProviderSettingsState {
         self.providerFactory = providerFactory
         self.modelDiscovery = modelDiscovery ?? ProviderModelDiscoveryRouter(
             urlSession: ChatNetworking.urlSession(
-                proxyConfiguration: Self.makeProxyConfiguration(settings: settings, keyStore: keyStore)
+                proxyConfiguration: ChatNetworking.proxyConfiguration(settings: settings, keyStore: keyStore)
             )
         )
         self.activeModelID = settings.providerRegistry.catalog?.selectedModelID
@@ -844,26 +844,12 @@ final class ProviderSettingsState {
         }
     }
 
-    private static func makeProxyConfiguration(
-        settings: AppSettings,
-        keyStore: any APIKeyStoring
-    ) -> [String: Any]? {
-        guard settings.proxyEnabled else { return nil }
-        let password = (try? keyStore.readAPIKey(for: ProxyCredentialSlot.providerID)) ?? ""
-        return ChatNetworking.proxyConfiguration(
-            type: settings.proxyType,
-            host: settings.proxyHost,
-            port: settings.proxyPort,
-            username: settings.proxyUsername,
-            password: password
-        )
-    }
 
     private var effectiveModelDiscovery: any ProviderModelDiscovering {
         guard modelDiscovery is ProviderModelDiscoveryRouter else { return modelDiscovery }
         return ProviderModelDiscoveryRouter(
             urlSession: ChatNetworking.urlSession(
-                proxyConfiguration: Self.makeProxyConfiguration(settings: settings, keyStore: keyStore)
+                proxyConfiguration: ChatNetworking.proxyConfiguration(settings: settings, keyStore: keyStore)
             )
         )
     }
