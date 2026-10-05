@@ -99,6 +99,13 @@
 		001000000000000000000058 /* AtCommandPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000071 /* AtCommandPalette.swift */; };
 		001000000000000000000097 /* SelectionActionBarContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000097 /* SelectionActionBarContent.swift */; };
 		001000000000000000000098 /* SelectionActionBarContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000098 /* SelectionActionBarContentView.swift */; };
+		001000000000000000000099 /* ChatRequestBodyBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000099 /* ChatRequestBodyBuilder.swift */; };
+		00100000000000000000009A /* SandboxDataMigrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000009A /* SandboxDataMigrator.swift */; };
+		00100000000000000000009B /* SettingDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000009B /* SettingDescriptor.swift */; };
+		00100000000000000000009C /* ChatComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000009C /* ChatComposerView.swift */; };
+		00100000000000000000009D /* ChatHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000009D /* ChatHeaderView.swift */; };
+		00100000000000000000009E /* ChatMessageListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000009E /* ChatMessageListView.swift */; };
+		00100000000000000000009F /* ChatReconciliationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000009F /* ChatReconciliationCoordinator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -210,6 +217,13 @@
 		002000000000000000000071 /* AtCommandPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/AtCommandPalette.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000097 /* SelectionActionBarContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionActionBarContent.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000098 /* SelectionActionBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionActionBarContentView.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000099 /* ChatRequestBodyBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/ChatRequestBodyBuilder.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000009A /* SandboxDataMigrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Persistence/SandboxDataMigrator.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000009B /* SettingDescriptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/SettingDescriptor.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000009C /* ChatComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatComposerView.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000009D /* ChatHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatHeaderView.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000009E /* ChatMessageListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatMessageListView.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000009F /* ChatReconciliationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatReconciliationCoordinator.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -313,6 +327,13 @@
 				002000000000000000000093 /* DocumentationLinks.swift */,
 					002000000000000000000097 /* SelectionActionBarContent.swift */,
 				002000000000000000000098 /* SelectionActionBarContentView.swift */,
+				002000000000000000000099 /* ChatRequestBodyBuilder.swift */,
+				00200000000000000000009A /* SandboxDataMigrator.swift */,
+				00200000000000000000009B /* SettingDescriptor.swift */,
+				00200000000000000000009C /* ChatComposerView.swift */,
+				00200000000000000000009D /* ChatHeaderView.swift */,
+				00200000000000000000009E /* ChatMessageListView.swift */,
+				00200000000000000000009F /* ChatReconciliationCoordinator.swift */,
 		);
 			name = Sources;
 			sourceTree = "<group>";
@@ -499,6 +520,7 @@
 				001000000000000000000056,
 				001000000000000000000058,
 				001000000000000000000057,
+				001000000000000000000097, 001000000000000000000098, 001000000000000000000099, 00100000000000000000009A, 00100000000000000000009B, 00100000000000000000009C, 00100000000000000000009D, 00100000000000000000009E, 00100000000000000000009F,
 		);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
