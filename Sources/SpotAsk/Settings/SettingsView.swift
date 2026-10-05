@@ -324,7 +324,9 @@ struct SettingsView: View {
         accessibilityPermissionCoordinator: AccessibilityPermissionCoordinator = AccessibilityPermissionCoordinator(),
         accessibilitySettingsOpener: any AccessibilityPermissionSettingsOpening = MacOSAccessibilityPermissionSettingsOpener(),
         model: SettingsWindowModel = SettingsWindowModel(),
-        settingsWindowProvider: (() -> NSWindow?)? = nil
+        sessionStore: SessionStore = SessionStore(),
+        settingsWindowProvider: (() -> NSWindow?)? = nil,
+        onClearAllData: (() -> Void)? = nil
     ) {
         self.settings = settings
         self.accessibilityPermissionCoordinator = accessibilityPermissionCoordinator
@@ -340,8 +342,10 @@ struct SettingsView: View {
         _generalState = State(initialValue: GeneralSettingsState(
             settings: settings,
             keyStore: keyStore,
+            sessionStore: sessionStore,
             settingsWindowProvider: settingsWindowProvider,
-            onConfigurationImported: { providerState.reloadCatalogSelection() }
+            onConfigurationImported: { providerState.reloadCatalogSelection() },
+            onClearAllData: onClearAllData
         ))
     }
 
