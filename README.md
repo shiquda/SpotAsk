@@ -5,7 +5,7 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  A native macOS menu-bar AI assistant & query router — summon it with a hotkey, then send the question wherever it belongs.
+  A native macOS menu-bar AI assistant & query router. Summon with a hotkey, get instant answers, or route anywhere in one click.
 </p>
 
 <p align="center">
@@ -15,47 +15,45 @@
 </p>
 
 <p align="center">
-  <a href="#download">Download</a> · <a href="https://shiquda.github.io/SpotAsk/">Documentation</a> · <a href="#quick-start">Build from source</a> · <a href="#development">Development</a> · <a href="README.zh-CN.md">简体中文</a>
+  <a href="#download">Download</a> · <a href="#highlights">Highlights</a> · <a href="https://shiquda.github.io/SpotAsk/">Documentation</a> · <a href="#quick-start">Quick start</a> · <a href="#build-from-source">Build from source</a> · <a href="README.zh-CN.md">简体中文</a>
 </p>
 
-## What SpotAsk does
+## Highlights
 
-- **Route queries in 1 click (External Ask)** — hand off questions to 3 concrete destinations without consuming API tokens or saving history:
-  - **Web platforms** — launch queries directly in ChatGPT, Perplexity, Grok, and more.
-  - **Desktop apps** — trigger installed desktop applications via custom URI schemes.
-  - **Terminal & CLI agents** — wake up local CLI agents directly in Terminal.
-- **Prompt presets** — built-in prompts for everyday workflows plus custom prompt creation and custom shortcuts.
-- **Selection assistant with instant chat action** — highlight text in Safari, Notes, Xcode, or any other app; click the dedicated chat icon to bring text directly into the conversation, or run translation, explanation, summarization, and custom prompts from the floating quick action bar.
-- **Instant hotkey capture** — press `Option + Space` (customizable) to summon a focused input window from anywhere; get direct streaming answers using your own API key (BYOK), or press `Esc` to instantly close the window when done.
-- **Ask with attachments** — paste screenshots or drop in images, text, and code files; follow-up questions seamlessly retain the attached context.
-- **Featherweight pure native** — built entirely in Swift and AppKit; ~10 MB installer, no Electron runtime; cold-starts instantly, idles quietly in the menu bar, and uses minimal memory.
+- **Instant hotkey capture, dismiss anytime** — Press `⌥ + Space` (customizable) to summon a focused input window anywhere; stream answers using your own API key (BYOK), then tap `Esc` to close without breaking stride.
+- **1-click query routing (External Ask)** — Hand off questions to external tools without consuming API tokens or cluttering history:
+  - **Web AI**: Launch queries directly in ChatGPT, Perplexity, Grok, and more.
+  - **CLI agents**: Wake up local command-line agents (like omp) directly in Terminal.
+  - **Desktop apps**: Trigger installed apps and note-taking tools via custom URI schemes.
+- **Global selection assistant** — Highlight text in Safari, Xcode, or Notes to trigger an inline action bar; send text directly into chat for follow-up, or translate, explain, summarize, and polish in place.
+- **Multimodal & attachments** — Paste screenshots or drop in images, text, and code files; multi-turn conversations seamlessly retain context.
+- **Prompt presets** — Built-in templates for daily workflows, with custom prompt creation and dedicated shortcuts.
+- **Pure native & lightweight** — Built entirely with Swift and AppKit; ~10 MB installer, zero Electron runtime, instant cold-starts, and minimal memory footprint.
+## Workflows in action
 
-## Core philosophy & typical use cases
+SpotAsk is built around two simple ideas: **"Ask first. Decide where it goes after."** and **"Summon anytime. Dismiss instantly."** — keeping everyday AI interactions fast, keyboard-first, and zero-friction.
 
-SpotAsk is designed around **"Ask first. Decide where it goes after"** and **"Summon anytime. Dismiss instantly"** — keeping everyday AI interactions lightweight, keyboard-first, and zero-overhead.
+### 1. Hotkey summoning: Ask and dismiss
 
-### 1. Core interaction: Summon, ask, and close
-
-Press your global hotkey (default `Option + Space`) to summon the question window from anywhere, get streaming answers directly in the window, and press `Esc` to instantly close it when done.
-
+Press the global hotkey (default `⌥ + Space`) to summon a focused question window, get a streaming answer, and press `Esc` when you are done.
 <p align="center">
   <img src="images/spotask-hotkey.gif" width="480" alt="SpotAsk chat window summoned with a hotkey, streaming answers, and closing with Escape">
 </p>
 
-### 2. Everyday extensions: Selection assistant & External routing
+### 2. Selection assistant & External routing
 
 <table>
   <tr>
-    <td width="50%" align="center"><strong>Ask about selected text</strong></td>
-    <td width="50%" align="center"><strong>External Ask (CLI agents & tools)</strong></td>
+    <td width="50%" align="center"><strong>Work with selected text</strong></td>
+    <td width="50%" align="center"><strong>1-click external routing (External Ask)</strong></td>
   </tr>
   <tr>
     <td width="50%" align="center"><img src="images/spotask-selection.gif" width="480" alt="SpotAsk quick action bar next to selected text in another app"></td>
     <td width="50%" align="center"><img src="images/spotask-external.gif" width="480" alt="SpotAsk routing a question to a local CLI agent in Terminal"></td>
   </tr>
   <tr>
-    <td width="50%" align="center">Select text in any app to trigger the floating action bar for instant translation, explanation, or custom prompts.</td>
-    <td width="50%" align="center">Press a shortcut to hand off questions to local CLI agents (e.g. omp) or web AI platforms in 1 click without API keys.</td>
+    <td width="50%" align="center">Highlight text anywhere to translate, explain, polish, or bring directly into chat.</td>
+    <td width="50%" align="center">Press a shortcut to route questions to local CLI agents (e.g. omp) or web AI platforms without spending API tokens.</td>
   </tr>
 </table>
 
@@ -73,85 +71,50 @@ Or download the matching package from [GitHub Releases](https://github.com/shiqu
 - **Apple silicon** — choose the `arm64` DMG for M-series Macs.
 - **Intel** — choose the `x86_64` DMG for Intel Macs.
 
-The packages are signed with a Developer ID and notarized by Apple, so macOS can verify them on first launch without a manual confirmation. The official release supports SpotAsk from Spotlight, Siri, Shortcuts, or `spotask://` URLs. To build a custom version instead, follow [Build with system integrations](#build-with-system-integrations).
-
-## Documentation
-
-The [SpotAsk user guide](https://shiquda.github.io/SpotAsk/) covers installation, AI service setup, selection actions, prompts, attachments, macOS integrations, settings, and troubleshooting. It is available in [English](https://shiquda.github.io/SpotAsk/) and [Simplified Chinese](https://shiquda.github.io/SpotAsk/zh-CN/).
-
-Start with [Getting Started](https://shiquda.github.io/SpotAsk/getting-started), or open [Troubleshooting](https://shiquda.github.io/SpotAsk/troubleshooting) when a connection, model, permission, or shortcut does not work as expected.
+The packages are signed with a Developer ID and notarized by Apple for a seamless first launch.
 
 ## Quick start
 
-You can also build SpotAsk from source.
+1. **Configure provider**: Open Settings (`⌘ + ,`), choose **Services**, and add your OpenAI-compatible or Anthropic endpoint, model ID, and API key.
+2. **Test connection**: Click **Test Connection** to verify your credentials.
+3. **Start asking**: Press `⌥ + Space` anywhere to summon SpotAsk and type your first question!
 
-**Requirements**
+## Key shortcuts
 
-- macOS 15 or later
-- Xcode 16 or later
-- A service account that provides an OpenAI-compatible or Anthropic chat API
+| Action | Shortcut | Notes |
+| --- | --- | --- |
+| Summon / Dismiss window | `⌥ + Space` | Global hotkey, customizable in Settings |
+| Selection action bar | `⌥ + ⇧ + Space` | Trigger actions near highlighted text |
+| Dismiss / Stop generating | `Esc` | Instant close with zero friction |
+| New conversation | `⌘ + N` | Clear conversation history |
+| Open Settings | `⌘ + ,` | Configure providers, shortcuts, and appearance |
 
-**Build and run**
+> For full shortcut mapping and detailed options, see the [Settings & Shortcuts Reference](https://shiquda.github.io/SpotAsk/reference).
+
+## Privacy
+
+- **BYOK (Bring Your Own Key)**: Access keys are stored securely in macOS Keychain and sent only to your configured provider.
+- **Zero telemetry**: No account required, no middle proxy servers, and no tracking.
+- **On-demand permissions**: The selection assistant requests Accessibility permissions only when enabled, and reads text strictly when you highlight it.
+
+## Build from source
+
+**Requirements**: macOS 15+, Xcode 16+.
 
 ```sh
 ./Scripts/install-debug-app.sh
 ```
 
-After launch, SpotAsk Debug appears in your menu bar. It uses a separate app identity so its macOS permissions do not replace those of the official release. The app has no Dock icon.
+SpotAsk Debug will appear in your menu bar with an isolated app identity that does not interfere with production releases.
 
-### Build with system integrations
+### System integrations
 
-The official release supports Spotlight, Siri, and Shortcuts. If you build a custom version, sign it with an Apple development team. A free Apple Account is sufficient for a personal build:
+Official releases support Spotlight, Siri, and Shortcuts. For custom builds, sign the target with your Personal Team in Xcode.
 
-1. Open `SpotAsk.xcodeproj` in Xcode.
-2. Select the SpotAsk target, then open **Signing & Capabilities**.
-3. Choose your Personal Team under **Team** and keep **Automatically manage signing** enabled.
-4. If Xcode reports that the bundle identifier is unavailable, change **Bundle Identifier** to a unique value.
-5. Run the app from Xcode once before using its actions in Shortcuts.
+## Documentation & Development
 
-Personal Team builds are intended for personal use and may need to be rebuilt periodically.
-
-## First-run configuration
-
-Open Settings from the menu bar (or press Cmd + ,) and fill in:
-
-1. **Provider** — select the service you want to use (OpenAI-compatible or Anthropic), or add a new one.
-2. **Model** — the model name your provider expects (for example, `gpt-5-mini`).
-3. **Access key** — your service credential, stored only on this Mac.
-
-Use **Test Connection** to confirm the values work, then close Settings and start asking.
-
-## Everyday use
-
-| Action | How |
-| --- | --- |
-| Open the chat window | Click the menu bar icon, or press your configured hotkey (default Option + Space) |
-| Send a question | Type your question and press Return |
-| Add a line break | Shift + Return |
-| Stop generating | Press Escape, or click Stop |
-| Copy an answer | Right-click the answer, or use the copy button |
-| Copy a code block | Click the copy icon on any code block |
-| Run a prompt on selected text | Select text in another app, then click an action in the quick action bar |
-| Start a new conversation | Choose New Conversation from the menu bar |
-| Use a prompt | With content in the input, select a prompt to send immediately. With an empty input, select one, enter your question, then press Return. |
-| Open Settings | Click the menu bar icon and choose Settings, or press Cmd + , |
-
-The window remembers its size and position across launches.
-
-## Privacy
-
-Privacy-first by design: SpotAsk is a native macOS app, your access key stays on this Mac, and your selected text is sent only to the service you configure.
-
-Questions, custom instructions, and responses are sent to the service you configure. Review that provider's privacy and data-retention policies before handling sensitive information.
-
-Your access key and settings stay on this Mac. When conversation retention is enabled, recent conversations are stored locally as well.
-
-The selection assistant reads the text you select through the macOS Accessibility API. Permission is requested only when you enable the feature, and selected text is sent only to the service you configured.
-
-## Development
-
-Build, test, packaging, localization, and release instructions live in [DEVELOPMENT.md](DEVELOPMENT.md).
-
+- [Online Documentation](https://shiquda.github.io/SpotAsk/): Complete user guide, provider setup, selection actions, and troubleshooting.
+- [Developer Guide](DEVELOPMENT.md): Instructions for building, testing, localization, and releases.
 ## License
 
 SpotAsk is licensed under the [GNU AGPL v3](LICENSE).

@@ -5,7 +5,7 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  一款原生 macOS 菜单栏 AI 助手与查询路由器 —— 一个快捷键呼出，问完再决定这句问题交给谁。
+  原生 macOS 菜单栏 AI 助手与分流工具：一个快捷键随时呼出，问完再决定交给谁。
 </p>
 
 <p align="center">
@@ -15,143 +15,105 @@
 </p>
 
 <p align="center">
-  <a href="#下载">下载</a> · <a href="https://shiquda.github.io/SpotAsk/zh-CN/">文档</a> · <a href="#快速开始">从源码构建</a> · <a href="#开发">开发</a> · <a href="README.md">English</a>
+  <a href="#下载安装">下载安装</a> · <a href="#核心特性">核心特性</a> · <a href="https://shiquda.github.io/SpotAsk/zh-CN/">在线文档</a> · <a href="#快速上手">快速上手</a> · <a href="#从源码构建">从源码构建</a> · <a href="README.md">English</a>
 </p>
 
-## 主要功能
+## 核心特性
 
-- **一键分流三大出口 (External Ask)** — 将问题一键无缝分发至 3 类目标，不消耗 API Token、不留多余历史：
-  - **网页端平台** — 直接在 ChatGPT、Perplexity、Grok 等网页端展开深入搜索或对话。
-  - **桌面端应用** — 通过自定义 URI 协议唤起已安装的桌面工具。
-  - **终端与 CLI Agent** — 直接在 macOS 终端中唤醒本地 Agent。
-- **提示词预设** — 内置常用生产力提示词，支持自定义扩展与专属快捷键。
-- **全局划词助手与一键填入对话** — 在 Safari、备忘录、Xcode 等任意应用中选中文字，浮动操作条即刻就近出现；点击专属对话气泡图标一键将选中文字带入提问窗口追问，亦可一键翻译、解释、总结、润色或执行自定义提示词。
-- **全局快捷键秒级捕获** — 按 `Option + Space`（可自定义）随时随地呼出专注提问窗口，使用你自己的 API 密钥（BYOK）极速流式作答，不需要时按 `Esc` 一键关闭窗口。
-- **多模态与贴图提问** — 直接粘贴截图、拖入图片或代码文本文件，后续追问自动保留附件上下文。
-- **极致轻量纯原生** — 纯 Swift 与 AppKit 构建；安装包约 10 MB，无 Electron 运行时；毫秒级冷启动，静默常驻菜单栏，内存占用极低。
+- **全局快捷呼出，即问即走** — 随时按 `⌥ + Space`（可自定义）唤出专注小窗；直连你的模型密钥（BYOK）流式作答，按 `Esc` 立即退出，不打断手头节奏。
+- **多向一键分流 (External Ask)** — 写完问题直接派发至外部目的地，不消耗 API 额度，不残留多余历史：
+  - **网页端 AI**：直接唤起 ChatGPT、Perplexity、Grok 等展开深度搜索。
+  - **终端 CLI Agent**：一键在 macOS 终端中唤醒本地命令行 Agent（如 omp）。
+  - **桌面应用**：通过自定义 URI 协议触发本地工具或笔记软件。
+- **全局划词助手** — 在 Safari、Xcode、备忘录等任意应用中划词，浮动操作条就近浮现；可一键填入对话追问，或直接翻译、总结、解释与润色。
+- **多模态与附件支持** — 直接粘贴截图或拖入图片、代码和文本文档，多轮对话自动保留上下文。
+- **常用提示词预设** — 内置高频生产力模板，支持快速自定义与专属快捷键绑定。
+- **纯原生轻量体验** — 纯 Swift + AppKit 打造，安装包仅约 10 MB，无 Electron 运行时；毫秒级冷启动，静默常驻菜单栏，内存占用极低。
+## 工作流演示
 
-## 核心哲学与典型用例
+SpotAsk 围绕 **“先提问再分流（Ask first. Decide where it goes after.）”** 与 **“随时唤起，随问随走（Summon anytime. Dismiss instantly.）”** 构建——让日常 AI 交互轻量、键盘优先且无多余心智负担。
 
-SpotAsk 围绕 **“先提问再分流（Ask first. Decide where it goes after.）”** 与 **“随时唤起，随问随走（Summon anytime. Dismiss instantly.）”** 设计——保持日常 AI 交互轻量、键盘优先且零心智负担。
+### 1. 快捷呼出，即问即走
 
-### 1. 核心交互：快捷呼出、即问即走
-
-按全局快捷键（默认 `Option + Space`）随时随地呼出提问窗口，输入问题即可获取流式回答，完成后按 `Esc` 秒级关闭。
-
+按全局快捷键（默认 `⌥ + Space`）唤出窗口，输入问题即可获得流式解答，按 `Esc` 即可退出。
 <p align="center">
   <img src="images/spotask-hotkey.gif" width="480" alt="按快捷键呼出 SpotAsk 对话窗口，获取流式回答并一键关闭">
 </p>
 
-### 2. 高频扩展：全局划词与一键分流
+### 2. 全局划词与外部路由
 
 <table>
   <tr>
-    <td width="50%" align="center"><strong>划词即问</strong></td>
-    <td width="50%" align="center"><strong>一键分流 (CLI Agent 与外部工具)</strong></td>
+    <td width="50%" align="center"><strong>全局划词即刻处理</strong></td>
+    <td width="50%" align="center"><strong>一键外部路由 (External Ask)</strong></td>
   </tr>
   <tr>
     <td width="50%" align="center"><img src="images/spotask-selection.gif" width="480" alt="SpotAsk 在其他应用中选中文字时出现的快捷操作条"></td>
     <td width="50%" align="center"><img src="images/spotask-external.gif" width="480" alt="SpotAsk 一键唤起本地终端 CLI Agent"></td>
   </tr>
   <tr>
-    <td width="50%" align="center">在任意应用中选中文字，使用浮动操作条快速翻译、解释、润色或执行自定义提示词。</td>
-    <td width="50%" align="center">按快捷键一键将问题派发给本地终端 Agent（如 omp）或网页端 AI，无需消耗 API Token。</td>
+    <td width="50%" align="center">在任意应用中选中文本，直接翻译、解释、润色，或带入对话追问。</td>
+    <td width="50%" align="center">按快捷键将问题直派本地终端 Agent（如 omp）或网页端 AI，不耗自身 Token。</td>
   </tr>
 </table>
 
-## 下载
+## 下载安装
 
-使用 Homebrew 安装：
+通过 Homebrew 安装：
 
 ```sh
 brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
 brew install --cask shiquda/spotask/spotask
 ```
 
-或者从 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases) 下载与你的 Mac 匹配的软件包：
+或从 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases) 下载对应架构的 DMG：
 
-- **Apple silicon** — M 系列芯片的 Mac 请选择名称带 `arm64` 的 DMG。
-- **Intel** — Intel 芯片的 Mac 请选择名称带 `x86_64` 的 DMG。
+- **Apple Silicon** — M 系列芯片请下载 `arm64` 安装包。
+- **Intel** — Intel 芯片请下载 `x86_64` 安装包。
 
-软件包已使用 Apple Developer ID 签名并通过 Apple 公证，首次打开时无需在 macOS 中手动确认。官方发布版本可直接通过 Spotlight、Siri、快捷指令或 `spotask://` 链接调用 SpotAsk；如需自行构建，请按下方[启用系统联动](#启用系统联动)说明操作。
+官方发布包已使用 Apple Developer ID 签名并经公证，首次运行无需繁琐确认。
+## 快速上手
 
-## 文档
+1. **配置服务**：打开设置（`⌘ + ,`）进入服务页，选择或添加你的服务商（OpenAI 兼容或 Anthropic），填写 API 地址、模型 ID 与访问密钥。
+2. **测试连接**：点击“测试连接”确认配置无误。
+3. **开始提问**：按 `⌥ + Space` 呼出窗口，键入你的第一个问题！
 
-[SpotAsk 用户手册](https://shiquda.github.io/SpotAsk/zh-CN/)包含安装、AI 服务配置、划词操作、提示词、附件、macOS 系统集成、设置参考和故障排查，同时提供[简体中文](https://shiquda.github.io/SpotAsk/zh-CN/)与[英文](https://shiquda.github.io/SpotAsk/)版本。
+## 常用快捷键
 
-第一次使用可以从[快速开始](https://shiquda.github.io/SpotAsk/zh-CN/getting-started)开始；遇到连接、模型、权限或快捷键问题时，请查看[故障排查](https://shiquda.github.io/SpotAsk/zh-CN/troubleshooting)。
+| 操作 | 快捷键 | 说明 |
+| --- | --- | --- |
+| 唤起 / 关闭提问窗口 | `⌥ + Space` | 全局快捷键，可在设置中自定义 |
+| 划词操作栏 | `⌥ + ⇧ + Space` | 选中文字后呼出浮动操作条 |
+| 退出窗口 / 停止生成 | `Esc` | 一键关闭，不留多余打扰 |
+| 开始新对话 | `⌘ + N` | 清空当前对话流 |
+| 打开设置 | `⌘ + ,` | 配置模型、外观与快捷键 |
 
-## 快速开始
+> 更多快捷键与详细配置请查看[设置与快捷键参考](https://shiquda.github.io/SpotAsk/zh-CN/reference)。
 
-也可以从源码构建 SpotAsk。
+## 隐私承诺
 
-**环境要求**
+- **BYOK 自带密钥**：访问密钥加密保存在 macOS 本地钥匙串中，只在发起请求时直连你配置的 AI 服务商。
+- **零中转零收集**：没有账号系统、没有中心服务器、没有任何遥测监控。
+- **权限严格按需**：划词助手仅在开启时申请 macOS 辅助功能权限，仅用于读取你主动选中的文字。
 
-- macOS 15 或更高版本
-- Xcode 16 或更高版本
-- 一个提供 OpenAI 兼容或 Anthropic 聊天 API 的服务账户
+## 从源码构建
 
-**构建和运行**
+**环境要求**：macOS 15+，Xcode 16+。
 
 ```sh
 ./Scripts/install-debug-app.sh
 ```
 
-启动后 SpotAsk Debug 会出现在菜单栏中。它使用独立的 App Identity，其 macOS 权限不会覆盖官方发布版本。应用不在程序坞显示图标。
+构建完成后，SpotAsk Debug 会常驻于菜单栏中，使用独立的 App Identity，不影响正式版配置与权限。
 
 ### 启用系统联动
 
-官方发布版本已支持 Spotlight、Siri 和快捷指令。如需自行构建，请使用 Apple 开发团队签名；个人构建使用免费的 Apple 账户即可：
+官方发布版本支持 Spotlight、Siri 和快捷指令。自行构建版本如需使用快捷指令联动，只需在 Xcode 中使用个人证书（Personal Team）完成签名即可。
 
-1. 使用 Xcode 打开 `SpotAsk.xcodeproj`。
-2. 选择 SpotAsk target，然后打开 **Signing & Capabilities**。
-3. 在 **Team** 中选择你的 Personal Team，并保持 **Automatically manage signing** 开启。
-4. 如果 Xcode 提示 Bundle Identifier 不可用，请将 **Bundle Identifier** 改为一个唯一值。
-5. 先从 Xcode 运行一次 SpotAsk，再到快捷指令中使用相关操作。
+## 文档与开发
 
-Personal Team 构建仅适合个人使用，并且可能需要定期重新构建。
-
-## 首次配置
-
-从菜单栏打开设置（或按 Cmd + ,），填写以下信息：
-
-1. **服务商** — 选择要使用的服务（OpenAI 兼容或 Anthropic），也可以新增一个。
-2. **模型** — 服务商要求的模型名称（例如 `gpt-5-mini`）。
-3. **访问密钥** — 你的服务凭证，仅保存在这台 Mac 上。
-
-点击**测试连接**确认配置正确后，关闭设置即可开始提问。
-
-## 日常使用
-
-| 操作 | 方式 |
-| --- | --- |
-| 打开对话窗口 | 点击菜单栏图标，或按你配置的快捷键（默认 Option + Space） |
-| 发送问题 | 输入问题后按 Return |
-| 换行 | Shift + Return |
-| 停止生成 | 按 Escape，或点击停止按钮 |
-| 复制回答 | 右键点击回答，或使用复制按钮 |
-| 复制代码块 | 点击代码块上的复制图标 |
-| 对选中文字执行提示词 | 在其他应用中选中文字，然后点击操作条里的动作 |
-| 开始新对话 | 在菜单栏中选择"新对话" |
-| 使用提示词 | 输入框中已有内容时，选择提示词会直接发送；输入框为空时，选择后输入问题，再按 Return 发送 |
-| 打开设置 | 点击菜单栏图标并选择设置，或按 Cmd + , |
-
-窗口的大小和位置会在下次启动时自动恢复。
-
-## 隐私
-
-默认隐私优先：SpotAsk 是原生 macOS 应用，访问密钥仅保存在这台 Mac 上，选中的文字只发送给你配置的服务商。
-
-你发送的问题、自定义指令和生成的回答会交由你配置的服务商处理。处理敏感信息前，请先确认服务商的隐私和数据保留政策。
-
-访问密钥和设置仅存储在这台 Mac 上。启用对话保留后，最近的对话也会保存在本地。
-
-划词助手会通过 macOS 辅助功能读取你选中的文字；权限只在你开启该功能时申请，选中的文字仅发送给你配置的服务商。
-
-## 开发
-
-构建、测试、打包、本地化与发布说明见 [DEVELOPMENT.md](DEVELOPMENT.md)。
-
+- [在线用户手册](https://shiquda.github.io/SpotAsk/zh-CN/)：涵盖完整配置指南、服务接入、划词规则与故障排查。
+- [开发者指南](DEVELOPMENT.md)：包含完整构建、测试、本地化与版本发布流程。
 ## 许可证
 
 SpotAsk 使用 [GNU AGPL v3](LICENSE) 许可证。
