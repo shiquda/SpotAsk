@@ -1,11 +1,11 @@
 ---
 title: Selection Assistant
-description: Use SpotAsk on selected text in other apps with quick actions, direct mode, app scope, and automatic display.
+description: "Work with highlighted text across apps using inline quick actions: ask follow-ups, translate, summarize, and polish in place."
 ---
 
 # Selection Assistant
 
-The Selection Assistant reads text you select in another app and sends it to SpotAsk for an action such as Translate, Explain, Summarize, Polish, or a custom prompt.
+The Selection Assistant eliminates repetitive copy-pasting. Highlight text anywhere to summon the inline action bar: translate, explain, summarize, polish, or bring text straight into chat.
 
 ## Enable it
 

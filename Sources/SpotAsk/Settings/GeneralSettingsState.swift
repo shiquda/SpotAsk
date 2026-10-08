@@ -7,10 +7,12 @@ import Observation
 final class GeneralSettingsState {
     private let settings: AppSettings
     private let keyStore: any APIKeyStoring
+    private let sessionStore: SessionStore
     private let settingsWindowProvider: (() -> NSWindow?)?
     var status = ""
     var statusIsError = false
     private let onConfigurationImported: () -> Void
+    private let onClearAllData: (() -> Void)?
 
     var proxyPasswordDraft: String
     var isTestingProxy = false
@@ -18,30 +20,20 @@ final class GeneralSettingsState {
     init(
         settings: AppSettings,
         keyStore: any APIKeyStoring,
+        sessionStore: SessionStore = SessionStore(),
         settingsWindowProvider: (() -> NSWindow?)? = nil,
-        onConfigurationImported: @escaping () -> Void
+        onConfigurationImported: @escaping () -> Void,
+        onClearAllData: (() -> Void)? = nil
     ) {
         self.settings = settings
         self.keyStore = keyStore
+        self.sessionStore = sessionStore
         self.settingsWindowProvider = settingsWindowProvider
         self.onConfigurationImported = onConfigurationImported
+        self.onClearAllData = onClearAllData
         proxyPasswordDraft = (try? keyStore.readAPIKey(for: ProxyCredentialSlot.providerID)) ?? ""
     }
 
-    private static func makeProxyConfiguration(
-        settings: AppSettings,
-        keyStore: any APIKeyStoring
-    ) -> [String: Any]? {
-        guard settings.proxyEnabled else { return nil }
-        let password = (try? keyStore.readAPIKey(for: ProxyCredentialSlot.providerID)) ?? ""
-        return ChatNetworking.proxyConfiguration(
-            type: settings.proxyType,
-            host: settings.proxyHost,
-            port: settings.proxyPort,
-            username: settings.proxyUsername,
-            password: password
-        )
-    }
     func persistProxyPasswordDraft() {
         do {
             if proxyPasswordDraft.isEmpty {
@@ -66,7 +58,7 @@ final class GeneralSettingsState {
         Task { [weak self] in
             guard let self else { return }
             do {
-                let configuration = Self.makeProxyConfiguration(settings: self.settings, keyStore: self.keyStore)
+                let configuration = ChatNetworking.proxyConfiguration(settings: self.settings, keyStore: self.keyStore)
                 guard let configuration else {
                     throw ChatError.invalidConfiguration
                 }
@@ -94,7 +86,6 @@ final class GeneralSettingsState {
         }
     }
     func exportConfiguration(presentingWindow: NSWindow? = nil) {
-        NSApp.activate(ignoringOtherApps: true)
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.json]
         panel.nameFieldStringValue = "SpotAsk-Config.json"
@@ -127,15 +118,10 @@ final class GeneralSettingsState {
                 )
             }
         }
-        if let window = presentingWindow ?? settingsWindowProvider?() ?? NSApp.keyWindow ?? NSApp.mainWindow {
-            panel.beginSheetModal(for: window, completionHandler: handleResponse)
-        } else {
-            handleResponse(panel.runModal())
-        }
+        presentFilePanel(panel, presentingWindow: presentingWindow, handleResponse: handleResponse)
     }
 
     func importConfiguration(presentingWindow: NSWindow? = nil) {
-        NSApp.activate(ignoringOtherApps: true)
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.json]
         panel.allowsMultipleSelection = false
@@ -146,6 +132,8 @@ final class GeneralSettingsState {
                 let data = try Data(contentsOf: url)
                 let backup = try JSONDecoder().decode(SpotAskConfigBackup.self, from: data)
                 try self.settings.applyConfigurationBackup(backup, keyStore: self.keyStore)
+                self.proxyPasswordDraft = (try? self.keyStore.readAPIKey(for: ProxyCredentialSlot.providerID)) ?? ""
+                UpdateCoordinator.shared.setAutomaticChecksEnabled(self.settings.automaticUpdateCheckEnabled)
                 self.onConfigurationImported()
                 self.setStatus(L10n.string("settings.configImported"), isError: false)
             } catch {
@@ -155,11 +143,7 @@ final class GeneralSettingsState {
                 )
             }
         }
-        if let window = presentingWindow ?? settingsWindowProvider?() ?? NSApp.keyWindow ?? NSApp.mainWindow {
-            panel.beginSheetModal(for: window, completionHandler: handleResponse)
-        } else {
-            handleResponse(panel.runModal())
-        }
+        presentFilePanel(panel, presentingWindow: presentingWindow, handleResponse: handleResponse)
     }
 
     // MARK: Global data clear
@@ -167,7 +151,13 @@ final class GeneralSettingsState {
     func clearAllLocalData() {
         do {
             try keyStore.deleteAllAPIKeys()
-            UserDefaults.standard.removePersistentDomain(forName: Bundle.main.bundleIdentifier ?? "com.spotask.app")
+            try sessionStore.clear()
+            DiagnosticLogStore.shared.clear()
+            let bundleID = Bundle.main.bundleIdentifier ?? "com.spotask.app"
+            UserDefaults.standard.removePersistentDomain(forName: bundleID)
+            settings.resetToDefaults()
+            proxyPasswordDraft = ""
+            onClearAllData?()
             setStatus(L10n.string("settings.resetSuccess"), isError: false)
         } catch {
             setStatus(L10n.string("settings.resetFailure"), isError: true)
@@ -177,7 +167,6 @@ final class GeneralSettingsState {
     // MARK: Diagnostics
 
     func exportDiagnostics(presentingWindow: NSWindow? = nil) {
-        NSApp.activate(ignoringOtherApps: true)
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.plainText]
         panel.nameFieldStringValue = "SpotAsk-Diagnostics.txt"
@@ -191,11 +180,7 @@ final class GeneralSettingsState {
                 self.setStatus(L10n.string("settings.diagnosticsExportFailed"), isError: true)
             }
         }
-        if let window = presentingWindow ?? settingsWindowProvider?() ?? NSApp.keyWindow ?? NSApp.mainWindow {
-            panel.beginSheetModal(for: window, completionHandler: handleResponse)
-        } else {
-            handleResponse(panel.runModal())
-        }
+        presentFilePanel(panel, presentingWindow: presentingWindow, handleResponse: handleResponse)
     }
 
     func clearDiagnostics() {
@@ -209,5 +194,17 @@ final class GeneralSettingsState {
         status = value
         statusIsError = isError
         StatusToastCenter.shared.show(value, isError: isError)
+    }
+
+    private func presentFilePanel(
+        _ panel: NSSavePanel,
+        presentingWindow: NSWindow? = nil,
+        handleResponse: @escaping (NSApplication.ModalResponse) -> Void
+    ) {
+        let window = ModalSheetPresenter.resolveWindow(
+            preferred: presentingWindow,
+            provider: settingsWindowProvider
+        )
+        ModalSheetPresenter.present(panel, in: window, handleResponse: handleResponse)
     }
 }

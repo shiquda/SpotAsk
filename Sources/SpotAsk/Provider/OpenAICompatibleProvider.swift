@@ -55,33 +55,19 @@ struct OpenAICompatibleProvider: ChatProvider {
 
     func testConnection() async throws {
         let request = ChatRequest(model: configuration.model, messages: [ChatMessage(role: .user, content: "ping")], stream: false)
-        let urlRequest = try makeURLRequest(for: request)
-        _ = try await transport.data(for: urlRequest)
+        try await ChatStreamingDriver.testConnection(transport: transport) {
+            try makeURLRequest(for: request)
+        }
     }
 
     private func nonStreaming(request: ChatRequest) -> AsyncThrowingStream<ChatStreamEvent, Error> {
-        return AsyncThrowingStream { continuation in
-            let task = Task {
-                do {
-                    var urlRequest = try makeURLRequest(for: request)
-                    urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
-                    let data = try await transport.data(for: urlRequest)
-                    let completion = try JSONDecoder().decode(NonStreamingResponse.self, from: data)
-                    for event in completion.events { continuation.yield(event) }
-                    continuation.yield(.completed)
-                    continuation.finish()
-                } catch is CancellationError {
-                    continuation.finish(throwing: ChatError.cancelled)
-                } catch let error as ChatError {
-                    continuation.finish(throwing: error)
-                } catch let error as URLError {
-                    continuation.finish(throwing: ChatHTTP.mapURLError(error))
-                } catch {
-                    continuation.finish(throwing: ChatError.decodingFailed)
-                }
+        ChatStreamingDriver.nonStreaming(
+            transport: transport,
+            makeRequest: { try makeURLRequest(for: request) },
+            decode: { data in
+                try JSONDecoder().decode(NonStreamingResponse.self, from: data).events
             }
-            continuation.onTermination = { _ in task.cancel() }
-        }
+        )
     }
 
     private func makeURLRequest(for request: ChatRequest) throws -> URLRequest {
@@ -96,30 +82,22 @@ struct OpenAICompatibleProvider: ChatProvider {
 
     private func makeRequestBody(for request: ChatRequest) throws -> Data {
         let messages = try request.messages.map { message in
-            try ModelJSONValue.object([
-                "role": .string(message.role.rawValue),
-                "content": .wrapping(Self.openAIContent(for: message))
-            ])
+            try ChatRequestBodyBuilder.formatMessage(
+                role: message.role.rawValue,
+                content: Self.openAIContent(for: message)
+            )
         }
         var body: [String: ModelJSONValue] = [
             "model": .string(request.model),
             "messages": .array(messages),
             "stream": .bool(request.stream)
         ]
-        let automatic = configuration.compatibilityProfile.automaticReasoningParameters(for: configuration.thinkingMode)
-        let extras = configuration.extraRequestParameters ?? [:]
-        if extras.keys.contains(where: { RequestCompatibilityProfile.reasoningControlKeys.contains($0) }) {
-            for key in automatic.keys { body.removeValue(forKey: key) }
-        } else {
-            for (key, value) in automatic {
-                body[key] = value
-            }
-        }
-        if extras.keys.contains(where: { RequestCompatibilityProfile.protectedStructuralKeys.contains($0) }) {
-            throw ChatError.invalidConfiguration
-        }
-        body.mergeModelJSON(extras)
-        return try JSONEncoder().encode(body)
+        return try ChatRequestBodyBuilder.buildJSONData(
+            body: &body,
+            compatibilityProfile: configuration.compatibilityProfile,
+            thinkingMode: configuration.thinkingMode,
+            extraParameters: configuration.extraRequestParameters
+        )
     }
 
     /// Text-only requests keep the historical `content: "string"` wire format.

@@ -58,10 +58,8 @@
 		00100000000000000000002F /* AccessibilityElementReading.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003C /* AccessibilityElementReading.swift */; };
 		001000000000000000000030 /* AccessibilitySelectedTextReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003D /* AccessibilitySelectedTextReader.swift */; };
 		001000000000000000000031 /* SelectedTextSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003E /* SelectedTextSnapshot.swift */; };
-		001000000000000000000032 /* SelectionAnchorCoordinates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003F /* SelectionAnchorCoordinates.swift */; };
 		001000000000000000000033 /* SelectionAssistantCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000040 /* SelectionAssistantCoordinator.swift */; };
 		001000000000000000000034 /* SelectionOverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000041 /* SelectionOverlayController.swift */; };
-		001000000000000000000035 /* SelectionActionBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000042 /* SelectionActionBarView.swift */; };
 		001000000000000000000036 /* AccessibilityPermissionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000043 /* AccessibilityPermissionCoordinator.swift */; };
 		001000000000000000000037 /* AccessibilitySelectionReplacementWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000044 /* AccessibilitySelectionReplacementWriter.swift */; };
 		001000000000000000000038 /* SelectionAutoInvokeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000045 /* SelectionAutoInvokeMonitor.swift */; };
@@ -99,6 +97,15 @@
 		001000000000000000000056 /* SettingsSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000006F /* SettingsSidebar.swift */; };
 		001000000000000000000057 /* SpotAskURLRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000070 /* SpotAskURLRouter.swift */; };
 		001000000000000000000058 /* AtCommandPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000071 /* AtCommandPalette.swift */; };
+		001000000000000000000097 /* SelectionActionBarContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000097 /* SelectionActionBarContent.swift */; };
+		001000000000000000000098 /* SelectionActionBarContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000098 /* SelectionActionBarContentView.swift */; };
+		001000000000000000000099 /* ChatRequestBodyBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000099 /* ChatRequestBodyBuilder.swift */; };
+		00100000000000000000009A /* SandboxDataMigrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000009A /* SandboxDataMigrator.swift */; };
+		00100000000000000000009B /* SettingDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000009B /* SettingDescriptor.swift */; };
+		00100000000000000000009C /* ChatComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000009C /* ChatComposerView.swift */; };
+		00100000000000000000009D /* ChatHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000009D /* ChatHeaderView.swift */; };
+		00100000000000000000009E /* ChatMessageListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000009E /* ChatMessageListView.swift */; };
+		00100000000000000000009F /* ChatReconciliationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000009F /* ChatReconciliationCoordinator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -159,10 +166,8 @@
 		00200000000000000000003D /* AccessibilitySelectedTextReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/AccessibilitySelectedTextReader.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000003E /* SelectedTextSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectedTextSnapshot.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000091 /* UpdateCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Updates/UpdateCoordinator.swift; sourceTree = SOURCE_ROOT; };
-		00200000000000000000003F /* SelectionAnchorCoordinates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionAnchorCoordinates.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000040 /* SelectionAssistantCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionAssistantCoordinator.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000041 /* SelectionOverlayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionOverlayController.swift; sourceTree = SOURCE_ROOT; };
-		002000000000000000000042 /* SelectionActionBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionActionBarView.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000043 /* AccessibilityPermissionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/AccessibilityPermissionCoordinator.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000044 /* AccessibilitySelectionReplacementWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/AccessibilitySelectionReplacementWriter.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000045 /* SelectionAutoInvokeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionAutoInvokeMonitor.swift; sourceTree = SOURCE_ROOT; };
@@ -210,6 +215,15 @@
 		00200000000000000000006F /* SettingsSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/SettingsSidebar.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000070 /* SpotAskURLRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/App/SpotAskURLRouter.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000071 /* AtCommandPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/AtCommandPalette.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000097 /* SelectionActionBarContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionActionBarContent.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000098 /* SelectionActionBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionActionBarContentView.swift; sourceTree = SOURCE_ROOT; };
+		002000000000000000000099 /* ChatRequestBodyBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/ChatRequestBodyBuilder.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000009A /* SandboxDataMigrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Persistence/SandboxDataMigrator.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000009B /* SettingDescriptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/SettingDescriptor.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000009C /* ChatComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatComposerView.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000009D /* ChatHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatHeaderView.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000009E /* ChatMessageListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatMessageListView.swift; sourceTree = SOURCE_ROOT; };
+		00200000000000000000009F /* ChatReconciliationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatReconciliationCoordinator.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -275,10 +289,8 @@
 				00200000000000000000003C /* AccessibilityElementReading.swift */,
 				00200000000000000000003D /* AccessibilitySelectedTextReader.swift */,
 				00200000000000000000003E /* SelectedTextSnapshot.swift */,
-				00200000000000000000003F /* SelectionAnchorCoordinates.swift */,
 				002000000000000000000040 /* SelectionAssistantCoordinator.swift */,
 				002000000000000000000041 /* SelectionOverlayController.swift */,
-				002000000000000000000042 /* SelectionActionBarView.swift */,
 				002000000000000000000043 /* AccessibilityPermissionCoordinator.swift */,
 				002000000000000000000044 /* AccessibilitySelectionReplacementWriter.swift */,
 				002000000000000000000045 /* SelectionAutoInvokeMonitor.swift */,
@@ -313,7 +325,16 @@
 				00200000000000000000006F /* SettingsSidebar.swift */,
 				002000000000000000000092 /* SettingsDeepLink.swift */,
 				002000000000000000000093 /* DocumentationLinks.swift */,
-			);
+					002000000000000000000097 /* SelectionActionBarContent.swift */,
+				002000000000000000000098 /* SelectionActionBarContentView.swift */,
+				002000000000000000000099 /* ChatRequestBodyBuilder.swift */,
+				00200000000000000000009A /* SandboxDataMigrator.swift */,
+				00200000000000000000009B /* SettingDescriptor.swift */,
+				00200000000000000000009C /* ChatComposerView.swift */,
+				00200000000000000000009D /* ChatHeaderView.swift */,
+				00200000000000000000009E /* ChatMessageListView.swift */,
+				00200000000000000000009F /* ChatReconciliationCoordinator.swift */,
+		);
 			name = Sources;
 			sourceTree = "<group>";
 		};
@@ -499,7 +520,8 @@
 				001000000000000000000056,
 				001000000000000000000058,
 				001000000000000000000057,
-			);
+				001000000000000000000097, 001000000000000000000098, 001000000000000000000099, 00100000000000000000009A, 00100000000000000000009B, 00100000000000000000009C, 00100000000000000000009D, 00100000000000000000009E, 00100000000000000000009F,
+		);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
@@ -569,14 +591,14 @@
 				CODE_SIGN_ENTITLEMENTS = Config/SpotAsk.selection-assistant.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 6UR4V5Z3N7;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 24;
 				ENABLE_APP_SANDBOX = NO;
 				EXTRACT_APP_INTENTS_METADATA = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 0.2.5;
+				MARKETING_VERSION = 0.2.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.spotask.app.debug;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -591,14 +613,14 @@
 				CODE_SIGN_ENTITLEMENTS = Config/SpotAsk.selection-assistant.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 6UR4V5Z3N7;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 24;
 				ENABLE_APP_SANDBOX = NO;
 				EXTRACT_APP_INTENTS_METADATA = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 0.2.5;
+				MARKETING_VERSION = 0.2.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.spotask.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

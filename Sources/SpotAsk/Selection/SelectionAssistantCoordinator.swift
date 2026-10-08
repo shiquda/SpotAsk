@@ -124,19 +124,17 @@ final class SelectionAssistantCoordinator {
                     if let preset { commandCenter.ask(resolved.text, promptPreset: preset, selectionSnapshot: resolved) }
                     else { commandCenter.compose(resolved.text) }
                 } else {
-                    let showsChat = settings.selectionActionBarShowsChatAction
-                    let presets = selectionActionBarPresets
-                    let externalAsks = selectionActionBarExternalAsks
-                    guard showsChat || !presets.isEmpty || !externalAsks.isEmpty else {
+                    let content = SelectionActionBarContent.resolve(from: settings)
+                    guard !content.isEmpty else {
                         discardPresentedSelection()
                         return
                     }
                     overlay.showActions(
                         snapshot: current,
-                        showsChat: showsChat,
-                        presets: presets,
-                        externalAsks: externalAsks,
-                        showsLabels: settings.selectionActionBarShowsLabels,
+                        showsChat: content.showsChat,
+                        presets: content.presets,
+                        externalAsks: content.externalAsks,
+                        showsLabels: content.showsLabels,
                         shortcutForChat: nil,
                         shortcutForPreset: { [settings] preset in
                             settings.shortcut(for: .promptPreset(preset.id))
@@ -240,19 +238,6 @@ final class SelectionAssistantCoordinator {
             }
             commandCenter.addToChat(resolved.text)
         }
-    }
-
-    private var selectionActionBarPresets: [PromptPreset] {
-        guard settings.selectionActionBarShowsPrompts else { return [] }
-        return Array(settings.enabledPromptPresets.prefix(SelectionActionBarLayout.maxTotalActions))
-    }
-
-    private var selectionActionBarExternalAsks: [QuickAction] {
-        guard settings.externalAskEnabled,
-              settings.selectionActionBarShowsExternalAsk
-        else { return [] }
-        let remaining = max(0, SelectionActionBarLayout.maxTotalActions - selectionActionBarPresets.count)
-        return Array(settings.enabledQuickActions.prefix(remaining))
     }
 
     private func performExternalAsk(_ action: QuickAction) {

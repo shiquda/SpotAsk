@@ -2,12 +2,6 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-@MainActor
-private final class ComposerTextViewReference {
-    weak var textView: NSTextView?
-}
-
-
 struct ChatView: View {
     @Bindable var viewModel: ChatViewModel
     let settings: AppSettings
@@ -17,12 +11,9 @@ struct ChatView: View {
     @FocusState private var inputFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var scrollFollowState = ScrollFollowState()
-    @State private var pendingScrollTask: Task<Void, Never>?
     @State private var inputHeight = ChatInputTextView.minHeight
     @State private var composerTextView = ComposerTextViewReference()
-    @State private var reasoningToggle = ReasoningToggleStateStore()
-    @State private var userMessageExpansionState = UserMessageExpansionState()
-    @State private var assistantMessageExpansionState = MessageExpansionState()
+    @State private var reconciliationCoordinator = ChatReconciliationCoordinator()
     @State private var isPresetPopoverPresented = false
     @State private var isModelPickerPresented = false
     @State private var isDropTargeted = false
@@ -52,564 +43,207 @@ struct ChatView: View {
     }
 
     var body: some View {
+        styledContent
+            .onChange(of: viewModel.messages) { _, messages in
+                reconciliationCoordinator.reconcile(
+                    messages: messages,
+                    prefersExpanded: settings.defaultExpandReasoning
+                )
+            }
+            .onChange(of: settings.promptPresets) { _, _ in
+                synchronizeSelectedPromptPreset()
+            }
+            .onChange(of: isPresetPopoverPresented) { _, presented in
+                if presented { dismissAtCommandPalette() }
+            }
+            .onChange(of: inputFocused) { _, focused in
+                if !focused { dismissAtCommandPalette() }
+            }
+            .onChange(of: viewModel.input) { oldValue, newValue in
+                clearPendingExternalAskIfInputEmptied(from: oldValue, to: newValue)
+            }
+    }
+
+    /// The window chrome plus every lifecycle observer, kept separate from the
+    /// observer-only tail in `body` so the type-checker sees a smaller expression.
+    private var styledContent: some View {
+        windowChrome
+            .font(contentFont)
+            .environment(\.dynamicTypeSize, settings.interfaceZoomLevel.dynamicTypeSize)
+            .preferredColorScheme(colorScheme)
+            .overlay(alignment: .topTrailing) {
+                StatusToastOverlay()
+                    .padding(.top, 36)
+            }
+            .environment(\.locale, settings.language.locale)
+    }
+
+    private var windowChrome: some View {
+        coreLayout
+            .onChange(of: isModelPickerPresented) { _, isPresented in
+                if !isPresented {
+                    inputFocused = true
+                }
+            }
+            .onAppear(perform: handleAppear)
+            .onDisappear(perform: handleDisappear)
+            .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { notification in
+                if (notification.object as? NSWindow) === chatWindowReference.window {
+                    showsShortcutHints = false
+                    dismissAtCommandPalette()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
+                showsShortcutHints = false
+                dismissAtCommandPalette()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .spotAskPanelDidShow)) { _ in
+                isPanelVisible = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .spotAskPanelDidHide)) { _ in
+                isPanelVisible = false
+                dismissAtCommandPalette()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSWindow.didChangeOcclusionStateNotification)) { notification in
+                if let window = notification.object as? NSWindow, window === chatWindowReference.window {
+                    isPanelVisible = window.occlusionState.contains(.visible) && window.isVisible
+                }
+            }
+            .onExitCommand(perform: handleEscape)
+            .overlay {
+                if isDropTargeted {
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Brand.accent, lineWidth: 1.5)
+                        .background(Brand.accent.opacity(0.06))
+                        .padding(6)
+                        .allowsHitTesting(false)
+                }
+            }
+            .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+                handleDroppedProviders(providers)
+                return true
+            }
+            .animation(.easeOut(duration: 0.12), value: isDropTargeted)
+    }
+
+    private var coreLayout: some View {
         VStack(spacing: 0) {
-            header
+            ChatHeaderView(
+                modelName: viewModel.effectiveModel?.displayName ?? "",
+                providerIconSlug: effectiveProviderIconSlug,
+                isGenerating: isGenerating,
+                isKeepWindowOnTop: settings.keepWindowOnTop,
+                providerCatalog: settings.providerRegistry.catalog,
+                effectiveModelID: viewModel.effectiveModelID,
+                hasSessionOverride: viewModel.sessionModelID != nil,
+                isModelPickerPresented: $isModelPickerPresented,
+                onToggleWindowOnTop: { SpotAskCommandCenter.shared.toggleWindowOnTop() },
+                onShowSettings: { commandCenter.showSettings() },
+                onNewConversation: newConversation,
+                onSelectSessionModel: { id in
+                    viewModel.selectSessionModel(id: id)
+                    isModelPickerPresented = false
+                    inputFocused = true
+                },
+                onUseDefaultModel: {
+                    viewModel.useDefaultModel()
+                    isModelPickerPresented = false
+                    inputFocused = true
+                },
+                shortcutHint: shortcutHint(for:)
+            )
             // A single hairline separates the elevated header material from
             // the content below. The composer reads as part of the window's
             // bottom chrome, so it is not boxed in by a second divider.
             Divider()
             ZStack(alignment: .bottom) {
-                conversation
+                conversationList
                 atCommandPaletteOverlay
             }
-            composer
+            composerView
         }
         // Content spans the full window; the header's Material draws the
         // chrome and the conversation insets clear of it (see below).
         .ignoresSafeArea()
         .frame(minWidth: 364, minHeight: 320)
         .background(ChatWindowReader(reference: chatWindowReference))
-        .onChange(of: isModelPickerPresented) { _, isPresented in
-            if !isPresented {
-                inputFocused = true
-            }
-        }
-        .onAppear {
-            if let window = chatWindowReference.window {
-                isPanelVisible = window.isVisible
-            }
-            inputFocused = true
-            viewModel.prepareNewConversationAfterInactivity()
-            commandCenter.setActionConsumer(handleCommandAction)
-            reasoningToggle.reconcile(messages: viewModel.messages, prefersExpanded: settings.defaultExpandReasoning)
-            userMessageExpansionState.reconcile(messages: viewModel.messages, role: .user)
-            assistantMessageExpansionState.reconcile(messages: viewModel.messages, role: .assistant)
-            installShortcutDispatcher()
-        }
-        .onDisappear {
-            pendingScrollTask?.cancel()
-            shortcutDispatcher?.stop()
-            shortcutDispatcher = nil
-            isPanelVisible = false
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { notification in
-            if (notification.object as? NSWindow) === chatWindowReference.window {
-                showsShortcutHints = false
-                dismissAtCommandPalette()
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
-            showsShortcutHints = false
-            dismissAtCommandPalette()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .spotAskPanelDidShow)) { _ in
-            isPanelVisible = true
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .spotAskPanelDidHide)) { _ in
-            isPanelVisible = false
-            dismissAtCommandPalette()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didChangeOcclusionStateNotification)) { notification in
-            if let window = notification.object as? NSWindow, window === chatWindowReference.window {
-                isPanelVisible = window.occlusionState.contains(.visible) && window.isVisible
-            }
-        }
-        .onExitCommand(perform: handleEscape)
-        .overlay {
-            if isDropTargeted {
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Brand.accent, lineWidth: 1.5)
-                    .background(Brand.accent.opacity(0.06))
-                    .padding(6)
-                    .allowsHitTesting(false)
-            }
-        }
-        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-            handleDroppedProviders(providers)
-            return true
-        }
-        .animation(.easeOut(duration: 0.12), value: isDropTargeted)
-        .font(contentFont)
-        .environment(\.dynamicTypeSize, settings.interfaceZoomLevel.dynamicTypeSize)
-        .preferredColorScheme(colorScheme)
-        .overlay(alignment: .topTrailing) {
-            StatusToastOverlay()
-                .padding(.top, 36)
-        }
-        .environment(\.locale, settings.language.locale)
-        .onChange(of: viewModel.messages) { _, messages in
-            reasoningToggle.reconcile(messages: messages, prefersExpanded: settings.defaultExpandReasoning)
-            userMessageExpansionState.reconcile(messages: messages, role: .user)
-            assistantMessageExpansionState.reconcile(messages: messages, role: .assistant)
-        }
-        .onChange(of: settings.promptPresets) { _, _ in
-            synchronizeSelectedPromptPreset()
-        }
-        .onChange(of: isPresetPopoverPresented) { _, presented in
-            if presented { dismissAtCommandPalette() }
-        }
-        .onChange(of: inputFocused) { _, focused in
-            if !focused { dismissAtCommandPalette() }
-        }
-        .onChange(of: viewModel.input) { oldValue, newValue in
-            clearPendingExternalAskIfInputEmptied(from: oldValue, to: newValue)
-        }
     }
 
-    private var header: some View {
-        HStack(spacing: 6) {
-            HStack(spacing: 8) {
-                BrandMark()
-                Text("SpotAsk")
-                    .font(.system(size: 15, weight: .semibold))
-                    .kerning(-0.15)
-                    .foregroundStyle(Brand.fg)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(Text("SpotAsk"))
-
-            Spacer()
-            HeaderIconButton(action: { SpotAskCommandCenter.shared.toggleWindowOnTop() }) {
-                Image(systemName: settings.keepWindowOnTop ? "pin.fill" : "pin")
-            }
-            .help(L10n.string("settings.windowOnTop"))
-            .accessibilityLabel(L10n.string("settings.windowOnTop"))
-            .overlay(alignment: .bottomTrailing) {
-                ShortcutKeycap(shortcut: shortcutHint(for: .operation(.toggleWindowOnTop)))
-                    .offset(x: 5, y: 5)
-            }
-            HeaderIconButton(action: { commandCenter.showSettings() }) {
-                Image(systemName: "gearshape")
-            }
-            .help(L10n.string("settings.title"))
-            .accessibilityLabel(L10n.string("settings.title"))
-            .overlay(alignment: .bottomTrailing) {
-                ShortcutKeycap(shortcut: shortcutHint(for: .operation(.showSettings)))
-                    .offset(x: 5, y: 5)
-            }
-            HeaderIconButton(action: { newConversation() }) {
-                Image(systemName: "plus.bubble")
-            }
-            .help(L10n.string("chat.newConversation"))
-            .accessibilityLabel(L10n.string("chat.newConversation"))
-            .overlay(alignment: .bottomTrailing) {
-                ShortcutKeycap(shortcut: shortcutHint(for: .operation(.newConversation)))
-                    .offset(x: 5, y: 5)
-            }
-        }
-        // `fullSizeContentView` puts SwiftUI beneath the traffic lights.
-        // Reserve their titlebar region so the brand never overlaps them.
-        .padding(.leading, 78)
-        .padding(.trailing, 14)
-        // Keep the controls and material in the native 32pt titlebar band.
-        .frame(height: 32)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        // Center on the full header width, not the leftover space between
-        // the asymmetric traffic-light inset and trailing actions.
-        .overlay(alignment: .center) {
-            HStack(spacing: 6) {
-                ModelPickerHeaderButton(
-                    modelName: viewModel.effectiveModel?.displayName ?? "",
-                    providerIconSlug: effectiveProviderIconSlug,
-                    isDisabled: isGenerating,
-                    isPresented: $isModelPickerPresented
-                ) {
-                    ModelPickerContent(
-                        catalog: settings.providerRegistry.catalog,
-                        effectiveModelID: viewModel.effectiveModelID,
-                        hasSessionOverride: viewModel.sessionModelID != nil,
-                        isDisabled: isGenerating,
-                        onSelect: { id in
-                            viewModel.selectSessionModel(id: id)
-                            isModelPickerPresented = false
-                            inputFocused = true
-                        },
-                        onUseDefault: {
-                            viewModel.useDefaultModel()
-                            isModelPickerPresented = false
-                            inputFocused = true
-                        }
-                    )
-                }
-                if isGenerating {
-                    ProgressView()
-                        .controlSize(.small)
-                        .accessibilityLabel(L10n.string("chat.generating"))
-                }
-            }
-            .fixedSize()
-        }
-        // The header is the one elevated chrome surface: a system Material
-        // (AppKit vibrancy under the hood), not a hand-drawn blur. It sits in
-        // the titlebar area and reads as the window's native top bar.
-        .background(HeaderMaterial())
-    }
-
-    @ViewBuilder
-    private var conversation: some View {
-        if viewModel.messages.isEmpty {
-            VStack(spacing: 0) {
-                if viewModel.canRestorePreviousSession {
-                    sessionRestoreBanner
-                    Divider()
-                }
-                VStack(spacing: 8) {
-                    EmptyStateBrandMark()
-                    Text(L10n.string("chat.askAnything"))
-                        .font(.system(size: 17, weight: .medium))
-                        .kerning(-0.17)
-                        .foregroundStyle(Brand.fg)
-                    Text(L10n.string("chat.selectPrompt"))
-                        .font(.system(size: 13))
-                        .foregroundStyle(Brand.muted)
-                    PresetStripView(
-                        presets: settings.enabledPromptPresets,
-                        selection: $viewModel.selectedPromptPreset,
-                        showsShortcutHints: showsShortcutHints,
-                        shortcutForPreset: shortcutHint(for:),
-                        onSelect: { applyPreset($0) }
-                    )
-                    .padding(.top, 10)
-                    if !settings.enabledQuickActions.isEmpty {
-                        QuickActionStripView(
-                            actions: settings.enabledQuickActions,
-                            selectedActionID: composerModeCoordinator.pendingExternalAsk?.id,
-                            showsShortcutHints: showsShortcutHints,
-                            shortcutForAction: shortcutHint(for:),
-                            onSelect: selectExternalAsk
-                        )
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        } else {
-            VStack(spacing: 0) {
-                if viewModel.canRestorePreviousSession {
-                    sessionRestoreBanner
-                    Divider()
-                }
-                GeometryReader { geometry in
-                let contentWidth = conversationColumnWidth(viewportWidth: geometry.size.width)
-                ScrollViewReader { proxy in
-                ScrollView {
-                    // Each row carries an explicit finite width (see messageRow),
-                    // so a LazyVStack proposing ideal width to its children cannot
-                    // re-center a short IM bubble. The horizontal padding then
-                    // positions the column: IM sits flush to the 24pt content
-                    // inset, standard mode centers the 760pt column.
-                    conversationContent(contentWidth: contentWidth)
-                        .padding(
-                            .horizontal,
-                            conversationColumnHorizontalPadding(viewportWidth: geometry.size.width)
-                        )
-                        .padding(.vertical, 20)
-                }
-                .defaultScrollAnchor(scrollFollowState.followsLatest ? .bottom : nil, for: .sizeChanges)
-                // Keep scrolled content clear of the header Material and the
-                // composer chrome as it passes beneath them at the edges.
-                .contentMargins(.top, 32, for: .scrollContent)
-                .overlay(alignment: .bottomTrailing) {
-                    if !scrollFollowState.followsLatest {
-                        Button {
-                            scrollFollowState.resumeFollowing()
-                            withAnimation(.easeOut(duration: 0.16)) {
-                                proxy.scrollTo("conversation-bottom", anchor: .bottom)
-                            }
-                        } label: {
-                            Image(systemName: "arrow.down")
-                                .frame(width: 28, height: 28)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .clipShape(Circle())
-                        .padding(14)
-                        .help(L10n.string("chat.goToBottom"))
-                        .accessibilityLabel(L10n.string("chat.goToBottom"))
-                    }
-                }
-                .onAppear {
-                    DispatchQueue.main.async {
-                        proxy.scrollTo("conversation-bottom", anchor: .bottom)
-                    }
-                }
-                .onScrollGeometryChange(for: Bool.self, of: Self.isNearBottom) { _, isNearBottom in
-                    if scrollFollowState.isNearBottomValue != isNearBottom {
-                        scrollFollowState.positionChanged(isNearBottom: isNearBottom)
-                    }
-                }
-                .onScrollPhaseChange { _, newPhase, context in
-                    let isNearBottom = Self.isNearBottom(context.geometry)
-                    if scrollFollowState.isNearBottomValue != isNearBottom {
-                        scrollFollowState.positionChanged(isNearBottom: isNearBottom)
-                    }
-                    scrollFollowState.phaseChanged(to: Self.scrollFollowPhase(for: newPhase))
-                }
-                .onChange(of: viewModel.messages.last?.id) { _, _ in
-                    scrollToBottom(using: proxy)
-                }
-                }
-                }
-            }
-        }
-    }
-
-    /// The conversation column width inside the scroll viewport. IM rows span
-    /// the full padded width so the trailing-aligned bubble reaches the right
-    /// inset; standard mode keeps the familiar 760pt centered column.
-    private func conversationColumnWidth(viewportWidth: CGFloat) -> CGFloat {
-        let paddedWidth = max(0, viewportWidth - 48)
-        return settings.chatMessageStyle == .im ? paddedWidth : min(paddedWidth, 760)
-    }
-
-    /// The symmetric horizontal inset that positions the measured column.
-    /// In IM mode the column is exactly `viewport - 48`, so this resolves to
-    /// the canonical 24pt inset and each row's trailing-aligned user bubble
-    /// lands flush against the content right inset. In standard mode it grows
-    /// beyond 24 only to center a column narrower than the viewport.
-    private func conversationColumnHorizontalPadding(viewportWidth: CGFloat) -> CGFloat {
-        let columnWidth = conversationColumnWidth(viewportWidth: viewportWidth)
-        return max(24, (viewportWidth - columnWidth) / 2)
-    }
-
-    private func conversationContent(contentWidth: CGFloat) -> some View {
-        return VStack(alignment: .leading, spacing: 20) {
-            if !historicalMessages.isEmpty {
-                LazyVStack(alignment: .leading, spacing: 20) {
-                    ForEach(historicalMessages) { message in
-                        messageRow(message, contentWidth: contentWidth)
-                            .id(message.id)
-                    }
-                }
-            }
-            ForEach(activeTailMessages) { message in
-                messageRow(message, contentWidth: contentWidth)
-                    .id(message.id)
-            }
-            Color.clear
-                .frame(height: 1)
-                .id("conversation-bottom")
-        }
-    }
-
-    private static let conversationTailCount = 3
-
-    private var historicalMessages: [ChatMessage] {
-        Array(viewModel.messages.prefix(max(0, viewModel.messages.count - Self.conversationTailCount)))
-    }
-
-    private var activeTailMessages: [ChatMessage] {
-        Array(viewModel.messages.suffix(Self.conversationTailCount))
-    }
-
-    private var sessionRestoreBanner: some View {
-        HStack(spacing: 10) {
-            Text(L10n.string("chat.sessionIdleNotice"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-            Spacer()
-            Button(L10n.string("chat.continueConversation")) {
+    private var conversationList: some View {
+        ChatMessageListView(
+            viewModel: viewModel,
+            settings: settings,
+            reconciliationCoordinator: reconciliationCoordinator,
+            pendingExternalAskID: composerModeCoordinator.pendingExternalAsk?.id,
+            isPanelVisible: isPanelVisible,
+            showsShortcutHints: showsShortcutHints,
+            reduceMotion: reduceMotion,
+            scrollFollowState: $scrollFollowState,
+            copiedMessageID: copiedMessageID,
+            onApplyPreset: { applyPreset($0) },
+            onSelectExternalAsk: selectExternalAsk,
+            onRetryWithExternalAsk: retryWithExternalAsk,
+            onInsertSelection: insertSelection,
+            onCopyMessage: copyMessage,
+            onRestoreSession: {
                 viewModel.restoreSession()
                 inputFocused = true
-            }
-            .controlSize(.small)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(.quinary)
-        .accessibilityElement(children: .contain)
-    }
-
-    @ViewBuilder
-    private func messageRow(_ message: ChatMessage, contentWidth: CGFloat) -> some View {
-        Group {
-            switch message.role {
-            case .system:
-                EmptyView()
-            case .user:
-                let canRetry = canRetry(userMessage: message)
-                UserMessageContentView(
-                    message: message,
-                    isIM: settings.chatMessageStyle == .im,
-                    isExpanded: userMessageExpansionState.isExpanded(messageID: message.id),
-                    onToggleExpansion: { userMessageExpansionState.toggle(messageID: message.id) },
-                    canRetry: canRetry,
-                    onRetry: viewModel.retry,
-                    retryShortcut: canRetry ? shortcutHint(for: .operation(.regenerateOrRetry)) : nil
-                )
-            case .assistant:
-                AssistantMessageRow(
-                    viewModel: viewModel,
-                    settings: settings,
-                    message: message,
-                    reasoningState: reasoningToggle.state(for: message.id),
-                    reduceMotion: reduceMotion,
-                    isIM: settings.chatMessageStyle == .im,
-                    isLatestAssistant: message.id == viewModel.messages.last(where: { $0.role == .assistant })?.id,
-                    canRegenerate: viewModel.canRegenerate,
-                    canRetryWithModel: message.id == viewModel.messages.last(where: { $0.role == .assistant })?.id && viewModel.canRegenerate,
-                    onRegenerate: viewModel.regenerate,
-                    onRetryWithModel: { retryLatestAnswer(with: $0) },
-                    onRetryWithDefaultModel: retryLatestAnswerWithDefaultModel,
-                    externalAsks: settings.enabledQuickActions,
-                    onRetryWithExternalAsk: { action in
-                        retryWithExternalAsk(action, answering: message.id)
-                    },
-                    isCopied: copiedMessageID == message.id,
-                    onCopy: { copyMessage(message) },
-                    canInsertSelection: message.state == .complete && (viewModel.selectionSnapshot(for: message.id)?.canReplaceSelection ?? false),
-                    onInsertSelection: { insertSelection(from: message) },
-                    copyShortcut: shortcutHint(for: .operation(.copyAnswer)),
-                    regenerateShortcut: shortcutHint(for: .operation(.regenerateOrRetry)),
-                    retryShortcut: shortcutHint(for: .operation(.regenerateOrRetry)),
-                    errorDescription: viewModel.error?.localizedDescription,
-                    onRetry: viewModel.retry,
-                    isExpanded: assistantMessageExpansionState.isExpanded(messageID: message.id),
-                    onToggleExpansion: {
-                        assistantMessageExpansionState.toggle(messageID: message.id)
-                    },
-                    onToggleReasoning: {
-                        reasoningToggle.toggleByUser(messageID: message.id)
-                    },
-                    onLiveMessageChanged: { reconcileReasoningAfterStreamingUpdate($0) },
-                    isPanelVisible: isPanelVisible,
-                )
-            }
-        }
-        // A LazyVStack proposes ideal width to its children, so a short IM
-        // bubble collapses to its intrinsic width and floats centered. Pin
-        // each row to the measured content width: the trailing-aligned user
-        // bubble reaches the right inset, and the assistant bubble stays left.
-        .frame(
-            width: contentWidth,
-            alignment: settings.chatMessageStyle == .im && message.role == .user ? .trailing : .leading
+            },
+            onRetryLatestAnswerWithModel: retryLatestAnswer,
+            onRetryLatestAnswerWithDefaultModel: retryLatestAnswerWithDefaultModel,
+            shortcutHint: shortcutHint(for:)
         )
     }
 
-    private func reconcileReasoningAfterStreamingUpdate(_ message: ChatMessage) {
-        guard message.state == .streaming, message.reasoningContent?.isEmpty == false else { return }
-        var updated = reasoningToggle
-        updated.reconcile(message: message, prefersExpanded: settings.defaultExpandReasoning)
-        if updated != reasoningToggle {
-            reasoningToggle = updated
-        }
+    private var composerView: some View {
+        ChatComposerView(
+            viewModel: viewModel,
+            settings: settings,
+            isGenerating: isGenerating,
+            pendingExternalAskID: composerModeCoordinator.pendingExternalAsk?.id,
+            badge: activeComposerBadge,
+            placeholderText: placeholderText,
+            showsShortcutHints: showsShortcutHints,
+            inputFocused: $inputFocused,
+            inputHeight: $inputHeight,
+            isPresetPopoverPresented: $isPresetPopoverPresented,
+            isAtPalettePresented: atCommandState != nil,
+            composerTextView: composerTextView,
+            shortcutHint: shortcutHint(for:),
+            onApplyPreset: { applyPreset($0) },
+            onSelectExternalAsk: selectExternalAsk,
+            onSend: sendFromComposer,
+            onEscape: handleEscape,
+            onPresentAttachmentPicker: presentAttachmentPicker,
+            onClearComposerModeSelection: clearComposerModeSelection,
+            onAtCommandStateChanged: handleAtCommandStateChanged,
+            onAtCommandMoveHighlight: moveAtCommandHighlight,
+            onAtCommandConfirm: confirmAtCommandSelection,
+            onPrimaryAction: primaryAction
+        )
     }
 
-    private var composer: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            if !viewModel.pendingAttachments.isEmpty {
-                attachmentStrip
-            }
-            HStack(alignment: .bottom, spacing: 8) {
-                if !viewModel.messages.isEmpty {
-                    PresetPopoverTrigger(
-                        presets: settings.enabledPromptPresets,
-                        selection: $viewModel.selectedPromptPreset,
-                        actions: settings.enabledQuickActions,
-                        selectedActionID: composerModeCoordinator.pendingExternalAsk?.id,
-                        isPresented: $isPresetPopoverPresented,
-                        showsShortcutHints: showsShortcutHints,
-                        shortcutForPreset: shortcutHint(for:),
-                        shortcutForAction: shortcutHint(for:),
-                        onSelect: { applyPreset($0) },
-                        onSelectAction: selectExternalAsk
-                    )
-                    .transition(.opacity)
-                }
-                AttachmentPickerButton(action: presentAttachmentPicker)
-                VStack(alignment: .leading, spacing: 6) {
-                    if let badge = activeComposerBadge {
-                        SelectedPresetBadge(
-                            title: badge.title,
-                            icon: badge.icon,
-                            brandIconSlug: badge.brandIconSlug
-                        ) {
-                            clearComposerModeSelection()
-                        }
-                    }
-                    ChatInputTextView(
-                        text: $viewModel.input,
-                        isFocused: $inputFocused,
-                        height: $inputHeight,
-                        isGenerating: isGenerating,
-                        onSubmit: {
-                            sendFromComposer()
-                        },
-                        onEscape: handleEscape,
-                        onPasteImage: { data in
-                            Task { await viewModel.addScreenshot(data) }
-                        },
-                        onPasteFiles: { urls in
-                            Task { @MainActor in
-                                for url in urls {
-                                    await viewModel.addAttachment(from: url)
-                                }
-                            }
-                        },
-                        onTextViewReady: { composerTextView.textView = $0 },
-                        onRecall: { viewModel.recallLastQuestion() },
-                        onAtCommandStateChanged: handleAtCommandStateChanged,
-                        isAtPalettePresented: atCommandState != nil,
-                        onAtCommandMoveHighlight: moveAtCommandHighlight,
-                        onAtCommandConfirm: confirmAtCommandSelection
-                    )
-                    .frame(height: inputHeight)
-                    .animation(.easeOut(duration: 0.12), value: inputHeight)
-                    .background(inputFocused ? Brand.bg : Brand.surface, in: RoundedRectangle(cornerRadius: 12))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 12)
-                            .strokeBorder(inputFocused ? Brand.accent : Brand.border, lineWidth: 1)
-                    }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 12)
-                            .strokeBorder(Brand.accent.opacity(0.15), lineWidth: 6)
-                            .blur(radius: 4)
-                            .opacity(inputFocused ? 1 : 0)
-                            .allowsHitTesting(false)
-                    }
-                    .overlay(alignment: .topLeading) {
-                        if viewModel.input.isEmpty {
-                            Text(placeholderText)
-                                .foregroundStyle(Brand.muted)
-                                .padding(.leading, 14)
-                                .padding(.top, 10)
-                                .allowsHitTesting(false)
-                        }
-                    }
-                    .overlay(alignment: .bottomTrailing) {
-                        ShortcutKeycap(shortcut: shortcutHint(for: .operation(.focusInput)))
-                            .padding(8)
-                    }
-                    .animation(.easeOut(duration: 0.12), value: inputFocused)
-                }
-                .frame(maxWidth: .infinity)
-                .animation(.easeOut(duration: 0.12), value: activeComposerBadge)
-                ComposerSendButton(
-                    isGenerating: isGenerating,
-                    canSend: viewModel.canSend,
-                    shortcut: shortcutHint(for: .operation(.sendOrCancel)),
-                    action: primaryAction
-                )
-            }
+    private func handleAppear() {
+        if let window = chatWindowReference.window {
+            isPanelVisible = window.isVisible
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        inputFocused = true
+        viewModel.prepareNewConversationAfterInactivity()
+        commandCenter.setActionConsumer(handleCommandAction)
+        reconciliationCoordinator.reconcile(
+            messages: viewModel.messages,
+            prefersExpanded: settings.defaultExpandReasoning,
+            force: true
+        )
+        installShortcutDispatcher()
     }
 
-    private var attachmentStrip: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(viewModel.pendingAttachments) { attachment in
-                    AttachmentChip(attachment: attachment) {
-                        viewModel.removeAttachment(id: attachment.id)
-                    }
-                }
-            }
-            .padding(.horizontal, 2)
-            .padding(.vertical, 2)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityLabel(L10n.string("chat.attachments"))
+    private func handleDisappear() {
+        shortcutDispatcher?.stop()
+        shortcutDispatcher = nil
+        isPanelVisible = false
     }
+
 
     private func presentAttachmentPicker() {
         let panel = NSOpenPanel()
@@ -822,14 +456,6 @@ struct ChatView: View {
         shortcutHint(for: .quickAction(action.id))
     }
 
-    private func canRetry(userMessage: ChatMessage) -> Bool {
-        guard viewModel.generationState == .failed,
-              viewModel.messages.last?.role == .assistant,
-              viewModel.messages.last?.state == .failed,
-              let lastUserMessage = viewModel.messages.last(where: { $0.role == .user }) else { return false }
-        return userMessage.id == lastUserMessage.id
-    }
-
     private func copyMessage(_ message: ChatMessage) {
         Clipboard.copy(message.content)
         copiedMessageID = message.id
@@ -868,7 +494,6 @@ struct ChatView: View {
             }
         }
     }
-
 
     /// Applies a preset from the quick-strip or the in-conversation popover.
     /// With a non-empty draft (typed text or pending attachments) it selects
@@ -909,7 +534,7 @@ struct ChatView: View {
             }
             NewConversationConfirmation.present(
                 settings: settings,
-                window: NSApp.keyWindow ?? NSApp.mainWindow,
+                window: ModalSheetPresenter.resolveWindow(),
                 onConfirm: confirmNewConversation
             )
             return
@@ -927,6 +552,7 @@ struct ChatView: View {
         inputFocused = true
         scrollFollowState.resumeFollowing()
     }
+
     private var atCommandPresets: [PromptPreset] {
         AtCommandMatcher.ranked(
             settings.enabledPromptPresets,
@@ -1046,7 +672,6 @@ struct ChatView: View {
         )
     }
 
-
     private func resolveEnabledQuickAction(_ id: UUID) -> QuickAction? {
         settings.enabledQuickActions.first { $0.id == id }
     }
@@ -1153,7 +778,6 @@ struct ChatView: View {
         composerModeCoordinator.clearSelection(selectedPreset: &viewModel.selectedPromptPreset)
         inputFocused = true
     }
-
 
     private func handleEscape() {
         let action = chatEscapeAction(
@@ -1290,44 +914,4 @@ struct ChatView: View {
             line.isEmpty ? ">" : "> \(line)"
         }.joined(separator: "\n")
     }
-
-    private func scrollToBottom(using proxy: ScrollViewProxy) {
-        guard scrollFollowState.followsLatest else { return }
-        pendingScrollTask?.cancel()
-        pendingScrollTask = Task { @MainActor in
-            await Task.yield()
-            try? await Task.sleep(for: .milliseconds(16))
-
-            guard scrollFollowState.followsLatest else { return }
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                proxy.scrollTo("conversation-bottom", anchor: .bottom)
-            }
-        }
-    }
-
-    private static func isNearBottom(_ geometry: ScrollGeometry) -> Bool {
-        geometry.visibleRect.maxY >= geometry.contentSize.height - 12
-    }
-
-    private static func scrollFollowPhase(for phase: ScrollPhase) -> ScrollFollowState.Phase {
-        switch phase {
-        case .idle:
-            .idle
-        case .tracking, .interacting:
-            .userInteracting
-        case .decelerating:
-            .userDecelerating
-        case .animating:
-            .programmaticAnimating
-        }
-    }
 }
-
-
-
-
-
-
-

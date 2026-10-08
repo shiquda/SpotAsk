@@ -8,6 +8,22 @@ enum ChatNetworking {
         return URLSession(configuration: configuration)
     }
 
+    @MainActor
+    static func proxyConfiguration(
+        settings: AppSettings,
+        keyStore: any APIKeyStoring
+    ) -> [String: Any]? {
+        guard settings.proxyEnabled else { return nil }
+        let password = (try? keyStore.readAPIKey(for: ProxyCredentialSlot.providerID)) ?? ""
+        return proxyConfiguration(
+            type: settings.proxyType,
+            host: settings.proxyHost,
+            port: settings.proxyPort,
+            username: settings.proxyUsername,
+            password: password
+        )
+    }
+
     /// Builds the `connectionProxyDictionary` accepted by URLSession for the
     /// two supported proxy kinds. Returns nil when the proxy is disabled or
     /// its address is incomplete so callers fall back to direct networking.

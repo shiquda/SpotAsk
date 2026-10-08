@@ -111,13 +111,18 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         keyStore: keyStore,
         providerFactory: providerFactory,
         accessibilityPermissionCoordinator: accessibilityPermissionCoordinator,
-        onClose: {}
+        sessionStore: sessionStore,
+        onClose: {},
+        onClearAllData: { [weak self] in
+            self?.chatViewModel.newConversation()
+        }
     )
     private var urlDelivery = SpotAskURLDelivery()
     private var isLaunchFinished = false
     private var pendingLaunchURLs: [URL] = []
 
     override init() {
+        SandboxDataMigrator.migrateIfNeeded()
         let settings = AppSettings.shared
         let keyStore = LocalAPIKeyStore()
         do {

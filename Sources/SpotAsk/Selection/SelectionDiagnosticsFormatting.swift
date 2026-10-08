@@ -26,8 +26,6 @@ enum SelectionDiagnosticsFormatting {
 
     static func anchor(_ anchor: SelectionAnchor) -> String {
         switch anchor {
-        case let .selectionRect(rect): "selection=\(Self.rect(rect))"
-        case let .elementRect(rect): "element=\(Self.rect(rect))"
         case let .pointer(point): "pointer=\(Self.point(point))"
         }
     }

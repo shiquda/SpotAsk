@@ -1,11 +1,11 @@
 ---
 title: 外部提问
-description: 先在 SpotAsk 里输入问题，再一键发送到 ChatGPT、Grok、其他应用或终端命令。
+description: "先在 SpotAsk 快速敲下问题，再一键分流至 ChatGPT、Grok、桌面应用或终端 CLI 命令。"
 ---
 
 # 外部提问
 
-外部提问让你始终在 SpotAsk 里开始提问，再跳转到任意你喜欢的 AI 继续。SpotAsk 负责全局唤起和快速输入，回答由你选择的 AI 完成。
+外部提问让你始终在统一的快捷小窗中敲下问题，再随时跳转至专属 AI 平台深入探讨。SpotAsk 负责全局即时捕获，具体解答交由你选定的工具完成。
 
 ## 向其他 AI 提问
 

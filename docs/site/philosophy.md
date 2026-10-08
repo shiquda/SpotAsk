@@ -5,7 +5,7 @@ description: Why SpotAsk stays small, keyboard-first, and local — the design i
 
 # Design Philosophy
 
-SpotAsk is not a smaller ChatGPT. It is built on a different premise: **not every question is worth opening a full AI platform for**. Many everyday questions — understanding a term, translating a paragraph, summarizing an article, polishing a reply — are simple, yet the way we usually answer them is not: interrupt the task at hand, open a browser, load an AI site, wait for a flagship model to think, copy the result, and switch back.
+SpotAsk is not a smaller ChatGPT. It is built on a different premise: **not every question calls for a full AI platform**. Many everyday questions — looking up a concept, translating a sentence, summarizing an article, polishing a reply — are lightweight, yet answering them often feels heavy: breaking flow, switching windows, loading web apps, waiting for flagship reasoning, copying results, and switching back.
 
 SpotAsk exists to make lightweight questions genuinely lightweight. This page explains the ideas behind that goal and the tradeoffs they imply.
 
@@ -16,8 +16,8 @@ A common experience: you have a question, and before you can ask it you first de
 SpotAsk flips the order. You write the question down first — in a window that is always one hotkey away — and only then decide who answers it:
 
 - Ask the configured model directly with streaming answers (BYOK).
-- Use **External Ask** to hand the question to 3 destinations: web platforms (ChatGPT, Perplexity, Grok), desktop apps via URI schemes, or local CLI agents in Terminal.
-The question is captured at the moment it appears; the routing decision can wait.
+- Use **External Ask** to route queries to web platforms (ChatGPT, Perplexity, Grok), local CLI agents, or desktop apps.
+The question is captured the moment it appears; who answers it can wait.
 
 ## Lightweight by intention
 
@@ -33,7 +33,7 @@ The goal is that after you close the window, it is as if SpotAsk never appeared:
 
 ## Keyboard-first, zero pointer travel
 
-Most SpotAsk workflows never require touching the mouse: summon the window, ask with a preset prompt, copy the reply, clear the conversation, dismiss with `⎋`. A typical flow — for example, explaining a term a friend just mentioned in chat — is four keystroke steps from start to finish.
+Most SpotAsk workflows never require touching the mouse: summon the window, pick a prompt, copy the reply, and dismiss with `⎋`. Looking up an unfamiliar term takes just a few keystrokes from start to finish.
 
 Every shortcut is configurable, so the app adapts to your hands rather than the other way around.
 

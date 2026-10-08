@@ -31,7 +31,9 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let keyStore: any APIKeyStoring
     private let providerFactory: any ChatProviderFactory
     private let accessibilityPermissionCoordinator: AccessibilityPermissionCoordinator
+    private let sessionStore: SessionStore
     private let onClose: () -> Void
+    private let onClearAllData: (() -> Void)?
 
     private var window: NSWindow?
     /// Owns the window's page selection, so a deep link survives window reuse.
@@ -42,13 +44,17 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         keyStore: any APIKeyStoring,
         providerFactory: any ChatProviderFactory,
         accessibilityPermissionCoordinator: AccessibilityPermissionCoordinator,
-        onClose: @escaping () -> Void
+        sessionStore: SessionStore = SessionStore(),
+        onClose: @escaping () -> Void,
+        onClearAllData: (() -> Void)? = nil
     ) {
         self.settings = settings
         self.keyStore = keyStore
         self.providerFactory = providerFactory
         self.accessibilityPermissionCoordinator = accessibilityPermissionCoordinator
+        self.sessionStore = sessionStore
         self.onClose = onClose
+        self.onClearAllData = onClearAllData
         super.init()
         NotificationCenter.default.addObserver(
             self,
@@ -89,7 +95,9 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             providerFactory: providerFactory,
             accessibilityPermissionCoordinator: accessibilityPermissionCoordinator,
             model: model,
-            settingsWindowProvider: { [weak self] in self?.window }
+            sessionStore: sessionStore,
+            settingsWindowProvider: { [weak self] in self?.window },
+            onClearAllData: onClearAllData
         )
         let hostingView = NSHostingView(rootView: rootView)
 

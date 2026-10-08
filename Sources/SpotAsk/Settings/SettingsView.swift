@@ -180,7 +180,7 @@ enum SettingsSearchIndex {
         Entry(section: .prompts, titleKey: "settings.savedPrompts", labelKeys: ["settings.promptCatalogDescription"]),
         Entry(section: .prompts, titleKey: "settings.customInstruction", labelKeys: ["settings.customInstruction"]),
         Entry(section: .externalAsk, titleKey: "settings.externalAsk", labelKeys: ["settings.externalAskEnabled", "settings.promptCatalogDescription"]),
-        Entry(section: .selectionAssistant, titleKey: "settings.selectionAssistant", labelKeys: ["settings.selectionAssistantEnabled", "settings.selectionAssistantPermissionStatus", "settings.selectionAssistantMode", "settings.selectionAssistantAutoShow", "settings.selectionAssistantActionLabels", "settings.selectionAssistantActionPrompts", "settings.selectionAssistantActionExternalAsk", "settings.selectionAssistantAutoShowScope", "settings.selectionAssistantAutoShowDelay", "settings.selectionAssistantDefaultAction", "settings.selectionAssistantAutoShowApps"]),
+        Entry(section: .selectionAssistant, titleKey: "settings.selectionAssistant", labelKeys: ["settings.selectionAssistantEnabled", "settings.selectionAssistantPermissionStatus", "settings.selectionAssistantMode", "settings.selectionAssistantAutoShow", "settings.selectionAssistantActionLabels", "settings.selectionAssistantActionPrompts", "settings.selectionAssistantActionExternalAsk", "settings.selectionAssistantActionBarPreview", "settings.selectionAssistantAutoShowScope", "settings.selectionAssistantAutoShowDelay", "settings.selectionAssistantDefaultAction", "settings.selectionAssistantAutoShowApps"]),
         Entry(section: .shortcuts, titleKey: "settings.shortcutActions", labelKeys: ["settings.selectionAssistantToggleShortcut"]),
         Entry(section: .shortcuts, titleKey: "settings.shortcutPrompts", labelKeys: ["settings.promptCatalogDescription"]),
         Entry(section: .shortcuts, titleKey: "settings.externalAsk", labelKeys: ["settings.externalAsk"]),
@@ -324,7 +324,9 @@ struct SettingsView: View {
         accessibilityPermissionCoordinator: AccessibilityPermissionCoordinator = AccessibilityPermissionCoordinator(),
         accessibilitySettingsOpener: any AccessibilityPermissionSettingsOpening = MacOSAccessibilityPermissionSettingsOpener(),
         model: SettingsWindowModel = SettingsWindowModel(),
-        settingsWindowProvider: (() -> NSWindow?)? = nil
+        sessionStore: SessionStore = SessionStore(),
+        settingsWindowProvider: (() -> NSWindow?)? = nil,
+        onClearAllData: (() -> Void)? = nil
     ) {
         self.settings = settings
         self.accessibilityPermissionCoordinator = accessibilityPermissionCoordinator
@@ -340,8 +342,10 @@ struct SettingsView: View {
         _generalState = State(initialValue: GeneralSettingsState(
             settings: settings,
             keyStore: keyStore,
+            sessionStore: sessionStore,
             settingsWindowProvider: settingsWindowProvider,
-            onConfigurationImported: { providerState.reloadCatalogSelection() }
+            onConfigurationImported: { providerState.reloadCatalogSelection() },
+            onClearAllData: onClearAllData
         ))
     }
 
