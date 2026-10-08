@@ -1023,6 +1023,97 @@ final class ProviderSettingsStateTests: XCTestCase {
         XCTAssertEqual(state.activeModelID, settings.providerRegistry.catalog?.selectedModelID)
     }
 
+    // MARK: - Official address prefill
+
+    func testStartNewProviderPrefillsTheOfficialAddress() {
+        let state = makeState(keyStore: RecordingKeyStore())
+
+        state.startNewProvider()
+
+        XCTAssertEqual(state.draftProviderFormat, .openAICompatible)
+        XCTAssertEqual(state.draftProviderAddressMode, .baseURL)
+        XCTAssertEqual(state.draftProviderAddress, "https://api.openai.com/v1")
+        XCTAssertNil(state.providerFieldError)
+    }
+
+    func testChoosingAFormatPrefillsThatFormatOfficialAddress() {
+        let state = makeState(keyStore: RecordingKeyStore())
+        state.startNewProvider()
+
+        state.draftProviderFormat = .anthropic
+        state.prefillOfficialAddress()
+        XCTAssertEqual(state.draftProviderAddress, "https://api.anthropic.com/v1")
+
+        state.draftProviderFormat = .gemini
+        state.prefillOfficialAddress()
+        XCTAssertEqual(state.draftProviderAddress, "https://generativelanguage.googleapis.com/v1beta")
+        XCTAssertNil(state.providerFieldError)
+    }
+
+    func testChoosingAFormatKeepsAnAddressTheUserTyped() {
+        let state = makeState(keyStore: RecordingKeyStore())
+        state.startNewProvider()
+        state.draftProviderAddress = "https://gateway.example.com/v1beta/models"
+
+        state.draftProviderFormat = .gemini
+        state.prefillOfficialAddress()
+
+        XCTAssertEqual(state.draftProviderAddress, "https://gateway.example.com/v1beta/models")
+    }
+
+    func testChoosingAFullRequestAddressPrefillsTheOfficialEndpoint() {
+        let state = makeState(keyStore: RecordingKeyStore())
+        state.startNewProvider()
+
+        state.draftProviderAddressMode = .fullEndpoint
+        state.prefillOfficialAddress()
+        XCTAssertEqual(state.draftProviderAddress, "https://api.openai.com/v1/chat/completions")
+        XCTAssertNil(state.providerFieldError)
+
+        state.draftProviderFormat = .anthropic
+        state.prefillOfficialAddress()
+        XCTAssertEqual(state.draftProviderAddress, "https://api.anthropic.com/v1/messages")
+        XCTAssertNil(state.providerFieldError)
+
+        state.draftProviderFormat = .gemini
+        state.prefillOfficialAddress()
+        XCTAssertEqual(state.draftProviderAddress, "https://generativelanguage.googleapis.com/v1beta")
+    }
+
+    /// A pre-filled address is the first thing a user sees, so it must always
+    /// pass the same normalizer the Save button uses.
+    func testEveryPrefilledAddressResolvesForItsOwnFormat() {
+        for format in ProviderFormat.allCases {
+            for mode in ProviderAddressMode.allCases {
+                let address = format.officialAddress(for: mode)
+                XCTAssertNoThrow(
+                    try URLNormalizer.endpoint(
+                        from: address,
+                        useFullEndpoint: mode.usesFullEndpoint,
+                        format: format
+                    ),
+                    "\(format) pre-fills \(address), which its own normalizer rejects"
+                )
+            }
+        }
+    }
+
+    /// The pre-filled Gemini address is the API version root; the model
+    /// collection and the action are appended from it.
+    func testGeminiPrefillResolvesToTheModelCollectionRoot() throws {
+        let address = ProviderFormat.gemini.officialAddress(for: .baseURL)
+
+        XCTAssertEqual(address, "https://generativelanguage.googleapis.com/v1beta")
+        XCTAssertEqual(
+            try URLNormalizer.endpoint(from: address, useFullEndpoint: false, format: .gemini).absoluteString,
+            "https://generativelanguage.googleapis.com/v1beta/models"
+        )
+        XCTAssertEqual(
+            try URLNormalizer.modelsEndpoint(from: address, format: .gemini).absoluteString,
+            "https://generativelanguage.googleapis.com/v1beta/models"
+        )
+    }
+
     // MARK: - Helpers
 
     private func makeState(

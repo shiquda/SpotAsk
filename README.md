@@ -75,7 +75,7 @@ The packages are signed with a Developer ID and notarized by Apple for a seamles
 
 ## Quick start
 
-1. **Configure provider**: Open Settings (`⌘ + ,`), choose **Services**, and add your OpenAI-compatible or Anthropic endpoint, model ID, and API key.
+1. **Configure provider**: Open Settings (`⌘ + ,`), choose **Services**, and add your OpenAI-compatible, Anthropic, or Gemini endpoint, model ID, and API key.
 2. **Test connection**: Click **Test Connection** to verify your credentials.
 3. **Start asking**: Press `⌥ + Space` anywhere to summon SpotAsk and type your first question!
 

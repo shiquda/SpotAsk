@@ -13,7 +13,7 @@ description: 将 Anthropic 添加为 SpotAsk 服务并验证连接。
 2. 新建服务或编辑已有服务。
 3. 将“接口格式”设为 **Anthropic**。
 4. 输入便于识别的名称。
-5. 输入服务地址。
+5. 使用已预填的 Anthropic **服务地址**，或替换为你的服务商地址。
 6. 输入并保存 Anthropic 访问密钥。
 7. 添加 Anthropic 控制台或服务商文档中的模型 ID。
 8. 点击“测试连接”。
@@ -33,6 +33,10 @@ https://api.anthropic.com/v1
 ```text
 https://api.anthropic.com/v1/messages
 ```
+
+## 获取 Anthropic 密钥
+
+SpotAsk 会预填 `https://api.anthropic.com/v1`。到 [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys) 创建密钥，填入“访问密钥”，再点击“测试连接”。Messages API 文档见 [docs.claude.com/en/api/messages](https://docs.claude.com/en/api/messages)。
 
 ## 说明
 

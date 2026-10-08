@@ -373,8 +373,9 @@
 "settings.providerNamePlaceholder" = "我的 AI 服务";
 "settings.providerNameRequired" = "请输入服务名称。";
 "settings.providerFormat" = "接口格式";
-"settings.providerFormatOpenAI" = "OpenAI 兼容";
+"settings.providerFormatOpenAI" = "OpenAI";
 "settings.providerFormatAnthropic" = "Anthropic";
+"settings.providerFormatGemini" = "Gemini";
 "settings.providerSaveFailed" = "无法保存服务。";
 "settings.providerSaved" = "服务已保存。";
 "settings.refreshModels" = "更新模型";
@@ -495,6 +496,7 @@
 "settings.profileVolcengineArk" = "火山方舟";
 "settings.profileSiliconFlow" = "SiliconFlow";
 "settings.profileAnthropic" = "Anthropic";
+"settings.profileGemini" = "Gemini";
 "settings.thinkingMode" = "思考等级";
 "settings.thinkingModeProviderDefault" = "由服务决定";
 "settings.thinkingModeDisabled" = "关闭";

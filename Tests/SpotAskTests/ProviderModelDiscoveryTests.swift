@@ -121,6 +121,35 @@ final class ProviderModelDiscoveryTests: XCTestCase {
         XCTAssertEqual(request.timeoutInterval, 42)
     }
 
+    func testGeminiDiscoveryKeepsChatCapableModels() async throws {
+        let transport = RecordingDiscoveryTransport(
+            result: .success((
+                Data(#"{"models":[{"name":"models/gemini-2.5-pro","supportedGenerationMethods":["generateContent","countTokens"]},{"name":"models/embedding-001","supportedGenerationMethods":["embedContent"]},{"name":"models/gemini-2.5-flash"},{"name":"models/gemini-2.5-flash"}]}"#.utf8),
+                response(status: 200)
+            ))
+        )
+        let provider = ProviderConfiguration(
+            name: "Gemini",
+            address: "https://generativelanguage.googleapis.com",
+            addressMode: .baseURL,
+            timeout: 42,
+            format: .gemini
+        )
+
+        let models = try await GeminiModelDiscovery(transport: transport).models(for: provider, apiKey: " key ")
+
+        XCTAssertEqual(models, ["gemini-2.5-flash", "gemini-2.5-pro"])
+        let request = try XCTUnwrap(transport.request)
+        XCTAssertEqual(
+            request.url?.absoluteString,
+            "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000"
+        )
+        XCTAssertEqual(request.httpMethod, "GET")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "x-goog-api-key"), "key")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Accept"), "application/json")
+        XCTAssertEqual(request.timeoutInterval, 42)
+    }
+
     private func response(status: Int) -> HTTPURLResponse {
         HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: status, httpVersion: nil, headerFields: nil)!
     }

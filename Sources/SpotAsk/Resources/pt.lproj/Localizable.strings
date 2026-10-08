@@ -373,8 +373,9 @@
 "settings.providerNamePlaceholder" = "Meu serviço de IA";
 "settings.providerNameRequired" = "Digite um nome de serviço.";
 "settings.providerFormat" = "Formato da API";
-"settings.providerFormatOpenAI" = "Compatível com OpenAI";
+"settings.providerFormatOpenAI" = "OpenAI";
 "settings.providerFormatAnthropic" = "Anthropic";
+"settings.providerFormatGemini" = "Gemini";
 "settings.providerSaveFailed" = "Não foi possível salvar o serviço.";
 "settings.providerSaved" = "Serviço salvo.";
 "settings.refreshModels" = "Atualizar modelos";
@@ -495,6 +496,7 @@
 "settings.profileVolcengineArk" = "Volcengine Ark";
 "settings.profileSiliconFlow" = "SiliconFlow";
 "settings.profileAnthropic" = "Anthropic";
+"settings.profileGemini" = "Gemini";
 "settings.thinkingMode" = "Nível de raciocínio";
 "settings.thinkingModeProviderDefault" = "Padrão do provedor";
 "settings.thinkingModeDisabled" = "Desativado";

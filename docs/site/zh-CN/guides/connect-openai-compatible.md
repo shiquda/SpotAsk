@@ -11,9 +11,9 @@ OpenAI 以及提供 OpenAI 兼容聊天 API 的服务商，都选择 **OpenAI �
 
 1. 打开设置，进入“服务”。
 2. 新建服务或编辑已有服务。
-3. 将“接口格式”设为 **OpenAI 兼容**。
+3. 将“接口格式”设为 **OpenAI**。
 4. 输入便于识别的名称。
-5. 输入服务商提供的服务地址。
+5. 使用已预填的 OpenAI **服务地址**，或替换为你的服务商地址。
 6. 选择“地址类型”。
 7. 输入并保存访问密钥。
 8. 添加服务商要求的模型 ID。
@@ -36,6 +36,10 @@ https://api.openai.com/v1/chat/completions
 ```
 
 不同服务商可能使用不同路径，请以服务商文档为准。
+
+## 获取 OpenAI 密钥
+
+SpotAsk 会预填 `https://api.openai.com/v1`。到 [platform.openai.com/api-keys](https://platform.openai.com/api-keys) 创建密钥，填入“访问密钥”，再点击“测试连接”。请求与响应字段见 [platform.openai.com/docs/api-reference](https://platform.openai.com/docs/api-reference)。
 
 ## 添加模型
 

@@ -8,10 +8,44 @@ enum ProviderAddressMode: String, Codable, CaseIterable, Sendable {
 }
 
 /// Wire format used when talking to a Service. OpenAI-compatible keeps the
-/// chat-completions convention; Anthropic uses the official Messages API.
+/// chat-completions convention, Anthropic uses the official Messages API, and
+/// Gemini uses the official `generateContent` API.
 enum ProviderFormat: String, Codable, CaseIterable, Sendable {
     case openAICompatible
     case anthropic
+    case gemini
+
+    /// The official address SpotAsk pre-fills when a Service uses this format,
+    /// so the field shows a working endpoint the user can recognise and edit
+    /// instead of an empty box.
+    func officialAddress(for mode: ProviderAddressMode) -> String {
+        switch self {
+        case .openAICompatible:
+            mode.usesFullEndpoint
+                ? "https://api.openai.com/v1/chat/completions"
+                : "https://api.openai.com/v1"
+        case .anthropic:
+            mode.usesFullEndpoint
+                ? "https://api.anthropic.com/v1/messages"
+                : "https://api.anthropic.com/v1"
+        case .gemini:
+            // The Gemini API version root. Requests carry the model and the
+            // action in the path (`/v1beta/models/<model>:generateContent`), so
+            // this is the base SpotAsk resolves to the model collection and
+            // builds every request from; the same value covers both address
+            // types.
+            "https://generativelanguage.googleapis.com/v1beta"
+        }
+    }
+
+    /// Every address SpotAsk fills in itself. Used to tell a pre-filled value
+    /// apart from one the user typed, so switching a picker never overwrites
+    /// a real address.
+    static var officialAddresses: Set<String> {
+        Set(allCases.flatMap { format in
+            ProviderAddressMode.allCases.map { format.officialAddress(for: $0) }
+        })
+    }
 }
 
 enum ModelConfigurationSource: String, Codable, Equatable, Sendable {
@@ -44,6 +78,7 @@ enum RequestCompatibilityProfile: String, Codable, CaseIterable, Sendable {
     case volcengineArk
     case siliconFlow
     case anthropic
+    case gemini
 }
 
 enum ModelJSONValue: Codable, Equatable, Sendable {
@@ -172,6 +207,9 @@ extension RequestCompatibilityProfile {
         if providerFormat == .anthropic {
             return .anthropic
         }
+        if providerFormat == .gemini {
+            return .gemini
+        }
 
         let providerText = normalizedInferenceText([providerName, providerAddress])
         if containsAny(providerText, ["openrouter"]) {
@@ -245,7 +283,15 @@ extension RequestCompatibilityProfile {
         patterns.contains { text.contains(normalizedInferenceText([$0])) }
     }
 
-    static let protectedStructuralKeys: Set<String> = ["model", "messages", "stream", "system"]
+    static let protectedStructuralKeys: Set<String> = [
+        "model",
+        "messages",
+        "stream",
+        "system",
+        // Gemini structural keys: the provider builds them from the request.
+        "contents",
+        "systemInstruction"
+    ]
     static let reasoningControlKeys: Set<String> = [
         "reasoning_effort",
         "reasoning",
@@ -318,6 +364,11 @@ extension RequestCompatibilityProfile {
                 "thinking": .object(["type": .string("adaptive")]),
                 "output_config": .object(["effort": .string(effort)])
             ]
+        case .gemini:
+            // The native Gemini API takes reasoning settings inside
+            // `generationConfig` and the accepted shape differs between model
+            // generations, so only an explicit custom parameter shapes it.
+            return [:]
         }
     }
 }

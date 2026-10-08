@@ -5,7 +5,7 @@ description: Understand the two SpotAsk address modes and when to use each one.
 
 # Service Root vs Full Request Address
 
-Every service has an **Address Type** setting.
+Every service has an **Address Type** setting. SpotAsk pre-fills the address with the official address of the selected **API Format** and **Address Type**, so the examples below are what a new service already shows.
 
 ## Service Root
 
@@ -15,7 +15,7 @@ Use **Service Root** when you enter the base address of the provider. SpotAsk ap
 https://api.openai.com/v1
 ```
 
-For an OpenAI-compatible service, SpotAsk appends `/chat/completions`. For Anthropic, it appends the Messages path when needed.
+For an OpenAI-compatible service, SpotAsk appends `/chat/completions`. For Anthropic, it appends the Messages path when needed. Gemini carries the model and the action in the request path (`/v1beta/models/<model>:generateContent`), so the API version root `https://generativelanguage.googleapis.com/v1beta` is enough as the address: SpotAsk resolves it to the model collection and appends the action per request.
 
 This mode also makes model discovery possible, because SpotAsk can request the provider's model list.
 

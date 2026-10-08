@@ -83,6 +83,19 @@ struct OpenAICompatibleProviderFactory: ChatProviderFactory {
                 ),
                 urlSession: urlSession
             )
+        case .gemini:
+            return GeminiProvider(
+                configuration: .init(
+                    endpoint: target.endpoint,
+                    apiKey: target.apiKey,
+                    model: target.upstreamModelID,
+                    timeout: target.timeout,
+                    compatibilityProfile: target.compatibilityProfile,
+                    thinkingMode: target.thinkingMode,
+                    extraRequestParameters: target.extraRequestParameters
+                ),
+                urlSession: urlSession
+            )
         }
     }
 }

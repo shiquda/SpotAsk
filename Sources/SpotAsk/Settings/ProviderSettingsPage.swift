@@ -194,12 +194,14 @@ private struct ProviderDetailForm: View {
                         Picker(L10n.string("settings.providerFormat"), selection: $state.draftProviderFormat) {
                             Text(L10n.string("settings.providerFormatOpenAI")).tag(ProviderFormat.openAICompatible)
                             Text(L10n.string("settings.providerFormatAnthropic")).tag(ProviderFormat.anthropic)
+                            Text(L10n.string("settings.providerFormatGemini")).tag(ProviderFormat.gemini)
                         }
                         .pickerStyle(.segmented)
                         .labelsHidden()
                         Spacer(minLength: 0)
                     }
                     .onChange(of: state.draftProviderFormat) { _, _ in
+                        state.prefillOfficialAddress()
                         state.validateProviderURL(state.draftProviderAddress)
                         state.clearStatus()
                     }
@@ -225,6 +227,7 @@ private struct ProviderDetailForm: View {
                         Spacer(minLength: 0)
                     }
                     .onChange(of: state.draftProviderAddressMode) { _, _ in
+                        state.prefillOfficialAddress()
                         state.validateProviderURL(state.draftProviderAddress)
                     }
                 }
@@ -520,6 +523,7 @@ private extension RequestCompatibilityProfile {
         case .volcengineArk: L10n.string("settings.profileVolcengineArk")
         case .siliconFlow: L10n.string("settings.profileSiliconFlow")
         case .anthropic: L10n.string("settings.profileAnthropic")
+        case .gemini: L10n.string("settings.profileGemini")
         }
     }
 }

@@ -94,6 +94,70 @@ final class URLNormalizerTests: XCTestCase {
         )
     }
 
+    func testGeminiAddressResolvesToTheModelCollectionRoot() throws {
+        XCTAssertEqual(
+            try URLNormalizer.endpoint(
+                from: "https://generativelanguage.googleapis.com",
+                useFullEndpoint: false,
+                format: .gemini
+            ).absoluteString,
+            "https://generativelanguage.googleapis.com/v1beta/models"
+        )
+        XCTAssertEqual(
+            try URLNormalizer.endpoint(
+                from: "https://generativelanguage.googleapis.com/v1beta",
+                useFullEndpoint: false,
+                format: .gemini
+            ).absoluteString,
+            "https://generativelanguage.googleapis.com/v1beta/models"
+        )
+        XCTAssertEqual(
+            try URLNormalizer.endpoint(
+                from: "https://generativelanguage.googleapis.com/v1beta/models/",
+                useFullEndpoint: false,
+                format: .gemini
+            ).absoluteString,
+            "https://generativelanguage.googleapis.com/v1beta/models"
+        )
+    }
+
+    func testGeminiFullEndpointResolvesToTheModelCollectionRoot() throws {
+        XCTAssertEqual(
+            try URLNormalizer.endpoint(
+                from: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+                useFullEndpoint: true,
+                format: .gemini
+            ).absoluteString,
+            "https://generativelanguage.googleapis.com/v1beta/models"
+        )
+        XCTAssertThrowsError(
+            try URLNormalizer.endpoint(
+                from: "https://generativelanguage.googleapis.com/other",
+                useFullEndpoint: true,
+                format: .gemini
+            )
+        ) { error in
+            XCTAssertEqual(error as? ChatError, .invalidURL)
+        }
+    }
+
+    func testGeminiModelsEndpointDropsTheModelPath() throws {
+        XCTAssertEqual(
+            try URLNormalizer.modelsEndpoint(
+                from: "https://generativelanguage.googleapis.com",
+                format: .gemini
+            ).absoluteString,
+            "https://generativelanguage.googleapis.com/v1beta/models"
+        )
+        XCTAssertEqual(
+            try URLNormalizer.modelsEndpoint(
+                from: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash",
+                format: .gemini
+            ).absoluteString,
+            "https://generativelanguage.googleapis.com/v1beta/models"
+        )
+    }
+
     func testRejectsMissingSchemeAndHost() throws {
         for rawValue in ["api.example.com/v1", "https:///v1", ""] {
             XCTAssertThrowsError(try URLNormalizer.endpoint(from: rawValue, useFullEndpoint: false))

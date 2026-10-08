@@ -14,12 +14,24 @@ description: 管理 AI 服务和模型、刷新模型列表，以及切换当前
 每个服务包含：
 
 - 自定义名称。
-- **接口格式**：**OpenAI 兼容**或 **Anthropic**。
+- **接口格式**：**OpenAI**、**Anthropic** 或 **Gemini**。
 - 服务地址和地址类型。
 - 响应等待时间。
 - 独立的访问密钥。
 
 你可以添加、编辑或删除服务。删除服务会同时删除其模型，并且至少需要保留一个服务和模型。
+
+## 官方地址与 API Key
+
+新建服务时，SpotAsk 会按所选的**接口格式**和**地址类型**预填官方地址，例如**服务根地址**模式下的 `https://api.openai.com/v1`。使用官方服务就保留它，使用网关或代理则改成自己的地址。在你手动输入地址之前，切换这两个选项会同步更新该字段，便于对照各格式分别需要什么地址（见[服务根地址与完整请求地址](/zh-CN/guides/service-addresses)）。
+
+调用官方服务前，先创建 API Key，填入“访问密钥”，再点击“测试连接”：
+
+| 接口格式 | 创建 API Key | 接口文档 |
+| --- | --- | --- |
+| **OpenAI** | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) | [platform.openai.com/docs/api-reference](https://platform.openai.com/docs/api-reference) |
+| **Anthropic** | [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys) | [Messages API](https://docs.claude.com/en/api/messages) |
+| **Gemini** | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) | [Gemini API 文档](https://ai.google.dev/gemini-api/docs) |
 
 ## 模型
 

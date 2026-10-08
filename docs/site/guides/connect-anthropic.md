@@ -13,7 +13,7 @@ Use the **Anthropic** API format when your service speaks the Anthropic Messages
 2. Add a new service or edit an existing one.
 3. Set **API Format** to **Anthropic**.
 4. Enter a recognizable **Name**.
-5. Enter the service address.
+5. Keep the pre-filled **Service Address** for Anthropic, or replace it with your provider's address.
 6. Enter and save the Anthropic **Access Key**.
 7. Add the **Model ID** from your Anthropic console or provider documentation.
 8. Click **Test Connection**.
@@ -33,6 +33,10 @@ Use **Full Request Address** for the complete Messages endpoint:
 ```text
 https://api.anthropic.com/v1/messages
 ```
+
+## Get a key for Anthropic
+
+SpotAsk pre-fills `https://api.anthropic.com/v1`. Create a key at [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys), paste it into **Access Key**, and click **Test Connection**. The Messages API is documented at [docs.claude.com/en/api/messages](https://docs.claude.com/en/api/messages).
 
 ## Notes
 

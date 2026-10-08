@@ -74,7 +74,7 @@ brew install --cask shiquda/spotask/spotask
 官方发布包已使用 Apple Developer ID 签名并经公证，首次运行无需繁琐确认。
 ## 快速上手
 
-1. **配置服务**：打开设置（`⌘ + ,`）进入服务页，选择或添加你的服务商（OpenAI 兼容或 Anthropic），填写 API 地址、模型 ID 与访问密钥。
+1. **配置服务**：打开设置（`⌘ + ,`）进入服务页，选择或添加你的服务商（OpenAI 兼容、Anthropic 或 Gemini），填写 API 地址、模型 ID 与访问密钥。
 2. **测试连接**：点击“测试连接”确认配置无误。
 3. **开始提问**：按 `⌥ + Space` 呼出窗口，键入你的第一个问题！
 

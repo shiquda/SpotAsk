@@ -315,6 +315,23 @@ final class ProviderSettingsState {
         status = ""
         statusIsError = false
         providerFieldError = nil
+        prefillOfficialAddress()
+    }
+
+    /// True while the draft address is still empty or one SpotAsk filled in, so
+    /// the format and address-type pickers may replace it.
+    private var draftAddressIsPrefilled: Bool {
+        let address = draftProviderAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+        return address.isEmpty || ProviderFormat.officialAddresses.contains(address)
+    }
+
+    /// Shows the official address of the selected format and address type in a
+    /// new or untouched draft, so the format pickers stay useful to read and
+    /// easy to edit. An address the user typed is left alone.
+    func prefillOfficialAddress() {
+        guard draftAddressIsPrefilled else { return }
+        draftProviderAddress = draftProviderFormat.officialAddress(for: draftProviderAddressMode)
+        validateProviderURL(draftProviderAddress)
     }
 
     func startNewModel(for providerID: UUID) {

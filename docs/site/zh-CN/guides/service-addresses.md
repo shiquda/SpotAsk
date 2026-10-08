@@ -5,7 +5,7 @@ description: 理解 SpotAsk 的两种地址类型，以及什么时候使用哪�
 
 # 服务根地址与完整请求地址
 
-每个服务都有“地址类型”设置。
+每个服务都有“地址类型”设置。SpotAsk 会按所选的**接口格式**和**地址类型**预填官方地址，因此新建服务时字段里就是下面的示例值。
 
 ## 服务根地址
 
@@ -15,7 +15,7 @@ description: 理解 SpotAsk 的两种地址类型，以及什么时候使用哪�
 https://api.openai.com/v1
 ```
 
-OpenAI 兼容服务会自动补上 `/chat/completions`；Anthropic 会在需要时补上 Messages 路径。
+OpenAI 兼容服务会自动补上 `/chat/completions`；Anthropic 会在需要时补上 Messages 路径；Gemini 把模型与动作都放在请求路径里（`/v1beta/models/<model>:generateContent`），因此地址填 API 版本根地址 `https://generativelanguage.googleapis.com/v1beta` 就够了：SpotAsk 会把它解析到模型集合，再按每次请求拼接动作。
 
 该模式还支持模型发现，因为 SpotAsk 可以请求服务商的模型列表。
 
