@@ -7,10 +7,13 @@ SpotAsk 的所有重要变更都记录在本文件中。
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-10-08
+
 ### Added
 
 - 设置 > 服务的接口格式新增 **Gemini**，与 OpenAI 兼容、Anthropic 并列，让你可以直接使用 Google Gemini 密钥，无需兼容网关：请求走原生 `generateContent` 与 `streamGenerateContent` 接口，「更新模型」会列出该密钥可用的模型，模型返回的思考内容会进入「思考」区。
 - 新建服务时会按所选的接口格式与地址类型预填官方地址，切换这两个选项会同步更新该地址，直到你手动输入自己的地址为止；文档站新增各接口格式对应的官方 API Key 申请入口与接口文档链接。
+- 设置 > 服务中的发现模型弹窗将原有的「全选」按钮替换为 macOS 原生三态复选框，与下方各模型开关双向联动，在部分勾选时呈现混合状态。
 
 ## [0.2.6] - 2026-10-05
 
@@ -202,7 +205,8 @@ SpotAsk 的所有重要变更都记录在本文件中。
 - 服务卡片可以稳定地展开和收起。
 - 思考过程展开行为：开启时，思考期间保持展开，输出最终回答时收起；关闭时始终保持收起。
 
-[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.2.6...HEAD
+[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.2.7...HEAD
+[0.2.7]: https://github.com/shiquda/SpotAsk/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/shiquda/SpotAsk/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/shiquda/SpotAsk/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/shiquda/SpotAsk/compare/v0.2.3...v0.2.4
