@@ -56,7 +56,7 @@ struct ProviderSettingsPage: View {
 
 // MARK: - Discovered Model Selection
 
-private struct DiscoveredModelSelectionSheet: View {
+struct DiscoveredModelSelectionSheet: View {
     @Bindable var state: ProviderSettingsState
 
     private var discoveryProvider: ProviderConfiguration? {
@@ -104,10 +104,13 @@ private struct DiscoveredModelSelectionSheet: View {
             .frame(minHeight: 180, maxHeight: 280)
 
             HStack {
-                Button(L10n.string("settings.modelSelectionSelectAll")) {
-                    state.selectAllDiscoveredModels()
+                TriStateCheckbox(
+                    title: L10n.string("settings.modelSelectionSelectAll"),
+                    selectionState: state.discoveredModelsSelectionState
+                ) {
+                    state.toggleSelectAllDiscoveredModels()
                 }
-                .buttonStyle(.bordered)
+                .disabled(state.discoveredModelCandidates.isEmpty)
 
                 Spacer()
 
@@ -126,6 +129,60 @@ private struct DiscoveredModelSelectionSheet: View {
         }
         .padding(24)
         .frame(width: 460, height: 380)
+    }
+}
+
+struct TriStateCheckbox: NSViewRepresentable {
+    let title: String
+    let selectionState: ProviderSettingsState.DiscoveredModelsSelectionState
+    let onToggle: () -> Void
+
+    func makeNSView(context: Context) -> NSButton {
+        let button = NSButton(
+            checkboxWithTitle: title,
+            target: context.coordinator,
+            action: #selector(Coordinator.clicked)
+        )
+        button.allowsMixedState = true
+        button.setButtonType(.switch)
+        button.font = .systemFont(ofSize: 13)
+        button.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        button.setContentHuggingPriority(.defaultHigh, for: .vertical)
+        return button
+    }
+
+    func updateNSView(_ nsView: NSButton, context: Context) {
+        nsView.title = title
+        nsView.isEnabled = context.environment.isEnabled
+        context.coordinator.onToggle = onToggle
+        let targetState: NSControl.StateValue
+        switch selectionState {
+        case .all:
+            targetState = .on
+        case .none:
+            targetState = .off
+        case .mixed:
+            targetState = .mixed
+        }
+        if nsView.state != targetState {
+            nsView.state = targetState
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onToggle: onToggle)
+    }
+
+    final class Coordinator: NSObject {
+        var onToggle: () -> Void
+
+        init(onToggle: @escaping () -> Void) {
+            self.onToggle = onToggle
+        }
+
+        @objc func clicked(_ sender: NSButton) {
+            onToggle()
+        }
     }
 }
 

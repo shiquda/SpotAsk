@@ -814,6 +814,34 @@ final class ProviderSettingsState {
         selectedDiscoveredModelIDs.removeAll()
     }
 
+    enum DiscoveredModelsSelectionState: Equatable, Sendable {
+        case none
+        case all
+        case mixed
+    }
+
+    var discoveredModelsSelectionState: DiscoveredModelsSelectionState {
+        guard !discoveredModelCandidates.isEmpty else { return .none }
+        let candidateSet = Set(discoveredModelCandidates)
+        let selectedCandidates = candidateSet.intersection(selectedDiscoveredModelIDs)
+        if selectedCandidates.isEmpty {
+            return .none
+        } else if selectedCandidates.count == candidateSet.count {
+            return .all
+        } else {
+            return .mixed
+        }
+    }
+
+    func toggleSelectAllDiscoveredModels() {
+        guard !discoveredModelCandidates.isEmpty else { return }
+        if discoveredModelsSelectionState == .all {
+            deselectAllDiscoveredModels()
+        } else {
+            selectAllDiscoveredModels()
+        }
+    }
+
     func applySelectedDiscoveredModels() {
         guard let providerID = selectedProviderID else {
             cancelModelSelection()
