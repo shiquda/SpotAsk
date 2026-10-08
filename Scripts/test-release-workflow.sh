@@ -1132,6 +1132,95 @@ fi
 "$audit_fixture/Scripts/audit-changelog-diff.sh" --help >/dev/null 2>&1 || fail "--help should succeed"
 pass "release audit separates missing entries from recorded and irrelevant commits"
 
+# --- Xcode project gate: every source in Sources/ is wired into SpotAsk.xcodeproj ---
+PROJECT_CHECK="$ROOT_DIR/Scripts/verify-xcode-project-files.py"
+python3 -m py_compile "$PROJECT_CHECK" || fail "verify-xcode-project-files.py does not compile"
+
+python3 - "$WORK_DIR" "$PROJECT_CHECK" <<'PY' || fail "Xcode project gate regressions failed"
+import subprocess, sys
+from pathlib import Path
+
+work = Path(sys.argv[1]) / "xcode-project"
+check = sys.argv[2]
+
+
+def fixture(name, files=("Sources/App/Main.swift",), refs=None, builds=None, phase=None):
+    """A project entry of every shape Xcode writes for one source file."""
+    root = work / name
+    for source in files:
+        path = root / source
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("// fixture\n")
+    refs = files if refs is None else refs
+    builds = files if builds is None else builds
+    phase = files if phase is None else phase
+    lines = []
+    for index, source in enumerate(files):
+        if source in refs:
+            lines.append(
+                f"\t\t{index + 1:024X} /* {Path(source).name} */ = {{isa = PBXFileReference; "
+                f"lastKnownFileType = sourcecode.swift; path = {source}; sourceTree = SOURCE_ROOT; }};"
+            )
+        if source in builds and source in refs:
+            lines.append(
+                f"\t\t{index + 101:024X} /* {Path(source).name} in Sources */ = {{isa = PBXBuildFile; "
+                f"fileRef = {index + 1:024X} /* {Path(source).name} */; }};"
+            )
+    phase_ids = [
+        f"\t\t\t\t{index + 101:024X} /* {Path(source).name} in Sources */,"
+        for index, source in enumerate(files)
+        if source in phase and source in builds and source in refs
+    ]
+    (root / "SpotAsk.xcodeproj").mkdir(parents=True, exist_ok=True)
+    (root / "SpotAsk.xcodeproj" / "project.pbxproj").write_text(
+        "// !$*UTF8*$!\n{\n\tobjects = {\n"
+        + "\n".join(lines)
+        + "\n\t\tABC000000000000000000001 /* Sources */ = {\n\t\t\tisa = PBXSourcesBuildPhase;\n"
+        + "\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n"
+        + "\n".join(phase_ids)
+        + "\n\t\t\t);\n\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t};\n"
+        + '\t\tABC000000000000000000009 /* SpotAsk.app */ = {isa = PBXFileReference; '
+        + "explicitFileType = wrapper.application; path = SpotAsk.app; sourceTree = BUILT_PRODUCTS_DIR; };\n"
+        + "\t};\n}\n"
+    )
+    return root
+
+
+def run(root):
+    return subprocess.run(["python3", check, "--root", str(root)], capture_output=True, text=True)
+
+
+wired = fixture("wired")
+r = run(wired)
+assert r.returncode == 0, f"a fully wired project was rejected: {r.stdout}{r.stderr}"
+
+# A new source that never reached the project, the failure this gate exists for.
+unregistered = fixture("unregistered", files=("Sources/App/Main.swift", "Sources/App/New.swift"), refs=("Sources/App/Main.swift",))
+r = run(unregistered)
+assert r.returncode != 0, "a source missing from the project was accepted"
+assert "Sources/App/New.swift is not part of SpotAsk.xcodeproj" in r.stderr, r.stderr
+
+# Referenced, but never added to a Compile Sources build phase: compiles nowhere.
+unbuilt = fixture("unbuilt", phase=())
+r = run(unbuilt)
+assert r.returncode != 0, "a source outside the Sources build phase was accepted"
+assert "Sources build phase" in r.stderr, r.stderr
+
+# A reference left behind by a deleted file breaks the Release build.
+stale = fixture("stale")
+with (stale / "SpotAsk.xcodeproj" / "project.pbxproj").open("a") as handle:
+    handle.write(
+        "\t\tFFF000000000000000000001 /* Gone.swift */ = {isa = PBXFileReference; "
+        "path = Sources/App/Gone.swift; sourceTree = SOURCE_ROOT; };\n"
+    )
+r = run(stale)
+assert r.returncode != 0, "a reference to a deleted file was accepted"
+assert "Sources/App/Gone.swift, which no longer exists" in r.stderr, r.stderr
+
+print("xcode project gate cases ok")
+PY
+pass "Xcode project gate catches sources missing from SpotAsk.xcodeproj"
+
 # --- script syntax ---
 /bin/sh -n "$PUBLISH"
 /bin/sh -n "$NOTARIZE"

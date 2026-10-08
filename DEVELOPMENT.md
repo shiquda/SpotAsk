@@ -222,6 +222,21 @@ Compares both files and fails on any drift:
 
 CI runs it on every pull request and every push to `main` (`.github/workflows/ci.yml`), before the test suite. Each failure names the file, the version, and the actual problem, so no separate run of the script is needed to diagnose it.
 
+### Xcode project gate — run on every change
+
+```sh
+python3 ./Scripts/verify-xcode-project-files.py
+```
+
+`swift test` builds from the filesystem, but `SpotAsk.xcodeproj` builds from its own file list, and only that list ships the app: `Scripts/make-release-dmg.sh` compiles the project, and CI packages only after a merge. A source file that exists on disk but never reached the project therefore passes every pull request and fails on `main`. The gate fails on:
+
+- a `Sources/**/*.swift` file that is not part of `SpotAsk.xcodeproj`
+- a file the project references but does not list in the target's Compile Sources build phase
+- a reference to a file that no longer exists, or the same file referenced twice
+- a Sources build phase that lists a build file twice or points at something that is not one
+
+CI runs it on every pull request and every push to `main`, before the test suite.
+
 ### Release audit — run before tagging
 
 ```sh
