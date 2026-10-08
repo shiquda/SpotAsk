@@ -7,9 +7,9 @@ description: 安装 SpotAsk、连接 AI 服务并完成第一次提问。
 
 SpotAsk 是原生 macOS 菜单栏应用。连接 AI 服务后，最短使用流程是：
 
-1. 按 `⌥ + Space`（或你配置的快捷键）打开提问窗口。
+1. 按 <kbd>⌥ + Space</kbd>（或你配置的快捷键）打开提问窗口。
 2. 输入问题。
-3. 复制回答，或按 `⎋` 关闭窗口，回到原来的任务。
+3. 复制回答，或按 <kbd>Esc</kbd> 关闭窗口，回到原来的任务。
 
 ## 环境要求
 
@@ -34,7 +34,7 @@ brew install --cask shiquda/spotask/spotask
 
 ## 连接你的 AI 服务
 
-从菜单栏打开设置（或按 `⌘ + ,`），进入“服务”。
+从菜单栏打开设置（或按 <kbd>⌘ + ,</kbd>），进入“服务”。
 
 1. 添加或选择一个服务。
 2. 选择“接口格式”：**OpenAI 兼容**或 **Anthropic**。
@@ -50,17 +50,17 @@ brew install --cask shiquda/spotask/spotask
 
 ## 第一次提问
 
-点击菜单栏图标或按 `⌥ + Space`，输入问题后按 `↩`。
+点击菜单栏图标或按 <kbd>⌥ + Space</kbd>，输入问题后按 <kbd>↩</kbd>。
 
 服务支持时，回答会实时显示。你可以：
 
 - 点击回答或代码块上的“复制”。
-- 按 `⎋` 停止生成。
-- 按 `⌘ + N` 开始新对话。
+- 按 <kbd>Esc</kbd> 停止生成。
+- 按 <kbd>⌘ + N</kbd> 开始新对话。
 
 ## 继续探索
 
-- [探索 SpotAsk](/zh-CN/explore)展示应用还能做什么。
+- [探索 SpotAsk](/zh-CN/explore) 展示应用还能做什么。
 - [服务根地址与完整请求地址](/zh-CN/guides/service-addresses)说明该选哪种地址类型。
 - [连接 OpenAI 兼容服务](/zh-CN/guides/connect-openai-compatible)详细介绍服务配置。
 - [隐私与本地数据](/zh-CN/privacy)说明密钥、对话和选中文字的保存方式。

@@ -1,0 +1,95 @@
+/**
+ * Typography and CJK typography enhancements
+ * Follows Apple website typographic principles:
+ * - OpenType proportional alternate punctuation ("palt") and tabular numbers ("tnum")
+ * - Native inter-script spacing (text-autospace: normal)
+ * - Optical alignment for centered headings with trailing punctuation
+ * - Keyboard shortcut semantic keycaps (<kbd>) with nowrap protection
+ * - Responsive line break controls (<br class="hidden sm:inline">, .br-sm, .br-lg)
+ * - Brand and proper noun nowrap protection
+ */
+
+/* 1. 中文排版增强：启用现代浏览器中西文自动字距与 OpenType 比例标点 */
+:lang(zh),
+:lang(zh-CN) {
+  text-autospace: normal;
+  font-feature-settings: "palt" 1, "tnum" 1;
+}
+
+/* 2. 收窄大标题与 Hero 标题全角标点过宽带来的视觉断裂感 */
+.VPHero .heading,
+.VPHero .name,
+.VPHero .text,
+.VPHero .tagline,
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3,
+.vp-doc h4,
+.vp-doc h5,
+.vp-doc h6 {
+  font-feature-settings: "palt" 1;
+}
+
+/* 3. 居中标题末尾标点视觉校准（右侧负外边距消除全角标点偏左视觉偏差） */
+.optical-center {
+  display: inline-block;
+  margin-inline-end: -0.5em;
+}
+
+/* 4. 专有名词与防折行保护 */
+.nowrap {
+  white-space: nowrap;
+}
+
+/* 5. 键盘按键与快捷键语义化样式（macOS 拟物键帽风，防折行保护） */
+kbd {
+  display: inline-block;
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.85em;
+  font-weight: 500;
+  line-height: 1.35;
+  padding: 0.15em 0.45em;
+  color: var(--vp-c-text-1);
+  background-color: var(--vp-c-bg-mute);
+  border: 1px solid var(--vp-c-divider);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+  white-space: nowrap;
+  vertical-align: baseline;
+  margin: 0 0.15em;
+}
+
+/* 6. 响应式断行控制（对标 Apple <br class="small"> 与 Tailwind 响应式规范） */
+/* 移动端/窄屏断行（小屏生效，宽屏隐藏） */
+.sm\:hidden,
+.br-sm,
+.br-mobile-only {
+  display: inline;
+}
+@media (min-width: 640px) {
+  .sm\:hidden,
+  .br-sm,
+  .br-mobile-only {
+    display: none !important;
+  }
+}
+
+/* 桌面端/宽屏断行（小屏隐藏，宽屏生效） */
+.hidden,
+.br-lg,
+.br-desktop-only {
+  display: none !important;
+}
+@media (min-width: 640px) {
+  .hidden.sm\:inline,
+  .sm\:inline,
+  .br-lg,
+  .br-desktop-only {
+    display: inline !important;
+  }
+  .hidden.sm\:block,
+  .sm\:block {
+    display: block !important;
+  }
+}
