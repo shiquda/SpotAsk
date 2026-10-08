@@ -1,11 +1,11 @@
 ---
 title: External Ask
-description: Type your question in SpotAsk, then send it to ChatGPT, Grok, an app, or a terminal command with one shortcut.
+description: "Capture queries instantly in SpotAsk, then hand them off to ChatGPT, Grok, desktop apps, or terminal commands in 1 click."
 ---
 
 # External Ask
 
-External Ask lets you start every question in SpotAsk, then continue in any AI you like. SpotAsk handles the global hotkey and quick input; the AI you choose writes the answer.
+External Ask lets you capture thoughts while they are fresh, then hand them off to specialized platforms. SpotAsk handles global summoning and rapid input; your chosen tool handles the heavy lifting.
 
 ## Ask another AI
 

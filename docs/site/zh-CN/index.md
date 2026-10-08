@@ -3,11 +3,11 @@ layout: home
 
 title: SpotAsk
 titleTemplate: "原生 macOS AI 助手与查询路由器"
-description: "SpotAsk 是一款免费开源的 macOS 菜单栏 AI 助手与查询路由器。快捷键秒级呼出、随时提问——支持应用内 BYOK 极速回答，或一键将问题发给 ChatGPT、本地终端 Agent 等外部工具。"
+description: "SpotAsk 是一款免费开源的 macOS 菜单栏 AI 助手与分流工具。快捷键随时呼出，即问即走——支持应用内 BYOK 快速流式解答，或一键将问题分发至 ChatGPT、本地终端 Agent 等外部工具。"
 
 hero:
   name: SpotAsk
-  tagline: "先提问，去向随心。原生 macOS 菜单栏 AI 助手与查询路由器。"
+  tagline: "先提问，去向随心。极速唤起的原生 macOS 菜单栏 AI 助手与分流工具。"
   actions:
     - theme: brand
       text: 快速开始
@@ -18,13 +18,13 @@ hero:
 
 features:
   - title: "先提问，随心分流"
-    details: "按快捷键秒级呼出窗口，写下问题并自由选择：直接应用内 BYOK 流式回答，或一键分发至网页端、桌面端应用及终端 Agent。"
-  - title: "选中文本即刻处理"
-    details: "在任意应用中选中文字，在就近操作条中一键翻译、解释、总结、润色，或执行自定义提示词。"
-  - title: "自带密钥 (BYOK)，隐私留在本机"
-    details: "直连 OpenAI 兼容或 Anthropic 服务。密钥保存在本机系统钥匙串中，无中间服务器，无遥测。"
-  - title: "原生轻量，无 Electron"
-    details: "安装包约 10 MB，纯 Swift 与 AppKit 构建，无 Electron 运行时，全键盘驱动（Esc 一键关闭），毫秒级冷启动。"
+    details: "随时按快捷键唤出窗口，敲下问题并自由选择：应用内流式解答，或一键分发至网页端、桌面端与终端 Agent。"
+  - title: "选中文本就近处理"
+    details: "在任意应用中选中文字，通过就近浮动操作栏直接翻译、解释、总结、润色，或带入对话继续追问。"
+  - title: "自带密钥 (BYOK)，数据留在本机"
+    details: "直连 OpenAI 兼容或 Anthropic 接口。密钥加密保存在本地钥匙串，无中间服务器，无隐私收集。"
+  - title: "纯原生轻量，无 Electron"
+    details: "纯 Swift 与 AppKit 构建，安装包仅约 10 MB；全键盘驱动，按 Esc 随问随走，极致克制。"
 
 # Rendered between the hero actions and the feature cards by SpotAskHeroShowcase.
 heroShowcase:
@@ -34,23 +34,25 @@ heroShowcase:
 
 ## SpotAsk 是什么
 
-SpotAsk 是一款免费开源的 macOS 菜单栏 AI 助手与查询路由器，建立在一个极简的前提之上：**“先提问，去向随心（Ask first. Decide where it goes after.）”**。
+SpotAsk 是一款免费开源的 macOS 菜单栏 AI 助手与分流工具，建立在一个极简的前提之上：**“先提问，去向随心（Ask first. Decide where it goes after.）”**。
 
-按一个快捷键——默认 `Option + Space`——一个专注的提问窗口就会浮现在当前屏幕之上。在灵感或疑问闪现的当下立刻捕获它，然后自由决定如何处理：
+随时按快捷键（默认 `⌥ + Space`），专注的提问小窗即刻浮现于屏幕之上。在灵感或疑问闪现的当下先写下问题，再决定如何处理：
 
-1. **应用内极速回答**：使用你配置的 AI 模型（BYOK）直接在当前小窗内获取快速流式解答。
-2. **一键分流三大出口 (External Ask)**：一键将问题无损派发给网页端平台（ChatGPT、Perplexity、Grok）、桌面端应用（URI 协议）或终端中的本地 CLI Agent，不消耗 API Token，不残留多余对话历史。
+- **应用内流式回答**：使用你配置的 AI 模型（BYOK）直接在小窗内快速作答。
+- **外部提问一键分流 (External Ask)**：将问题直派给网页平台（ChatGPT、Perplexity、Grok）、本地终端 CLI Agent 或桌面应用，不消耗 API 额度，不留多余历史记录。
 
-没有账号体系，没有遥测，你和你的模型服务商之间没有任何中间商。按 `Esc` 关闭窗口即彻底结束——“问完就走”，零心智负担。
+没有账号系统，没有多余中转，没有遥测监控。按 `Esc` 随问随走，彻底告别沉重的工作流。
 
-三个最常用的核心流程可以直接看下面的动图：快捷键流程从任意应用中快速呼出对话窗口；划词流程在选中文本就近显示操作条；外部提问（External Ask）支持一键唤起本地 CLI Agent 或外部工具。
+### 核心工作流一览
 
+#### 1. 快捷呼出，即问即走
 ![默认快捷键快速对话](/images/spotask-hotkey.gif)
 
+#### 2. 全局划词，就近处理
 ![选中文字后显示快捷操作](/images/spotask-selection.gif)
 
+#### 3. 外部路由，多向分流
 ![一键分流至终端 CLI Agent 与外部工具](/images/spotask-external.gif)
-
 ## 下一步
 
 - [快速开始](/zh-CN/getting-started)介绍安装和第一次提问。

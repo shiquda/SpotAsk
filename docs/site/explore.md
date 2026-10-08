@@ -9,58 +9,56 @@ Use this page as a map of what SpotAsk can do. Pick a task instead of a setting;
 
 ## Quick questions from anywhere
 
-Press your global hotkey to open a focused question window over any app. Ask, get an answer, copy it, and close with `⎋`.
+Press your global hotkey (default `⌥ + Space`) to summon a focused input window over any app. Ask, stream an answer, and dismiss instantly with `⎋`.
 
 - [Getting Started](/getting-started)
 
 ## Work with selected text
 
-Select text in Safari, Notes, or another app, then trigger SpotAsk with the selection shortcut or allow quick actions to appear automatically.
-
-The quick actions can translate, explain, summarize, polish, or run a custom prompt. You can also choose a direct mode that runs the default action immediately.
+Highlight text in Safari, Notes, or Xcode to trigger the inline action bar. Translate, explain, summarize, polish, or bring text directly into chat for follow-up.
 
 - [Selection Assistant guide](/guides/selection-assistant)
+
 ## Route questions with External Ask
 
-Handoff queries to web platforms (ChatGPT, Perplexity, Grok), desktop apps via custom URI schemes, or local terminal CLI agents with one click without consuming API tokens or saving history.
+Handoff queries to web AI platforms (ChatGPT, Perplexity, Grok), desktop apps via URI schemes, or local CLI agents in Terminal with 1 click without spending tokens or cluttering history.
 
 - [External Ask guide](/guides/external-ask)
 
-
 ## Switch providers and models
 
-SpotAsk keeps a list of AI services and models. You can change the default model in Settings or switch the model for the current conversation only from the chat window.
+Configure multiple AI providers and models. Set a default model in Settings or switch models on the fly for the current conversation.
 
 - [Providers & Models guide](/guides/providers-and-models)
 
 ## Ask with images and files
 
-Drop in images, paste a screenshot, or attach supported text and code files. Follow-up questions keep that context during the current conversation.
+Paste screenshots or drop in images, text, and code files. Multi-turn conversations retain attached context automatically.
 
 - [Images & Files guide](/guides/attachments)
 
 ## Reuse workflows with prompts
 
-Use the built-in Translate, Explain, Summarize, and Polish prompts, or create your own prompt for a repeated task. Custom instructions can set a consistent tone across questions.
+Use built-in Translate, Explain, Summarize, and Polish templates, or create custom prompts. Set system instructions for a consistent tone across questions.
 
 - [Prompts guide](/guides/prompts)
 
-## Use SpotAsk with macOS
+## Native macOS integration
 
-Open SpotAsk, ask a question, start a new conversation, or run a prompt from Spotlight, Siri, Shortcuts, or a `spotask://` URL.
+Summon SpotAsk, ask questions, or run prompts from Spotlight, Siri, Shortcuts, or `spotask://` URLs.
 
 - [Spotlight, Siri & Shortcuts guide](/guides/macos-integration)
 
-## Make the window work for you
+## Appearance & behavior
 
-Change the global hotkey, in-app shortcuts, window size, appearance, font size, message style, language, launch behavior, and conversation retention in Settings.
+Customize global hotkeys, window dimensions, fonts, light/dark themes, bubble styles, and conversation retention.
 
 - [Appearance & Behavior guide](/guides/appearance)
 - [Settings & Shortcuts Reference](/reference)
 
-## Advanced connection configuration
+## Advanced connection & proxy
 
-For custom providers, local services, proxy, service root versus full request address, and model discovery, use the connection guides.
+Configure custom endpoints, local models, proxies, service root vs full request URLs, and model discovery.
 
 - [Service Root vs Full Request Address](/guides/service-addresses)
 - [Proxy guide](/guides/proxy)
