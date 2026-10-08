@@ -163,6 +163,79 @@ struct AnthropicModelDiscovery: ProviderModelDiscovering {
     }
 }
 
+struct GeminiModelDiscovery: ProviderModelDiscovering {
+    private struct Response: Decodable {
+        struct Model: Decodable {
+            let name: String
+            let supportedGenerationMethods: [String]?
+        }
+
+        let models: [Model]
+    }
+
+    /// The default page holds 50 models, which would hide part of a list.
+    private static let pageSize = 1_000
+
+    private let transport: any ProviderModelDiscoveryTransport
+
+    init(transport: any ProviderModelDiscoveryTransport = URLSessionProviderModelDiscoveryTransport()) {
+        self.transport = transport
+    }
+
+    func models(for provider: ProviderConfiguration, apiKey: String) async throws -> [String] {
+        guard provider.addressMode == .baseURL else {
+            throw ProviderModelDiscoveryError.unavailableForFullEndpoint
+        }
+        let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !key.isEmpty else { throw ProviderModelDiscoveryError.missingAPIKey }
+
+        var components = URLComponents(
+            url: try URLNormalizer.modelsEndpoint(from: provider.address, format: .gemini),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [URLQueryItem(name: "pageSize", value: String(Self.pageSize))]
+        guard let url = components?.url else { throw ProviderModelDiscoveryError.invalidResponse }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = provider.timeout
+        request.setValue(key, forHTTPHeaderField: "x-goog-api-key")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        do {
+            let (responseData, response) = try await transport.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw ProviderModelDiscoveryError.invalidResponse
+            }
+            guard (200 ... 299).contains(httpResponse.statusCode) else {
+                throw ProviderModelDiscoveryError.unsuccessfulStatus(httpResponse.statusCode)
+            }
+            let decoded = try JSONDecoder().decode(Response.self, from: responseData)
+            return Set(
+                decoded.models
+                    // A discovered model is offered only when it can answer a chat.
+                    .filter { $0.supportedGenerationMethods?.contains("generateContent") ?? true }
+                    .map { GeminiProvider.modelIdentifier(from: $0.name) }
+                    .filter { !$0.isEmpty }
+            ).sorted()
+        } catch is CancellationError {
+            throw ProviderModelDiscoveryError.cancelled
+        } catch let error as ProviderModelDiscoveryError {
+            throw error
+        } catch let error as URLError {
+            switch error.code {
+            case .cancelled: throw ProviderModelDiscoveryError.cancelled
+            case .timedOut: throw ProviderModelDiscoveryError.timeout
+            case .notConnectedToInternet, .networkConnectionLost, .cannotFindHost, .cannotConnectToHost:
+                throw ProviderModelDiscoveryError.networkUnavailable
+            default: throw ProviderModelDiscoveryError.invalidResponse
+            }
+        } catch {
+            throw ProviderModelDiscoveryError.invalidResponse
+        }
+    }
+}
+
 /// Routes model discovery to the wire format of the selected Service.
 struct ProviderModelDiscoveryRouter: ProviderModelDiscovering {
     let urlSession: URLSession
@@ -174,6 +247,8 @@ struct ProviderModelDiscoveryRouter: ProviderModelDiscovering {
             return try await OpenAICompatibleModelDiscovery(transport: transport).models(for: provider, apiKey: apiKey)
         case .anthropic:
             return try await AnthropicModelDiscovery(transport: transport).models(for: provider, apiKey: apiKey)
+        case .gemini:
+            return try await GeminiModelDiscovery(transport: transport).models(for: provider, apiKey: apiKey)
         }
     }
 }

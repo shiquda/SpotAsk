@@ -15,7 +15,7 @@ Use **Service Root** when you enter the base address of the provider. SpotAsk ap
 https://api.openai.com/v1
 ```
 
-For an OpenAI-compatible service, SpotAsk appends `/chat/completions`. For Anthropic, it appends the Messages path when needed.
+For an OpenAI-compatible service, SpotAsk appends `/chat/completions`. For Anthropic, it appends the Messages path when needed. Gemini keeps the model and the action in the request path, so SpotAsk resolves the address to the model list (`/v1beta/models`) and builds the rest of the path per request.
 
 This mode also makes model discovery possible, because SpotAsk can request the provider's model list.
 

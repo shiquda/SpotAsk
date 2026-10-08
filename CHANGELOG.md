@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Gemini** joins OpenAI Compatible and Anthropic as an API Format in Settings > Services, so a Google Gemini key works without a compatibility gateway: requests go to the native `generateContent` and `streamGenerateContent` endpoints, **Refresh Models** lists the models the key can answer with, and a model's thinking parts arrive as Thinking.
+
 ## [0.2.6] - 2026-10-05
 
 ### Added

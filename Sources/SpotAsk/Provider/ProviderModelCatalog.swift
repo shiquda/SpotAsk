@@ -8,10 +8,12 @@ enum ProviderAddressMode: String, Codable, CaseIterable, Sendable {
 }
 
 /// Wire format used when talking to a Service. OpenAI-compatible keeps the
-/// chat-completions convention; Anthropic uses the official Messages API.
+/// chat-completions convention, Anthropic uses the official Messages API, and
+/// Gemini uses the official `generateContent` API.
 enum ProviderFormat: String, Codable, CaseIterable, Sendable {
     case openAICompatible
     case anthropic
+    case gemini
 }
 
 enum ModelConfigurationSource: String, Codable, Equatable, Sendable {
@@ -44,6 +46,7 @@ enum RequestCompatibilityProfile: String, Codable, CaseIterable, Sendable {
     case volcengineArk
     case siliconFlow
     case anthropic
+    case gemini
 }
 
 enum ModelJSONValue: Codable, Equatable, Sendable {
@@ -172,6 +175,9 @@ extension RequestCompatibilityProfile {
         if providerFormat == .anthropic {
             return .anthropic
         }
+        if providerFormat == .gemini {
+            return .gemini
+        }
 
         let providerText = normalizedInferenceText([providerName, providerAddress])
         if containsAny(providerText, ["openrouter"]) {
@@ -245,7 +251,15 @@ extension RequestCompatibilityProfile {
         patterns.contains { text.contains(normalizedInferenceText([$0])) }
     }
 
-    static let protectedStructuralKeys: Set<String> = ["model", "messages", "stream", "system"]
+    static let protectedStructuralKeys: Set<String> = [
+        "model",
+        "messages",
+        "stream",
+        "system",
+        // Gemini structural keys: the provider builds them from the request.
+        "contents",
+        "systemInstruction"
+    ]
     static let reasoningControlKeys: Set<String> = [
         "reasoning_effort",
         "reasoning",
@@ -318,6 +332,11 @@ extension RequestCompatibilityProfile {
                 "thinking": .object(["type": .string("adaptive")]),
                 "output_config": .object(["effort": .string(effort)])
             ]
+        case .gemini:
+            // The native Gemini API takes reasoning settings inside
+            // `generationConfig` and the accepted shape differs between model
+            // generations, so only an explicit custom parameter shapes it.
+            return [:]
         }
     }
 }

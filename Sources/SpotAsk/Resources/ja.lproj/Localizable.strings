@@ -375,6 +375,7 @@
 "settings.providerFormat" = "API 形式";
 "settings.providerFormatOpenAI" = "OpenAI 互換";
 "settings.providerFormatAnthropic" = "Anthropic";
+"settings.providerFormatGemini" = "Gemini";
 "settings.providerSaveFailed" = "サービスを保存できませんでした。";
 "settings.providerSaved" = "サービスを保存しました。";
 "settings.refreshModels" = "モデルを更新";
@@ -495,6 +496,7 @@
 "settings.profileVolcengineArk" = "Volcengine Ark";
 "settings.profileSiliconFlow" = "SiliconFlow";
 "settings.profileAnthropic" = "Anthropic";
+"settings.profileGemini" = "Gemini";
 "settings.thinkingMode" = "思考レベル";
 "settings.thinkingModeProviderDefault" = "プロバイダー既定";
 "settings.thinkingModeDisabled" = "オフ";

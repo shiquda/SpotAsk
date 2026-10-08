@@ -7,6 +7,10 @@ SpotAsk 的所有重要变更都记录在本文件中。
 
 ## [Unreleased]
 
+### Added
+
+- 设置 > 服务的接口格式新增 **Gemini**，与 OpenAI 兼容、Anthropic 并列，让你可以直接使用 Google Gemini 密钥，无需兼容网关：请求走原生 `generateContent` 与 `streamGenerateContent` 接口，「更新模型」会列出该密钥可用的模型，模型返回的思考内容会进入「思考」区。
+
 ## [0.2.6] - 2026-10-05
 
 ### Added

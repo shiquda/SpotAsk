@@ -15,7 +15,7 @@ description: 理解 SpotAsk 的两种地址类型，以及什么时候使用哪�
 https://api.openai.com/v1
 ```
 
-OpenAI 兼容服务会自动补上 `/chat/completions`；Anthropic 会在需要时补上 Messages 路径。
+OpenAI 兼容服务会自动补上 `/chat/completions`；Anthropic 会在需要时补上 Messages 路径；Gemini 把模型与动作放在请求路径里，SpotAsk 会把地址解析为模型列表（`/v1beta/models`），再按每次请求拼接其余路径。
 
 该模式还支持模型发现，因为 SpotAsk 可以请求服务商的模型列表。
 

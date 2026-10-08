@@ -194,6 +194,7 @@ private struct ProviderDetailForm: View {
                         Picker(L10n.string("settings.providerFormat"), selection: $state.draftProviderFormat) {
                             Text(L10n.string("settings.providerFormatOpenAI")).tag(ProviderFormat.openAICompatible)
                             Text(L10n.string("settings.providerFormatAnthropic")).tag(ProviderFormat.anthropic)
+                            Text(L10n.string("settings.providerFormatGemini")).tag(ProviderFormat.gemini)
                         }
                         .pickerStyle(.segmented)
                         .labelsHidden()
@@ -520,6 +521,7 @@ private extension RequestCompatibilityProfile {
         case .volcengineArk: L10n.string("settings.profileVolcengineArk")
         case .siliconFlow: L10n.string("settings.profileSiliconFlow")
         case .anthropic: L10n.string("settings.profileAnthropic")
+        case .gemini: L10n.string("settings.profileGemini")
         }
     }
 }

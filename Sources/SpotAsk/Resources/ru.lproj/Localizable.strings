@@ -375,6 +375,7 @@
 "settings.providerFormat" = "Формат API";
 "settings.providerFormatOpenAI" = "Совместимый с OpenAI";
 "settings.providerFormatAnthropic" = "Anthropic";
+"settings.providerFormatGemini" = "Gemini";
 "settings.providerSaveFailed" = "Не удалось сохранить сервис.";
 "settings.providerSaved" = "Сервис сохранён.";
 "settings.refreshModels" = "Обновить модели";
@@ -495,6 +496,7 @@
 "settings.profileVolcengineArk" = "Volcengine Ark";
 "settings.profileSiliconFlow" = "SiliconFlow";
 "settings.profileAnthropic" = "Anthropic";
+"settings.profileGemini" = "Gemini";
 "settings.thinkingMode" = "Уровень рассуждений";
 "settings.thinkingModeProviderDefault" = "По умолчанию провайдера";
 "settings.thinkingModeDisabled" = "Выкл.";
