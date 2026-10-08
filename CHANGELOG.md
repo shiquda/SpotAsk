@@ -7,10 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-10-08
+
 ### Added
 
 - **Gemini** joins OpenAI Compatible and Anthropic as an API Format in Settings > Services, so a Google Gemini key works without a compatibility gateway: requests go to the native `generateContent` and `streamGenerateContent` endpoints, **Refresh Models** lists the models the key can answer with, and a model's thinking parts arrive as Thinking.
 - A new Service pre-fills the official address of the selected API Format and Address Type, and switching either picker keeps that address in step until you enter one of your own. The documentation now links each format to the provider console that issues its API key and to the matching API reference.
+- The model selection sheet in Settings > Services replaces the "Select All" push button with a native macOS tri-state checkbox that stays synchronized with individual model toggles, showing mixed state when partially selected.
 
 ## [0.2.6] - 2026-10-05
 
@@ -202,7 +205,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provider cards can be expanded and collapsed reliably.
 - Thinking expansion behavior: when enabled, thinking stays expanded during reasoning and collapses for the final answer; when disabled, it stays collapsed.
 
-[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.2.6...HEAD
+[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.2.7...HEAD
+[0.2.7]: https://github.com/shiquda/SpotAsk/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/shiquda/SpotAsk/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/shiquda/SpotAsk/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/shiquda/SpotAsk/compare/v0.2.3...v0.2.4
