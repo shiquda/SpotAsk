@@ -23,6 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: ./Scripts/verify-changelog.sh
+      - run: python3 ./Scripts/verify-xcode-project-files.py
       - run: ./Scripts/test-release-workflow.sh
         if: matrix.arch == 'arm64'
       - run: swift test
