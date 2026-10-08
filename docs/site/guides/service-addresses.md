@@ -5,7 +5,7 @@ description: Understand the two SpotAsk address modes and when to use each one.
 
 # Service Root vs Full Request Address
 
-Every service has an **Address Type** setting.
+Every service has an **Address Type** setting. SpotAsk pre-fills the address with the official address of the selected **API Format** and **Address Type**, so the examples below are what a new service already shows.
 
 ## Service Root
 

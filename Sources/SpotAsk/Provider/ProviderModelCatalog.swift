@@ -14,6 +14,35 @@ enum ProviderFormat: String, Codable, CaseIterable, Sendable {
     case openAICompatible
     case anthropic
     case gemini
+
+    /// The official address SpotAsk pre-fills when a Service uses this format,
+    /// so the field shows a working endpoint the user can recognise and edit
+    /// instead of an empty box.
+    func officialAddress(for mode: ProviderAddressMode) -> String {
+        switch self {
+        case .openAICompatible:
+            mode.usesFullEndpoint
+                ? "https://api.openai.com/v1/chat/completions"
+                : "https://api.openai.com/v1"
+        case .anthropic:
+            mode.usesFullEndpoint
+                ? "https://api.anthropic.com/v1/messages"
+                : "https://api.anthropic.com/v1"
+        case .gemini:
+            // A Gemini address always resolves to the model collection root,
+            // which is the same value in both address modes.
+            "https://generativelanguage.googleapis.com/v1beta/models"
+        }
+    }
+
+    /// Every address SpotAsk fills in itself. Used to tell a pre-filled value
+    /// apart from one the user typed, so switching a picker never overwrites
+    /// a real address.
+    static var officialAddresses: Set<String> {
+        Set(allCases.flatMap { format in
+            ProviderAddressMode.allCases.map { format.officialAddress(for: $0) }
+        })
+    }
 }
 
 enum ModelConfigurationSource: String, Codable, Equatable, Sendable {

@@ -21,6 +21,18 @@ Each service has:
 
 You can add, edit, or delete services. Deleting a service removes its models. At least one service and model must remain.
 
+## Official addresses and API keys
+
+A new service starts with the official address of the selected **API Format** and **Address Type** already filled in — for example `https://api.openai.com/v1` in **Service Root** mode. Keep it to use the official service, or replace it with your gateway's address. Until you type an address of your own, the two pickers keep the field in step, so switching between formats shows what each one expects ([Service Root vs Full Request Address](/guides/service-addresses)).
+
+To use an official service, create an API key first, paste it into **Access Key**, and click **Test Connection**:
+
+| API Format | Create an API key | API documentation |
+| --- | --- | --- |
+| **OpenAI** | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) | [platform.openai.com/docs/api-reference](https://platform.openai.com/docs/api-reference) |
+| **Anthropic** | [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys) | [Messages API](https://docs.claude.com/en/api/messages) |
+| **Gemini** | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) | [Gemini API docs](https://ai.google.dev/gemini-api/docs) |
+
 ## Models
 
 Each model has a **Display Name**, an exact **Model ID**, a streaming setting, and a thinking setting. The **Active** model is the Settings default used for new conversations.

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Gemini** joins OpenAI Compatible and Anthropic as an API Format in Settings > Services, so a Google Gemini key works without a compatibility gateway: requests go to the native `generateContent` and `streamGenerateContent` endpoints, **Refresh Models** lists the models the key can answer with, and a model's thinking parts arrive as Thinking.
+- A new Service pre-fills the official address of the selected API Format and Address Type, and switching either picker keeps that address in step until you enter one of your own. The documentation now links each format to the provider console that issues its API key and to the matching API reference.
 
 ## [0.2.6] - 2026-10-05
 

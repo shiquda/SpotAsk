@@ -11,9 +11,9 @@ Use **OpenAI Compatible** for OpenAI and for any provider that exposes an OpenAI
 
 1. Open Settings and go to **Services**.
 2. Add a new service or edit an existing one.
-3. Set **API Format** to **OpenAI Compatible**.
+3. Set **API Format** to **OpenAI**.
 4. Enter a **Name** you will recognize.
-5. Enter the **Service Address** from your provider.
+5. Keep the pre-filled **Service Address** for OpenAI, or replace it with your provider's address.
 6. Choose **Address Type**.
 7. Enter and save the **Access Key**.
 8. Add the **Model ID** your provider expects.
@@ -36,6 +36,10 @@ https://api.openai.com/v1/chat/completions
 ```
 
 Other providers may use different paths. Copy the exact base address or full endpoint from your provider's documentation.
+
+## Get a key for OpenAI
+
+SpotAsk pre-fills `https://api.openai.com/v1`. Create a key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys), paste it into **Access Key**, and click **Test Connection**. The request and response fields are documented at [platform.openai.com/docs/api-reference](https://platform.openai.com/docs/api-reference).
 
 ## Add the model
 

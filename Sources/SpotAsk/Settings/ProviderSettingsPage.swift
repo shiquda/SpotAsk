@@ -201,6 +201,7 @@ private struct ProviderDetailForm: View {
                         Spacer(minLength: 0)
                     }
                     .onChange(of: state.draftProviderFormat) { _, _ in
+                        state.prefillOfficialAddress()
                         state.validateProviderURL(state.draftProviderAddress)
                         state.clearStatus()
                     }
@@ -226,6 +227,7 @@ private struct ProviderDetailForm: View {
                         Spacer(minLength: 0)
                     }
                     .onChange(of: state.draftProviderAddressMode) { _, _ in
+                        state.prefillOfficialAddress()
                         state.validateProviderURL(state.draftProviderAddress)
                     }
                 }
