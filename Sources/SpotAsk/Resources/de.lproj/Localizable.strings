@@ -373,7 +373,7 @@
 "settings.providerNamePlaceholder" = "Mein KI-Dienst";
 "settings.providerNameRequired" = "Gib einen Dienstnamen ein.";
 "settings.providerFormat" = "API-Format";
-"settings.providerFormatOpenAI" = "OpenAI-kompatibel";
+"settings.providerFormatOpenAI" = "OpenAI";
 "settings.providerFormatAnthropic" = "Anthropic";
 "settings.providerFormatGemini" = "Gemini";
 "settings.providerSaveFailed" = "Dienst konnte nicht gespeichert werden.";

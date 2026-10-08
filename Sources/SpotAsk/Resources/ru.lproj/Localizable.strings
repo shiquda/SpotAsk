@@ -373,7 +373,7 @@
 "settings.providerNamePlaceholder" = "Мой AI-сервис";
 "settings.providerNameRequired" = "Введите имя сервиса.";
 "settings.providerFormat" = "Формат API";
-"settings.providerFormatOpenAI" = "Совместимый с OpenAI";
+"settings.providerFormatOpenAI" = "OpenAI";
 "settings.providerFormatAnthropic" = "Anthropic";
 "settings.providerFormatGemini" = "Gemini";
 "settings.providerSaveFailed" = "Не удалось сохранить сервис.";

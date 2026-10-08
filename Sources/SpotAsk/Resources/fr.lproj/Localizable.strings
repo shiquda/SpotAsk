@@ -373,7 +373,7 @@
 "settings.providerNamePlaceholder" = "Mon service d'IA";
 "settings.providerNameRequired" = "Saisissez un nom de service.";
 "settings.providerFormat" = "Format d'API";
-"settings.providerFormatOpenAI" = "Compatible OpenAI";
+"settings.providerFormatOpenAI" = "OpenAI";
 "settings.providerFormatAnthropic" = "Anthropic";
 "settings.providerFormatGemini" = "Gemini";
 "settings.providerSaveFailed" = "Impossible d'enregistrer le service.";

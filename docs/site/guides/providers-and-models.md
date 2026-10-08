@@ -14,7 +14,7 @@ Settings > **Services** is where you keep your AI services and models.
 Each service has:
 
 - A **Name** you choose.
-- An **API Format**: **OpenAI Compatible**, **Anthropic**, or **Gemini**.
+- An **API Format**: **OpenAI**, **Anthropic**, or **Gemini**.
 - A **Service Address** and **Address Type**.
 - A **Response Timeout**.
 - Its own **Access Key**.

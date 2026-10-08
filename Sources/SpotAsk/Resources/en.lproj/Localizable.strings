@@ -373,7 +373,7 @@
 "settings.providerNamePlaceholder" = "My AI Service";
 "settings.providerNameRequired" = "Enter a provider name.";
 "settings.providerFormat" = "API Format";
-"settings.providerFormatOpenAI" = "OpenAI Compatible";
+"settings.providerFormatOpenAI" = "OpenAI";
 "settings.providerFormatAnthropic" = "Anthropic";
 "settings.providerFormatGemini" = "Gemini";
 "settings.providerSaveFailed" = "Could not save provider.";

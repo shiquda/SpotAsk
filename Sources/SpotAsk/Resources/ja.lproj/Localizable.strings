@@ -373,7 +373,7 @@
 "settings.providerNamePlaceholder" = "マイ AI サービス";
 "settings.providerNameRequired" = "サービス名を入力してください。";
 "settings.providerFormat" = "API 形式";
-"settings.providerFormatOpenAI" = "OpenAI 互換";
+"settings.providerFormatOpenAI" = "OpenAI";
 "settings.providerFormatAnthropic" = "Anthropic";
 "settings.providerFormatGemini" = "Gemini";
 "settings.providerSaveFailed" = "サービスを保存できませんでした。";
