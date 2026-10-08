@@ -1,4 +1,5 @@
 import XCTest
+import SwiftUI
 @testable import SpotAsk
 
 @MainActor
@@ -827,6 +828,139 @@ final class ProviderSettingsStateTests: XCTestCase {
             "service-model"
         )
         XCTAssertFalse(state.isModelSelectionPresented)
+    }
+
+    func testDiscoveredModelsSelectionStateAndTriStateToggle() {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(),
+            providerFactory: NoopProviderFactory()
+        )
+
+        // 1. When candidates are empty
+        state.discoveredModelCandidates = []
+        state.selectedDiscoveredModelIDs = []
+        XCTAssertEqual(state.discoveredModelsSelectionState, .none)
+
+        state.toggleSelectAllDiscoveredModels()
+        XCTAssertEqual(state.discoveredModelsSelectionState, .none, "Toggle on empty candidates is a no-op")
+
+        // 2. Populate candidates
+        state.discoveredModelCandidates = ["model-a", "model-b", "model-c"]
+        state.selectedDiscoveredModelIDs = []
+        XCTAssertEqual(state.discoveredModelsSelectionState, .none)
+
+        // 3. Partial selection -> .mixed
+        state.toggleDiscoveredModel("model-a")
+        XCTAssertEqual(state.discoveredModelsSelectionState, .mixed)
+        XCTAssertEqual(state.selectedDiscoveredModelIDs, ["model-a"])
+
+        state.toggleDiscoveredModel("model-b")
+        XCTAssertEqual(state.discoveredModelsSelectionState, .mixed)
+        XCTAssertEqual(state.selectedDiscoveredModelIDs, ["model-a", "model-b"])
+
+        // 4. All selected -> .all
+        state.toggleDiscoveredModel("model-c")
+        XCTAssertEqual(state.discoveredModelsSelectionState, .all)
+        XCTAssertEqual(state.selectedDiscoveredModelIDs, ["model-a", "model-b", "model-c"])
+
+        // 5. Clicking select-all when .all -> deselects all (.none)
+        state.toggleSelectAllDiscoveredModels()
+        XCTAssertEqual(state.discoveredModelsSelectionState, .none)
+        XCTAssertTrue(state.selectedDiscoveredModelIDs.isEmpty)
+
+        // 6. Clicking select-all when .none -> selects all (.all)
+        state.toggleSelectAllDiscoveredModels()
+        XCTAssertEqual(state.discoveredModelsSelectionState, .all)
+        XCTAssertEqual(state.selectedDiscoveredModelIDs, ["model-a", "model-b", "model-c"])
+
+        // 7. Deselecting one item -> .mixed
+        state.toggleDiscoveredModel("model-b")
+        XCTAssertEqual(state.discoveredModelsSelectionState, .mixed)
+        XCTAssertEqual(state.selectedDiscoveredModelIDs, ["model-a", "model-c"])
+
+        // 8. Clicking select-all when .mixed -> selects all (.all)
+        state.toggleSelectAllDiscoveredModels()
+        XCTAssertEqual(state.discoveredModelsSelectionState, .all)
+        XCTAssertEqual(state.selectedDiscoveredModelIDs, ["model-a", "model-b", "model-c"])
+    }
+
+    func testDiscoveredModelSelectionSheetRendersVisualStates() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let provider = try XCTUnwrap(settings.providerRegistry.catalog?.providers.first)
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(),
+            providerFactory: NoopProviderFactory()
+        )
+        state.selectProvider(provider.id)
+        state.discoveredModelCandidates = [
+            "antigravity-preview-05-2026",
+            "antigravity-preview-09-2026",
+            "antigravity-preview-latest",
+            "deep-research-max-preview-04-2026",
+            "deep-research-preview-04-2026",
+            "deep-research-pro-preview-12-2025",
+            "gemini-2.5-computer-use-preview-10-2025",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-image",
+            "gemini-2.5-flash-lite"
+        ]
+
+        func capture(selection: Set<String>, filename: String) throws {
+            state.selectedDiscoveredModelIDs = selection
+            let sheet = DiscoveredModelSelectionSheet(state: state)
+            let hosting = NSHostingView(rootView: sheet)
+            hosting.frame = NSRect(x: 0, y: 0, width: 460, height: 380)
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 460, height: 380),
+                styleMask: [.titled, .closable],
+                backing: .buffered,
+                defer: false
+            )
+            window.contentView = hosting
+            hosting.layoutSubtreeIfNeeded()
+
+            guard let bitmap = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else {
+                XCTFail("Failed to allocate bitmap")
+                return
+            }
+            hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
+            guard let png = bitmap.representation(using: .png, properties: [:]) else {
+                XCTFail("Failed to encode PNG")
+                return
+            }
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+            try png.write(to: url)
+        }
+
+        // 1. Mixed: partially selected (matches user screenshot: 4 out of 10 selected)
+        try capture(
+            selection: [
+                "gemini-2.5-computer-use-preview-10-2025",
+                "gemini-2.5-flash",
+                "gemini-2.5-flash-image",
+                "gemini-2.5-flash-lite"
+            ],
+            filename: "01-selection-mixed.png"
+        )
+
+        // 2. All selected
+        try capture(
+            selection: Set(state.discoveredModelCandidates),
+            filename: "02-selection-all.png"
+        )
+
+        // 3. None selected
+        try capture(
+            selection: [],
+            filename: "03-selection-none.png"
+        )
     }
 
     func testRefreshFailureLeavesCatalogUntouched() async throws {
