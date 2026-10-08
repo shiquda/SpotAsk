@@ -7,7 +7,8 @@ description: "SpotAsk 是一款免费开源的 macOS 菜单栏 AI 助手与分�
 
 hero:
   name: SpotAsk
-  tagline: "先提问，去向随心。极速唤起的原生 macOS 菜单栏 AI 助手与分流工具。"
+  text: 先提问，再决定去向
+  tagline: '<span class="nowrap">一次提问，三个去向。</span><br class="hidden sm:inline"><span class="nowrap">随时唤起，随问随走。</span>'
   actions:
     - theme: brand
       text: 快速开始
@@ -24,7 +25,7 @@ features:
   - title: "自带密钥 (BYOK)，数据留在本机"
     details: "直连 OpenAI 兼容或 Anthropic 接口。密钥加密保存在本地钥匙串，无中间服务器，无隐私收集。"
   - title: "纯原生轻量，无 Electron"
-    details: "纯 Swift 与 AppKit 构建，安装包仅约 10 MB；全键盘驱动，按 Esc 随问随走，极致克制。"
+    details: "纯 Swift 与 AppKit 构建，安装包仅约 10 MB；全键盘驱动，按 <kbd>Esc</kbd> 随问随走，极致克制。"
 
 # Rendered between the hero actions and the feature cards by SpotAskHeroShowcase.
 heroShowcase:
@@ -34,14 +35,14 @@ heroShowcase:
 
 ## SpotAsk 是什么
 
-SpotAsk 是一款免费开源的 macOS 菜单栏 AI 助手与分流工具，建立在一个极简的前提之上：**“先提问，去向随心（Ask first. Decide where it goes after.）”**。
+<span class="nowrap">SpotAsk</span> 是一款免费开源的 macOS 菜单栏 AI 助手与分流工具，建立在一个极简的前提之上：**“先提问，再决定去向（Ask first. Decide where it goes after.）”**。
 
-随时按快捷键（默认 `⌥ + Space`），专注的提问小窗即刻浮现于屏幕之上。在灵感或疑问闪现的当下先写下问题，再决定如何处理：
+随时按快捷键（默认 <kbd>⌥ + Space</kbd>），专注的提问小窗即刻浮现于屏幕之上。在灵感或疑问闪现的当下先写下问题，再决定如何处理：
 
 - **应用内流式回答**：使用你配置的 AI 模型（BYOK）直接在小窗内快速作答。
-- **外部提问一键分流 (External Ask)**：将问题直派给网页平台（ChatGPT、Perplexity、Grok）、本地终端 CLI Agent 或桌面应用，不消耗 API 额度，不留多余历史记录。
+- **外部提问一键分流 (<span class="nowrap">External Ask</span>)**：将问题直派给网页平台（ChatGPT、Perplexity、Grok）、本地终端 CLI Agent 或桌面应用，不消耗 API 额度，不留多余历史记录。
 
-没有账号系统，没有多余中转，没有遥测监控。按 `Esc` 随问随走，彻底告别沉重的工作流。
+没有账号系统，没有多余中转，没有遥测监控。按 <kbd>Esc</kbd> 随问随走，彻底告别沉重的工作流。
 
 ### 核心工作流一览
 
@@ -56,5 +57,5 @@ SpotAsk 是一款免费开源的 macOS 菜单栏 AI 助手与分流工具，建�
 ## 下一步
 
 - [快速开始](/zh-CN/getting-started)介绍安装和第一次提问。
-- [探索 SpotAsk](/zh-CN/explore)是应用能力地图。
+- [探索 SpotAsk](/zh-CN/explore) 是应用能力地图。
 - [故障排查](/zh-CN/troubleshooting)处理连接、模型、权限和快捷键问题。

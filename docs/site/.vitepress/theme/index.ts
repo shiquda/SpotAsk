@@ -4,6 +4,7 @@ import Layout from './Layout.vue'
 import SpotAskSettingsLink from './components/SpotAskSettingsLink.vue'
 import { installMermaidDiagrams } from './mermaid'
 import './styles/diagrams.css'
+import './styles/typography.css'
 
 export default {
   extends: DefaultTheme,
