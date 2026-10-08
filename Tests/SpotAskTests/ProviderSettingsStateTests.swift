@@ -1046,7 +1046,7 @@ final class ProviderSettingsStateTests: XCTestCase {
 
         state.draftProviderFormat = .gemini
         state.prefillOfficialAddress()
-        XCTAssertEqual(state.draftProviderAddress, "https://generativelanguage.googleapis.com/v1beta/models")
+        XCTAssertEqual(state.draftProviderAddress, "https://generativelanguage.googleapis.com/v1beta")
         XCTAssertNil(state.providerFieldError)
     }
 
@@ -1077,7 +1077,7 @@ final class ProviderSettingsStateTests: XCTestCase {
 
         state.draftProviderFormat = .gemini
         state.prefillOfficialAddress()
-        XCTAssertEqual(state.draftProviderAddress, "https://generativelanguage.googleapis.com/v1beta/models")
+        XCTAssertEqual(state.draftProviderAddress, "https://generativelanguage.googleapis.com/v1beta")
     }
 
     /// A pre-filled address is the first thing a user sees, so it must always
@@ -1096,6 +1096,22 @@ final class ProviderSettingsStateTests: XCTestCase {
                 )
             }
         }
+    }
+
+    /// The pre-filled Gemini address is the API version root; the model
+    /// collection and the action are appended from it.
+    func testGeminiPrefillResolvesToTheModelCollectionRoot() throws {
+        let address = ProviderFormat.gemini.officialAddress(for: .baseURL)
+
+        XCTAssertEqual(address, "https://generativelanguage.googleapis.com/v1beta")
+        XCTAssertEqual(
+            try URLNormalizer.endpoint(from: address, useFullEndpoint: false, format: .gemini).absoluteString,
+            "https://generativelanguage.googleapis.com/v1beta/models"
+        )
+        XCTAssertEqual(
+            try URLNormalizer.modelsEndpoint(from: address, format: .gemini).absoluteString,
+            "https://generativelanguage.googleapis.com/v1beta/models"
+        )
     }
 
     // MARK: - Helpers

@@ -4,8 +4,10 @@ import Foundation
 /// `streamGenerateContent`).
 struct GeminiProvider: ChatProvider {
     struct Configuration: Sendable {
-        /// The model collection root, e.g.
+        /// The model collection root every request is built from, e.g.
         /// `https://generativelanguage.googleapis.com/v1beta/models`.
+        /// `URLNormalizer` resolves a service address such as the API version
+        /// root `https://generativelanguage.googleapis.com/v1beta` to this root.
         let endpoint: URL
         let apiKey: String
         let model: String

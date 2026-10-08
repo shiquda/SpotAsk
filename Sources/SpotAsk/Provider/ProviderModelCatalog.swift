@@ -29,9 +29,12 @@ enum ProviderFormat: String, Codable, CaseIterable, Sendable {
                 ? "https://api.anthropic.com/v1/messages"
                 : "https://api.anthropic.com/v1"
         case .gemini:
-            // A Gemini address always resolves to the model collection root,
-            // which is the same value in both address modes.
-            "https://generativelanguage.googleapis.com/v1beta/models"
+            // The Gemini API version root. Requests carry the model and the
+            // action in the path (`/v1beta/models/<model>:generateContent`), so
+            // this is the base SpotAsk resolves to the model collection and
+            // builds every request from; the same value covers both address
+            // types.
+            "https://generativelanguage.googleapis.com/v1beta"
         }
     }
 
