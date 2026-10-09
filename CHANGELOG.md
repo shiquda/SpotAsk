@@ -9,89 +9,104 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.7] - 2026-10-08
 
+**Gemini services, pre-filled official addresses, smoother model discovery**
+
 ### Added
 
-- **Gemini** joins OpenAI Compatible and Anthropic as an API Format in Settings > Services, so a Google Gemini key works without a compatibility gateway: requests go to the native `generateContent` and `streamGenerateContent` endpoints, **Refresh Models** lists the models the key can answer with, and a model's thinking parts arrive as Thinking.
-- A new Service pre-fills the official address of the selected API Format and Address Type, and switching either picker keeps that address in step until you enter one of your own. The documentation now links each format to the provider console that issues its API key and to the matching API reference.
-- The model selection sheet in Settings > Services replaces the "Select All" push button with a native macOS tri-state checkbox that stays synchronized with individual model toggles, showing mixed state when partially selected.
+- **Gemini** joins OpenAI Compatible and Anthropic as an API Format in Settings > Services, using Google Gemini keys directly without a compatibility gateway.
+- A new Service pre-fills official addresses for the selected format and type, and the docs now link to provider key consoles and API references.
+- The model selection sheet in Settings > Services uses a native macOS tri-state checkbox that stays synchronized with individual model toggles.
 
 ## [0.2.6] - 2026-10-05
 
+**Live action bar preview, quieter update prompts**
+
 ### Added
 
-- Settings > Selection Assistant previews the action bar live: the four display switches above it redraw a real 1:1 render of the action bar as you toggle them, making the effect of **show labels beside icons**, the chat icon, prompt presets, and External Ask visible without needing to select text. The bar in Settings is a preview only — its buttons are not clickable, and a configuration with no action shows an explanation instead of an empty bar.
-- Checking for updates when already up to date now displays a lightweight in-app toast notification instead of an intrusive modal dialog.
+- Settings > Selection Assistant previews the action bar live in a 1:1 view as you toggle display switches; the preview is view-only, and an empty configuration shows an explanation.
+- Checking for updates when already up to date shows a lightweight in-app toast instead of a modal dialog.
 
 ### Fixed
 
-- A question sent from the composer to another app now closes the question window again once the target opens, so a pinned window no longer covers the ChatGPT, app, or Terminal window it just opened. A launch that fails keeps the window with your question and the error, a target mounted while the input is empty keeps it, and retrying from an answer's model picker keeps it so you can compare answers.
-- Clearing local data in Settings now thoroughly purges session history; failed configuration backup imports now atomically roll back to prevent corrupted partial settings.
+- Sending a question from the composer to another app closes the window once the target opens, even when pinned, so it no longer covers the target window.
+- Clearing local data now purges session history too, and failed configuration backup imports roll back atomically to prevent corrupted settings.
 
 ## [0.2.5] - 2026-09-20
 
+**Direct settings links, guide links, live diagrams**
+
 ### Added
 
-- `spotask://settings/<page>` links open one Settings page directly (Provider, Prompts, External Ask, Selection Assistant, Shortcuts, General, Appearance, About), so documentation, shortcuts, and terminal scripts can send users to the exact page. Plain `spotask://settings` still opens Settings, and an unknown page falls back to it.
-- Settings groups that configure behavior worth explaining now link to their guide (service addresses, models, prompts, External Ask, Selection Assistant, shortcuts reference, proxy, local data, appearance). Links follow the interface language, opening the English or Simplified Chinese page.
-- The documentation site draws two diagrams, for address types and the Selection Assistant, styled to follow the light and dark theme, and adds an **Open Settings in SpotAsk** button to the English and Simplified Chinese pages that jump to the matching settings page. Each button also states the manual path, so it still works without the app installed.
-- The **retry with another model** picker on an answer now lists your enabled External Ask targets under an "External Ask" section. Picking one opens that platform with the question this answer was generated for, and the conversation, the session model, and the composer draft all stay exactly as they are.
-- An optional, off-by-default clipboard-assisted selection mode in Settings > Selection Assistant for apps you choose (such as Zotero, where Accessibility selection reads can be unreliable). Selections in those apps are detected as usual, and the app's own Copy command runs only when you use an action, so accurate text reaches the action while the clipboard is restored afterwards.
+- `spotask://settings/<page>` links open a specific Settings page directly, with unknown pages falling back to the Settings window.
+- Behavior-heavy Settings groups link to their guide in the current interface language.
+- The documentation site adds theme-adaptive diagrams for address types and the Selection Assistant, plus an "Open Settings in SpotAsk" button.
+- The "retry with another model" picker on answers lists enabled External Ask targets, opening the platform with the original question while keeping the session unchanged.
+- An optional, off-by-default clipboard-assisted selection mode in Settings > Selection Assistant for apps you choose, restoring the clipboard afterwards.
 
 ### Changed
 
-- The header model picker is centered in the title bar, instead of sitting next to the SpotAsk brand. The generating spinner stays grouped with the picker.
-- The header's quick model switcher lists models only again. It switches the model of the current window, so offering External Ask targets there promised a model change that picking one never performed; that entry now lives in the retry picker, where the question to ask elsewhere is already at hand.
-- Adding selected text to chat now prefixes each line with Markdown `>`, and the selection action uses a quote bubble icon.
-- The documentation home page renders the hero flow diagram between the hero actions and the feature cards, in both languages, instead of below them.
-- The documentation home page hero keeps only the SpotAsk wordmark; the `Docs` / `文档` second line is gone.
+- The header model picker is centered in the title bar, keeping the loading animation grouped with it.
+- The header quick switcher lists models only again, moving External Ask targets to the retry picker.
+- Adding selected text to chat prefixes each line with Markdown `>`, and the selection action uses a quote bubble icon.
+- The documentation home page renders the flow diagram between the hero actions and feature cards.
+- The documentation home page hero keeps only the SpotAsk wordmark, dropping the secondary Docs heading.
 
 ### Fixed
 
-- The **Open Documentation** link no longer sits under the Settings window's scrollbar. It keeps a 16pt trailing inset, so it lines up with the card below it on every settings page that shows the link.
-- Running the test suite no longer overwrites your macOS clipboard. Code block copy buttons write to an injectable pasteboard, so tests copy into a private one while the app still copies real code blocks to the system clipboard.
+- The Open Documentation link no longer sits under the Settings scrollbar and lines up with the card below it.
+- Running the test suite no longer overwrites your macOS clipboard.
 
 ## [0.2.4] - 2026-09-16
 
+**In-app updates, multiple download sources, composer @ filtering**
+
 ### Added
 
-- Check for Updates now downloads and installs inside the app. You can skip a version from the update window and restore alerts in About. GitHub Releases remains available if the in-app updater cannot run.
-- Configurable update download sources (Automatic, Official GitHub, Accelerated Mirror) in Settings > About > Updates with automatic timeout detection and mirror fallback for reliable downloads across regions.
-- Type `@` in the composer to filter prompt presets and External Ask targets. Selecting a preset keeps the draft; a nonempty query launches External Ask immediately.
-- Dedicated chat icon in the selection assistant action bar to quickly populate the chat input with selected text for follow-up questions, with a configurable setting in Settings (enabled by default).
-- In existing conversations, the preset popover menu now lists enabled External Ask targets alongside prompt presets, opens upward from the bottom composer bar, and External Ask shortcuts attach a pending badge that launches on send.
+- Check for Updates now downloads and installs in-app, with options to skip versions and restore alerts in About.
+- Configurable update download sources (Automatic, Official GitHub, Accelerated Mirror) in Settings > About > Updates with automatic timeout and mirror fallback.
+- Type `@` in the composer to filter prompt presets and External Ask targets, preserving drafts or launching immediately with text.
+- Dedicated chat icon in the selection action bar to populate the chat input with selected text for follow-ups, with a toggle in Settings.
+- Preset popover menu in existing conversations lists External Ask targets alongside prompt presets, opening upward from the bottom bar.
 
 ### Changed
 
-- The selected prompt or External Ask badge now sits above the composer field on the left with a compact content-adaptive width, outside the input, so the extra bottom row and its leftover space are gone.
-- Empty-state External Ask chips and their shortcuts now select a pending target instead of launching immediately; Return sends the draft, and clicking again, Esc, or clearing the input cancels the selection.
+- Selected prompt and External Ask badges sit above the composer field on the left with compact content-adaptive width.
+- Empty-state External Ask chips and shortcuts select a pending target instead of launching immediately; click again, Esc, or clear to cancel.
 
 ### Fixed
 
-- When composer input is present, pressing an External Ask shortcut or selecting from the popover menu sends immediately rather than requiring an extra Return keypress.
+- Pressing an External Ask shortcut or selecting from the popover sends immediately when composer text is present.
 
 ## [0.2.3] - 2026-09-11
 
+**Refreshed settings sidebar, compact layouts, clearable global shortcut**
+
 ### Changed
 
-- Settings now uses a compact grouped sidebar with bilingual content search, keyboard navigation, and search results that jump only to visible controls.
-- The Settings experience has been refreshed with tighter spacing, gradient icon tiles, and more compact page and provider layouts.
+- Settings uses a compact grouped sidebar with bilingual search, keyboard navigation, and visible-control jump targets.
+- Refreshed Settings experience with tighter spacing, gradient icon tiles, and compact provider layouts.
+
 ### Fixed
 
-- Global Shortcut can be cleared in Settings so SpotAsk no longer occupies a system hotkey. Existing installs keep their current shortcut, including the default Option+Space.
+- Global shortcuts can be cleared in Settings so SpotAsk no longer occupies a system hotkey.
 
 ## [0.2.2] - 2026-09-10
 
+**Reasoning timer optimization, localized directory scan fix**
+
 ### Fixed
 
-- Completed and hidden reasoning conversations no longer keep a live thinking-time clock refreshing.
-- Localization no longer re-scans language directories on every thinking-header refresh.
+- Completed and collapsed reasoning conversations no longer keep a live thinking-time clock refreshing.
+- Localization no longer re-scans language directories on every thinking header refresh.
 
 ## [0.2.1] - 2026-09-08
 
+**External Ask on selection, URL scheme support, Homebrew Cask**
+
 ### Added
 
-- The selection action bar can show External Ask targets beside prompt presets. Separate toggles hide prompts or External Ask (both on by default). Up to eight actions share the bar.
-- Open SpotAsk from Alfred, Raycast, Shortcuts, or the terminal with `spotask://` URLs: `open`, `ask?q=`, `toggle`, and `settings`.
+- The selection action bar can show External Ask targets beside prompt presets, with up to eight actions supported.
+- Open SpotAsk via `spotask://` URLs (`open`, `ask?q=`, `toggle`, `settings`) from Alfred, Raycast, Shortcuts, or Terminal.
 - Homebrew Cask distribution: install and update SpotAsk directly via `brew install --cask spotask`.
 
 ### Changed
@@ -101,109 +116,115 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Input field text is properly cleared after triggering an External Ask quick action.
-- Preserve composed and multiline input during keyboard navigation and submission.
+- Preserve composed IME input and multiline text during keyboard navigation and submission.
 - The ask window no longer jumps in front during Space switching when Keep window on top is off.
-- Settings switch labels use the available row width instead of the 134pt control column, so longer copy is no longer truncated.
-- The Selection Assistant settings page scrolls when its controls no longer fit the window.
-- Labeled selection action bar prompts stay inside the 400pt panel: long titles truncate instead of rendering off-canvas. Full names remain on the tooltip.
-- Clearing or failing a selection, or turning the assistant off, dismisses the action bar and drops the captured snapshot.
+- Settings switch labels use available row width so longer copy is no longer truncated.
+- The Selection Assistant settings page scrolls when controls exceed window height.
+- Labeled selection action bar prompts truncate gracefully inside the 400pt panel while keeping full names in tooltips.
+- Clearing or failing a selection, or disabling the assistant, dismisses the action bar and drops the captured snapshot.
 
 ## [0.2.0] - 2026-08-19
 
+**External Ask routing, custom target commands, backup support**
+
 ### Added
 
-- External Ask: send your question to an outside target from the quick-ask panel, then the panel closes and the target opens. Built in are Ask ChatGPT and Ask Grok, which open in your browser and start answering right away.
-- Add your own External Ask targets: open a web link, open an app's link, or run a command such as `omp {query}` in Terminal. Choose an icon, reorder, and toggle each target.
-- A master switch for External Ask in settings, on by default.
-- Brand icons for external targets and custom prompt presets you create.
-- Config backups now include your External Ask targets and stay compatible with older backups.
+- External Ask: send questions from the quick-ask panel to outside targets like ChatGPT and Grok in one click.
+- Add custom External Ask targets using web URLs, app schemes, or terminal commands such as `omp {query}`.
+- Master toggle for External Ask in Settings, enabled by default.
+- Brand icons for External Ask targets and custom prompt presets.
+- Configuration backups now include External Ask targets while maintaining backwards compatibility.
 
 ### Fixed
 
-- After a local reinstall, the selection assistant asks you to allow the current install to read selected text again.
+- After a local reinstall, the selection assistant prompts to re-authorize Accessibility permissions for reading selected text.
 - The quick-ask panel starts a fresh conversation after a period of inactivity.
 
 ## [0.1.6] - 2026-08-12
 
+**Per-model reasoning effort, startup update checks, automatic compatibility**
+
 ### Added
 
-- Per-model thinking control: disable thinking or choose a level, with provider-specific request compatibility and custom JSON request parameters.
-- Optional automatic update check at launch, with an in-app notice that opens the release page when a new version is available.
-- Compatibility settings are inferred automatically from provider and model names, while manually selected profiles are preserved.
+- Per-model thinking control: disable reasoning or select effort levels, with custom JSON request parameters.
+- Optional automatic update check at launch with in-app notifications and release page links.
+- Compatibility settings are inferred automatically from provider and model names while preserving manual selections.
 
 ### Fixed
 
-- Code block copy buttons receive clicks again while Markdown text selection stays enabled.
+- Code block copy buttons receive clicks reliably while Markdown text selection stays enabled.
 
 ## [0.1.5] - 2026-08-11
+
+**Provider icons, bubble chat layout, math rendering, multi-line selection**
 
 ### Added
 
 - Provider brand icons for supported services in the model picker, chat header, and settings.
-- Optional IM-style conversation layout: model messages on the left and your messages on the right in bubbles, available from Appearance settings.
-- Choose another model from the assistant message header and regenerate the latest answer with it.
-- Copied message selections restore Markdown markers across headings, lists, quotes, code blocks, and tables.
-- Math formulas render inside answers, with a toggle in Appearance settings.
-- A bilingual online user guide, reachable from About settings.
+- Optional IM-style bubble layout (assistant on left, user on right) configurable in Appearance settings.
+- Switch to another model directly from the answer header and regenerate the latest response.
+- Copying selected message text preserves Markdown formatting across headings, lists, quotes, code blocks, and tables.
+- LaTeX math formula rendering inside answers, configurable in Appearance settings.
+- Bilingual online documentation site accessible directly from About settings.
 
 ### Changed
 
-- Automatic selection assistant skips empty or whitespace-only selections before waking.
-- Completed message code blocks wrap instead of opening a separate scrollable selection surface, so a drag can pass through them continuously.
+- Automatic selection assistant skips empty or whitespace-only text selections.
+- Completed code blocks wrap text automatically so drag-selection passes through continuously.
 
 ### Fixed
 
-- Message text can be selected continuously across multiple lines and copied.
-- Selection highlighting stays continuous across Markdown blocks instead of showing separate highlighted fragments.
-- ⌘+L restores focus to the question input when focus has moved elsewhere.
-- The Settings sidebar supports Up/Down arrow navigation between sections while a sidebar item is focused.
-- Expanding the thinking process is smoother during long deep-thinking answers.
-- Automatic selection assistant no longer opens after an ordinary click or a selection that was already cleared.
+- Message text can be selected continuously across multiple lines and copied cleanly.
+- Selection highlighting stays continuous across Markdown blocks without visual fragmentation.
+- Press ⌘+L to instantly refocus the question composer when focus has moved away.
+- Settings sidebar supports Up/Down arrow navigation between sections when focused.
+- Smoother animation and interaction when expanding reasoning steps during long thinking responses.
+- Ordinary clicks or canceled selections no longer trigger the selection assistant unexpectedly.
 
 ## [0.1.4] - 2026-08-07
 
+**Initial release: quick asking, selection assistant, multi-model byok, reasoning**
+
 ### Added
 
-- Quick model switch: pick any provider's model for the current conversation from the header without touching Settings; New Conversation returns to the default model.
-- Temporary attachments: paste a screenshot, drag in images or text/code files, or pick them from a file chooser; images are sent as image content and text files are attached as text context.
-- Attachment context follows the conversation: later questions resend earlier screenshots and files, and retry keeps the original attachments.
-- Model picker search with provider grouping, keyboard navigation, and a Use Default Model shortcut for returning to the Settings default.
-
-- Cross-app selection assistant: select text in Safari, Notes, or other apps to translate, explain, summarize, polish, or run a custom prompt.
-- Quick action bar that appears next to selected text, with text labels shown by default.
-- Direct-run mode and optional automatic invocation for the selection assistant.
-- Blacklist and whitelist app filtering for the selection assistant's automatic invocation, with a searchable app picker.
-- Anthropic provider support in addition to OpenAI-compatible services, with model discovery and refresh.
-- HTTP and SOCKS5 proxy support with optional credentials and a connection test.
-- Customizable global hotkey for opening the chat window.
-- Thinking display with elapsed time, plus an option to keep thinking expanded by default.
-- Per-message answer toolbar with copy and retry actions.
-- Configurable interface language: English, 简体中文, Español, Deutsch, 日本語, Français, Português, Русский.
-- Configuration export/import and diagnostics export for troubleshooting.
-- Compact in-app notification toasts for feedback.
+- Quick model switch: choose any provider's model from the header for the current chat; new chats return to the default model.
+- Temporary attachments: paste screenshots, drag in images or code files, with images sent as visual input and text as context.
+- Attachment context follows the chat: subsequent follow-up questions and retries retain all previous attachments.
+- Model picker features search, provider grouping, keyboard navigation, and a shortcut to restore the default model.
+- Cross-app selection assistant: select text anywhere on macOS to translate, explain, summarize, polish, or run custom prompts.
+- Quick action bar appears alongside selected text, showing text labels by default.
+- Selection assistant supports direct-run execution and optional automatic invocation.
+- Automatic invocation includes blacklist and whitelist app filtering with a searchable app picker.
+- Anthropic native provider support with model discovery, alongside OpenAI-compatible services.
+- HTTP and SOCKS5 proxy support with optional credentials and connection testing.
+- Customizable global shortcut for bringing up the ask window.
+- Collapsible reasoning process display with elapsed time tracking and default-expansion setting.
+- Per-answer action bar with quick copy and retry actions.
+- Interface localization supporting 8 languages: English, 简体中文, Español, Deutsch, 日本語, Français, Português, and Русский.
+- Configuration export/import and diagnostic logging with lightweight in-app feedback toasts.
 
 ### Changed
 
-- The summarize quick action uses a clearer icon.
-- Selection assistant settings collapse when the feature is off; Accessibility permission is requested only when enabling it.
-- Conversation roles are labeled with icons, the assistant's model name, and 你 for your own messages.
-- Streaming answer updates are isolated to the active message instead of rewriting the whole conversation array.
-- The conversation keeps the recent active tail non-lazy while older history remains lazily loaded.
-- Streaming answers are rendered as stable Markdown blocks; only the active tail reparses, and completion seals the tail without replacing the renderer tree.
-- Scroll geometry callbacks only update follow state when the near-bottom value actually changes, and size-change anchoring is disabled while the user is scrolling.
+- The summarize quick action uses a clearer, more recognizable icon.
+- Selection assistant settings collapse when disabled, requesting Accessibility permissions only on enable.
+- Conversation participants are labeled with icons, model names for assistants, and 你 for user messages.
+- Streaming updates are isolated to active messages instead of rewriting the entire conversation array.
+- Conversations keep recent active messages eagerly rendered while loading older history lazily.
+- Streaming responses render as stable Markdown blocks, sealing the tail upon completion without rebuilding the tree.
+- Scroll callbacks update follow state only on genuine threshold crossings, disabling size anchoring during manual scrolling.
 
 ### Fixed
 
-- Streaming Markdown now preserves paragraph, soft line, list, and code-block line breaks while the answer is still generating.
-- Long answers streamed in the current window stay expanded after completion, and expanded assistant messages survive later conversation updates.
-- Chat and reasoning scrolling now coalesces rapid updates instead of queuing one scroll command per token flush.
-- The composer skips full TextKit measurement while it is already at its maximum height.
-- The selection assistant could not read selected text in some builds; reads now work reliably with Accessibility permission.
-- Selections made with text markers now resolve correctly.
-- The composer draft is preserved after closing the window, and the panel fade animation is restored.
-- The app icon no longer shows white corners in dark mode.
-- Provider cards can be expanded and collapsed reliably.
-- Thinking expansion behavior: when enabled, thinking stays expanded during reasoning and collapses for the final answer; when disabled, it stays collapsed.
+- Streaming Markdown preserves paragraph, soft wrap, list, and code block formatting while generating.
+- Long streaming answers stay expanded after completion and survive subsequent conversation updates.
+- Chat and reasoning scrolling coalesces rapid updates, eliminating per-token queue lag.
+- The composer skips full TextKit measurement once reaching maximum height.
+- Selection assistant reads selected text reliably once granted Accessibility permissions.
+- Selections created with text markers resolve accurately.
+- Closing the window preserves composer drafts and restores smooth panel fade animations.
+- App icon corners render cleanly in Dark Mode without white artifact borders.
+- Service provider cards expand and collapse reliably.
+- Thinking expansion behavior: expands during reasoning and collapses for final answers when enabled; stays collapsed when disabled.
 
 [Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.2.7...HEAD
 [0.2.7]: https://github.com/shiquda/SpotAsk/compare/v0.2.6...v0.2.7

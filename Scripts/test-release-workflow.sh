@@ -982,10 +982,13 @@ expect_changelog_problem "$changelog_fixture" "a translation that dropped an ent
     'has 2 bullets in CHANGELOG.md but 1 in CHANGELOG.zh-CN.md'
 
 new_changelog_fixture "$changelog_fixture"
-rewrite "$changelog_fixture/CHANGELOG.zh-CN.md" 's/^### Fixed$/### 修复/'
-expect_changelog_problem "$changelog_fixture" "a renamed subsection" \
-    'subsection 2 is `### Fixed` in CHANGELOG.md but `### 修复` in CHANGELOG.zh-CN.md'
+rewrite "$changelog_fixture/CHANGELOG.zh-CN.md" 's/^### Fixed$/### 故障/'
+expect_changelog_problem "$changelog_fixture" "an unknown subsection" \
+    'subsection 2 is `### Fixed` in CHANGELOG.md but `### 故障` in CHANGELOG.zh-CN.md'
 
+new_changelog_fixture "$changelog_fixture"
+rewrite "$changelog_fixture/CHANGELOG.zh-CN.md" 's/^### Added$/### 新增/; s/^### Fixed$/### 修复/'
+expect_changelog_ok "$changelog_fixture" "a localized subsection pair"
 new_changelog_fixture "$changelog_fixture"
 rewrite "$changelog_fixture/CHANGELOG.md" 's/^## \[9.9.9\] - 2030-01-01$/## [9.9] - 2030-01-01/'
 rewrite "$changelog_fixture/CHANGELOG.zh-CN.md" 's/^## \[9.9.9\] - 2030-01-01$/## [9.9] - 2030-01-01/'
