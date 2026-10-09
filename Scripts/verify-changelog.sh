@@ -9,6 +9,7 @@
 #
 # Usage: Scripts/verify-changelog.sh
 set -eu
+export LC_ALL=C
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 EN_FILE="$ROOT_DIR/CHANGELOG.md"
