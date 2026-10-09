@@ -205,6 +205,17 @@ Local Release rebuilds change the code signature even when the Developer ID stay
 
 `CHANGELOG.md` and `CHANGELOG.zh-CN.md` are the single source of truth for the notes: the documentation site's changelog pages (`Scripts/generate-docs-metadata.mjs`) and the GitHub Release body (`Scripts/release-notes-from-changelog.sh`) are both generated from them. They only stay usable if every release is documented in both languages, so the release process has two checks.
 
+### Writing style guidelines
+
+Changelog entries follow a concise, user-centric format inspired by Multica:
+
+1. **Headline summary**: directly beneath each released `## [X.Y.Z] - YYYY-MM-DD` heading, include a bold one-line title summarizing the key highlights of the release (e.g. `**Gemini services, pre-filled official addresses, smoother model discovery**` / `**Gemini 服务、官方地址预填、模型发现更顺手**`).
+2. **One sentence per bullet**: focus strictly on user-visible capabilities and behavior changes. Do not include internal implementation details, private class/method names, or test-suite mechanics.
+3. **Localized subsections**:
+   - English (`CHANGELOG.md`): use standard `### Added`, `### Changed`, and `### Fixed`.
+   - Simplified Chinese (`CHANGELOG.zh-CN.md`): use translated headings: `### 新增`, `### 变更`, and `### 修复`.
+4. **1:1 alignment**: the subsection sequence and bullet counts must strictly match between the two files.
+
 ### Consistency gate — run on every change
 
 ```sh
@@ -217,7 +228,7 @@ Compares both files and fails on any drift:
 - a missing, malformed, impossible (`2030-02-31`), or language-mismatched ` - YYYY-MM-DD` date
 - an `[Unreleased]` section that carries a release date, or a released section without one
 - a version that does not descend from `[Unreleased]`, or a release dated later than the version above it
-- a missing or renamed `### subsection`, or a subsection whose bullet count differs between the languages
+- a missing or mismatched `### subsection` (e.g. `Added` / `新增`, `Changed` / `变更`, `Fixed` / `修复`), or a subsection whose bullet count differs between the languages
 - a version heading without its `[X.Y.Z]: ...` link reference, which renders the heading as literal text
 
 CI runs it on every pull request and every push to `main` (`.github/workflows/ci.yml`), before the test suite. Each failure names the file, the version, and the actual problem, so no separate run of the script is needed to diagnose it.

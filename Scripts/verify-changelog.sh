@@ -9,6 +9,7 @@
 #
 # Usage: Scripts/verify-changelog.sh
 set -eu
+export LC_ALL=C
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 EN_FILE="$ROOT_DIR/CHANGELOG.md"
@@ -21,7 +22,7 @@ usage() {
         '  - the same version sections in the same order, newest first' \
         '  - `[Unreleased]` first and dateless' \
         '  - a valid ` - YYYY-MM-DD` date on every released section, identical in both files' \
-        '  - the same `### subsection` headings and bullet counts per version' \
+        '  - the same `### subsection` headings (or standard Chinese translations) and bullet counts per version' \
         '  - a link reference for every version, with the same labels in both files' >&2
 }
 
@@ -80,6 +81,21 @@ function valid_label(l) {
     if (l == "Unreleased") return 1
     return (l ~ /^[0-9]+\.[0-9]+\.[0-9]+$/)
 }
+function canonical_sub(s) {
+    if (s == "Added" || s == "新增") return "Added"
+    if (s == "Changed" || s == "变更") return "Changed"
+    if (s == "Fixed" || s == "修复") return "Fixed"
+    if (s == "Deprecated" || s == "弃用") return "Deprecated"
+    if (s == "Removed" || s == "移除") return "Removed"
+    if (s == "Security" || s == "安全") return "Security"
+    return s
+}
+
+function sub_matches(en_sub, zh_sub) {
+    if (en_sub == zh_sub) return 1
+    return canonical_sub(en_sub) == canonical_sub(zh_sub)
+}
+
 
 # 1 when a > b, -1 when a < b, 0 when equal.
 function version_cmp(a, b,   xa, xb, i) {
@@ -150,14 +166,15 @@ f <= 2 {
             report(sprintf("%s:%d: `### %s` appears before any `## [version]` section", name[f], FNR, sub_name))
             next
         }
-        if (has_key(sub_index, f, i SUBSEP sub_name)) {
+        csub = canonical_sub(sub_name)
+        if (has_key(sub_index, f, i SUBSEP csub)) {
             report(sprintf("%s: `[%s]` repeats the `### %s` subsection", name[f], label_of[f, i], sub_name))
             next
         }
         nsub[f, i]++
         sub_of[f, i, nsub[f, i]] = sub_name
-        sub_index[f, i SUBSEP sub_name] = 1
-        cur_sub[f] = sub_name
+        sub_index[f, i SUBSEP csub] = 1
+        cur_sub[f] = csub
         next
     }
 
@@ -256,7 +273,7 @@ END {
         }
         shared = (nsub[1, i] < nsub[2, j] ? nsub[1, i] : nsub[2, j])
         for (k = 1; k <= shared; k++) {
-            if (sub_of[1, i, k] != sub_of[2, j, k]) {
+            if (!sub_matches(sub_of[1, i, k], sub_of[2, j, k])) {
                 report(sprintf("`[%s]` subsection %d is `### %s` in %s but `### %s` in %s", label, k,
                     sub_of[1, i, k], en_name, sub_of[2, j, k], zh_name))
             }
@@ -264,12 +281,13 @@ END {
 
         # A translation that drops or adds an entry is the drift this gate exists for.
         for (k = 0; k <= nsub[1, i]; k++) {
-            sub_name = (k == 0 ? "" : sub_of[1, i, k])
-            if (k > 0 && !has_key(sub_index, 2, j SUBSEP sub_name)) continue
-            en_bullets = bullets[1, i, sub_name] + 0
-            zh_bullets = bullets[2, j, sub_name] + 0
+            csub = (k == 0 ? "" : canonical_sub(sub_of[1, i, k]))
+            if (k > 0 && !has_key(sub_index, 2, j SUBSEP csub)) continue
+            en_bullets = bullets[1, i, csub] + 0
+            zh_bullets = bullets[2, j, csub] + 0
             if (en_bullets != zh_bullets) {
-                where = (sub_name == "" ? "`[%s]`" : sprintf("`[%s]` / `### %s`", label, sub_name))
+                sub_disp = (k == 0 ? "" : sub_of[1, i, k])
+                where = (sub_disp == "" ? "`[%s]`" : sprintf("`[%s]` / `### %s`", label, sub_disp))
                 report(sprintf("%s has %d bullets in %s but %d in %s", where, en_bullets, en_name, zh_bullets, zh_name))
             }
         }
