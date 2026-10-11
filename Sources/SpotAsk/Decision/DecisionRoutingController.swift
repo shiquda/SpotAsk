@@ -185,6 +185,10 @@ final class DecisionRoutingController {
                 )
             case .autoSend:
                 guard DecisionRoutingGate.shouldApply(generation: generation, phase: phase, consumed: consumed) else { return }
+                if candidate.isInApp {
+                    deliver(candidate, generation: generation)
+                    return
+                }
                 let ticket = DecisionRoutingTicket(
                     generation: generation,
                     question: phase.ticket?.question ?? modelQuestion

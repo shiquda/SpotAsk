@@ -531,5 +531,27 @@ struct DecisionRoutingTests {
         }
         #expect(controller.pendingExecution == target)
         #expect(controller.phase == .idle)
+        controller.clearPendingExecution()
+
+        // In SpotAsk auto-send executes immediately without entering .autoSending.
+        let inAppTarget = candidates[0]
+        let inAppTransport = ScriptedTransport { _ in
+            Self.okResponse(choice: inAppTarget.id, confidence: 0.96)
+        }
+        controller.start(
+            snapshotQuestion: "in spotask question",
+            modelQuestion: "in spotask question",
+            candidates: candidates,
+            settings: settings,
+            apiKey: "test-token",
+            transport: inAppTransport,
+            sleep: { _ in try await Task.sleep(for: .seconds(60)) },
+            autoSendSleep: { _ in try await Task.sleep(for: .seconds(60)) }
+        )
+        for _ in 0..<50 where controller.pendingExecution == nil {
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(controller.pendingExecution == inAppTarget)
+        #expect(controller.phase == .idle)
     }
 }

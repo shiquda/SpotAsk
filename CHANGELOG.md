@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Decision routing** in Settings > External Ask recommends whether a question should stay in SpotAsk or go to an enabled External Ask channel using a System One decision model (pre-filled with TypeSafe Official and `jev-1.13.0`, or any compatible service address).
-- An inline confirmation card above the composer shows the recommended destination and confidence score, with Return to send, Tab or arrow keys to switch channels, Esc to cancel, and an 0.8-second linear buffer card when auto-sending above your confidence threshold.
+- An inline confirmation card above the composer shows the recommended destination and confidence score, with Return to send, Tab or arrow keys to switch channels, Esc to cancel, and a 0.8-second route notice when auto-sending to an external channel above your confidence threshold.
 - Each External Ask channel can define its description, best-fit questions, and an always-confirm rule, and Settings > External Ask includes a live route test that previews the recommended channel, confidence, release mode, and evaluation latency.
 - A smart-routing toggle in the chat toolbar (`⌘⇧R` by default) can pause automatic routing for the current conversation and resets on a new conversation, with a Settings > External Ask switch to show or hide it.
 

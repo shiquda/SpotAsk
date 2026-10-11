@@ -200,12 +200,13 @@ struct SmartRoutingHeaderIcon: View {
         Canvas { context, size in
             let w = size.width
             let h = size.height
-            let stroke = StrokeStyle(lineWidth: 1.55, lineCap: .round, lineJoin: .round)
+            let starStroke = StrokeStyle(lineWidth: 1.4, lineCap: .round, lineJoin: .round)
+            let branchStroke = StrokeStyle(lineWidth: 1.35, lineCap: .round, lineJoin: .round)
 
-            let cx = w * 0.31
+            let cx = w * 0.29
             let cy = h * 0.50
-            let r = w * (isOn ? 0.24 : 0.22)
-            let k = r * 0.27
+            let r = w * (isOn ? 0.23 : 0.21)
+            let k = r * 0.26
 
             var star = Path()
             star.move(to: CGPoint(x: cx, y: cy - r))
@@ -218,39 +219,36 @@ struct SmartRoutingHeaderIcon: View {
             if isOn {
                 context.fill(star, with: .foreground)
             } else {
-                context.stroke(star, with: .foreground, style: stroke)
+                context.stroke(star, with: .foreground, style: starStroke)
             }
 
-            let start = CGPoint(x: cx + r - 0.5, y: cy)
-            let upperEnd = CGPoint(x: w * 0.83, y: h * 0.28)
-            let lowerEnd = CGPoint(x: w * 0.83, y: h * 0.72)
+            let start = CGPoint(x: cx + r - 0.3, y: cy)
+            let upperTip = CGPoint(x: w * 0.86, y: h * 0.25)
+            let lowerTip = CGPoint(x: w * 0.86, y: h * 0.75)
 
             var branches = Path()
             branches.move(to: start)
             branches.addCurve(
-                to: upperEnd,
-                control1: CGPoint(x: w * 0.62, y: cy),
-                control2: CGPoint(x: w * 0.64, y: upperEnd.y)
+                to: upperTip,
+                control1: CGPoint(x: w * 0.60, y: cy),
+                control2: CGPoint(x: w * 0.63, y: upperTip.y)
             )
             branches.move(to: start)
             branches.addCurve(
-                to: lowerEnd,
-                control1: CGPoint(x: w * 0.62, y: cy),
-                control2: CGPoint(x: w * 0.64, y: lowerEnd.y)
+                to: lowerTip,
+                control1: CGPoint(x: w * 0.60, y: cy),
+                control2: CGPoint(x: w * 0.63, y: lowerTip.y)
             )
-            context.stroke(branches, with: .foreground, style: stroke)
+            context.stroke(branches, with: .foreground, style: branchStroke)
 
-            for tipY in [upperEnd.y, lowerEnd.y] {
-                let tip = CGPoint(x: w * 0.86, y: tipY)
+            let wingX: CGFloat = 2.15
+            let wingY: CGFloat = 1.75
+            for tip in [upperTip, lowerTip] {
                 var head = Path()
-                head.move(to: CGPoint(x: tip.x - 3.2, y: tip.y - 2.6))
+                head.move(to: CGPoint(x: tip.x - wingX, y: tip.y - wingY))
                 head.addLine(to: tip)
-                head.addLine(to: CGPoint(x: tip.x - 3.2, y: tip.y + 2.6))
-                if isOn {
-                    head.closeSubpath()
-                    context.fill(head, with: .foreground)
-                }
-                context.stroke(head, with: .foreground, style: stroke)
+                head.addLine(to: CGPoint(x: tip.x - wingX, y: tip.y + wingY))
+                context.stroke(head, with: .foreground, style: branchStroke)
             }
         }
         .frame(width: 18, height: 18)

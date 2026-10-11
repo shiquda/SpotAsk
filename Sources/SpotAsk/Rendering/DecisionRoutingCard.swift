@@ -15,8 +15,8 @@ struct DecisionRoutingCard: View {
                 EmptyView()
             case .deciding:
                 deciding
-            case let .autoSending(ticket, candidate):
-                autoSending(candidate, generation: ticket.generation)
+            case let .autoSending(_, candidate):
+                autoSending(candidate)
             case let .confirming(_, candidate, confidence):
                 confirmation(candidate, confidence: confidence)
             case let .choosing(_, reason, highlightedID):
@@ -45,19 +45,15 @@ struct DecisionRoutingCard: View {
         }
     }
 
-    private func autoSending(_ candidate: DecisionRouteCandidate, generation: UInt64) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 8) {
-                routeIcon(candidate)
-                Text(L10n.string("decisionRouting.autoSending", candidate.title))
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Brand.fg)
-                Spacer(minLength: 8)
-                cancelButton
-                    .help(L10n.string("decisionRouting.cancelSendHelp"))
-            }
-            DecisionAutoSendProgressBar(duration: DecisionRoutingPolicy.autoSendBufferSeconds)
-                .id(generation)
+    private func autoSending(_ candidate: DecisionRouteCandidate) -> some View {
+        HStack(spacing: 8) {
+            routeIcon(candidate)
+            Text(L10n.string("decisionRouting.autoSending", candidate.title))
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Brand.fg)
+            Spacer(minLength: 8)
+            cancelButton
+                .help(L10n.string("decisionRouting.cancelSendHelp"))
         }
     }
 
@@ -224,29 +220,5 @@ struct DecisionRoutingCard: View {
 
     static func confidenceText(_ value: Double) -> String {
         String(format: "%.2f", locale: AppLanguage.current.locale, value)
-    }
-}
-
-private struct DecisionAutoSendProgressBar: View {
-    let duration: Double
-    @State private var progress: CGFloat = 0
-
-    var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Brand.fg.opacity(0.08))
-                Capsule()
-                    .fill(Brand.accent)
-                    .frame(width: max(0, proxy.size.width * progress))
-            }
-        }
-        .frame(height: 2)
-        .onAppear {
-            progress = 0
-            withAnimation(.linear(duration: duration)) {
-                progress = 1
-            }
-        }
     }
 }
