@@ -631,7 +631,6 @@
 "decisionRouting.timedOut" = "Der Dienst hat nicht rechtzeitig geantwortet.";
 "decisionRouting.invalidResponse" = "Der Dienst hat eine unerwartete Antwort geliefert.";
 "decisionRouting.unsafeRedirect" = "Der Dienst hat auf eine andere Adresse umgeleitet. Aus Sicherheitsgründen wurde die Umleitung nicht befolgt.";
-"decisionRouting.revoked" = "Die Empfehlung wurde verworfen, weil sich dein Entwurf geändert hat. Text und Dateien bleiben erhalten.";
 "decisionRouting.deciding" = "Choosing where to send…";
 "decisionRouting.recommendedBadge" = "Recommended";
 "decisionRouting.confidenceBadge" = "Confidence %@";

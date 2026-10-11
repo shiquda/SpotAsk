@@ -63,14 +63,14 @@ struct ChatView: View {
             }
             .onChange(of: viewModel.input) { oldValue, newValue in
                 clearPendingExternalAskIfInputEmptied(from: oldValue, to: newValue)
-                reportRevokedDecisionRoute(routingController.noteInput(newValue))
+                restoreComposerFocusAfterRevocation(routingController.noteInput(newValue))
             }
             // A decision only covers the exact draft, attachments, preset,
             // session and route set it was made for. Any later change revokes
             // the decision even when the change is reverted afterwards.
             .onChange(of: routingController.phase.isActive || routingController.hasPendingSend ? sendContextSnapshot : nil) { _, snapshot in
                 guard let snapshot else { return }
-                reportRevokedDecisionRoute(routingController.noteSendContextChanged(snapshot))
+                restoreComposerFocusAfterRevocation(routingController.noteSendContextChanged(snapshot))
             }
             .onChange(of: routingController.pendingSend) { _, pending in
                 guard pending != nil else { return }
@@ -484,7 +484,7 @@ struct ChatView: View {
         case .none:
             return
         case let .revoked(change):
-            reportRevokedDecisionRoute(change)
+            restoreComposerFocusAfterRevocation(change)
         case let .consume(pending):
             _ = executeDecisionRoute(pending.candidate, draft: pending.snapshot.draft)
         }
@@ -493,9 +493,8 @@ struct ChatView: View {
     /// The dropped recommendation is never turned into an implicit send. The
     /// draft and attachments stay exactly as they are; the next send starts
     /// from live input instead of reusing the revoked route.
-    private func reportRevokedDecisionRoute(_ change: DecisionSnapshotChange?) {
+    private func restoreComposerFocusAfterRevocation(_ change: DecisionSnapshotChange?) {
         guard change != nil else { return }
-        StatusToastCenter.shared.show(L10n.string("decisionRouting.revoked"))
         inputFocused = true
     }
 

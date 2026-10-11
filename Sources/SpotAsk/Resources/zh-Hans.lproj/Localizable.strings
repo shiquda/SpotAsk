@@ -631,7 +631,6 @@
 "decisionRouting.timedOut" = "服务未在限定时间内返回。";
 "decisionRouting.invalidResponse" = "服务返回了无法识别的内容。";
 "decisionRouting.unsafeRedirect" = "服务跳转到了另一个地址，为安全起见没有继续跳转。";
-"decisionRouting.revoked" = "草稿已变化，这条推荐已作废。你的文字和附件都已保留。";
 "decisionRouting.deciding" = "正在选择发送去向…";
 "decisionRouting.autoSending" = "即将发送至 %@";
 "decisionRouting.cancelSendHelp" = "取消发送（Esc）";

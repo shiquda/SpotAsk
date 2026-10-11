@@ -631,7 +631,6 @@
 "decisionRouting.timedOut" = "Сервис не ответил вовремя.";
 "decisionRouting.invalidResponse" = "Сервис вернул неожиданный ответ.";
 "decisionRouting.unsafeRedirect" = "Сервис перенаправил на другой адрес. Из соображений безопасности перенаправление не выполнено.";
-"decisionRouting.revoked" = "Рекомендация отменена, потому что черновик изменился. Ваш текст и файлы сохранены.";
 "decisionRouting.deciding" = "Choosing where to send…";
 "decisionRouting.recommendedBadge" = "Recommended";
 "decisionRouting.confidenceBadge" = "Confidence %@";

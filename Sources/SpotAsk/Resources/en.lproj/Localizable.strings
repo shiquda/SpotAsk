@@ -631,7 +631,6 @@
 "decisionRouting.timedOut" = "The service did not respond in time.";
 "decisionRouting.invalidResponse" = "The service returned an unexpected reply.";
 "decisionRouting.unsafeRedirect" = "The service redirected to a different address. For safety, the redirect was not followed.";
-"decisionRouting.revoked" = "The recommendation was dropped because your draft changed. Your text and files are kept.";
 "decisionRouting.deciding" = "Choosing where to send…";
 "decisionRouting.autoSending" = "Sending to %@";
 "decisionRouting.cancelSendHelp" = "Cancel send (Esc)";

@@ -631,7 +631,6 @@
 "decisionRouting.timedOut" = "サービスが時間内に応答しませんでした。";
 "decisionRouting.invalidResponse" = "サービスが想定外の応答を返しました。";
 "decisionRouting.unsafeRedirect" = "サービスが別のアドレスへリダイレクトしました。安全のため、リダイレクトには従いませんでした。";
-"decisionRouting.revoked" = "下書きが変わったため、この提案は破棄されました。入力したテキストとファイルは保持されています。";
 "decisionRouting.deciding" = "Choosing where to send…";
 "decisionRouting.recommendedBadge" = "Recommended";
 "decisionRouting.confidenceBadge" = "Confidence %@";

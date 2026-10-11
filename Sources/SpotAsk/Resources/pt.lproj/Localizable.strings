@@ -631,7 +631,6 @@
 "decisionRouting.timedOut" = "O serviço não respondeu a tempo.";
 "decisionRouting.invalidResponse" = "O serviço retornou uma resposta inesperada.";
 "decisionRouting.unsafeRedirect" = "O serviço redirecionou para outro endereço. Por segurança, o redirecionamento não foi seguido.";
-"decisionRouting.revoked" = "A recomendação foi descartada porque o rascunho mudou. Seu texto e seus arquivos foram mantidos.";
 "decisionRouting.deciding" = "Choosing where to send…";
 "decisionRouting.recommendedBadge" = "Recommended";
 "decisionRouting.confidenceBadge" = "Confidence %@";
