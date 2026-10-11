@@ -48,7 +48,7 @@ struct ChatView: View {
         styledContent
             .onChange(of: viewModel.messages) { _, messages in
                 reconciliationCoordinator.reconcile(
-                    messages: messages,
+                    messages: messages.map(viewModel.liveMessage),
                     prefersExpanded: settings.defaultExpandReasoning
                 )
             }
@@ -249,7 +249,7 @@ struct ChatView: View {
         viewModel.prepareNewConversationAfterInactivity()
         commandCenter.setActionConsumer(handleCommandAction)
         reconciliationCoordinator.reconcile(
-            messages: viewModel.messages,
+            messages: viewModel.messages.map(viewModel.liveMessage),
             prefersExpanded: settings.defaultExpandReasoning,
             force: true
         )
