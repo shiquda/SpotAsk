@@ -7,10 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Decision routing for External Ask, inline channel confirmation, smoother long-chat reading**
+
+### Added
+
+- **Decision routing** in Settings > External Ask recommends whether a question should stay in SpotAsk or go to an enabled External Ask channel using a System One decision model (pre-filled with TypeSafe Official and `jev-1.13.0`, or any compatible service address).
+- An inline confirmation card above the composer shows the recommended destination and confidence score, with Return to send, Tab or arrow keys to switch channels, Esc to cancel, and optional auto-send above your confidence threshold.
+- Each External Ask channel can define its description, best-fit questions, and an always-confirm rule, and Settings > External Ask includes a live route test that previews the recommended channel, confidence, release mode, and evaluation latency.
+
+### Changed
+
+- Built-in External Ask channels can now be edited or deleted just like custom ones, and the channel editor uses a unified two-card layout with 20 localized icon options.
+- Enable External Ask sits in its own switch card at the top of Settings > External Ask, and the in-app destination is named **In SpotAsk** across routing settings and confirmation cards.
+
 ### Fixed
 
-- Turning thinking off for a generic OpenAI-compatible model no longer sends `reasoning_effort: none`, which New API-style gateways reject with HTTP 400. DeepSeek's off setting now also sends `reasoning_effort: off`, so thinking actually stops.
+- Expansion toggles for full questions, full answers, and thinking sections respond immediately while a response is still streaming.
 - Scrolling a long conversation no longer jumps the message on screen.
+- Turning thinking off for generic OpenAI-compatible and DeepSeek models sends gateway-compatible reasoning effort settings instead of values rejected by New API-style gateways.
 
 ## [0.2.7] - 2026-10-08
 
