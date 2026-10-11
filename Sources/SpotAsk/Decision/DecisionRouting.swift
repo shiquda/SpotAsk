@@ -60,6 +60,7 @@ enum DecisionRoutingPolicy {
     static let minimumTimeoutSeconds = 0.5
     static let maximumTimeoutSeconds = 5.0
     static let timeoutStepSeconds = 0.1
+    static let autoSendBufferSeconds = 0.8
     static let routeQuestionID = "route"
     static let routeInstructions = "Choose the single best destination for this question. Each option starts with its channel name, then any preference. If no preference is present, use the channel name. Do not invent an option."
 
@@ -91,12 +92,21 @@ enum DecisionRoutingPolicy {
     }
 
     /// A manually mounted channel is never rewritten. One candidate is not a choice.
+    /// `sessionRoutingEnabled` is the per-conversation toolbar state. Pass `true` when
+    /// that control is hidden so a stuck-off session cannot block routing.
     static func shouldConsultModel(
         routingEnabled: Bool,
         hasManualChannel: Bool,
-        candidateCount: Int
+        candidateCount: Int,
+        sessionRoutingEnabled: Bool = true
     ) -> Bool {
-        routingEnabled && !hasManualChannel && candidateCount >= 2
+        routingEnabled && sessionRoutingEnabled && !hasManualChannel && candidateCount >= 2
+    }
+
+    /// The toolbar toggle is the only way to turn a session off. Hiding it
+    /// follows global routing instead of keeping a state the user cannot see.
+    static func effectiveSessionRouting(showsToolbarToggle: Bool, sessionRoutingEnabled: Bool) -> Bool {
+        showsToolbarToggle ? sessionRoutingEnabled : true
     }
 
     static func modelName(_ model: String) -> String {

@@ -151,33 +151,112 @@ struct EmptyStateBrandMark: View { var body: some View {
 /// `surface` rounded square and darkens the glyph to `fg` (never grays it),
 /// with a 2pt accent ring standing in for `:focus-visible`. Wraps the button's
 /// label only; its behavior and accessibility stay on the caller.
-struct HeaderIconButton<Label: View>: View { let action: () -> Void
-@ViewBuilder let label: () -> Label
+struct HeaderIconButton<Label: View>: View {
+    let action: () -> Void
+    var tint: Color? = nil
+    var isEnabled: Bool = true
+    @ViewBuilder let label: () -> Label
 
-@State private var isHovering = false
-@FocusState private var isFocused: Bool
+    @State private var isHovering = false
+    @FocusState private var isFocused: Bool
 
-var body: some View {
-    Button(action: action) {
-        label()
-            .font(.system(size: 16))
-            .foregroundStyle(isHovering ? Brand.fg : Brand.muted)
-            .frame(width: 28, height: 28)
-            .background(
-                RoundedRectangle(cornerRadius: 6).fill(isHovering ? Brand.surface : Color.clear)
-            )
-            .overlay {
-                if isFocused {
-                    RoundedRectangle(cornerRadius: 6).strokeBorder(Brand.accent, lineWidth: 2)
-                }
-            }
-            .contentShape(Rectangle())
+    private var glyphColor: Color {
+        if !isEnabled { return Brand.muted.opacity(0.45) }
+        if let tint { return tint }
+        return isHovering ? Brand.fg : Brand.muted
     }
-    .buttonStyle(.plain)
-    .focused($isFocused)
-    .onHover { isHovering = $0 }
-    .animation(.easeOut(duration: 0.12), value: isHovering)
-} }
+
+    var body: some View {
+        Button(action: action) {
+            label()
+                .font(.system(size: 16))
+                .foregroundStyle(glyphColor)
+                .frame(width: 28, height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 6).fill(isHovering && isEnabled ? Brand.surface : Color.clear)
+                )
+                .overlay {
+                    if isFocused && isEnabled {
+                        RoundedRectangle(cornerRadius: 6).strokeBorder(Brand.accent, lineWidth: 2)
+                    }
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .focused($isFocused)
+        .onHover { isHovering = isEnabled && $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+    }
+}
+
+/// Matches the right-side toolbar icon set (`pin` / `pin.fill`, `gearshape`,
+/// `plus.bubble`): a 4-point AI decision star on the left branching into two
+/// route arrows on the right, outlined when off and solid-filled when on.
+struct SmartRoutingHeaderIcon: View {
+    let isOn: Bool
+
+    var body: some View {
+        Canvas { context, size in
+            let w = size.width
+            let h = size.height
+            let stroke = StrokeStyle(lineWidth: 1.55, lineCap: .round, lineJoin: .round)
+
+            let cx = w * 0.31
+            let cy = h * 0.50
+            let r = w * (isOn ? 0.24 : 0.22)
+            let k = r * 0.27
+
+            var star = Path()
+            star.move(to: CGPoint(x: cx, y: cy - r))
+            star.addQuadCurve(to: CGPoint(x: cx + r, y: cy), control: CGPoint(x: cx + k, y: cy - k))
+            star.addQuadCurve(to: CGPoint(x: cx, y: cy + r), control: CGPoint(x: cx + k, y: cy + k))
+            star.addQuadCurve(to: CGPoint(x: cx - r, y: cy), control: CGPoint(x: cx - k, y: cy + k))
+            star.addQuadCurve(to: CGPoint(x: cx, y: cy - r), control: CGPoint(x: cx - k, y: cy - k))
+            star.closeSubpath()
+
+            if isOn {
+                context.fill(star, with: .foreground)
+            } else {
+                context.stroke(star, with: .foreground, style: stroke)
+            }
+
+            let start = CGPoint(x: cx + r - 0.5, y: cy)
+            let upperEnd = CGPoint(x: w * 0.83, y: h * 0.28)
+            let lowerEnd = CGPoint(x: w * 0.83, y: h * 0.72)
+
+            var branches = Path()
+            branches.move(to: start)
+            branches.addCurve(
+                to: upperEnd,
+                control1: CGPoint(x: w * 0.62, y: cy),
+                control2: CGPoint(x: w * 0.64, y: upperEnd.y)
+            )
+            branches.move(to: start)
+            branches.addCurve(
+                to: lowerEnd,
+                control1: CGPoint(x: w * 0.62, y: cy),
+                control2: CGPoint(x: w * 0.64, y: lowerEnd.y)
+            )
+            context.stroke(branches, with: .foreground, style: stroke)
+
+            for tipY in [upperEnd.y, lowerEnd.y] {
+                let tip = CGPoint(x: w * 0.86, y: tipY)
+                var head = Path()
+                head.move(to: CGPoint(x: tip.x - 3.2, y: tip.y - 2.6))
+                head.addLine(to: tip)
+                head.addLine(to: CGPoint(x: tip.x - 3.2, y: tip.y + 2.6))
+                if isOn {
+                    head.closeSubpath()
+                    context.fill(head, with: .foreground)
+                }
+                context.stroke(head, with: .foreground, style: stroke)
+            }
+        }
+        .frame(width: 18, height: 18)
+        .accessibilityHidden(true)
+    }
+}
 
 struct ShortcutKeycap: View {
     let shortcut: InAppShortcut?

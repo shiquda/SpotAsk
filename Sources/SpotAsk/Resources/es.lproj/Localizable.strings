@@ -218,6 +218,7 @@
 "shortcut.regenerateOrRetry" = "Regenerar o reintentar";
 "shortcut.copyAnswer" = "Copiar última respuesta";
 "shortcut.toggleWindowOnTop" = "Mantener la ventana al frente";
+"shortcut.toggleSessionRouting" = "Alternar enrutado automático en este chat";
 "shortcut.showSettings" = "Abrir configuración";
 "shortcut.newConversation" = "Nueva conversación";
 "shortcut.sendOrCancel" = "Enviar o detener";
@@ -567,6 +568,10 @@
 "decisionRouting.sectionTitle" = "Decision Routing";
 "decisionRouting.enabled" = "Enable automatic routing";
 "decisionRouting.enabledDescription" = "Recommend where to send a question when no channel is selected.";
+"decisionRouting.showToolbarToggle" = "Mostrar el interruptor de enrutado en la barra";
+"decisionRouting.showToolbarToggleDescription" = "Muestra en la barra si esta pregunta se enruta automáticamente.";
+"decisionRouting.sessionToggle.on" = "Enrutado automático para esta pregunta: activado";
+"decisionRouting.sessionToggle.off" = "Enrutado automático para esta pregunta: desactivado";
 "decisionRouting.preferenceHint" = "Edita un canal de arriba y añade para qué sirve y cuándo usarlo para mayor precisión; si lo dejas en blanco, se usa el nombre del canal.";
 "decisionRouting.serviceURL" = "Service address";
 "decisionRouting.serviceNote" = "Supports TypeSafe or compatible System One services. Your key is sent only to the address above.";
@@ -618,6 +623,8 @@
 "decisionRouting.confidenceBadge" = "Confidence %@";
 "decisionRouting.applicableLabel" = "Applicable description";
 "decisionRouting.confidenceNote" = "Confidence %@";
+"decisionRouting.autoSending" = "Enviando a %@";
+"decisionRouting.cancelSendHelp" = "Cancelar envío (Esc)";
 "decisionRouting.continue" = "Continue";
 "decisionRouting.changeChannel" = "Other Channels";
 "decisionRouting.cancel" = "Cancel";

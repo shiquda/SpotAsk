@@ -218,6 +218,7 @@
 "shortcut.regenerateOrRetry" = "再生成または再試行";
 "shortcut.copyAnswer" = "最新の回答をコピー";
 "shortcut.toggleWindowOnTop" = "ウィンドウを常に前面に表示";
+"shortcut.toggleSessionRouting" = "この会話の自動ルーティングを切り替え";
 "shortcut.showSettings" = "設定を開く";
 "shortcut.newConversation" = "新しい会話";
 "shortcut.sendOrCancel" = "送信または停止";
@@ -567,6 +568,10 @@
 "decisionRouting.sectionTitle" = "Decision Routing";
 "decisionRouting.enabled" = "Enable automatic routing";
 "decisionRouting.enabledDescription" = "Recommend where to send a question when no channel is selected.";
+"decisionRouting.showToolbarToggle" = "ツールバーにルーティング切替を表示";
+"decisionRouting.showToolbarToggleDescription" = "タイトルバーに、この質問を自動で振り分けるかどうかを切り替えるボタンを表示します。";
+"decisionRouting.sessionToggle.on" = "この質問の自動ルーティング：オン";
+"decisionRouting.sessionToggle.off" = "この質問の自動ルーティング：オフ";
 "decisionRouting.preferenceHint" = "上のチャネルを編集して用途と使う場面を記入すると精度が上がります。未入力の場合はチャネル名で判定します。";
 "decisionRouting.serviceURL" = "Service address";
 "decisionRouting.serviceNote" = "Supports TypeSafe or compatible System One services. Your key is sent only to the address above.";
@@ -618,6 +623,8 @@
 "decisionRouting.confidenceBadge" = "Confidence %@";
 "decisionRouting.applicableLabel" = "Applicable description";
 "decisionRouting.confidenceNote" = "Confidence %@";
+"decisionRouting.autoSending" = "%@ に送信します";
+"decisionRouting.cancelSendHelp" = "送信をキャンセル (Esc)";
 "decisionRouting.continue" = "Continue";
 "decisionRouting.changeChannel" = "Other Channels";
 "decisionRouting.cancel" = "Cancel";

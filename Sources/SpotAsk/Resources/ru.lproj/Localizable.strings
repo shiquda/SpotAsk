@@ -218,6 +218,7 @@
 "shortcut.regenerateOrRetry" = "Перегенерировать или повторить";
 "shortcut.copyAnswer" = "Скопировать последний ответ";
 "shortcut.toggleWindowOnTop" = "Держать окно поверх остальных";
+"shortcut.toggleSessionRouting" = "Переключить автоматическую маршрутизацию для этого чата";
 "shortcut.showSettings" = "Открыть настройки";
 "shortcut.newConversation" = "Новый разговор";
 "shortcut.sendOrCancel" = "Отправить или остановить";
@@ -567,6 +568,10 @@
 "decisionRouting.sectionTitle" = "Decision Routing";
 "decisionRouting.enabled" = "Enable automatic routing";
 "decisionRouting.enabledDescription" = "Recommend where to send a question when no channel is selected.";
+"decisionRouting.showToolbarToggle" = "Показывать переключатель маршрутизации на панели";
+"decisionRouting.showToolbarToggleDescription" = "Показывает на панели, маршрутизируется ли этот вопрос автоматически.";
+"decisionRouting.sessionToggle.on" = "Автоматическая маршрутизация для этого вопроса: включена";
+"decisionRouting.sessionToggle.off" = "Автоматическая маршрутизация для этого вопроса: выключена";
 "decisionRouting.preferenceHint" = "Отредактируйте канал выше и укажите его назначение и сценарии для более точной маршрутизации; если оставить пустым, используется название канала.";
 "decisionRouting.serviceURL" = "Service address";
 "decisionRouting.serviceNote" = "Supports TypeSafe or compatible System One services. Your key is sent only to the address above.";
@@ -618,6 +623,8 @@
 "decisionRouting.confidenceBadge" = "Confidence %@";
 "decisionRouting.applicableLabel" = "Applicable description";
 "decisionRouting.confidenceNote" = "Confidence %@";
+"decisionRouting.autoSending" = "Отправка в %@";
+"decisionRouting.cancelSendHelp" = "Отменить отправку (Esc)";
 "decisionRouting.continue" = "Continue";
 "decisionRouting.changeChannel" = "Other Channels";
 "decisionRouting.cancel" = "Cancel";

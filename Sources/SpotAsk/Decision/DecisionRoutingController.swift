@@ -15,6 +15,7 @@ enum DecisionChooseReason: Equatable, Sendable {
 enum DecisionRoutingPhase: Equatable, Sendable {
     case idle
     case deciding(DecisionRoutingTicket)
+    case autoSending(DecisionRoutingTicket, DecisionRouteCandidate)
     case confirming(DecisionRoutingTicket, DecisionRouteCandidate, confidence: Double)
     case choosing(DecisionRoutingTicket, DecisionChooseReason, highlightedID: String)
 
@@ -22,7 +23,10 @@ enum DecisionRoutingPhase: Equatable, Sendable {
         switch self {
         case .idle:
             nil
-        case let .deciding(ticket), let .confirming(ticket, _, _), let .choosing(ticket, _, _):
+        case let .deciding(ticket),
+             let .autoSending(ticket, _),
+             let .confirming(ticket, _, _),
+             let .choosing(ticket, _, _):
             ticket
         }
     }
@@ -60,7 +64,8 @@ final class DecisionRoutingController {
         settings: DecisionRoutingSettings,
         apiKey: String?,
         transport: any SystemOneTransport,
-        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
+        autoSendSleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) {
         if let ticket = phase.ticket {
             invalidate(ticket.generation)
@@ -78,7 +83,8 @@ final class DecisionRoutingController {
                 settings: settings,
                 apiKey: apiKey,
                 transport: transport,
-                sleep: sleep
+                sleep: sleep,
+                autoSendSleep: autoSendSleep
             )
         }
     }
@@ -95,7 +101,8 @@ final class DecisionRoutingController {
 
     func acceptCurrent() {
         switch phase {
-        case let .confirming(ticket, candidate, _):
+        case let .autoSending(ticket, candidate),
+             let .confirming(ticket, candidate, _):
             deliver(candidate, generation: ticket.generation)
         case let .choosing(ticket, _, highlightedID):
             guard let candidate = candidates.first(where: { $0.id == highlightedID }) else { return }
@@ -136,7 +143,8 @@ final class DecisionRoutingController {
         settings: DecisionRoutingSettings,
         apiKey: String?,
         transport: any SystemOneTransport,
-        sleep: @escaping @Sendable (Duration) async throws -> Void
+        sleep: @escaping @Sendable (Duration) async throws -> Void,
+        autoSendSleep: @escaping @Sendable (Duration) async throws -> Void
     ) async {
         guard DecisionRoutingGate.shouldApply(generation: generation, phase: phase, consumed: consumed) else { return }
         let call: DecisionServiceCall
@@ -176,6 +184,18 @@ final class DecisionRoutingController {
                     confidence: answer.confidence
                 )
             case .autoSend:
+                guard DecisionRoutingGate.shouldApply(generation: generation, phase: phase, consumed: consumed) else { return }
+                let ticket = DecisionRoutingTicket(
+                    generation: generation,
+                    question: phase.ticket?.question ?? modelQuestion
+                )
+                phase = .autoSending(ticket, candidate)
+                let bufferMs = Int((DecisionRoutingPolicy.autoSendBufferSeconds * 1_000).rounded())
+                try await autoSendSleep(.milliseconds(bufferMs))
+                guard !consumed.contains(generation),
+                      !Task.isCancelled,
+                      case let .autoSending(activeTicket, _) = phase,
+                      activeTicket.generation == generation else { return }
                 deliver(candidate, generation: generation)
             }
         } catch is CancellationError {

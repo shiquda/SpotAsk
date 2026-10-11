@@ -65,6 +65,7 @@ struct DecisionRoutingTests {
 
         let settings = AppSettings(defaults: defaults)
         #expect(settings.decisionRoutingEnabled == false)
+        #expect(settings.decisionRoutingShowsToolbarToggle == true)
         #expect(settings.decisionRoutingProvider == .systemOne)
         #expect(settings.decisionRoutingServiceURL == "https://api.typesafe.ai")
         #expect(settings.decisionRoutingModel == "jev-1.13.0")
@@ -140,6 +141,14 @@ struct DecisionRoutingTests {
         #expect(!DecisionRoutingPolicy.shouldConsultModel(routingEnabled: true, hasManualChannel: true, candidateCount: 2))
         #expect(!DecisionRoutingPolicy.shouldConsultModel(routingEnabled: true, hasManualChannel: false, candidateCount: 1))
         #expect(DecisionRoutingPolicy.shouldConsultModel(routingEnabled: true, hasManualChannel: false, candidateCount: 2))
+        #expect(!DecisionRoutingPolicy.shouldConsultModel(
+            routingEnabled: true,
+            hasManualChannel: false,
+            candidateCount: 2,
+            sessionRoutingEnabled: false
+        ))
+        #expect(!DecisionRoutingPolicy.effectiveSessionRouting(showsToolbarToggle: true, sessionRoutingEnabled: false))
+        #expect(DecisionRoutingPolicy.effectiveSessionRouting(showsToolbarToggle: false, sessionRoutingEnabled: false))
     }
 
     @Test("Endpoint URL normalizes roots, /v1, and full /v1/systemone paths")
@@ -444,5 +453,83 @@ struct DecisionRoutingTests {
         #expect(controller.phase.highlightedID == candidates[1].id)
         controller.acceptCurrent()
         #expect(controller.pendingExecution == candidates[1])
+    }
+
+    @Test("Auto-send enters the 0.8s buffer and supports Return immediate send or Esc/edit cancel")
+    func autoSendBufferAllowsReturnOrCancel() async {
+        let candidates = Self.candidates()
+        let target = candidates[1]
+        let transport = ScriptedTransport { request in
+            Self.okResponse(choice: target.id, confidence: 0.95, url: request.url!)
+        }
+        var settings = DecisionRoutingSettings.disabled
+        settings.isEnabled = true
+        settings.confirmationMode = .threshold
+        settings.confidenceThreshold = 0.8
+
+        let controller = DecisionRoutingController()
+        controller.start(
+            snapshotQuestion: "deploy check",
+            modelQuestion: "deploy check",
+            candidates: candidates,
+            settings: settings,
+            apiKey: "test-token",
+            transport: transport,
+            sleep: { _ in try await Task.sleep(for: .seconds(60)) },
+            autoSendSleep: { _ in try await Task.sleep(for: .seconds(60)) }
+        )
+        for _ in 0..<50 where controller.phase == .deciding(DecisionRoutingTicket(generation: 1, question: "deploy check")) {
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(controller.phase == .autoSending(
+            DecisionRoutingTicket(generation: 1, question: "deploy check"),
+            target
+        ))
+        #expect(controller.pendingExecution == nil)
+
+        // Return during buffer sends immediately.
+        controller.acceptCurrent()
+        #expect(controller.pendingExecution == target)
+        #expect(controller.phase == .idle)
+        controller.clearPendingExecution()
+
+        // Editing during buffer cancels and never sends.
+        controller.start(
+            snapshotQuestion: "second check",
+            modelQuestion: "second check",
+            candidates: candidates,
+            settings: settings,
+            apiKey: "test-token",
+            transport: transport,
+            sleep: { _ in try await Task.sleep(for: .seconds(60)) },
+            autoSendSleep: { _ in try await Task.sleep(for: .seconds(60)) }
+        )
+        for _ in 0..<50 where controller.phase == .deciding(DecisionRoutingTicket(generation: 2, question: "second check")) {
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(controller.phase == .autoSending(
+            DecisionRoutingTicket(generation: 2, question: "second check"),
+            target
+        ))
+        controller.noteInput("second check edited")
+        #expect(controller.phase == .idle)
+        #expect(controller.pendingExecution == nil)
+
+        // Buffer expiry delivers automatically when uninterrupted.
+        controller.start(
+            snapshotQuestion: "third check",
+            modelQuestion: "third check",
+            candidates: candidates,
+            settings: settings,
+            apiKey: "test-token",
+            transport: transport,
+            sleep: { _ in try await Task.sleep(for: .seconds(60)) },
+            autoSendSleep: { _ in }
+        )
+        for _ in 0..<50 where controller.pendingExecution == nil {
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(controller.pendingExecution == target)
+        #expect(controller.phase == .idle)
     }
 }
