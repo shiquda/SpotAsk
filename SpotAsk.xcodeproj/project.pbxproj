@@ -30,6 +30,11 @@
 		BAB11B847CB8759B26387593 /* ExternalAskSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2930F9FD44A7A72B77CDEB54 /* ExternalAskSettingsPage.swift */; };
 		3FC6126F1DE94BF2D7037BB1 /* QuickActionBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B79536A0F468BAD4288F38F /* QuickActionBuilder.swift */; };
 		98A8F92204242C8C229BC165 /* QuickActionTrigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B89D7EC18F63E0A6BA78C27E /* QuickActionTrigger.swift */; };
+		D3C151000000000000000001 /* DecisionRouting.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3C151000000000000000011 /* DecisionRouting.swift */; };
+		D3C151000000000000000002 /* DecisionRoutingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3C151000000000000000012 /* DecisionRoutingController.swift */; };
+		D3C151000000000000000003 /* SystemOneClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3C151000000000000000013 /* SystemOneClient.swift */; };
+		D3C151000000000000000004 /* DecisionRoutingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3C151000000000000000014 /* DecisionRoutingCard.swift */; };
+		D3C151000000000000000005 /* DecisionRoutingSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3C151000000000000000015 /* DecisionRoutingSettingsSection.swift */; };
 		001000000000000000000015 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000015 /* SettingsView.swift */; };
 		001000000000000000000092 /* SettingsDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000092 /* SettingsDeepLink.swift */; };
 		001000000000000000000093 /* DocumentationLinks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000093 /* DocumentationLinks.swift */; };
@@ -133,6 +138,11 @@
 		2930F9FD44A7A72B77CDEB54 /* ExternalAskSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/ExternalAskSettingsPage.swift; sourceTree = SOURCE_ROOT; };
 		8B79536A0F468BAD4288F38F /* QuickActionBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Utilities/QuickActionBuilder.swift; sourceTree = SOURCE_ROOT; };
 		B89D7EC18F63E0A6BA78C27E /* QuickActionTrigger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/QuickActionTrigger.swift; sourceTree = SOURCE_ROOT; };
+		D3C151000000000000000011 /* DecisionRouting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Decision/DecisionRouting.swift; sourceTree = SOURCE_ROOT; };
+		D3C151000000000000000012 /* DecisionRoutingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Decision/DecisionRoutingController.swift; sourceTree = SOURCE_ROOT; };
+		D3C151000000000000000013 /* SystemOneClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Decision/SystemOneClient.swift; sourceTree = SOURCE_ROOT; };
+		D3C151000000000000000014 /* DecisionRoutingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/DecisionRoutingCard.swift; sourceTree = SOURCE_ROOT; };
+		D3C151000000000000000015 /* DecisionRoutingSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/DecisionRoutingSettingsSection.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000015 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/SettingsView.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000092 /* SettingsDeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/SettingsDeepLink.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000093 /* DocumentationLinks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/DocumentationLinks.swift; sourceTree = SOURCE_ROOT; };
@@ -275,6 +285,11 @@
 				B89D7EC18F63E0A6BA78C27E /* QuickActionTrigger.swift */,
 				8B79536A0F468BAD4288F38F /* QuickActionBuilder.swift */,
 				2930F9FD44A7A72B77CDEB54 /* ExternalAskSettingsPage.swift */,
+				D3C151000000000000000011 /* DecisionRouting.swift */,
+				D3C151000000000000000012 /* DecisionRoutingController.swift */,
+				D3C151000000000000000013 /* SystemOneClient.swift */,
+				D3C151000000000000000014 /* DecisionRoutingCard.swift */,
+				D3C151000000000000000015 /* DecisionRoutingSettingsSection.swift */,
 				95A0EAD8C46CC382DB50D83A /* QuickAction.swift */,
 				00200000000000000000003B /* ConfigBackup.swift */,
 				002000000000000000000038 /* InAppShortcut.swift */,
@@ -524,6 +539,7 @@
 				001000000000000000000058,
 				001000000000000000000057,
 				001000000000000000000097, 001000000000000000000098, 001000000000000000000099, 00100000000000000000009A, 00100000000000000000009B, 00100000000000000000009C, 00100000000000000000009D, 00100000000000000000009E, 00100000000000000000009F, 0010000000000000000000A0,
+				D3C151000000000000000001, D3C151000000000000000002, D3C151000000000000000003, D3C151000000000000000004, D3C151000000000000000005,
 		);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

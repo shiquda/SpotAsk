@@ -15,13 +15,12 @@ struct ExternalAskSettingsPage: View {
             SettingsPageHeader(section: .externalAsk, settings: settings)
             SettingsCallout(L10n.string("settings.externalAskDescription"))
 
+            externalAskToggle
+
             SettingsGroup(
                 title: L10n.string("settings.externalAsk"),
                 documentation: DocumentationLinks.url(for: .externalAsk, language: settings.language)
             ) {
-                Toggle(L10n.string("settings.externalAskEnabled"), isOn: $settings.externalAskEnabled)
-
-                DecisionRoutingSettingsSection(settings: settings, keyStore: keyStore)
                 HStack {
                     Text(L10n.string("settings.promptCatalogDescription"))
                         .font(.caption)
@@ -59,6 +58,8 @@ struct ExternalAskSettingsPage: View {
                     }
                 }
             }
+
+            DecisionRoutingSettingsSection(settings: settings, keyStore: keyStore)
         }
         .sheet(item: $editorAction) { action in
             QuickActionEditor(action: action) { savedAction in
@@ -114,6 +115,17 @@ struct ExternalAskSettingsPage: View {
 
     private func moveAction(id: UUID, by offset: Int) {
         settings.moveQuickAction(id: id, by: offset)
+    }
+
+    /// Own switch card, not a checkbox inside the channel catalog.
+    private var externalAskToggle: some View {
+        SettingsToggleRow(
+            label: L10n.string("settings.externalAskEnabled"),
+            isOn: $settings.externalAskEnabled
+        )
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 

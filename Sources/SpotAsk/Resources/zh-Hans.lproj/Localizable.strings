@@ -564,9 +564,9 @@
 "decisionRouting.timeout" = "超时上限";
 "decisionRouting.timeoutAction" = "超时处理";
 "decisionRouting.timeoutManualAction" = "由我手动选择渠道";
-"decisionRouting.timeoutInAppAction" = "直接进入应用内对话";
-"decisionRouting.inAppTitle" = "应用内对话";
-"decisionRouting.inAppDescription" = "应用内对话适用说明";
+"decisionRouting.timeoutInAppAction" = "直接在 SpotAsk 内回答";
+"decisionRouting.inAppTitle" = "在SpotAsk内";
+"decisionRouting.inAppDescription" = "在 SpotAsk 内的适用说明";
 "decisionRouting.defaultInApp" = "适合简短问答、翻译、润色与概念解释，直接在 SpotAsk 小窗内流式作答。";
 "decisionRouting.defaultChatGPT" = "网页版 ChatGPT，适合在浏览器中进行开放式推理、头脑风暴或长文写作。";
 "decisionRouting.defaultGrok" = "网页版 Grok，适合时事话题、社区讨论与快速检索。";
@@ -604,4 +604,4 @@
 "decisionRouting.chooseHint" = "点击目标渠道立即发送，或按 Return 发送高亮项。";
 "decisionRouting.timeoutManual" = "决策已超时，请选择该问题的发送去向。";
 "decisionRouting.enterTarget" = "Return";
-"decisionRouting.attachmentsStayInApp" = "包含附件的问题将保持在应用内对话发送。";
+"decisionRouting.attachmentsStayInApp" = "包含附件的问题将在 SpotAsk 内发送。";

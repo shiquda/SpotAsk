@@ -564,9 +564,9 @@
 "decisionRouting.timeout" = "Timeout";
 "decisionRouting.timeoutAction" = "When timed out";
 "decisionRouting.timeoutManualAction" = "Let me choose a channel";
-"decisionRouting.timeoutInAppAction" = "Send to in-app chat";
-"decisionRouting.inAppTitle" = "In-App Chat";
-"decisionRouting.inAppDescription" = "In-app chat description";
+"decisionRouting.timeoutInAppAction" = "Answer in SpotAsk";
+"decisionRouting.inAppTitle" = "In SpotAsk";
+"decisionRouting.inAppDescription" = "In SpotAsk description";
 "decisionRouting.defaultInApp" = "Quick answers, translation, polishing, and short explanations directly inside SpotAsk.";
 "decisionRouting.defaultChatGPT" = "Web ChatGPT for open-ended reasoning, brainstorming, or multi-step writing in the browser.";
 "decisionRouting.defaultGrok" = "Web Grok for current topics, social discussions, and quick web exploration.";
@@ -604,4 +604,4 @@
 "decisionRouting.chooseHint" = "Click a destination, or press Return for the highlighted option.";
 "decisionRouting.timeoutManual" = "Decision timed out. Choose where to send this question.";
 "decisionRouting.enterTarget" = "Return";
-"decisionRouting.attachmentsStayInApp" = "Questions with attachments stay in in-app chat.";
+"decisionRouting.attachmentsStayInApp" = "Questions with attachments stay in SpotAsk.";
