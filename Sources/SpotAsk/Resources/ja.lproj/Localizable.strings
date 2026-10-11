@@ -621,9 +621,9 @@
 "decisionRouting.continue" = "Continue";
 "decisionRouting.changeChannel" = "Other Channels";
 "decisionRouting.cancel" = "Cancel";
-"decisionRouting.confirmHint" = "Press Return to continue, or Esc to cancel.";
+"decisionRouting.confirmHint" = "Press Return to continue, Tab for other channels, or Esc to cancel.";
 "decisionRouting.chooseTitle" = "Choose where to send";
-"decisionRouting.chooseHint" = "Click a destination to send, or press Return for the highlighted option.";
+"decisionRouting.chooseHint" = "Click a destination to send. Tab moves the highlight; Return sends it.";
 "decisionRouting.timeoutManual" = "Timed out. Choose where to send this question.";
 "decisionRouting.enterTarget" = "↩";
 "decisionRouting.attachmentsStayInApp" = "Questions with attachments stay in SpotAsk.";

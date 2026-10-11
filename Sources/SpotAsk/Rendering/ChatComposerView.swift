@@ -31,6 +31,7 @@ struct ChatComposerView: View {
     let onAtCommandStateChanged: (AtCommandState?) -> Void
     let onAtCommandMoveHighlight: (Int) -> Void
     let onAtCommandConfirm: () -> Void
+    var onTab: (Bool) -> Bool = { _ in false }
     let onPrimaryAction: () -> Void
     var routingPhase: DecisionRoutingPhase = .idle
     var routingCandidates: [DecisionRouteCandidate] = []
@@ -102,7 +103,8 @@ struct ChatComposerView: View {
                         onAtCommandStateChanged: onAtCommandStateChanged,
                         isAtPalettePresented: isAtPalettePresented,
                         onAtCommandMoveHighlight: onAtCommandMoveHighlight,
-                        onAtCommandConfirm: onAtCommandConfirm
+                        onAtCommandConfirm: onAtCommandConfirm,
+                        onTab: onTab
                     )
                     .frame(height: inputHeight)
                     .animation(.easeOut(duration: 0.12), value: inputHeight)

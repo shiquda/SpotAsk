@@ -227,6 +227,7 @@ struct ChatView: View {
             onAtCommandStateChanged: handleAtCommandStateChanged,
             onAtCommandMoveHighlight: moveAtCommandHighlight,
             onAtCommandConfirm: confirmAtCommandSelection,
+            onTab: handleComposerTab,
             onPrimaryAction: primaryAction,
             routingPhase: routingController.phase,
             routingCandidates: routingController.candidates,
@@ -743,6 +744,35 @@ struct ChatView: View {
         }
         return false
     }
+
+    private var isRouteConfirmationPresented: Bool {
+        if case .confirming = routingController.phase { return true }
+        return false
+    }
+
+    private func handleComposerTab(shift: Bool) -> Bool {
+        switch composerTabAction(
+            hasMarkedText: false,
+            shift: shift,
+            hasOtherModifiers: false,
+            isRouteConfirmationPresented: isRouteConfirmationPresented,
+            isRouteChoosing: isRoutingChoosing,
+            isAtPalettePresented: atCommandState != nil
+        ) {
+        case .passThrough:
+            return false
+        case .changeRouteChannel:
+            routingController.showManualChoice()
+            return true
+        case .moveRouteSelection(let delta):
+            routingController.moveSelection(delta)
+            return true
+        case .confirmPaletteSelection:
+            confirmAtCommandSelection()
+            return true
+        }
+    }
+
 
     private func moveAtCommandHighlight(_ delta: Int) {
         if case .choosing = routingController.phase {

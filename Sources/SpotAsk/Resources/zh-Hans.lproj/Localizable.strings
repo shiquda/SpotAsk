@@ -621,9 +621,9 @@
 "decisionRouting.continue" = "继续发送";
 "decisionRouting.changeChannel" = "换个渠道";
 "decisionRouting.cancel" = "取消";
-"decisionRouting.confirmHint" = "按 Return 继续发送，按 Esc 取消。";
+"decisionRouting.confirmHint" = "按 Return 继续发送，按 Tab 换个渠道，按 Esc 取消。";
 "decisionRouting.chooseTitle" = "选择发送去向";
-"decisionRouting.chooseHint" = "点击渠道立即发送，或按 Return 发送选中项。";
+"decisionRouting.chooseHint" = "点击渠道立即发送。按 Tab 切换选中项，按 Return 发送。";
 "decisionRouting.timeoutManual" = "判断超时，请选择发送去向。";
 "decisionRouting.enterTarget" = "↩";
 "decisionRouting.attachmentsStayInApp" = "包含附件的问题将在 SpotAsk 内发送。";

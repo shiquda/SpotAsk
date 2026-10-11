@@ -88,6 +88,9 @@ struct DecisionRoutingCard: View {
                         Image(systemName: "arrow.left.arrow.right")
                             .font(.system(size: 10, weight: .semibold))
                         Text(L10n.string("decisionRouting.changeChannel"))
+                        Text("Tab")
+                            .font(.system(size: 10, weight: .medium, design: .monospaced))
+                            .foregroundStyle(Brand.muted)
                     }
                 }
                 .buttonStyle(.bordered)
