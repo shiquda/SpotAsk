@@ -5,7 +5,7 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  原生 macOS 菜单栏 AI 助手与分流工具：一个快捷键随时呼出，问完再决定交给谁。
+  原生 macOS 菜单栏 AI 助手与分流工具：一个快捷键随时呼出，去处自己挑——也可以交给决策模型替你决定。
 </p>
 
 <p align="center">
@@ -21,6 +21,10 @@
 ## 核心特性
 
 - **全局快捷呼出，即问即走** — 随时按 `⌥ + Space`（可自定义）唤出专注小窗；直连你的模型密钥（BYOK）流式作答，按 `Esc` 立即退出，不打断手头节奏。
+- **决策模型自动路由 — 让模型替你选去处** — 开启外部提问后打开自动路由，一个 System One 决策模型（默认预填 TypeSafe 官方地址与 `jev-1.13.0`，也可换成兼容服务）会先读一遍问题，给出推荐去处与置信度：
+  - **在 SpotAsk 内、网页端 AI 或本地 CLI Agent** — 输入框上方的卡片会写明推荐去向与理由；按 `↩` 直接继续，按 `Tab` 或方向键换渠道，按 `Esc` 取消并保留问题。
+  - **先确认，或自动放行** — 可以让每次路由都先确认，也可以设定置信度阈值：高于阈值直接放行，应用内作答立即响应，外部渠道会先用 0.8 秒说明即将发往何处。
+  - **路由说明与设置页试问** — 给每个渠道填上 **用途** 与 **适用场景**，再在设置 > 外部提问里跑一次 **测试问句**，即可预览推荐去向、置信度与放行方式，不会真的发出。
 - **多向一键分流 (External Ask)** — 写完问题直接派发至外部目的地，不消耗 API 额度，不残留多余历史：
   - **网页端 AI**：直接唤起 ChatGPT、Perplexity、Grok 等展开深度搜索。
   - **终端 CLI Agent**：一键在 macOS 终端中唤醒本地命令行 Agent（如 omp）。
@@ -57,6 +61,13 @@ SpotAsk 围绕 **“先提问再分流（Ask first. Decide where it goes after.�
   </tr>
 </table>
 
+### 3. 决策模型自动选路
+
+开启自动路由后，SpotAsk 会先问一次 System One 决策模型，给出推荐去处与置信度。按 `↩` 继续、按 `Tab` 换渠道、按 `Esc` 取消；标题栏开关（`⌘ + ⇧ + R`）可临时关掉本次对话的自动路由。
+<p align="center">
+  <img src="docs/site/public/images/spotask-decision-routing-zh.png" width="720" alt="SpotAsk 推荐卡片写明去处与置信度，右侧是决策模型在「在 SpotAsk 内 / Web Chat / Local Agent」之间做选择">
+</p>
+
 ## 下载安装
 
 通过 Homebrew 安装：
@@ -86,6 +97,7 @@ brew install --cask shiquda/spotask/spotask
 | 划词操作栏 | `⌥ + ⇧ + Space` | 选中文字后呼出浮动操作条 |
 | 退出窗口 / 停止生成 | `Esc` | 一键关闭，不留多余打扰 |
 | 开始新对话 | `⌘ + N` | 清空当前对话流 |
+| 切换本次对话自动路由 | `⌘ + ⇧ + R` | 仅在开启自动路由且显示标题栏开关时可用 |
 | 打开设置 | `⌘ + ,` | 配置模型、外观与快捷键 |
 
 > 更多快捷键与详细配置请查看[设置与快捷键参考](https://shiquda.github.io/SpotAsk/zh-CN/reference)。
