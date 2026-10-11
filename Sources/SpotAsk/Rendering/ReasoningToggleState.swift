@@ -28,12 +28,12 @@ struct ReasoningToggleState: Equatable {
         let snapshot = Snapshot(message: message)
         defer { previousSnapshot = snapshot }
 
+        guard !isPinned else { return }
+
         guard previousSnapshot != nil else {
             isExpanded = snapshot.isStreaming && snapshot.hasReasoning && !snapshot.hasAnswer && prefersExpanded
             return
         }
-
-        guard !isPinned else { return }
 
         // Reaching any terminal state closes only automatic reasoning; a
         // manual pin survives because collapsing it during a state transition
