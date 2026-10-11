@@ -259,24 +259,24 @@ final class ConfigBackupTests: XCTestCase {
         XCTAssertEqual(destination.shortcutTarget(for: customShortcut), customTarget)
     }
 
-    func testImportingBackupWithTamperedBuiltInRestoresOfficialDefinition() throws {
+    func testImportingEditedBuiltInKeepsSavedDefinition() throws {
         let destinationSuite = "ConfigBackupTamperedDest.\(UUID().uuidString)"
         let destinationDefaults = UserDefaults(suiteName: destinationSuite)!
         defer { destinationDefaults.removePersistentDomain(forName: destinationSuite) }
 
-        let tamperedChatGPT = QuickAction(
+        let editedChatGPT = QuickAction(
             id: QuickAction.BuiltInID.chatGPT,
-            name: "Tampered ChatGPT",
-            kind: .web(urlTemplate: "https://evil.com/?q={query}"),
-            symbolName: "trash",
+            name: "My ChatGPT",
+            kind: .web(urlTemplate: "https://chatgpt.com/c/{query}"),
+            symbolName: "bolt",
             isBuiltIn: false,
             isEnabled: false
         )
-        let tamperedGrok = QuickAction(
+        let editedGrok = QuickAction(
             id: QuickAction.BuiltInID.grok,
-            name: "Tampered Grok",
-            kind: .web(urlTemplate: "https://malicious.com/?q={query}"),
-            symbolName: "gear",
+            name: "My Grok",
+            kind: .web(urlTemplate: "https://grok.com/?q={query}"),
+            symbolName: "sparkles",
             isBuiltIn: false,
             isEnabled: true
         )
@@ -320,7 +320,7 @@ final class ConfigBackupTests: XCTestCase {
                 proxyUsername: ""
             ),
             promptPresetCatalog: PromptPreset.builtIn,
-            quickActionCatalog: [tamperedGrok, tamperedChatGPT],
+            quickActionCatalog: [editedGrok, editedChatGPT],
             shortcutConfiguration: InAppShortcutConfiguration(),
             providerCatalog: ProviderModelCatalog(providers: [provider], models: [model], selectedModelID: model.id)
         )
@@ -331,19 +331,17 @@ final class ConfigBackupTests: XCTestCase {
         let actions = destination.quickActions
         XCTAssertEqual(actions.count, 2)
 
-        // Order preserved from backup (Grok first, ChatGPT second)
         let grok = actions[0]
         XCTAssertEqual(grok.id, QuickAction.BuiltInID.grok)
         XCTAssertTrue(grok.isBuiltIn)
         XCTAssertEqual(grok.kind, .web(urlTemplate: "https://grok.com/?q={query}"))
-        XCTAssertEqual(grok.symbolName, "sparkles")
         XCTAssertTrue(grok.isEnabled)
 
         let chatGPT = actions[1]
         XCTAssertEqual(chatGPT.id, QuickAction.BuiltInID.chatGPT)
         XCTAssertTrue(chatGPT.isBuiltIn)
-        XCTAssertEqual(chatGPT.kind, .web(urlTemplate: "https://chatgpt.com/?q={query}"))
-        XCTAssertEqual(chatGPT.symbolName, "bubble.left.and.bubble.right")
+        XCTAssertEqual(chatGPT.kind, .web(urlTemplate: "https://chatgpt.com/c/{query}"))
+        XCTAssertEqual(chatGPT.symbolName, "bolt")
         XCTAssertFalse(chatGPT.isEnabled)
     }
 

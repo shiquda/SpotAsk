@@ -154,46 +154,96 @@ struct QuickActionCatalogTests {
         #expect(customItems.first?.kind == .web(urlTemplate: "https://first.com/?q={query}"))
     }
 
-    @Test("Tampered built-in restores definition while preserving isEnabled and order")
-    func tamperedBuiltInRestoresDefinitionPreservingEnabledAndOrder() throws {
+    @Test("Saved built-in edits persist, including a changed link")
+    func savedBuiltInEditsPersistAcrossReload() throws {
         let suiteName = "QuickActionCatalogTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
-        // Grok first (disabled), ChatGPT second (enabled) - both with tampered templates
+        let settings = AppSettings(defaults: defaults)
+        var chatGPT = settings.quickActions.first { $0.id == QuickAction.BuiltInID.chatGPT }!
+        chatGPT.name = "My ChatGPT"
+        chatGPT.kind = .web(urlTemplate: "https://chatgpt.com/c/{query}")
+        chatGPT.symbolName = "bolt"
+        chatGPT.routingPurpose = "Browser drafts"
+        #expect(settings.saveQuickAction(chatGPT))
+
+        let reloaded = AppSettings(defaults: defaults)
+        let saved = reloaded.quickActions.first { $0.id == QuickAction.BuiltInID.chatGPT }
+        #expect(saved?.isBuiltIn == true)
+        #expect(saved?.displayName == "My ChatGPT")
+        #expect(saved?.kind == .web(urlTemplate: "https://chatgpt.com/c/{query}"))
+        #expect(saved?.symbolName == "bolt")
+        #expect(saved?.routingPurpose == "Browser drafts")
+    }
+
+    @Test("Deleted built-ins stay deleted while a missing new built-in still appears")
+    func deletedBuiltInStaysGoneAndUntombstonedBuiltInReturns() throws {
+        let suiteName = "QuickActionCatalogTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let settings = AppSettings(defaults: defaults)
+        settings.deleteQuickAction(id: QuickAction.BuiltInID.chatGPT)
+        #expect(settings.quickActions.contains { $0.id == QuickAction.BuiltInID.chatGPT } == false)
+
+        let encoded = try JSONDecoder().decode([QuickAction].self, from: defaults.data(forKey: "webQuickAskProviderCatalog")!)
+        let withoutGrok = encoded.filter { $0.id != QuickAction.BuiltInID.grok }
+        defaults.set(try JSONEncoder().encode(withoutGrok), forKey: "webQuickAskProviderCatalog")
+
+        let reloaded = AppSettings(defaults: defaults)
+        #expect(reloaded.quickActions.contains { $0.id == QuickAction.BuiltInID.chatGPT } == false)
+        #expect(reloaded.quickActions.contains { $0.id == QuickAction.BuiltInID.grok })
+    }
+
+    @Test("Invalid built-in template falls back to the official link")
+    func invalidBuiltInTemplateFallsBackToOfficialLink() throws {
+        let suiteName = "QuickActionCatalogTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
         let tamperedData: [[String: Any]] = [
             [
                 "id": QuickAction.BuiltInID.grok.uuidString,
                 "name": "Hacked Grok",
-                "urlTemplate": "https://evil.com/?q={query}",
-                "symbolName": "trash",
+                "urlTemplate": "not a link",
+                "symbolName": "not.a.symbol",
                 "isBuiltIn": true,
                 "isEnabled": false
             ],
             [
                 "id": QuickAction.BuiltInID.chatGPT.uuidString,
                 "name": "Hacked ChatGPT",
-                "urlTemplate": "https://evil.com/?q={query}",
+                "urlTemplate": "https://chatgpt.com/?q={query}",
                 "symbolName": "trash",
-                "isBuiltIn": true,
+                "isBuiltIn": false,
                 "isEnabled": true
             ]
         ]
-        let encoded = try JSONSerialization.data(withJSONObject: tamperedData)
-        defaults.set(encoded, forKey: "webQuickAskProviderCatalog")
+        defaults.set(try JSONSerialization.data(withJSONObject: tamperedData), forKey: "webQuickAskProviderCatalog")
 
         let settings = AppSettings(defaults: defaults)
-        let actions = settings.quickActions
+        let grok = settings.quickActions[0]
+        #expect(grok.id == QuickAction.BuiltInID.grok)
+        #expect(grok.isEnabled == false)
+        #expect(grok.kind == .web(urlTemplate: "https://grok.com/?q={query}"))
+        #expect(grok.symbolName == "globe")
+        #expect(grok.displayName == L10n.string("externalAsk.askGrok"))
 
-        #expect(actions.count == 2)
-        #expect(actions[0].id == QuickAction.BuiltInID.grok)
-        #expect(actions[0].isEnabled == false)
-        #expect(actions[0].kind == .web(urlTemplate: "https://grok.com/?q={query}"))
-        #expect(actions[0].symbolName == "sparkles")
+        let chatGPT = settings.quickActions[1]
+        #expect(chatGPT.isBuiltIn)
+        #expect(chatGPT.isEnabled)
+        #expect(chatGPT.symbolName == "trash")
+        #expect(chatGPT.displayName == L10n.string("externalAsk.askChatGPT"))
+    }
 
-        #expect(actions[1].id == QuickAction.BuiltInID.chatGPT)
-        #expect(actions[1].isEnabled == true)
-        #expect(actions[1].kind == .web(urlTemplate: "https://chatgpt.com/?q={query}"))
-        #expect(actions[1].symbolName == "bubble.left.and.bubble.right")
+    @Test("All available picker symbols are valid SF Symbols and have localized labels")
+    func availableSymbolsAreValidAndLocalized() {
+        #expect(QuickAction.availableSymbols.count == 20)
+        for symbol in QuickAction.availableSymbols {
+            #expect(QuickAction.isValidSymbol(symbol))
+            let label = QuickAction.localizedSymbolLabel(for: symbol)
+            #expect(!label.isEmpty)
+        }
     }
 }

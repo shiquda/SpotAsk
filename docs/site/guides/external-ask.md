@@ -52,9 +52,20 @@ omp {query}
 3. Enter a **Name**, choose an **Action Type**, and fill in the link or command with `{query}` where the question goes.
 4. Save it. A matching brand icon is picked automatically when one is available.
 
-Entries can be reordered, disabled, edited, or deleted from the same settings page. Disabled entries keep their place but no longer appear in the question window.
+Entries can be reordered, disabled, edited, or deleted from the same settings page. Built-in entries use the same edit and delete controls as ones you add. Deleting one asks for confirmation and cannot be undone. Disabled entries keep their place but no longer appear in the question window.
 
 <SpotAskSettingsLink section="external-ask" />
+
+
+## Decision routing
+
+When you want SpotAsk to recommend a destination before sending, turn on **Enable automatic routing** in the **Decision Routing** section after the External Ask catalog.
+
+- **System One / Jev protocol**: One service address and model, prefilled with TypeSafe Official (`https://api.typesafe.ai`, model `jev-1.13.0`). Change the address to use another compatible System One service. The access key is sent only to that address. Decision routing evaluates candidate destinations; it does not replace your generative chat providers. Other decision APIs are not connected yet.
+- **Channel descriptions**: Edit any entry to set its link or command, what it does, when it fits, and whether it must always be confirmed. If you leave the preference blank, routing still sends the channel name to the decision model.
+- **Confirmation & confidence**: The default mode confirms every routed send on an inline card above the composer (`↩` to continue, `Tab` for other channels, `Esc` to cancel and keep the question). In the channel list, Tab moves the highlight and Return sends it. In threshold mode, only scores strictly above your threshold auto-send; confidence reflects option certainty, not accuracy.
+- **Timeout & manual priority**: The default timeout is 2 seconds. You can set it from 0.5 to 5 seconds in 0.1-second steps. Timeout falls back to manual channel selection (or In SpotAsk if configured). Manually selecting an External Ask target or attaching files always bypasses the decision model.
+- **Test question**: Preview the recommended destination, confidence, and release rule directly in Settings without opening any external app or browser tab.
 
 ## Shortcuts
 
@@ -70,6 +81,6 @@ External Ask entries are included in configuration backups, and restoring an old
 
 **Why are Claude and Gemini not built in?** Only services that reliably open and answer a question from a link are built in. Claude opens with the question filled in but waits for you to send it; Gemini does not accept a question in its link at all. You can still add Claude as a custom entry and press send yourself.
 
-**What happens to my question?** External Ask sends the question only to the destination you pick; SpotAsk does not send it anywhere else and does not keep it.
+**What happens to my question?** External Ask sends the question only to the destination you pick. When optional decision routing is enabled and no target is manually selected, the question and candidate descriptions are also sent to your configured System One endpoint to choose a destination.
 
 Related: [Prompts](/guides/prompts), [Privacy & Local Data](/privacy), [Settings & Shortcuts Reference](/reference)

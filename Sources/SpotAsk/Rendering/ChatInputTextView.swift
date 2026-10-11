@@ -28,6 +28,8 @@ struct ChatInputTextView: NSViewRepresentable {
     let isAtPalettePresented: Bool
     let onAtCommandMoveHighlight: (Int) -> Void
     let onAtCommandConfirm: () -> Void
+    /// Shift is true for Shift-Tab. Return true when the key was consumed.
+    let onTab: (Bool) -> Bool
 
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
@@ -48,6 +50,7 @@ struct ChatInputTextView: NSViewRepresentable {
         }
         textView.onAtCommandMoveHighlight = onAtCommandMoveHighlight
         textView.onAtCommandConfirm = onAtCommandConfirm
+        textView.onTab = onTab
         textView.onPasteImage = { [weak coordinator = context.coordinator] data in
             MainActor.assumeIsolated {
                 coordinator?.pasteImage(data)
@@ -117,6 +120,7 @@ struct ChatInputTextView: NSViewRepresentable {
         }
         textView.onAtCommandMoveHighlight = onAtCommandMoveHighlight
         textView.onAtCommandConfirm = onAtCommandConfirm
+        textView.onTab = onTab
         textView.onPasteImage = { [weak coordinator = context.coordinator] data in
             MainActor.assumeIsolated {
                 coordinator?.pasteImage(data)
@@ -311,6 +315,7 @@ private final class ComposerTextView: NSTextView {
     var isAtPalettePresented: () -> Bool = { false }
     var onAtCommandMoveHighlight: ((Int) -> Void)?
     var onAtCommandConfirm: (() -> Void)?
+    var onTab: ((Bool) -> Bool)?
 
     override func layout() {
         super.layout()
@@ -344,6 +349,14 @@ private final class ComposerTextView: NSTextView {
         let isReturn = event.keyCode == 36 || event.keyCode == 76
         let paletteActive = !hasMarkedText() && isAtPalettePresented()
 
+        if event.keyCode == 48, !hasMarkedText() {
+            let tabModifiers = modifiers.intersection([.shift, .control, .option, .command])
+            if tabModifiers.intersection([.control, .option, .command]).isEmpty,
+               onTab?(tabModifiers.contains(.shift)) == true {
+                return
+            }
+        }
+
         if paletteActive {
             let arrowModifiers = modifiers.intersection([.shift, .control, .option, .command])
             if event.keyCode == 126, arrowModifiers.isEmpty {
@@ -355,10 +368,6 @@ private final class ComposerTextView: NSTextView {
                 return
             }
             if isReturn, !modifiers.contains(.shift) {
-                onAtCommandConfirm?()
-                return
-            }
-            if event.keyCode == 48, arrowModifiers.isEmpty {
                 onAtCommandConfirm?()
                 return
             }

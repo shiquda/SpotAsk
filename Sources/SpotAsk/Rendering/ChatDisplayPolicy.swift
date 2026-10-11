@@ -279,6 +279,41 @@ func chatEscapeAction(
     return .dismissWindow
 }
 
+enum ComposerTabAction: Equatable {
+    case passThrough
+    case changeRouteChannel
+    case moveRouteSelection(Int)
+    case confirmPaletteSelection
+}
+
+/// Tab is the composer's alternate to Return. The @ palette already selects with
+/// it; the routing card uses the same key for other channels so the input stays
+/// focused. A second Tab must not send: once the list is open it only moves the
+/// highlight. Shift-Tab moves backward in that list. Marked text and Command /
+/// Option / Control keep the text view's own Tab behavior.
+func composerTabAction(
+    hasMarkedText: Bool,
+    shift: Bool,
+    hasOtherModifiers: Bool,
+    isRouteConfirmationPresented: Bool,
+    isRouteChoosing: Bool,
+    isAtPalettePresented: Bool
+) -> ComposerTabAction {
+    if hasMarkedText || hasOtherModifiers {
+        return .passThrough
+    }
+    if isRouteConfirmationPresented, !shift {
+        return .changeRouteChannel
+    }
+    if isRouteChoosing {
+        return .moveRouteSelection(shift ? -1 : 1)
+    }
+    if isAtPalettePresented, !shift {
+        return .confirmPaletteSelection
+    }
+    return .passThrough
+}
+
 /// Shared bounded preview scan used by the user and assistant display policies.
 enum LongTextDisplayPolicy {
     static func collapsedPreview(

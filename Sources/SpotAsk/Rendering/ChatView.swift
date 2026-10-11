@@ -5,9 +5,9 @@ import UniformTypeIdentifiers
 struct ChatView: View {
     @Bindable var viewModel: ChatViewModel
     let settings: AppSettings
+    let decisionKeyStore: any APIKeyStoring
     let onDismiss: () -> Void
     let commandCenter: SpotAskCommandCenter
-
     @FocusState private var inputFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var scrollFollowState = ScrollFollowState()
@@ -27,17 +27,19 @@ struct ChatView: View {
     @State private var atCommandSuppressed = false
     @State private var atCommandHighlightedIndex = 0
     @State private var composerModeCoordinator = ComposerModeCoordinator()
-
+    @State private var routingController = DecisionRoutingController()
     @State private var isPanelVisible = true
 
     init(
         viewModel: ChatViewModel,
         settings: AppSettings,
+        decisionKeyStore: any APIKeyStoring = UnavailableAPIKeyStore(),
         onDismiss: @escaping () -> Void = { NSApp.keyWindow?.orderOut(nil) },
         commandCenter: SpotAskCommandCenter = .shared
     ) {
         self.viewModel = viewModel
         self.settings = settings
+        self.decisionKeyStore = decisionKeyStore
         self.onDismiss = onDismiss
         self.commandCenter = commandCenter
     }
@@ -61,6 +63,12 @@ struct ChatView: View {
             }
             .onChange(of: viewModel.input) { oldValue, newValue in
                 clearPendingExternalAskIfInputEmptied(from: oldValue, to: newValue)
+                routingController.noteInput(newValue)
+            }
+            .onChange(of: routingController.pendingExecution) { _, candidate in
+                guard let candidate else { return }
+                routingController.clearPendingExecution()
+                _ = executeDecisionRoute(candidate)
             }
     }
 
@@ -207,7 +215,7 @@ struct ChatView: View {
             inputFocused: $inputFocused,
             inputHeight: $inputHeight,
             isPresetPopoverPresented: $isPresetPopoverPresented,
-            isAtPalettePresented: atCommandState != nil,
+            isAtPalettePresented: atCommandState != nil || isRoutingChoosing,
             composerTextView: composerTextView,
             shortcutHint: shortcutHint(for:),
             onApplyPreset: { applyPreset($0) },
@@ -219,7 +227,17 @@ struct ChatView: View {
             onAtCommandStateChanged: handleAtCommandStateChanged,
             onAtCommandMoveHighlight: moveAtCommandHighlight,
             onAtCommandConfirm: confirmAtCommandSelection,
-            onPrimaryAction: primaryAction
+            onTab: handleComposerTab,
+            onPrimaryAction: primaryAction,
+            routingPhase: routingController.phase,
+            routingCandidates: routingController.candidates,
+            onAcceptRoute: { routingController.acceptCurrent() },
+            onChangeRoute: { routingController.showManualChoice() },
+            onSelectRoute: { routingController.select($0) },
+            onCancelRoute: {
+                routingController.cancel()
+                inputFocused = true
+            }
         )
     }
 
@@ -318,6 +336,18 @@ struct ChatView: View {
 
     @discardableResult
     private func sendFromComposer() -> Bool {
+        if routingController.phase.isActive {
+            return handleActiveDecisionRouteSend()
+        }
+        if composerModeCoordinator.pendingExternalAsk == nil,
+           settings.decisionRoutingEnabled {
+            return sendWithDecisionRouting()
+        }
+        return performStandardOrManualSend()
+    }
+
+    @discardableResult
+    private func performStandardOrManualSend() -> Bool {
         let outcome = composerModeCoordinator.handleSend(
             input: &viewModel.input,
             resolve: resolveEnabledQuickAction
@@ -356,6 +386,84 @@ struct ChatView: View {
         return handled
     }
 
+    private func handleActiveDecisionRouteSend() -> Bool {
+        switch routingController.phase {
+        case .idle:
+            return false
+        case .deciding:
+            return true
+        case .confirming, .choosing:
+            routingController.acceptCurrent()
+            return true
+        }
+    }
+
+    private func sendWithDecisionRouting() -> Bool {
+        guard viewModel.canSend else { return false }
+        if !viewModel.pendingAttachments.isEmpty {
+            StatusToastCenter.shared.show(L10n.string("decisionRouting.attachmentsStayInApp"))
+            return performStandardOrManualSend()
+        }
+        let snapshot = viewModel.input
+        let question = snapshot.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !question.isEmpty else { return false }
+        let candidates = settings.decisionRoutingCandidates()
+        guard DecisionRoutingPolicy.shouldConsultModel(
+            routingEnabled: settings.decisionRoutingEnabled,
+            hasManualChannel: composerModeCoordinator.pendingExternalAsk != nil,
+            candidateCount: candidates.count
+        ) else {
+            return performStandardOrManualSend()
+        }
+        let apiKey = DecisionCredentialSlot.activeAPIKey(
+            systemOne: try? decisionKeyStore.readAPIKey(for: DecisionCredentialSlot.systemOne),
+            legacyCustom: try? decisionKeyStore.readAPIKey(for: DecisionCredentialSlot.legacyCustom),
+            preferLegacyCustom: settings.defaults.bool(forKey: DecisionCredentialSlot.preferLegacyCustomKey)
+        )
+        let proxy = ChatNetworking.proxyConfiguration(settings: settings, keyStore: decisionKeyStore)
+        routingController.start(
+            snapshotQuestion: snapshot,
+            modelQuestion: question,
+            candidates: candidates,
+            settings: settings.decisionRoutingSettings(),
+            apiKey: apiKey,
+            transport: URLSessionSystemOneTransport(
+                session: ChatNetworking.urlSession(proxyConfiguration: proxy)
+            )
+        )
+        return true
+    }
+
+    @discardableResult
+    private func executeDecisionRoute(_ candidate: DecisionRouteCandidate) -> Bool {
+        if candidate.isInApp {
+            return performStandardOrManualSend()
+        }
+        let question = viewModel.input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !question.isEmpty,
+              let actionID = candidate.externalActionID,
+              let action = resolveEnabledQuickAction(actionID) else {
+            StatusToastCenter.shared.show(L10n.string("decisionRouting.unavailable"), isError: true)
+            inputFocused = true
+            return false
+        }
+        guard QuickActionLaunch.perform(action, query: question) else {
+            StatusToastCenter.shared.show(
+                L10n.string("atCommand.launchFailed", action.displayName),
+                isError: true
+            )
+            inputFocused = true
+            return false
+        }
+        clearAtCommandTokenState()
+        if let textView = composerTextView.textView, !textView.string.isEmpty {
+            textView.string = ""
+        }
+        viewModel.input = ""
+        inputFocused = true
+        dismiss()
+        return true
+    }
     private func installShortcutDispatcher() {
         guard shortcutDispatcher == nil else { return }
         let dispatcher = InAppShortcutDispatcher(
@@ -630,13 +738,57 @@ struct ChatView: View {
         atCommandState = nil
     }
 
+    private var isRoutingChoosing: Bool {
+        if case .choosing = routingController.phase {
+            return true
+        }
+        return false
+    }
+
+    private var isRouteConfirmationPresented: Bool {
+        if case .confirming = routingController.phase { return true }
+        return false
+    }
+
+    private func handleComposerTab(shift: Bool) -> Bool {
+        switch composerTabAction(
+            hasMarkedText: false,
+            shift: shift,
+            hasOtherModifiers: false,
+            isRouteConfirmationPresented: isRouteConfirmationPresented,
+            isRouteChoosing: isRoutingChoosing,
+            isAtPalettePresented: atCommandState != nil
+        ) {
+        case .passThrough:
+            return false
+        case .changeRouteChannel:
+            routingController.showManualChoice()
+            return true
+        case .moveRouteSelection(let delta):
+            routingController.moveSelection(delta)
+            return true
+        case .confirmPaletteSelection:
+            confirmAtCommandSelection()
+            return true
+        }
+    }
+
+
     private func moveAtCommandHighlight(_ delta: Int) {
+        if case .choosing = routingController.phase {
+            routingController.moveSelection(delta)
+            return
+        }
         let count = atCommandRows.count
         guard count > 0 else { return }
         atCommandHighlightedIndex = ((atCommandHighlightedIndex + delta) % count + count) % count
     }
 
     private func confirmAtCommandSelection() {
+        if case .choosing = routingController.phase {
+            routingController.acceptCurrent()
+            return
+        }
         let rows = atCommandRows
         guard rows.indices.contains(atCommandHighlightedIndex) else { return }
         switch rows[atCommandHighlightedIndex] {
@@ -678,6 +830,7 @@ struct ChatView: View {
 
     @discardableResult
     private func applyAtCommandActionOutcome(_ outcome: AtCommandSelection.Outcome) -> Bool {
+        routingController.cancel()
         let handled: Bool
         switch outcome {
         case .rejected, .appliedPreset:
@@ -758,6 +911,7 @@ struct ChatView: View {
     }
 
     private func selectExternalAsk(_ action: QuickAction) {
+        routingController.cancel()
         let becamePending = composerModeCoordinator.toggleExternalAsk(
             action,
             selectedPreset: &viewModel.selectedPromptPreset
@@ -803,6 +957,11 @@ struct ChatView: View {
             return
         case .cancelGeneration, .startNewConversation, .dismissWindow:
             break
+        }
+        if routingController.phase.isActive {
+            routingController.cancel()
+            inputFocused = true
+            return
         }
         if composerModeCoordinator.pendingExternalAsk != nil {
             composerModeCoordinator.pendingExternalAsk = nil

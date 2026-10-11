@@ -404,6 +404,98 @@ final class AppSettingsTests: XCTestCase {
         )
     }
 
+    func testComposerTabOpensChannelListWithoutSending() {
+        XCTAssertEqual(
+            composerTabAction(
+                hasMarkedText: false,
+                shift: false,
+                hasOtherModifiers: false,
+                isRouteConfirmationPresented: true,
+                isRouteChoosing: false,
+                isAtPalettePresented: true
+            ),
+            .changeRouteChannel
+        )
+        XCTAssertEqual(
+            composerTabAction(
+                hasMarkedText: false,
+                shift: true,
+                hasOtherModifiers: false,
+                isRouteConfirmationPresented: true,
+                isRouteChoosing: false,
+                isAtPalettePresented: false
+            ),
+            .passThrough
+        )
+        XCTAssertEqual(
+            composerTabAction(
+                hasMarkedText: false,
+                shift: false,
+                hasOtherModifiers: false,
+                isRouteConfirmationPresented: false,
+                isRouteChoosing: true,
+                isAtPalettePresented: false
+            ),
+            .moveRouteSelection(1)
+        )
+        XCTAssertEqual(
+            composerTabAction(
+                hasMarkedText: false,
+                shift: true,
+                hasOtherModifiers: false,
+                isRouteConfirmationPresented: false,
+                isRouteChoosing: true,
+                isAtPalettePresented: true
+            ),
+            .moveRouteSelection(-1)
+        )
+        XCTAssertEqual(
+            composerTabAction(
+                hasMarkedText: false,
+                shift: false,
+                hasOtherModifiers: false,
+                isRouteConfirmationPresented: false,
+                isRouteChoosing: false,
+                isAtPalettePresented: true
+            ),
+            .confirmPaletteSelection
+        )
+        XCTAssertEqual(
+            composerTabAction(
+                hasMarkedText: true,
+                shift: false,
+                hasOtherModifiers: false,
+                isRouteConfirmationPresented: true,
+                isRouteChoosing: false,
+                isAtPalettePresented: false
+            ),
+            .passThrough
+        )
+        XCTAssertEqual(
+            composerTabAction(
+                hasMarkedText: false,
+                shift: false,
+                hasOtherModifiers: true,
+                isRouteConfirmationPresented: true,
+                isRouteChoosing: true,
+                isAtPalettePresented: true
+            ),
+            .passThrough
+        )
+        XCTAssertEqual(
+            composerTabAction(
+                hasMarkedText: false,
+                shift: false,
+                hasOtherModifiers: false,
+                isRouteConfirmationPresented: false,
+                isRouteChoosing: false,
+                isAtPalettePresented: false
+            ),
+            .passThrough
+        )
+    }
+
+
     func testResponderMarkedTextGuardRecognizesAndReleasesComposition() {
         let textView = NSTextView()
         textView.setMarkedText(

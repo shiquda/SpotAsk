@@ -381,6 +381,7 @@ final class AppSettings {
         static let updateDownloadSource = "updateDownloadSource"
         static let quickActionCatalog = "webQuickAskProviderCatalog"
         static let externalAskEnabled = "webQuickAskEnabled"
+        static let removedBuiltInQuickActionIDs = "removedBuiltInQuickActionIDs"
     }
 
     let defaults: UserDefaults
@@ -546,6 +547,8 @@ final class AppSettings {
         }
     }
 
+    private var removedBuiltInQuickActionIDs: Set<UUID>
+
     var quickActions: [QuickAction] {
         quickActionCatalog
     }
@@ -556,11 +559,83 @@ final class AppSettings {
     var externalAskEnabled: Bool = true {
         didSet { saveSetting("webQuickAskEnabled") }
     }
+    /// Off by default so an ordinary send stays a manual send.
+    var decisionRoutingEnabled: Bool = false {
+        didSet { saveSetting("decisionRoutingEnabled") }
+    }
+
+    var decisionRoutingProvider: DecisionProviderKind = .systemOne {
+        didSet { saveSetting("decisionRoutingProvider") }
+    }
+
+    var decisionRoutingServiceURL: String = DecisionRoutingPolicy.defaultServiceURL {
+        didSet { saveSetting("decisionRoutingServiceURL") }
+    }
+
+    var decisionRoutingModel: String = DecisionRoutingPolicy.defaultOfficialModel {
+        didSet { saveSetting("decisionRoutingModel") }
+    }
+
+    var decisionRoutingConfirmationMode: DecisionConfirmationMode = .always {
+        didSet { saveSetting("decisionRoutingConfirmationMode") }
+    }
+
+    var decisionRoutingConfidenceThreshold: Double = DecisionRoutingPolicy.defaultThreshold {
+        didSet {
+            let clamped = DecisionRoutingPolicy.normalizedThreshold(decisionRoutingConfidenceThreshold)
+            if clamped != decisionRoutingConfidenceThreshold {
+                decisionRoutingConfidenceThreshold = clamped
+                return
+            }
+            saveSetting("decisionRoutingConfidenceThreshold")
+        }
+    }
+
+    var decisionRoutingTimeoutSeconds: Double = DecisionRoutingPolicy.defaultTimeoutSeconds {
+        didSet {
+            let clamped = DecisionRoutingPolicy.normalizedTimeout(decisionRoutingTimeoutSeconds)
+            if clamped != decisionRoutingTimeoutSeconds {
+                decisionRoutingTimeoutSeconds = clamped
+                return
+            }
+            saveSetting("decisionRoutingTimeoutSeconds")
+        }
+    }
+
+    var decisionRoutingTimeoutAction: DecisionTimeoutAction = .manualSelection {
+        didSet { saveSetting("decisionRoutingTimeoutAction") }
+    }
+
+    var decisionRoutingInAppDescription: String = "" {
+        didSet { saveSetting("decisionRoutingInAppDescription") }
+    }
+
 
     var enabledQuickActions: [QuickAction] {
         guard externalAskEnabled else { return [] }
         return quickActionCatalog.filter(\.isEnabled)
     }
+    func decisionRoutingSettings() -> DecisionRoutingSettings {
+        DecisionRoutingSettings(
+            isEnabled: decisionRoutingEnabled,
+            provider: decisionRoutingProvider,
+            serviceURL: decisionRoutingServiceURL,
+            model: decisionRoutingModel,
+            confirmationMode: decisionRoutingConfirmationMode,
+            confidenceThreshold: decisionRoutingConfidenceThreshold,
+            timeoutSeconds: decisionRoutingTimeoutSeconds,
+            timeoutAction: decisionRoutingTimeoutAction,
+            inAppDescription: decisionRoutingInAppDescription
+        )
+    }
+
+    func decisionRoutingCandidates() -> [DecisionRouteCandidate] {
+        DecisionRouteCatalog.candidates(
+            actions: enabledQuickActions,
+            inAppDescription: decisionRoutingInAppDescription
+        )
+    }
+
 
     var customQuickActions: [QuickAction] {
         quickActionCatalog.filter { !$0.isBuiltIn }
@@ -576,6 +651,7 @@ final class AppSettings {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         promptPresetCatalog = Self.loadPromptPresetCatalog(from: defaults)
+        removedBuiltInQuickActionIDs = Self.loadRemovedBuiltInQuickActionIDs(from: defaults)
         quickActionCatalog = Self.loadQuickActionCatalog(from: defaults)
         inAppShortcutConfiguration = Self.loadInAppShortcutConfiguration(from: defaults)
         providerRegistryStorage = ProviderModelRegistry(
@@ -591,11 +667,35 @@ final class AppSettings {
         for descriptor in SettingRegistry.shared.descriptors {
             descriptor.load(into: self, from: defaults)
         }
+        let shouldSaveMigratedDecisionService = migrateDecisionServiceIfNeeded()
         savePromptPresetCatalog()
         saveQuickActionCatalog()
         saveCustomPromptPresets()
         cleanUpShortcutAssignments()
         isInitializing = false
+        if shouldSaveMigratedDecisionService {
+            saveSetting("decisionRoutingServiceURL")
+            saveSetting("decisionRoutingModel")
+        }
+    }
+
+    private func migrateDecisionServiceIfNeeded() -> Bool {
+        guard defaults.object(forKey: "decisionRoutingServiceURL") == nil else { return false }
+        let migrated = DecisionRoutingMigration.serviceFields(
+            hasStoredServiceURL: false,
+            storedServiceURL: "",
+            storedModel: "",
+            legacyEndpoint: defaults.string(forKey: "decisionRoutingEndpoint"),
+            legacyOfficialModel: defaults.string(forKey: "decisionRoutingOfficialModel"),
+            legacyCustomURL: defaults.string(forKey: "decisionRoutingCustomBaseURL"),
+            legacyCustomModel: defaults.string(forKey: "decisionRoutingCustomModel")
+        )
+        decisionRoutingServiceURL = migrated.serviceURL
+        decisionRoutingModel = migrated.model
+        if migrated.preferLegacyCustomCredential {
+            defaults.set(true, forKey: DecisionCredentialSlot.preferLegacyCustomKey)
+        }
+        return true
     }
 
     /// Missing key keeps the historical hot-key preset. Empty data is an
@@ -668,43 +768,78 @@ final class AppSettings {
     }
 
     @discardableResult
-    func saveCustomQuickAction(_ action: QuickAction) -> Bool {
-        guard !action.isBuiltIn else { return false }
-        let builtInIDs = Set(QuickAction.builtIn.map(\.id))
-        guard !builtInIDs.contains(action.id) else { return false }
-
+    func saveQuickAction(_ action: QuickAction) -> Bool {
         let name = action.name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return false }
         guard QuickActionBuilder.validate(kind: action.kind).isValid else { return false }
 
+        let isKnownBuiltIn = QuickAction.builtIn.contains { $0.id == action.id }
         let symbolName = QuickAction.isValidSymbol(action.symbolName) ? action.symbolName : QuickAction.defaultSymbolName
-        let isEnabled = quickActionCatalog.first(where: { $0.id == action.id })?.isEnabled ?? action.isEnabled
-
+        let existing = quickActionCatalog.first { $0.id == action.id }
+        let hasCustomDisplayName = isKnownBuiltIn
+            && QuickAction.localizedTitle(for: action.id) != name
         let savedAction = QuickAction(
             id: action.id,
             name: name,
             kind: action.kind,
             symbolName: symbolName,
-            isBuiltIn: false,
-            isEnabled: isEnabled
+            isBuiltIn: isKnownBuiltIn,
+            isEnabled: existing?.isEnabled ?? action.isEnabled,
+            routingPurpose: action.routingPurpose,
+            routingScenario: action.routingScenario,
+            requiresConfirmationOnAutoRoute: action.requiresConfirmationOnAutoRoute,
+            hasCustomDisplayName: hasCustomDisplayName
         )
 
-        if let index = quickActionCatalog.firstIndex(where: { $0.id == action.id && !$0.isBuiltIn }) {
+        if let index = quickActionCatalog.firstIndex(where: { $0.id == action.id }) {
             quickActionCatalog[index] = savedAction
+        } else if isKnownBuiltIn {
+            return false
         } else {
             quickActionCatalog.append(savedAction)
+        }
+        if isKnownBuiltIn {
+            removedBuiltInQuickActionIDs.remove(action.id)
+            saveRemovedBuiltInQuickActionIDs()
         }
         return true
     }
 
+    @discardableResult
+    func saveCustomQuickAction(_ action: QuickAction) -> Bool {
+        guard !action.isBuiltIn else { return false }
+        guard !QuickAction.builtIn.contains(where: { $0.id == action.id }) else { return false }
+        return saveQuickAction(action)
+    }
+
+    func deleteQuickAction(id: UUID) {
+        if QuickAction.builtIn.contains(where: { $0.id == id }) {
+            removedBuiltInQuickActionIDs.insert(id)
+            saveRemovedBuiltInQuickActionIDs()
+        }
+        quickActionCatalog.removeAll { $0.id == id }
+    }
+
     func deleteCustomQuickAction(id: UUID) {
-        quickActionCatalog.removeAll { $0.id == id && !$0.isBuiltIn }
+        deleteQuickAction(id: id)
     }
 
     func setQuickActionEnabled(id: UUID, isEnabled: Bool) {
         guard let index = quickActionCatalog.firstIndex(where: { $0.id == id }) else { return }
         quickActionCatalog[index].isEnabled = isEnabled
     }
+    func updateQuickActionRouting(
+        id: UUID,
+        purpose: String,
+        scenario: String,
+        requiresConfirmation: Bool
+    ) {
+        guard let index = quickActionCatalog.firstIndex(where: { $0.id == id }) else { return }
+        quickActionCatalog[index].routingPurpose = purpose.trimmingCharacters(in: .whitespacesAndNewlines)
+        quickActionCatalog[index].routingScenario = scenario.trimmingCharacters(in: .whitespacesAndNewlines)
+        quickActionCatalog[index].requiresConfirmationOnAutoRoute = requiresConfirmation
+    }
+
 
     @discardableResult
     func moveQuickAction(id: UUID, by offset: Int) -> Bool {
@@ -810,6 +945,9 @@ final class AppSettings {
             general: general,
             promptPresetCatalog: promptPresetCatalog,
             quickActionCatalog: quickActionCatalog,
+            removedBuiltInQuickActionIDs: removedBuiltInQuickActionIDs.isEmpty
+                ? nil
+                : removedBuiltInQuickActionIDs.sorted { $0.uuidString < $1.uuidString },
             shortcutConfiguration: inAppShortcutConfiguration,
             providerCatalog: providerCatalog
         )
@@ -826,6 +964,11 @@ final class AppSettings {
             if let proxyPassword = try keyStore.readAPIKey(for: ProxyCredentialSlot.providerID),
                !proxyPassword.isEmpty {
                 apiKeys[ProxyCredentialSlot.providerID.uuidString] = proxyPassword
+            }
+            for slot in DecisionCredentialSlot.all {
+                if let key = try keyStore.readAPIKey(for: slot), !key.isEmpty {
+                    apiKeys[slot.uuidString] = key
+                }
             }
             backup.apiKeys = apiKeys
         }
@@ -853,7 +996,10 @@ final class AppSettings {
             }
             promptPresetCatalog = Self.normalizedPromptPresetCatalog(backup.promptPresetCatalog)
             if let quickActionCatalog = backup.quickActionCatalog {
-                self.quickActionCatalog = Self.normalizedQuickActionCatalog(quickActionCatalog)
+                replaceQuickActionCatalog(
+                    quickActionCatalog,
+                    removedBuiltInQuickActionIDs: backup.removedBuiltInQuickActionIDs
+                )
             }
             inAppShortcutConfiguration = backup.shortcutConfiguration
             saveInAppShortcutConfiguration()
@@ -864,7 +1010,9 @@ final class AppSettings {
                 let providerIDs = Set(providerRegistry.catalog?.providers.map(\.id) ?? [])
                 for (rawID, key) in apiKeys {
                     guard let providerID = UUID(uuidString: rawID),
-                          providerID == ProxyCredentialSlot.providerID || providerIDs.contains(providerID) else { continue }
+                          providerID == ProxyCredentialSlot.providerID
+                            || providerIDs.contains(providerID)
+                            || DecisionCredentialSlot.all.contains(providerID) else { continue }
                     if !touchedKeySlots.keys.contains(providerID) {
                         let original = try keyStore.readAPIKey(for: providerID)
                         touchedKeySlots[providerID] = original
@@ -900,7 +1048,10 @@ final class AppSettings {
         }
         promptPresetCatalog = Self.normalizedPromptPresetCatalog(snapshot.promptPresetCatalog)
         if let quickActionCatalog = snapshot.quickActionCatalog {
-            self.quickActionCatalog = Self.normalizedQuickActionCatalog(quickActionCatalog)
+            replaceQuickActionCatalog(
+                quickActionCatalog,
+                removedBuiltInQuickActionIDs: snapshot.removedBuiltInQuickActionIDs
+            )
         }
         inAppShortcutConfiguration = snapshot.shortcutConfiguration
         saveInAppShortcutConfiguration()
@@ -1047,16 +1198,38 @@ final class AppSettings {
         defaults.set(data, forKey: Key.quickActionCatalog)
     }
 
+    private func saveRemovedBuiltInQuickActionIDs() {
+        let values = removedBuiltInQuickActionIDs.map(\.uuidString).sorted()
+        defaults.set(values, forKey: Key.removedBuiltInQuickActionIDs)
+    }
+
+    private static func loadRemovedBuiltInQuickActionIDs(from defaults: UserDefaults) -> Set<UUID> {
+        let raw = defaults.stringArray(forKey: Key.removedBuiltInQuickActionIDs) ?? []
+        return Set(raw.compactMap(UUID.init(uuidString:)))
+    }
+
     private static func loadQuickActionCatalog(from defaults: UserDefaults) -> [QuickAction] {
+        let removed = loadRemovedBuiltInQuickActionIDs(from: defaults)
         guard let data = defaults.data(forKey: Key.quickActionCatalog),
               let catalog = try? JSONDecoder().decode([QuickAction].self, from: data) else {
-            return normalizedQuickActionCatalog(QuickAction.builtIn)
+            return normalizedQuickActionCatalog(QuickAction.builtIn, removedBuiltInIDs: removed)
         }
-        return normalizedQuickActionCatalog(catalog)
+        return normalizedQuickActionCatalog(catalog, removedBuiltInIDs: removed)
+    }
+
+    private func replaceQuickActionCatalog(
+        _ catalog: [QuickAction],
+        removedBuiltInQuickActionIDs removed: [UUID]?
+    ) {
+        let removedIDs = Set(removed ?? [])
+        removedBuiltInQuickActionIDs = removedIDs
+        saveRemovedBuiltInQuickActionIDs()
+        quickActionCatalog = Self.normalizedQuickActionCatalog(catalog, removedBuiltInIDs: removedIDs)
     }
 
     private static func normalizedQuickActionCatalog(
-        _ catalog: [QuickAction]
+        _ catalog: [QuickAction],
+        removedBuiltInIDs: Set<UUID> = []
     ) -> [QuickAction] {
         let builtIns = Dictionary(uniqueKeysWithValues: QuickAction.builtIn.map { ($0.id, $0) })
         var seenIDs = Set<UUID>()
@@ -1064,13 +1237,19 @@ final class AppSettings {
 
         for action in catalog where seenIDs.insert(action.id).inserted {
             if let builtIn = builtIns[action.id] {
+                let kind = QuickActionBuilder.validate(kind: action.kind).isValid ? action.kind : builtIn.kind
+                let symbol = QuickAction.isValidSymbol(action.symbolName) ? action.symbolName : builtIn.symbolName
                 normalized.append(QuickAction(
                     id: builtIn.id,
-                    name: builtIn.name,
-                    kind: builtIn.kind,
-                    symbolName: builtIn.symbolName,
+                    name: action.name,
+                    kind: kind,
+                    symbolName: symbol,
                     isBuiltIn: true,
-                    isEnabled: action.isEnabled
+                    isEnabled: action.isEnabled,
+                    routingPurpose: action.routingPurpose,
+                    routingScenario: action.routingScenario,
+                    requiresConfirmationOnAutoRoute: action.requiresConfirmationOnAutoRoute,
+                    hasCustomDisplayName: action.hasCustomDisplayName
                 ))
             } else if !action.isBuiltIn {
                 let symbol = QuickAction.isValidSymbol(action.symbolName)
@@ -1082,12 +1261,15 @@ final class AppSettings {
                     kind: action.kind,
                     symbolName: symbol,
                     isBuiltIn: false,
-                    isEnabled: action.isEnabled
+                    isEnabled: action.isEnabled,
+                    routingPurpose: action.routingPurpose,
+                    routingScenario: action.routingScenario,
+                    requiresConfirmationOnAutoRoute: action.requiresConfirmationOnAutoRoute
                 ))
             }
         }
 
-        for builtIn in QuickAction.builtIn where seenIDs.insert(builtIn.id).inserted {
+        for builtIn in QuickAction.builtIn where !removedBuiltInIDs.contains(builtIn.id) && seenIDs.insert(builtIn.id).inserted {
             normalized.append(builtIn)
         }
         return normalized

@@ -724,6 +724,53 @@ final class SettingRegistry: Sendable {
             defaultValue: true,
             keyPath: \.externalAskEnabled
         ))
+        register(SettingDescriptors.bool(
+            key: "decisionRoutingEnabled",
+            defaultValue: false,
+            keyPath: \.decisionRoutingEnabled
+        ))
+        register(SettingDescriptors.rawRepresentable(
+            key: "decisionRoutingProvider",
+            defaultValue: DecisionProviderKind.systemOne,
+            keyPath: \.decisionRoutingProvider
+        ))
+        register(SettingDescriptors.string(
+            key: "decisionRoutingServiceURL",
+            defaultValue: DecisionRoutingPolicy.defaultServiceURL,
+            keyPath: \.decisionRoutingServiceURL
+        ))
+        register(SettingDescriptors.string(
+            key: "decisionRoutingModel",
+            defaultValue: DecisionRoutingPolicy.defaultOfficialModel,
+            keyPath: \.decisionRoutingModel
+        ))
+        register(SettingDescriptors.rawRepresentable(
+            key: "decisionRoutingConfirmationMode",
+            defaultValue: DecisionConfirmationMode.always,
+            keyPath: \.decisionRoutingConfirmationMode
+        ))
+        register(SettingDescriptors.double(
+            key: "decisionRoutingConfidenceThreshold",
+            defaultValue: DecisionRoutingPolicy.defaultThreshold,
+            keyPath: \.decisionRoutingConfidenceThreshold,
+            normalize: DecisionRoutingPolicy.normalizedThreshold
+        ))
+        register(SettingDescriptors.double(
+            key: "decisionRoutingTimeoutSeconds",
+            defaultValue: DecisionRoutingPolicy.defaultTimeoutSeconds,
+            keyPath: \.decisionRoutingTimeoutSeconds,
+            normalize: DecisionRoutingPolicy.normalizedTimeout
+        ))
+        register(SettingDescriptors.rawRepresentable(
+            key: "decisionRoutingTimeoutAction",
+            defaultValue: DecisionTimeoutAction.manualSelection,
+            keyPath: \.decisionRoutingTimeoutAction
+        ))
+        register(SettingDescriptors.string(
+            key: "decisionRoutingInAppDescription",
+            defaultValue: "",
+            keyPath: \.decisionRoutingInAppDescription
+        ))
 
         // Legacy provider keys (managed via ProviderModelRegistry)
         register(SettingDescriptors.string(

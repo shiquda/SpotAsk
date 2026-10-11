@@ -165,6 +165,7 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
             ChatView(
                 viewModel: self.chatViewModel,
                 settings: self.settings,
+                decisionKeyStore: self.keyStore,
                 onDismiss: { SpotAskCommandCenter.shared.close() }
             )
         }
