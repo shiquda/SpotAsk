@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Turning thinking off for a generic OpenAI-compatible model no longer sends `reasoning_effort: none`, which New API-style gateways reject with HTTP 400. DeepSeek's off setting now also sends `reasoning_effort: off`, so thinking actually stops.
+
 ## [0.2.7] - 2026-10-08
 
 **Gemini services, pre-filled official addresses, smoother model discovery**

@@ -240,6 +240,49 @@ final class OpenAICompatibleProviderTests: XCTestCase {
         XCTAssertEqual(json["reasoning_effort"] as? String, "high")
     }
 
+    func testDisabledAndMinimalThinkingPayloadsMatchProfile() async throws {
+        let cases: [(RequestCompatibilityProfile, ModelThinkingMode, String, [String: String]?)] = [
+            (.genericOpenAI, .disabled, "off", nil),
+            (.genericOpenAI, .minimal, "low", nil),
+            (.openAI, .disabled, "none", nil),
+            (.openAI, .minimal, "minimal", nil),
+            (.deepSeek, .disabled, "off", ["type": "disabled"]),
+            (.deepSeek, .minimal, "low", ["type": "enabled"]),
+        ]
+
+        for (profile, mode, effort, thinking) in cases {
+            var capturedRequest: URLRequest?
+            StubURLProtocol.handler = { request in
+                capturedRequest = request
+                let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                return (response, Data(#"{"choices":[{"message":{"content":"ok"}}]}"#.utf8))
+            }
+            let provider = OpenAICompatibleProvider(
+                configuration: .init(
+                    endpoint: URL(string: "https://example.com/v1/chat/completions")!,
+                    apiKey: "key",
+                    model: "model",
+                    timeout: 5,
+                    compatibilityProfile: profile,
+                    thinkingMode: mode
+                ),
+                urlSession: makeSession()
+            )
+            for try await _ in provider.stream(
+                request: ChatRequest(model: "model", messages: [ChatMessage(role: .user, content: "hello")], stream: false)
+            ) {}
+
+            let label = "\(profile) \(mode)"
+            let json = try XCTUnwrap(bodyJSON(capturedRequest), label)
+            XCTAssertEqual(json["reasoning_effort"] as? String, effort, label)
+            if let thinking {
+                XCTAssertEqual(json["thinking"] as? [String: String], thinking, label)
+            } else {
+                XCTAssertNil(json["thinking"], label)
+            }
+        }
+    }
+
     func testDeepSeekAndOpenRouterProfilesUseTheirOwnThinkingSyntax() async throws {
         var requests: [URLRequest] = []
         StubURLProtocol.handler = { request in
@@ -280,6 +323,7 @@ final class OpenAICompatibleProviderTests: XCTestCase {
 
         let deepSeekBody = try XCTUnwrap(bodyJSON(requests[0]))
         XCTAssertEqual(deepSeekBody["thinking"] as? [String: String], ["type": "disabled"])
+        XCTAssertEqual(deepSeekBody["reasoning_effort"] as? String, "off")
         let openRouterBody = try XCTUnwrap(bodyJSON(requests[1]))
         let reasoning = try XCTUnwrap(openRouterBody["reasoning"] as? [String: Any])
         XCTAssertEqual(reasoning["enabled"] as? Bool, true)
