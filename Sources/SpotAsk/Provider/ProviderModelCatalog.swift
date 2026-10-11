@@ -171,6 +171,20 @@ extension ModelThinkingMode {
         }
     }
 
+    /// New API-style gateways and DeepSeek accept `off|low|medium|high|xhigh|max`.
+    /// They reject OpenAI's `none` and `minimal`.
+    var gatewayEffort: String? {
+        switch self {
+        case .providerDefault: nil
+        case .disabled: "off"
+        case .minimal, .low: "low"
+        case .medium: "medium"
+        case .high: "high"
+        case .xhigh: "xhigh"
+        case .max: "max"
+        }
+    }
+
     var budgetTokens: Int? {
         switch self {
         case .providerDefault, .disabled: nil
@@ -306,16 +320,17 @@ extension RequestCompatibilityProfile {
     func automaticReasoningParameters(for mode: ModelThinkingMode) -> [String: ModelJSONValue] {
         guard mode != .providerDefault else { return [:] }
         switch self {
-        case .genericOpenAI, .openAI, .azureOpenAI, .mistral, .xAI:
+        case .genericOpenAI:
+            guard let effort = mode.gatewayEffort else { return [:] }
+            return ["reasoning_effort": .string(effort)]
+        case .openAI, .azureOpenAI, .mistral, .xAI:
             guard let effort = mode.openAIEffort else { return [:] }
             return ["reasoning_effort": .string(effort)]
         case .deepSeek:
-            if mode == .disabled {
-                return ["thinking": .object(["type": .string("disabled")])]
-            }
-            guard let effort = mode.openAIEffort else { return [:] }
+            // `thinking.type = disabled` alone does not stop DeepSeek V4 reasoning.
+            guard let effort = mode.gatewayEffort else { return [:] }
             return [
-                "thinking": .object(["type": .string("enabled")]),
+                "thinking": .object(["type": .string(mode == .disabled ? "disabled" : "enabled")]),
                 "reasoning_effort": .string(effort)
             ]
         case .qwen, .siliconFlow:

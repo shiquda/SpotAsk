@@ -154,6 +154,7 @@ struct MessageContentView: View {
                         systemImage: isExpanded ? "chevron.up" : "chevron.down"
                     )
                     .font(.caption.weight(.medium))
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
                 .help(

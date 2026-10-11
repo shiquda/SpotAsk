@@ -112,6 +112,7 @@ private var content: some View {
                         systemImage: isExpanded ? "chevron.up" : "chevron.down"
                     )
                     .font(.caption.weight(.medium))
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
                 .help(isExpanded ? L10n.string("chat.collapseQuestion") : L10n.string("chat.showFullQuestion"))
