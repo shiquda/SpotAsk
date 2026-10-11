@@ -164,11 +164,12 @@ struct SystemOneHTTPBoundaryTests {
             source.stop()
         }
         do {
-            // Start the short deadline only after real HTTP receipt; CI scheduling
-            // must not turn this late-answer regression into a pre-connect timeout.
-            _ = try await evaluate(source, timeout: 0.03, sleep: { duration in
+            // Give the socket time to connect independently of the short decision
+            // clock. URLRequest also uses timeout, so gating only sleep can still
+            // time out before receipt on a busy CI runner.
+            _ = try await evaluate(source, timeout: 5, sleep: { _ in
                 for await _ in received.stream { break }
-                try await Task.sleep(for: duration)
+                try await Task.sleep(for: .milliseconds(30))
             })
             Issue.record("Late response replaced the deadline")
         } catch {
