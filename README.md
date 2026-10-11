@@ -21,11 +21,7 @@
 ## Highlights
 
 - **Instant hotkey capture, dismiss anytime** — Press `⌥ + Space` (customizable) to summon a focused input window anywhere; stream answers using your own API key (BYOK), then tap `Esc` to close without breaking stride.
-- **Decision routing — let the model choose the destination** — With External Ask on, turn on automatic routing and a System One decision model (pre-filled with the TypeSafe official endpoint and `jev-1.13.0`, or any compatible service) reads each question and recommends where it should go, with a confidence score:
-  - **In SpotAsk, a web AI, or a local CLI agent** — The card above the composer names the destination and why it fits; `↩` accepts it, `Tab` or the arrow keys switch channels, and `Esc` cancels while keeping your question.
-  - **Confirm first, or auto-send** — Confirm every routed send, or set a confidence threshold and let anything above it go straight out: in-app answers immediately, external channels after a 0.8-second notice of where they are heading.
-  - **Routing hints and a live test** — Give each channel a **What it does** and **When to use** line, then run **Test question** in Settings > External Ask to preview the recommended destination, confidence, and release rule without opening anything.
-- **1-click query routing (External Ask)** — Hand off questions to external tools without consuming API tokens or cluttering history:
+- **Smart & 1-click query routing (External Ask)** — Route questions across three external channel types in 1 click, or let a decision model (such as `jev`) pick the destination for you — with inline confirmation (`↩` / `Tab` / `Esc`) or confidence-threshold auto-send:
   - **Web AI**: Launch queries directly in ChatGPT, Perplexity, Grok, and more.
   - **CLI agents**: Wake up local command-line agents (like omp) directly in Terminal.
   - **Desktop apps**: Trigger installed apps and note-taking tools via custom URI schemes.
