@@ -61,10 +61,10 @@ Entries can be reordered, disabled, edited, or deleted from the same settings pa
 
 When you want SpotAsk to recommend a destination before sending, turn on **Enable automatic routing** in the **Decision Routing** section after the External Ask catalog.
 
-- **System One / Jev protocol**: Connect to TypeSafe Official (`https://api.typesafe.ai/v1/systemone`, default model `jev-1.13.0`) or a custom System One service address with its own separate credential. Decision routing evaluates candidate destinations; it does not replace your generative chat providers.
+- **System One / Jev protocol**: One service address and model, prefilled with TypeSafe Official (`https://api.typesafe.ai`, model `jev-1.13.0`). Change the address to use another compatible System One service. The access key is sent only to that address. Decision routing evaluates candidate destinations; it does not replace your generative chat providers. Other decision APIs are not connected yet.
 - **Channel descriptions**: Click the routing button on any built-in or custom entry to describe what it does, when it fits, and whether it must always be confirmed.
 - **Confirmation & confidence**: The default mode confirms every routed send on an inline card above the composer (`↩` to continue, **Change Channel** to pick manually, `Esc` to cancel and keep the question). In threshold mode, only scores strictly above your threshold auto-send; confidence reflects option certainty, not accuracy.
-- **Timeout & manual priority**: The default timeout is 2 seconds and falls back to manual channel selection (or In SpotAsk if configured). Manually selecting an External Ask target or attaching files always bypasses the decision model.
+- **Timeout & manual priority**: The default timeout is 2 seconds. You can set it from 0.5 to 5 seconds in 0.1-second steps. Timeout falls back to manual channel selection (or In SpotAsk if configured). Manually selecting an External Ask target or attaching files always bypasses the decision model.
 - **Test question**: Preview the recommended destination, confidence, and release rule directly in Settings without opening any external app or browser tab.
 
 ## Shortcuts

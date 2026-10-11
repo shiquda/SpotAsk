@@ -730,24 +730,19 @@ final class SettingRegistry: Sendable {
             keyPath: \.decisionRoutingEnabled
         ))
         register(SettingDescriptors.rawRepresentable(
-            key: "decisionRoutingEndpoint",
-            defaultValue: DecisionEndpointKind.official,
-            keyPath: \.decisionRoutingEndpoint
+            key: "decisionRoutingProvider",
+            defaultValue: DecisionProviderKind.systemOne,
+            keyPath: \.decisionRoutingProvider
         ))
         register(SettingDescriptors.string(
-            key: "decisionRoutingOfficialModel",
+            key: "decisionRoutingServiceURL",
+            defaultValue: DecisionRoutingPolicy.defaultServiceURL,
+            keyPath: \.decisionRoutingServiceURL
+        ))
+        register(SettingDescriptors.string(
+            key: "decisionRoutingModel",
             defaultValue: DecisionRoutingPolicy.defaultOfficialModel,
-            keyPath: \.decisionRoutingOfficialModel
-        ))
-        register(SettingDescriptors.string(
-            key: "decisionRoutingCustomBaseURL",
-            defaultValue: "",
-            keyPath: \.decisionRoutingCustomBaseURL
-        ))
-        register(SettingDescriptors.string(
-            key: "decisionRoutingCustomModel",
-            defaultValue: "",
-            keyPath: \.decisionRoutingCustomModel
+            keyPath: \.decisionRoutingModel
         ))
         register(SettingDescriptors.rawRepresentable(
             key: "decisionRoutingConfirmationMode",

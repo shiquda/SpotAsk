@@ -65,12 +65,17 @@ struct DecisionRoutingTests {
 
         let settings = AppSettings(defaults: defaults)
         #expect(settings.decisionRoutingEnabled == false)
-        #expect(settings.decisionRoutingEndpoint == .official)
-        #expect(settings.decisionRoutingOfficialModel == "jev-1.13.0")
+        #expect(settings.decisionRoutingProvider == .systemOne)
+        #expect(settings.decisionRoutingServiceURL == "https://api.typesafe.ai")
+        #expect(settings.decisionRoutingModel == "jev-1.13.0")
         #expect(settings.decisionRoutingConfirmationMode == .always)
         #expect(settings.decisionRoutingConfidenceThreshold == 0.8)
         #expect(settings.decisionRoutingTimeoutSeconds == 2.0)
         #expect(settings.decisionRoutingTimeoutAction == .manualSelection)
+        #expect(DecisionRoutingPolicy.maximumTimeoutSeconds == 5)
+        #expect(DecisionRoutingPolicy.timeoutStepSeconds == 0.1)
+        #expect(DecisionRoutingPolicy.normalizedTimeout(30) == 5)
+        #expect(DecisionRoutingPolicy.normalizedTimeout(0.1) == 0.5)
     }
 
     @Test("Release rules enforce force-confirm, always-confirm, and strict threshold comparison")
@@ -125,47 +130,74 @@ struct DecisionRoutingTests {
         #expect(DecisionRoutingPolicy.shouldConsultModel(routingEnabled: true, hasManualChannel: false, candidateCount: 2))
     }
 
-    @Test("Endpoint URL normalizes custom roots, /v1, and full /v1/systemone paths")
+    @Test("Endpoint URL normalizes roots, /v1, and full /v1/systemone paths")
     func endpointNormalization() {
         #expect(
-            SystemOneEndpoint.customEvaluationURL("http://127.0.0.1:8080")?.absoluteString
+            SystemOneEndpoint.evaluationURL("http://127.0.0.1:8080")?.absoluteString
                 == "http://127.0.0.1:8080/v1/systemone"
         )
         #expect(
-            SystemOneEndpoint.customEvaluationURL("https://decision.example.com/v1/")?.absoluteString
+            SystemOneEndpoint.evaluationURL("https://decision.example.com/v1/")?.absoluteString
                 == "https://decision.example.com/v1/systemone"
         )
         #expect(
-            SystemOneEndpoint.customEvaluationURL("https://decision.example.com/v1/systemone")?.absoluteString
+            SystemOneEndpoint.evaluationURL("https://decision.example.com/v1/systemone")?.absoluteString
                 == "https://decision.example.com/v1/systemone"
         )
-        #expect(SystemOneEndpoint.customEvaluationURL("ftp://decision.example.com") == nil)
-        #expect(SystemOneEndpoint.customEvaluationURL("not a url") == nil)
+        #expect(
+            SystemOneEndpoint.evaluationURL("")?.absoluteString
+                == "https://api.typesafe.ai/v1/systemone"
+        )
+        #expect(SystemOneEndpoint.evaluationURL("ftp://decision.example.com") == nil)
+        #expect(SystemOneEndpoint.evaluationURL("not a url") == nil)
     }
 
-    @Test("Official and custom credentials stay isolated")
-    func credentialIsolation() {
-        #expect(
-            DecisionRoutingPolicy.apiKey(
-                endpoint: .official,
-                official: "official-token",
-                custom: "custom-token"
-            ) == "official-token"
-        )
-        #expect(
-            DecisionRoutingPolicy.apiKey(
-                endpoint: .custom,
-                official: "official-token",
-                custom: nil
-            ) == nil
-        )
-        let customRequest = SystemOneRequestBuilder.request(
-            url: URL(string: "http://127.0.0.1:8080/v1/systemone")!,
-            apiKey: DecisionRoutingPolicy.apiKey(endpoint: .custom, official: "official-token", custom: ""),
+    @Test("The configured key is sent only to the configured service")
+    func credentialFollowsConfiguredService() {
+        #expect(DecisionRoutingPolicy.normalizedAPIKey(" official\\_token ") == "official_token")
+        #expect(DecisionRoutingPolicy.normalizedAPIKey("  ") == nil)
+        let official = SystemOneEndpoint.evaluationURL("https://api.typesafe.ai")!
+        #expect(SystemOneEndpoint.requiresCredential(official))
+        let local = SystemOneEndpoint.evaluationURL("http://127.0.0.1:8080")!
+        #expect(!SystemOneEndpoint.requiresCredential(local))
+        let request = SystemOneRequestBuilder.request(
+            url: local,
+            apiKey: nil,
             timeout: 2,
             body: Data()
         )
-        #expect(customRequest.value(forHTTPHeaderField: "Authorization") == nil)
+        #expect(request.value(forHTTPHeaderField: "Authorization") == nil)
+        #expect(
+            DecisionCredentialSlot.activeAPIKey(
+                systemOne: "official-token",
+                legacyCustom: "custom-token",
+                preferLegacyCustom: true
+            ) == "custom-token"
+        )
+        #expect(
+            DecisionCredentialSlot.activeAPIKey(
+                systemOne: "official-token",
+                legacyCustom: nil,
+                preferLegacyCustom: true
+            ) == "official-token"
+        )
+    }
+
+    @Test("Legacy custom endpoint settings migrate into the single service fields")
+    func legacyCustomEndpointMigrates() {
+        let suite = "DecisionRoutingTests.Migration.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set("custom", forKey: "decisionRoutingEndpoint")
+        defaults.set("http://127.0.0.1:8080", forKey: "decisionRoutingCustomBaseURL")
+        defaults.set("local-jev", forKey: "decisionRoutingCustomModel")
+        defaults.set(12.0, forKey: "decisionRoutingTimeoutSeconds")
+
+        let settings = AppSettings(defaults: defaults)
+        #expect(settings.decisionRoutingServiceURL == "http://127.0.0.1:8080")
+        #expect(settings.decisionRoutingModel == "local-jev")
+        #expect(settings.decisionRoutingTimeoutSeconds == 5)
+        #expect(defaults.bool(forKey: DecisionCredentialSlot.preferLegacyCustomKey))
     }
 
     @Test("Legacy QuickAction JSON decodes routing defaults and catalog saves preserve routing edits")
@@ -224,8 +256,7 @@ struct DecisionRoutingTests {
                 modelQuestion: "fix build",
                 candidates: Self.candidates(),
                 settings: settings,
-                officialKey: "test-token",
-                customKey: nil,
+                apiKey: "test-token",
                 transport: transport,
                 sleep: { _ in try await Task.sleep(for: .seconds(60)) }
             )
@@ -260,8 +291,7 @@ struct DecisionRoutingTests {
             modelQuestion: "refactor parser",
             candidates: Self.candidates(),
             settings: manualSettings,
-            officialKey: "test-token",
-            customKey: nil,
+            apiKey: "test-token",
             transport: slowTransport,
             sleep: { _ in }
         )
@@ -283,8 +313,7 @@ struct DecisionRoutingTests {
             modelQuestion: "quick summary",
             candidates: Self.candidates(),
             settings: inAppSettings,
-            officialKey: "test-token",
-            customKey: nil,
+            apiKey: "test-token",
             transport: slowTransport,
             sleep: { _ in }
         )
@@ -310,8 +339,7 @@ struct DecisionRoutingTests {
             modelQuestion: "original question",
             candidates: Self.candidates(),
             settings: settings,
-            officialKey: "test-token",
-            customKey: nil,
+            apiKey: "test-token",
             transport: transport,
             sleep: { _ in try await Task.sleep(for: .seconds(60)) }
         )
@@ -332,9 +360,8 @@ struct DecisionRoutingTests {
         }
         var settings = DecisionRoutingSettings.disabled
         settings.isEnabled = true
-        settings.endpoint = .custom
-        settings.customBaseURL = "http://127.0.0.1:18080"
-        settings.customModel = "local-jev"
+        settings.serviceURL = "http://127.0.0.1:18080"
+        settings.model = "local-jev"
         settings.confirmationMode = .threshold
         settings.confidenceThreshold = 0.8
 
@@ -342,8 +369,7 @@ struct DecisionRoutingTests {
             question: "inspect git status in repo",
             settings: settings,
             candidates: Self.candidates(),
-            officialKey: "must-not-be-sent",
-            customKey: nil,
+            apiKey: nil,
             transport: transport,
             sleep: { _ in try await Task.sleep(for: .seconds(60)) }
         )
@@ -367,8 +393,7 @@ struct DecisionRoutingTests {
             question: "open unknown tool",
             settings: settings,
             candidates: Self.candidates(),
-            officialKey: "test-token",
-            customKey: nil,
+            apiKey: "test-token",
             transport: transport,
             sleep: { _ in try await Task.sleep(for: .seconds(60)) }
         )

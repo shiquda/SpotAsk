@@ -1,8 +1,10 @@
 import Foundation
 
-enum DecisionEndpointKind: String, Codable, CaseIterable, Identifiable, Sendable {
-    case official
-    case custom
+/// Routing backend. Only System One is implemented. OpenAI Decision API and
+/// generative LLM providers should be additional cases with their own client,
+/// not branches inside `SystemOneRequestBuilder`.
+enum DecisionProviderKind: String, Codable, CaseIterable, Identifiable, Sendable {
+    case systemOne
 
     var id: String { rawValue }
 }
@@ -22,15 +24,18 @@ enum DecisionTimeoutAction: String, Codable, CaseIterable, Identifiable, Sendabl
 }
 
 enum DecisionCredentialSlot {
-    static let official = UUID(uuidString: "D3C15100-0000-4000-8000-0000000000E1")!
-    static let custom = UUID(uuidString: "D3C15100-0000-4000-8000-0000000000E2")!
-    static let all: Set<UUID> = [official, custom]
+    /// Single System One credential. Matches the previous official slot so an existing TypeSafe key keeps working.
+    static let systemOne = UUID(uuidString: "D3C15100-0000-4000-8000-0000000000E1")!
+    /// Previous custom-endpoint slot. Kept so an old backup can restore without wiping that key.
+    static let legacyCustom = UUID(uuidString: "D3C15100-0000-4000-8000-0000000000E2")!
+    static let all: Set<UUID> = [systemOne, legacyCustom]
+    static let preferLegacyCustomKey = "decisionRoutingPreferLegacyCustomCredential"
 
-    static func slot(for endpoint: DecisionEndpointKind) -> UUID {
-        switch endpoint {
-        case .official: official
-        case .custom: custom
+    static func activeAPIKey(systemOne key: String?, legacyCustom: String?, preferLegacyCustom: Bool) -> String? {
+        if preferLegacyCustom, let legacy = DecisionRoutingPolicy.normalizedAPIKey(legacyCustom) {
+            return legacy
         }
+        return DecisionRoutingPolicy.normalizedAPIKey(key)
     }
 }
 
@@ -48,11 +53,13 @@ enum DecisionRelease: Equatable, Sendable {
 }
 
 enum DecisionRoutingPolicy {
+    static let defaultServiceURL = "https://api.typesafe.ai"
     static let defaultOfficialModel = "jev-1.13.0"
     static let defaultThreshold = 0.8
     static let defaultTimeoutSeconds = 2.0
     static let minimumTimeoutSeconds = 0.5
-    static let maximumTimeoutSeconds = 30.0
+    static let maximumTimeoutSeconds = 5.0
+    static let timeoutStepSeconds = 0.1
     static let routeQuestionID = "route"
     static let routeInstructions = "Choose the single best destination for this question. Use only the option descriptions. Do not invent an option."
 
@@ -92,35 +99,13 @@ enum DecisionRoutingPolicy {
         routingEnabled && !hasManualChannel && candidateCount >= 2
     }
 
-    static func modelName(
-        endpoint: DecisionEndpointKind,
-        officialModel: String,
-        customModel: String
-    ) -> String? {
-        switch endpoint {
-        case .official:
-            let trimmed = officialModel.trimmingCharacters(in: .whitespacesAndNewlines)
-            return trimmed.isEmpty ? defaultOfficialModel : trimmed
-        case .custom:
-            let trimmed = customModel.trimmingCharacters(in: .whitespacesAndNewlines)
-            return trimmed.isEmpty ? nil : trimmed
-        }
+    static func modelName(_ model: String) -> String {
+        let trimmed = model.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? defaultOfficialModel : trimmed
     }
 
-    /// Official and custom credentials never cross. A missing custom key is allowed.
-    static func apiKey(
-        endpoint: DecisionEndpointKind,
-        official: String?,
-        custom: String?
-    ) -> String? {
-        let selected: String?
-        switch endpoint {
-        case .official:
-            selected = official
-        case .custom:
-            selected = custom
-        }
-        let trimmed = (selected ?? "")
+    static func normalizedAPIKey(_ value: String?) -> String? {
+        let trimmed = (value ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "\\_", with: "_")
         return trimmed.isEmpty ? nil : trimmed
@@ -129,10 +114,9 @@ enum DecisionRoutingPolicy {
 
 struct DecisionRoutingSettings: Equatable, Sendable {
     var isEnabled: Bool
-    var endpoint: DecisionEndpointKind
-    var officialModel: String
-    var customBaseURL: String
-    var customModel: String
+    var provider: DecisionProviderKind
+    var serviceURL: String
+    var model: String
     var confirmationMode: DecisionConfirmationMode
     var confidenceThreshold: Double
     var timeoutSeconds: Double
@@ -141,16 +125,46 @@ struct DecisionRoutingSettings: Equatable, Sendable {
 
     static let disabled = DecisionRoutingSettings(
         isEnabled: false,
-        endpoint: .official,
-        officialModel: DecisionRoutingPolicy.defaultOfficialModel,
-        customBaseURL: "",
-        customModel: "",
+        provider: .systemOne,
+        serviceURL: DecisionRoutingPolicy.defaultServiceURL,
+        model: DecisionRoutingPolicy.defaultOfficialModel,
         confirmationMode: .always,
         confidenceThreshold: DecisionRoutingPolicy.defaultThreshold,
         timeoutSeconds: DecisionRoutingPolicy.defaultTimeoutSeconds,
         timeoutAction: .manualSelection,
         inAppDescription: ""
     )
+}
+
+enum DecisionRoutingMigration {
+    static func serviceFields(
+        hasStoredServiceURL: Bool,
+        storedServiceURL: String,
+        storedModel: String,
+        legacyEndpoint: String?,
+        legacyOfficialModel: String?,
+        legacyCustomURL: String?,
+        legacyCustomModel: String?
+    ) -> (serviceURL: String, model: String, preferLegacyCustomCredential: Bool) {
+        if hasStoredServiceURL {
+            return (storedServiceURL, DecisionRoutingPolicy.modelName(storedModel), false)
+        }
+        if legacyEndpoint == "custom" {
+            let url = (legacyCustomURL ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            let model = (legacyCustomModel ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            return (
+                url.isEmpty ? DecisionRoutingPolicy.defaultServiceURL : url,
+                model.isEmpty ? DecisionRoutingPolicy.defaultOfficialModel : model,
+                true
+            )
+        }
+        let officialModel = (legacyOfficialModel ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return (
+            DecisionRoutingPolicy.defaultServiceURL,
+            officialModel.isEmpty ? DecisionRoutingPolicy.defaultOfficialModel : officialModel,
+            false
+        )
+    }
 }
 
 struct DecisionRouteCandidate: Equatable, Sendable, Identifiable {
@@ -233,19 +247,18 @@ enum DecisionRouteCatalog {
 enum SystemOneEndpoint {
     static let officialEvaluationURL = URL(string: "https://api.typesafe.ai/v1/systemone")!
 
-    static func evaluationURL(endpoint: DecisionEndpointKind, customBaseURL: String) -> URL? {
-        switch endpoint {
-        case .official:
-            return officialEvaluationURL
-        case .custom:
-            return customEvaluationURL(customBaseURL)
-        }
+    static func evaluationURL(_ raw: String) -> URL? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let source = trimmed.isEmpty ? DecisionRoutingPolicy.defaultServiceURL : trimmed
+        return normalizedEvaluationURL(source)
     }
 
-    static func customEvaluationURL(_ raw: String) -> URL? {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty,
-              var components = URLComponents(string: trimmed),
+    static func requiresCredential(_ url: URL) -> Bool {
+        url.host?.lowercased() == officialEvaluationURL.host?.lowercased()
+    }
+
+    static func normalizedEvaluationURL(_ raw: String) -> URL? {
+        guard var components = URLComponents(string: raw),
               let scheme = components.scheme?.lowercased(),
               scheme == "http" || scheme == "https",
               components.host != nil else {
@@ -268,6 +281,63 @@ enum SystemOneEndpoint {
         components.query = nil
         components.fragment = nil
         return components.url
+    }
+}
+
+struct DecisionServiceCall: Equatable, Sendable {
+    var provider: DecisionProviderKind
+    var url: URL
+    var model: String
+    var apiKey: String?
+    var timeout: TimeInterval
+}
+
+enum DecisionServiceResolver {
+    enum Failure: Error, Equatable {
+        case invalidEndpoint
+        case missingCredential
+    }
+
+    static func resolve(settings: DecisionRoutingSettings, apiKey: String?) -> Result<DecisionServiceCall, Failure> {
+        guard let url = SystemOneEndpoint.evaluationURL(settings.serviceURL) else {
+            return .failure(.invalidEndpoint)
+        }
+        let key = DecisionRoutingPolicy.normalizedAPIKey(apiKey)
+        if SystemOneEndpoint.requiresCredential(url), key == nil {
+            return .failure(.missingCredential)
+        }
+        return .success(
+            DecisionServiceCall(
+                provider: settings.provider,
+                url: url,
+                model: DecisionRoutingPolicy.modelName(settings.model),
+                apiKey: key,
+                timeout: DecisionRoutingPolicy.normalizedTimeout(settings.timeoutSeconds)
+            )
+        )
+    }
+}
+
+enum DecisionProviderClient {
+    static func evaluate(
+        call: DecisionServiceCall,
+        question: String,
+        criteria: [String: String],
+        transport: any SystemOneTransport,
+        sleep: @escaping @Sendable (Duration) async throws -> Void
+    ) async throws -> SystemOneChoiceAnswer {
+        switch call.provider {
+        case .systemOne:
+            let client = SystemOneClient(transport: transport, sleep: sleep)
+            return try await client.evaluate(
+                question: question,
+                model: call.model,
+                criteria: criteria,
+                url: call.url,
+                apiKey: call.apiKey,
+                timeout: call.timeout
+            )
+        }
     }
 }
 
@@ -374,43 +444,28 @@ enum DecisionRoutingPreview {
         question: String,
         settings: DecisionRoutingSettings,
         candidates: [DecisionRouteCandidate],
-        officialKey: String?,
-        customKey: String?,
+        apiKey: String?,
         transport: any SystemOneTransport,
         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) async -> DecisionPreviewResult {
         let trimmed = question.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, candidates.count >= 2 else { return .unavailable }
-        guard let url = SystemOneEndpoint.evaluationURL(
-            endpoint: settings.endpoint,
-            customBaseURL: settings.customBaseURL
-        ) else {
+        let call: DecisionServiceCall
+        switch DecisionServiceResolver.resolve(settings: settings, apiKey: apiKey) {
+        case let .success(resolved):
+            call = resolved
+        case .failure(.invalidEndpoint):
             return .invalidEndpoint
-        }
-        guard let model = DecisionRoutingPolicy.modelName(
-            endpoint: settings.endpoint,
-            officialModel: settings.officialModel,
-            customModel: settings.customModel
-        ) else {
-            return .missingModel
-        }
-        let key = DecisionRoutingPolicy.apiKey(
-            endpoint: settings.endpoint,
-            official: officialKey,
-            custom: customKey
-        )
-        if settings.endpoint == .official, key == nil {
+        case .failure(.missingCredential):
             return .missingCredential
         }
-        let client = SystemOneClient(transport: transport, sleep: sleep)
         do {
-            let answer = try await client.evaluate(
+            let answer = try await DecisionProviderClient.evaluate(
+                call: call,
                 question: trimmed,
-                model: model,
                 criteria: DecisionRouteCatalog.criteria(for: candidates),
-                url: url,
-                apiKey: key,
-                timeout: DecisionRoutingPolicy.normalizedTimeout(settings.timeoutSeconds)
+                transport: transport,
+                sleep: sleep
             )
             guard let candidate = DecisionRouteCatalog.candidate(matching: answer.choice, in: candidates) else {
                 return .unknownChoice

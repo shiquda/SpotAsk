@@ -58,8 +58,7 @@ final class DecisionRoutingController {
         modelQuestion: String,
         candidates: [DecisionRouteCandidate],
         settings: DecisionRoutingSettings,
-        officialKey: String?,
-        customKey: String?,
+        apiKey: String?,
         transport: any SystemOneTransport,
         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) {
@@ -77,8 +76,7 @@ final class DecisionRoutingController {
                 modelQuestion: modelQuestion,
                 candidates: candidates,
                 settings: settings,
-                officialKey: officialKey,
-                customKey: customKey,
+                apiKey: apiKey,
                 transport: transport,
                 sleep: sleep
             )
@@ -127,45 +125,26 @@ final class DecisionRoutingController {
         modelQuestion: String,
         candidates: [DecisionRouteCandidate],
         settings: DecisionRoutingSettings,
-        officialKey: String?,
-        customKey: String?,
+        apiKey: String?,
         transport: any SystemOneTransport,
         sleep: @escaping @Sendable (Duration) async throws -> Void
     ) async {
         guard DecisionRoutingGate.shouldApply(generation: generation, phase: phase, consumed: consumed) else { return }
-        guard let url = SystemOneEndpoint.evaluationURL(
-            endpoint: settings.endpoint,
-            customBaseURL: settings.customBaseURL
-        ) else {
+        let call: DecisionServiceCall
+        switch DecisionServiceResolver.resolve(settings: settings, apiKey: apiKey) {
+        case let .success(resolved):
+            call = resolved
+        case .failure:
             enterChoosing(generation, .unavailable)
             return
         }
-        guard let model = DecisionRoutingPolicy.modelName(
-            endpoint: settings.endpoint,
-            officialModel: settings.officialModel,
-            customModel: settings.customModel
-        ) else {
-            enterChoosing(generation, .unavailable)
-            return
-        }
-        let key = DecisionRoutingPolicy.apiKey(
-            endpoint: settings.endpoint,
-            official: officialKey,
-            custom: customKey
-        )
-        if settings.endpoint == .official, key == nil {
-            enterChoosing(generation, .unavailable)
-            return
-        }
-        let client = SystemOneClient(transport: transport, sleep: sleep)
         do {
-            let answer = try await client.evaluate(
+            let answer = try await DecisionProviderClient.evaluate(
+                call: call,
                 question: modelQuestion,
-                model: model,
                 criteria: DecisionRouteCatalog.criteria(for: candidates),
-                url: url,
-                apiKey: key,
-                timeout: DecisionRoutingPolicy.normalizedTimeout(settings.timeoutSeconds)
+                transport: transport,
+                sleep: sleep
             )
             guard DecisionRoutingGate.shouldApply(generation: generation, phase: phase, consumed: consumed),
                   !Task.isCancelled else { return }

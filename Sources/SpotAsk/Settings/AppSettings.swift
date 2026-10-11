@@ -561,20 +561,16 @@ final class AppSettings {
         didSet { saveSetting("decisionRoutingEnabled") }
     }
 
-    var decisionRoutingEndpoint: DecisionEndpointKind = .official {
-        didSet { saveSetting("decisionRoutingEndpoint") }
+    var decisionRoutingProvider: DecisionProviderKind = .systemOne {
+        didSet { saveSetting("decisionRoutingProvider") }
     }
 
-    var decisionRoutingOfficialModel: String = DecisionRoutingPolicy.defaultOfficialModel {
-        didSet { saveSetting("decisionRoutingOfficialModel") }
+    var decisionRoutingServiceURL: String = DecisionRoutingPolicy.defaultServiceURL {
+        didSet { saveSetting("decisionRoutingServiceURL") }
     }
 
-    var decisionRoutingCustomBaseURL: String = "" {
-        didSet { saveSetting("decisionRoutingCustomBaseURL") }
-    }
-
-    var decisionRoutingCustomModel: String = "" {
-        didSet { saveSetting("decisionRoutingCustomModel") }
+    var decisionRoutingModel: String = DecisionRoutingPolicy.defaultOfficialModel {
+        didSet { saveSetting("decisionRoutingModel") }
     }
 
     var decisionRoutingConfirmationMode: DecisionConfirmationMode = .always {
@@ -619,10 +615,9 @@ final class AppSettings {
     func decisionRoutingSettings() -> DecisionRoutingSettings {
         DecisionRoutingSettings(
             isEnabled: decisionRoutingEnabled,
-            endpoint: decisionRoutingEndpoint,
-            officialModel: decisionRoutingOfficialModel,
-            customBaseURL: decisionRoutingCustomBaseURL,
-            customModel: decisionRoutingCustomModel,
+            provider: decisionRoutingProvider,
+            serviceURL: decisionRoutingServiceURL,
+            model: decisionRoutingModel,
             confirmationMode: decisionRoutingConfirmationMode,
             confidenceThreshold: decisionRoutingConfidenceThreshold,
             timeoutSeconds: decisionRoutingTimeoutSeconds,
@@ -668,11 +663,35 @@ final class AppSettings {
         for descriptor in SettingRegistry.shared.descriptors {
             descriptor.load(into: self, from: defaults)
         }
+        let shouldSaveMigratedDecisionService = migrateDecisionServiceIfNeeded()
         savePromptPresetCatalog()
         saveQuickActionCatalog()
         saveCustomPromptPresets()
         cleanUpShortcutAssignments()
         isInitializing = false
+        if shouldSaveMigratedDecisionService {
+            saveSetting("decisionRoutingServiceURL")
+            saveSetting("decisionRoutingModel")
+        }
+    }
+
+    private func migrateDecisionServiceIfNeeded() -> Bool {
+        guard defaults.object(forKey: "decisionRoutingServiceURL") == nil else { return false }
+        let migrated = DecisionRoutingMigration.serviceFields(
+            hasStoredServiceURL: false,
+            storedServiceURL: "",
+            storedModel: "",
+            legacyEndpoint: defaults.string(forKey: "decisionRoutingEndpoint"),
+            legacyOfficialModel: defaults.string(forKey: "decisionRoutingOfficialModel"),
+            legacyCustomURL: defaults.string(forKey: "decisionRoutingCustomBaseURL"),
+            legacyCustomModel: defaults.string(forKey: "decisionRoutingCustomModel")
+        )
+        decisionRoutingServiceURL = migrated.serviceURL
+        decisionRoutingModel = migrated.model
+        if migrated.preferLegacyCustomCredential {
+            defaults.set(true, forKey: DecisionCredentialSlot.preferLegacyCustomKey)
+        }
+        return true
     }
 
     /// Missing key keeps the historical hot-key preset. Empty data is an

@@ -4,8 +4,7 @@ struct DecisionRoutingSettingsSection: View {
     let settings: AppSettings
     let keyStore: any APIKeyStoring
 
-    @State private var officialKey = ""
-    @State private var customKey = ""
+    @State private var apiKey = ""
     @State private var testQuestion = ""
     @State private var testResult: DecisionPreviewResult?
     @State private var isTesting = false
@@ -29,45 +28,26 @@ struct DecisionRoutingSettingsSection: View {
 
     private var endpointFields: some View {
         Group {
-            SettingsFieldRow(label: L10n.string("decisionRouting.endpoint")) {
-                Picker(L10n.string("decisionRouting.endpoint"), selection: Bindable(settings).decisionRoutingEndpoint) {
-                    Text(L10n.string("decisionRouting.endpointOfficial")).tag(DecisionEndpointKind.official)
-                    Text(L10n.string("decisionRouting.endpointCustom")).tag(DecisionEndpointKind.custom)
-                }
-                .labelsHidden()
-                .pickerStyle(.segmented)
+            SettingsFieldRow(label: L10n.string("decisionRouting.serviceURL")) {
+                TextField(DecisionRoutingPolicy.defaultServiceURL, text: Bindable(settings).decisionRoutingServiceURL)
+                    .textFieldStyle(.roundedBorder)
             }
-            if settings.decisionRoutingEndpoint == .official {
-                SettingsFieldRow(label: L10n.string("decisionRouting.model")) {
-                    TextField(DecisionRoutingPolicy.defaultOfficialModel, text: Bindable(settings).decisionRoutingOfficialModel)
-                        .textFieldStyle(.roundedBorder)
-                }
-                SettingsFieldRow(label: L10n.string("decisionRouting.credential")) {
-                    SecureField(L10n.string("decisionRouting.credentialPlaceholder"), text: $officialKey)
-                        .textFieldStyle(.roundedBorder)
-                        .textContentType(.password)
-                        .onChange(of: officialKey) { _, _ in
-                            persist(officialKey, slot: DecisionCredentialSlot.official)
-                        }
-                }
-            } else {
-                SettingsFieldRow(label: L10n.string("decisionRouting.customURL")) {
-                    TextField("http://127.0.0.1:8080", text: Bindable(settings).decisionRoutingCustomBaseURL)
-                        .textFieldStyle(.roundedBorder)
-                }
-                SettingsFieldRow(label: L10n.string("decisionRouting.model")) {
-                    TextField(L10n.string("decisionRouting.customModelPlaceholder"), text: Bindable(settings).decisionRoutingCustomModel)
-                        .textFieldStyle(.roundedBorder)
-                }
-                SettingsFieldRow(label: L10n.string("decisionRouting.credential")) {
-                    SecureField(L10n.string("decisionRouting.customCredentialPlaceholder"), text: $customKey)
-                        .textFieldStyle(.roundedBorder)
-                        .textContentType(.password)
-                        .onChange(of: customKey) { _, _ in
-                            persist(customKey, slot: DecisionCredentialSlot.custom)
-                        }
-                }
+            SettingsFieldRow(label: L10n.string("decisionRouting.model")) {
+                TextField(DecisionRoutingPolicy.defaultOfficialModel, text: Bindable(settings).decisionRoutingModel)
+                    .textFieldStyle(.roundedBorder)
             }
+            SettingsFieldRow(label: L10n.string("decisionRouting.credential")) {
+                SecureField(L10n.string("decisionRouting.credentialPlaceholder"), text: $apiKey)
+                    .textFieldStyle(.roundedBorder)
+                    .textContentType(.password)
+                    .onChange(of: apiKey) { _, _ in
+                        persist(apiKey, slot: DecisionCredentialSlot.systemOne)
+                    }
+            }
+            Text(L10n.string("decisionRouting.serviceNote"))
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             Text(L10n.string("decisionRouting.credentialNote"))
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
@@ -107,7 +87,7 @@ struct DecisionRoutingSettingsSection: View {
                     Slider(
                         value: Bindable(settings).decisionRoutingTimeoutSeconds,
                         in: DecisionRoutingPolicy.minimumTimeoutSeconds...DecisionRoutingPolicy.maximumTimeoutSeconds,
-                        step: 0.5
+                        step: DecisionRoutingPolicy.timeoutStepSeconds
                     )
                     Text(String(format: "%.1fs", locale: AppLanguage.current.locale, settings.decisionRoutingTimeoutSeconds))
                         .font(.system(size: 12, design: .monospaced))
@@ -165,8 +145,16 @@ struct DecisionRoutingSettingsSection: View {
     }
 
     private func loadKeys() {
-        officialKey = (try? keyStore.readAPIKey(for: DecisionCredentialSlot.official)) ?? ""
-        customKey = (try? keyStore.readAPIKey(for: DecisionCredentialSlot.custom)) ?? ""
+        let legacy = (try? keyStore.readAPIKey(for: DecisionCredentialSlot.legacyCustom)) ?? ""
+        let current = (try? keyStore.readAPIKey(for: DecisionCredentialSlot.systemOne)) ?? ""
+        let preferLegacy = settings.defaults.bool(forKey: DecisionCredentialSlot.preferLegacyCustomKey)
+        if preferLegacy, !legacy.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            apiKey = legacy
+            persist(legacy, slot: DecisionCredentialSlot.systemOne)
+            settings.defaults.set(false, forKey: DecisionCredentialSlot.preferLegacyCustomKey)
+        } else {
+            apiKey = current
+        }
     }
 
     private func persist(_ key: String, slot: UUID) {
@@ -190,8 +178,7 @@ struct DecisionRoutingSettingsSection: View {
             testResult = .unavailable
             return
         }
-        let official = officialKey
-        let custom = customKey
+        let key = apiKey
         isTesting = true
         testResult = nil
         let proxy = ChatNetworking.proxyConfiguration(settings: settings, keyStore: keyStore)
@@ -200,8 +187,7 @@ struct DecisionRoutingSettingsSection: View {
                 question: question,
                 settings: snapshot,
                 candidates: candidates,
-                officialKey: official,
-                customKey: custom,
+                apiKey: key,
                 transport: URLSessionSystemOneTransport(
                     session: ChatNetworking.urlSession(proxyConfiguration: proxy)
                 )

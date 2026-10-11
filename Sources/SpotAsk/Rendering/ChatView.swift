@@ -414,16 +414,18 @@ struct ChatView: View {
         ) else {
             return performStandardOrManualSend()
         }
-        let officialKey = try? decisionKeyStore.readAPIKey(for: DecisionCredentialSlot.official)
-        let customKey = try? decisionKeyStore.readAPIKey(for: DecisionCredentialSlot.custom)
+        let apiKey = DecisionCredentialSlot.activeAPIKey(
+            systemOne: try? decisionKeyStore.readAPIKey(for: DecisionCredentialSlot.systemOne),
+            legacyCustom: try? decisionKeyStore.readAPIKey(for: DecisionCredentialSlot.legacyCustom),
+            preferLegacyCustom: settings.defaults.bool(forKey: DecisionCredentialSlot.preferLegacyCustomKey)
+        )
         let proxy = ChatNetworking.proxyConfiguration(settings: settings, keyStore: decisionKeyStore)
         routingController.start(
             snapshotQuestion: snapshot,
             modelQuestion: question,
             candidates: candidates,
             settings: settings.decisionRoutingSettings(),
-            officialKey: officialKey,
-            customKey: customKey,
+            apiKey: apiKey,
             transport: URLSessionSystemOneTransport(
                 session: ChatNetworking.urlSession(proxyConfiguration: proxy)
             )
