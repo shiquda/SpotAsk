@@ -51,6 +51,7 @@ enum InAppShortcutOperation: String, CaseIterable, Codable, Hashable, Identifiab
     case regenerateOrRetry
     case copyAnswer
     case toggleWindowOnTop
+    case toggleSessionRouting
     case showSettings
     case newConversation
     case sendOrCancel
@@ -308,6 +309,7 @@ struct InAppShortcutConfiguration: Codable, Equatable, Sendable {
             (.focusInput, .command("l")),
             (.regenerateOrRetry, .command("r")),
             (.copyAnswer, .commandShift("c")),
+            (.toggleSessionRouting, .commandShift("r")),
             (.showSettings, .command(",")),
             (.newConversation, .command("n")),
             (.zoomIn, .command("=")),

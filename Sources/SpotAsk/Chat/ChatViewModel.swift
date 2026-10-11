@@ -21,6 +21,9 @@ final class ChatViewModel {
     private(set) var pendingAttachments: [ChatAttachment] = []
     /// Per-conversation model override. `nil` means "use the Settings default".
     private(set) var sessionModelID: UUID?
+    /// Per-conversation automatic routing. Not persisted. A new conversation
+    /// starts on; the toolbar switch can turn it off for this chat only.
+    private(set) var sessionRoutingEnabled = true
 
     private let settings: AppSettings
     private let providerFactory: any ChatProviderFactory
@@ -93,6 +96,9 @@ final class ChatViewModel {
 
     func useDefaultModel() {
         sessionModelID = nil
+    }
+    func setSessionRoutingEnabled(_ isEnabled: Bool) {
+        sessionRoutingEnabled = isEnabled
     }
 
     /// A model deleted in Settings must never wedge the conversation on a stale
@@ -232,6 +238,7 @@ final class ChatViewModel {
         input = ""
         pendingAttachments = []
         sessionModelID = nil
+        sessionRoutingEnabled = true
         error = nil
         generationState = .idle
         selectedPromptPreset = nil
@@ -244,21 +251,25 @@ final class ChatViewModel {
 
     /// Starts a new conversation after a long idle period while keeping the
     /// previous messages available for one explicit restore action.
-    func prepareNewConversationAfterInactivity(now: Date = .now) {
+    /// Returns whether a fresh conversation actually started.
+    @discardableResult
+    func prepareNewConversationAfterInactivity(now: Date = .now) -> Bool {
         guard restorableSession == nil,
               !hasAcknowledgedInactivity,
               !messages.isEmpty,
               generationState != .connecting,
               generationState != .streaming,
               let lastMessage = messages.last,
-              now.timeIntervalSince(lastMessage.createdAt) > Self.staleSessionInterval else { return }
+              now.timeIntervalSince(lastMessage.createdAt) > Self.staleSessionInterval else { return false }
         restorableSession = messages
         messages.removeAll()
         sessionModelID = nil
+        sessionRoutingEnabled = true
         error = nil
         retryPromptPreset = nil
         selectionSnapshotsByAssistantID.removeAll()
         try? sessionStore.clear()
+        return true
     }
 
     func restoreSession() {

@@ -563,6 +563,11 @@ final class AppSettings {
     var decisionRoutingEnabled: Bool = false {
         didSet { saveSetting("decisionRoutingEnabled") }
     }
+    /// Shows the per-conversation routing switch in the chat toolbar.
+    /// Default on. A hidden switch does not keep a session stuck off.
+    var decisionRoutingShowsToolbarToggle: Bool = true {
+        didSet { saveSetting("decisionRoutingShowsToolbarToggle") }
+    }
 
     var decisionRoutingProvider: DecisionProviderKind = .systemOne {
         didSet { saveSetting("decisionRoutingProvider") }

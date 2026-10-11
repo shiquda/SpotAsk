@@ -729,6 +729,11 @@ final class SettingRegistry: Sendable {
             defaultValue: false,
             keyPath: \.decisionRoutingEnabled
         ))
+        register(SettingDescriptors.bool(
+            key: "decisionRoutingShowsToolbarToggle",
+            defaultValue: true,
+            keyPath: \.decisionRoutingShowsToolbarToggle
+        ))
         register(SettingDescriptors.rawRepresentable(
             key: "decisionRoutingProvider",
             defaultValue: DecisionProviderKind.systemOne,

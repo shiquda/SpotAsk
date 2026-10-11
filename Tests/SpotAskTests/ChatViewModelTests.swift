@@ -283,9 +283,11 @@ final class ChatViewModelTests: XCTestCase {
         let viewModel = makeViewModel(recorder: recorder, scripts: [[.answer("new answer")]])
         seedConversation(viewModel, lastActivity: Date(timeIntervalSinceNow: -30 * 60))
 
+        viewModel.setSessionRoutingEnabled(false)
         viewModel.prepareNewConversationAfterInactivity()
 
         XCTAssertTrue(viewModel.messages.isEmpty)
+        XCTAssertTrue(viewModel.sessionRoutingEnabled)
         XCTAssertTrue(viewModel.canRestorePreviousSession)
         viewModel.input = "new question"
         viewModel.send()
@@ -626,10 +628,13 @@ final class ChatViewModelTests: XCTestCase {
         viewModel.selectSessionModel(id: modelB)
         XCTAssertEqual(viewModel.effectiveModelID, modelB)
         XCTAssertNotNil(viewModel.sessionModelID)
+        viewModel.setSessionRoutingEnabled(false)
+        XCTAssertFalse(viewModel.sessionRoutingEnabled)
 
         viewModel.newConversation()
 
         XCTAssertNil(viewModel.sessionModelID)
+        XCTAssertTrue(viewModel.sessionRoutingEnabled)
         XCTAssertNotEqual(viewModel.effectiveModelID, modelB)
     }
 

@@ -151,33 +151,110 @@ struct EmptyStateBrandMark: View { var body: some View {
 /// `surface` rounded square and darkens the glyph to `fg` (never grays it),
 /// with a 2pt accent ring standing in for `:focus-visible`. Wraps the button's
 /// label only; its behavior and accessibility stay on the caller.
-struct HeaderIconButton<Label: View>: View { let action: () -> Void
-@ViewBuilder let label: () -> Label
+struct HeaderIconButton<Label: View>: View {
+    let action: () -> Void
+    var tint: Color? = nil
+    var isEnabled: Bool = true
+    @ViewBuilder let label: () -> Label
 
-@State private var isHovering = false
-@FocusState private var isFocused: Bool
+    @State private var isHovering = false
+    @FocusState private var isFocused: Bool
 
-var body: some View {
-    Button(action: action) {
-        label()
-            .font(.system(size: 16))
-            .foregroundStyle(isHovering ? Brand.fg : Brand.muted)
-            .frame(width: 28, height: 28)
-            .background(
-                RoundedRectangle(cornerRadius: 6).fill(isHovering ? Brand.surface : Color.clear)
-            )
-            .overlay {
-                if isFocused {
-                    RoundedRectangle(cornerRadius: 6).strokeBorder(Brand.accent, lineWidth: 2)
-                }
-            }
-            .contentShape(Rectangle())
+    private var glyphColor: Color {
+        if !isEnabled { return Brand.muted.opacity(0.45) }
+        if let tint { return tint }
+        return isHovering ? Brand.fg : Brand.muted
     }
-    .buttonStyle(.plain)
-    .focused($isFocused)
-    .onHover { isHovering = $0 }
-    .animation(.easeOut(duration: 0.12), value: isHovering)
-} }
+
+    var body: some View {
+        Button(action: action) {
+            label()
+                .font(.system(size: 16))
+                .foregroundStyle(glyphColor)
+                .frame(width: 28, height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 6).fill(isHovering && isEnabled ? Brand.surface : Color.clear)
+                )
+                .overlay {
+                    if isFocused && isEnabled {
+                        RoundedRectangle(cornerRadius: 6).strokeBorder(Brand.accent, lineWidth: 2)
+                    }
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .focused($isFocused)
+        .onHover { isHovering = isEnabled && $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+    }
+}
+
+/// Matches the right-side toolbar icon set (`pin` / `pin.fill`, `gearshape`,
+/// `plus.bubble`): a right-forking arrow for routing, plus a diamond for the
+/// AI decision model. The diamond slightly overlaps the stem, is outlined when
+/// routing is off, and solid-filled when on.
+struct SmartRoutingHeaderIcon: View {
+    let isOn: Bool
+
+    var body: some View {
+        Canvas { context, size in
+            let sx = size.width / 18
+            func P(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * sx, y: y * sx) }
+
+            let stroke = StrokeStyle(lineWidth: 1.7 * sx, lineCap: .round, lineJoin: .round)
+            let junction = P(9.2, 7.8)
+            let tipU = P(16.5, 1.9)
+            let tipL = P(16.5, 13.7)
+
+            var fork = Path()
+            fork.move(to: P(2.2, 7.8)); fork.addLine(to: junction); fork.addLine(to: tipU)
+            fork.move(to: junction); fork.addLine(to: tipL)
+            context.stroke(fork, with: .foreground, style: stroke)
+
+            // Open arrowheads: back up 2.6pt along the branch, about 87° spread.
+            func head(_ tip: CGPoint, _ from: CGPoint) -> Path {
+                var dx = tip.x - from.x, dy = tip.y - from.y
+                let n = hypot(dx, dy); dx /= n; dy /= n
+                let wing = 2.6 * sx, spread: CGFloat = 0.95
+                var path = Path()
+                for sign: CGFloat in [1, -1] {
+                    path.move(to: tip)
+                    path.addLine(to: CGPoint(
+                        x: tip.x - dx * wing - dy * wing * spread * sign,
+                        y: tip.y - dy * wing + dx * wing * spread * sign
+                    ))
+                }
+                return path
+            }
+            context.stroke(head(tipU, junction), with: .foreground, style: stroke)
+            context.stroke(head(tipL, junction), with: .foreground, style: stroke)
+
+            // AI diamond: edges pinch inward about 0.9pt; top vertex overlaps the stem.
+            var diamond = Path()
+            let dT = P(5.0, 7.6), dR = P(8.4, 11.9), dB = P(5.0, 16.2), dL = P(1.6, 11.9)
+            let cOff = -1.8 * sx
+            func curvedEdge(_ path: inout Path, _ a: CGPoint, _ b: CGPoint, _ nx: CGFloat, _ ny: CGFloat) {
+                let n = hypot(nx, ny)
+                let mid = CGPoint(x: (a.x + b.x) / 2, y: (a.y + b.y) / 2)
+                path.addQuadCurve(to: b, control: CGPoint(x: mid.x + nx / n * cOff, y: mid.y + ny / n * cOff))
+            }
+            diamond.move(to: dT)
+            curvedEdge(&diamond, dT, dR, 3.4, -4.3)
+            curvedEdge(&diamond, dR, dB, 3.4, 4.3)
+            curvedEdge(&diamond, dB, dL, -3.4, 4.3)
+            curvedEdge(&diamond, dL, dT, -3.4, -4.3)
+            diamond.closeSubpath()
+            if isOn {
+                context.fill(diamond, with: .foreground)
+            } else {
+                context.stroke(diamond, with: .foreground, style: StrokeStyle(lineWidth: 1.6 * sx, lineCap: .round, lineJoin: .round))
+            }
+        }
+        .frame(width: 18, height: 18)
+        .accessibilityHidden(true)
+    }
+}
 
 struct ShortcutKeycap: View {
     let shortcut: InAppShortcut?

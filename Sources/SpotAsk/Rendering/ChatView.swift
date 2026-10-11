@@ -158,6 +158,12 @@ struct ChatView: View {
                     isModelPickerPresented = false
                     inputFocused = true
                 },
+                showsSessionRoutingToggle: settings.decisionRoutingEnabled && settings.decisionRoutingShowsToolbarToggle,
+                isSessionRoutingEnabled: viewModel.sessionRoutingEnabled,
+                isSessionRoutingLocked: routingController.phase.isActive,
+                onToggleSessionRouting: {
+                    viewModel.setSessionRoutingEnabled(!viewModel.sessionRoutingEnabled)
+                },
                 shortcutHint: shortcutHint(for:)
             )
             // A single hairline separates the elevated header material from
@@ -246,7 +252,9 @@ struct ChatView: View {
             isPanelVisible = window.isVisible
         }
         inputFocused = true
-        viewModel.prepareNewConversationAfterInactivity()
+        if viewModel.prepareNewConversationAfterInactivity() {
+            routingController.cancel()
+        }
         commandCenter.setActionConsumer(handleCommandAction)
         reconciliationCoordinator.reconcile(
             messages: viewModel.messages.map(viewModel.liveMessage),
@@ -301,6 +309,15 @@ struct ChatView: View {
     private var isGenerating: Bool {
         viewModel.generationState == .connecting || viewModel.generationState == .streaming
     }
+    /// Hidden toolbar switch follows global routing so a stuck-off session
+    /// cannot block sends the user can no longer toggle.
+    private var sessionAllowsAutomaticRouting: Bool {
+        DecisionRoutingPolicy.effectiveSessionRouting(
+            showsToolbarToggle: settings.decisionRoutingShowsToolbarToggle,
+            sessionRoutingEnabled: viewModel.sessionRoutingEnabled
+        )
+    }
+
 
     private var effectiveProviderIconSlug: String? {
         guard let model = viewModel.effectiveModel,
@@ -340,7 +357,8 @@ struct ChatView: View {
             return handleActiveDecisionRouteSend()
         }
         if composerModeCoordinator.pendingExternalAsk == nil,
-           settings.decisionRoutingEnabled {
+           settings.decisionRoutingEnabled,
+           sessionAllowsAutomaticRouting {
             return sendWithDecisionRouting()
         }
         return performStandardOrManualSend()
@@ -392,7 +410,7 @@ struct ChatView: View {
             return false
         case .deciding:
             return true
-        case .confirming, .choosing:
+        case .autoSending, .confirming, .choosing:
             routingController.acceptCurrent()
             return true
         }
@@ -411,7 +429,8 @@ struct ChatView: View {
         guard DecisionRoutingPolicy.shouldConsultModel(
             routingEnabled: settings.decisionRoutingEnabled,
             hasManualChannel: composerModeCoordinator.pendingExternalAsk != nil,
-            candidateCount: candidates.count
+            candidateCount: candidates.count,
+            sessionRoutingEnabled: sessionAllowsAutomaticRouting
         ) else {
             return performStandardOrManualSend()
         }
@@ -486,7 +505,9 @@ struct ChatView: View {
 
     private func focusInput() {
         inputFocused = true
-        viewModel.prepareNewConversationAfterInactivity()
+        if viewModel.prepareNewConversationAfterInactivity() {
+            routingController.cancel()
+        }
         guard let window = chatWindowReference.window,
               let composerTextView = composerTextView.textView,
               window.firstResponder !== composerTextView else { return }
@@ -524,6 +545,12 @@ struct ChatView: View {
                 return true
             case .toggleWindowOnTop:
                 SpotAskCommandCenter.shared.toggleWindowOnTop()
+                return true
+            case .toggleSessionRouting:
+                guard settings.decisionRoutingEnabled,
+                      settings.decisionRoutingShowsToolbarToggle,
+                      !routingController.phase.isActive else { return false }
+                viewModel.setSessionRoutingEnabled(!viewModel.sessionRoutingEnabled)
                 return true
             case .showSettings:
                 commandCenter.showSettings()
@@ -651,6 +678,7 @@ struct ChatView: View {
     }
 
     private func confirmNewConversation() {
+        routingController.cancel()
         viewModel.newConversation()
         composerModeCoordinator.reset()
         clearAtCommandTokenState()

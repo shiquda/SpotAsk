@@ -34,6 +34,12 @@ struct DecisionRoutingSettingsSection: View {
 
             if settings.decisionRoutingEnabled {
                 Divider()
+                SettingsToggleRow(
+                    label: L10n.string("decisionRouting.showToolbarToggle"),
+                    description: L10n.string("decisionRouting.showToolbarToggleDescription"),
+                    isOn: Bindable(settings).decisionRoutingShowsToolbarToggle
+                )
+                Divider()
                 endpointFields
                 Divider()
                 confirmationFields

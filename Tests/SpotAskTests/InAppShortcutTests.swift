@@ -14,6 +14,7 @@ struct InAppShortcutTests {
         #expect(fixture.settings.shortcut(for: .operation(.focusInput)) == .command("l"))
         #expect(fixture.settings.shortcut(for: .operation(.regenerateOrRetry)) == .command("r"))
         #expect(fixture.settings.shortcut(for: .operation(.copyAnswer)) == .commandShift("c"))
+        #expect(fixture.settings.shortcut(for: .operation(.toggleSessionRouting)) == .commandShift("r"))
         #expect(fixture.settings.shortcut(for: .operation(.showSettings)) == .command(","))
         #expect(fixture.settings.shortcut(for: .operation(.newConversation)) == .command("n"))
         #expect(fixture.settings.shortcut(for: .operation(.zoomIn)) == .command("="))

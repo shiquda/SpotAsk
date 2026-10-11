@@ -15,6 +15,8 @@ struct DecisionRoutingCard: View {
                 EmptyView()
             case .deciding:
                 deciding
+            case let .autoSending(_, candidate):
+                autoSending(candidate)
             case let .confirming(_, candidate, confidence):
                 confirmation(candidate, confidence: confidence)
             case let .choosing(_, reason, highlightedID):
@@ -40,6 +42,18 @@ struct DecisionRoutingCard: View {
                 .foregroundStyle(Brand.fg)
             Spacer(minLength: 0)
             cancelButton
+        }
+    }
+
+    private func autoSending(_ candidate: DecisionRouteCandidate) -> some View {
+        HStack(spacing: 8) {
+            routeIcon(candidate)
+            Text(L10n.string("decisionRouting.autoSending", candidate.title))
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Brand.fg)
+            Spacer(minLength: 8)
+            cancelButton
+                .help(L10n.string("decisionRouting.cancelSendHelp"))
         }
     }
 

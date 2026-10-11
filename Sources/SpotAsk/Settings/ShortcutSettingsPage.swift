@@ -194,6 +194,7 @@ private extension InAppShortcutOperation {
         case .regenerateOrRetry: L10n.string("shortcut.regenerateOrRetry")
         case .copyAnswer: L10n.string("shortcut.copyAnswer")
         case .toggleWindowOnTop: L10n.string("shortcut.toggleWindowOnTop")
+        case .toggleSessionRouting: L10n.string("shortcut.toggleSessionRouting")
         case .showSettings: L10n.string("shortcut.showSettings")
         case .newConversation: L10n.string("shortcut.newConversation")
         case .sendOrCancel: L10n.string("shortcut.sendOrCancel")

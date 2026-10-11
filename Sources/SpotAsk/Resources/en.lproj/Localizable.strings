@@ -218,6 +218,7 @@
 "shortcut.regenerateOrRetry" = "Regenerate or retry";
 "shortcut.copyAnswer" = "Copy latest answer";
 "shortcut.toggleWindowOnTop" = "Keep window on top";
+"shortcut.toggleSessionRouting" = "Toggle automatic routing for this chat";
 "shortcut.showSettings" = "Open settings";
 "shortcut.newConversation" = "New conversation";
 "shortcut.sendOrCancel" = "Send or stop";
@@ -567,6 +568,10 @@
 "decisionRouting.sectionTitle" = "Decision Routing";
 "decisionRouting.enabled" = "Enable automatic routing";
 "decisionRouting.enabledDescription" = "Recommend where to send a question when no channel is selected.";
+"decisionRouting.showToolbarToggle" = "Show routing toggle in toolbar";
+"decisionRouting.showToolbarToggleDescription" = "Show a toolbar toggle for per-conversation automatic routing.";
+"decisionRouting.sessionToggle.on" = "Automatic routing for this question: on";
+"decisionRouting.sessionToggle.off" = "Automatic routing for this question: off";
 "decisionRouting.preferenceHint" = "Edit a channel above to add what it does and when to use it for better accuracy; if left blank, the channel name is used.";
 "decisionRouting.serviceURL" = "Service address";
 "decisionRouting.serviceNote" = "Supports TypeSafe or compatible System One services. Your key is sent only to the address above.";
@@ -614,6 +619,8 @@
 "decisionRouting.unknownChoice" = "Unrecognized destination returned. Choose manually.";
 "decisionRouting.unavailable" = "Smart routing is unavailable right now. Choose a destination.";
 "decisionRouting.deciding" = "Choosing where to send…";
+"decisionRouting.autoSending" = "Sending to %@";
+"decisionRouting.cancelSendHelp" = "Cancel send (Esc)";
 "decisionRouting.recommendedBadge" = "Recommended";
 "decisionRouting.confidenceBadge" = "Confidence %@";
 "decisionRouting.applicableLabel" = "Applicable description";

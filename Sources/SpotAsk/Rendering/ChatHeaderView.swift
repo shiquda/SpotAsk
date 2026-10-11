@@ -15,6 +15,10 @@ struct ChatHeaderView: View {
     let onNewConversation: () -> Void
     let onSelectSessionModel: (UUID) -> Void
     let onUseDefaultModel: () -> Void
+    let showsSessionRoutingToggle: Bool
+    let isSessionRoutingEnabled: Bool
+    let isSessionRoutingLocked: Bool
+    let onToggleSessionRouting: () -> Void
     let shortcutHint: (InAppShortcutTarget) -> InAppShortcut?
 
     var body: some View {
@@ -30,6 +34,24 @@ struct ChatHeaderView: View {
             .accessibilityLabel(Text("SpotAsk"))
 
             Spacer()
+            if showsSessionRoutingToggle {
+                HeaderIconButton(
+                    action: onToggleSessionRouting,
+                    isEnabled: !isSessionRoutingLocked
+                ) {
+                    SmartRoutingHeaderIcon(isOn: isSessionRoutingEnabled)
+                }
+                .help(isSessionRoutingEnabled
+                    ? L10n.string("decisionRouting.sessionToggle.on")
+                    : L10n.string("decisionRouting.sessionToggle.off"))
+                .accessibilityLabel(isSessionRoutingEnabled
+                    ? L10n.string("decisionRouting.sessionToggle.on")
+                    : L10n.string("decisionRouting.sessionToggle.off"))
+                .overlay(alignment: .bottomTrailing) {
+                    ShortcutKeycap(shortcut: shortcutHint(.operation(.toggleSessionRouting)))
+                        .offset(x: 5, y: 5)
+                }
+            }
             HeaderIconButton(action: onToggleWindowOnTop) {
                 Image(systemName: isKeepWindowOnTop ? "pin.fill" : "pin")
             }
