@@ -5,7 +5,7 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  A native macOS menu-bar AI assistant & query router. Summon with a hotkey, get instant answers, or route anywhere in one click.
+  A native macOS menu-bar AI assistant & query router. Summon with a hotkey, get instant answers, route anywhere in one click — or let a decision model pick the destination for you.
 </p>
 
 <p align="center">
@@ -21,6 +21,10 @@
 ## Highlights
 
 - **Instant hotkey capture, dismiss anytime** — Press `⌥ + Space` (customizable) to summon a focused input window anywhere; stream answers using your own API key (BYOK), then tap `Esc` to close without breaking stride.
+- **Decision routing — let the model choose the destination** — With External Ask on, turn on automatic routing and a System One decision model (pre-filled with the TypeSafe official endpoint and `jev-1.13.0`, or any compatible service) reads each question and recommends where it should go, with a confidence score:
+  - **In SpotAsk, a web AI, or a local CLI agent** — The card above the composer names the destination and why it fits; `↩` accepts it, `Tab` or the arrow keys switch channels, and `Esc` cancels while keeping your question.
+  - **Confirm first, or auto-send** — Confirm every routed send, or set a confidence threshold and let anything above it go straight out: in-app answers immediately, external channels after a 0.8-second notice of where they are heading.
+  - **Routing hints and a live test** — Give each channel a **What it does** and **When to use** line, then run **Test question** in Settings > External Ask to preview the recommended destination, confidence, and release rule without opening anything.
 - **1-click query routing (External Ask)** — Hand off questions to external tools without consuming API tokens or cluttering history:
   - **Web AI**: Launch queries directly in ChatGPT, Perplexity, Grok, and more.
   - **CLI agents**: Wake up local command-line agents (like omp) directly in Terminal.
@@ -57,6 +61,13 @@ Press the global hotkey (default `⌥ + Space`) to summon a focused question win
   </tr>
 </table>
 
+### 3. Decision routing: the model picks the destination
+
+Turn on automatic routing and SpotAsk asks a System One decision model before sending, then recommends a destination with a confidence score. `↩` continues, `Tab` switches channels, `Esc` cancels, and the toolbar toggle (`⌘ + ⇧ + R`) turns automatic routing off for the current conversation.
+<p align="center">
+  <img src="docs/site/public/images/spotask-decision-routing.png" width="720" alt="SpotAsk recommendation card naming the destination and its confidence, next to the decision model choosing between In SpotAsk, Web Chat, and Local Agent">
+</p>
+
 ## Download
 
 Install with Homebrew:
@@ -87,6 +98,7 @@ The packages are signed with a Developer ID and notarized by Apple for a seamles
 | Selection action bar | `⌥ + ⇧ + Space` | Trigger actions near highlighted text |
 | Dismiss / Stop generating | `Esc` | Instant close with zero friction |
 | New conversation | `⌘ + N` | Clear conversation history |
+| Toggle automatic routing for this conversation | `⌘ + ⇧ + R` | Only while decision routing is on and the toolbar toggle is shown |
 | Open Settings | `⌘ + ,` | Configure providers, shortcuts, and appearance |
 
 > For full shortcut mapping and detailed options, see the [Settings & Shortcuts Reference](https://shiquda.github.io/SpotAsk/reference).
