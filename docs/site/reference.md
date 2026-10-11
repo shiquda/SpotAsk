@@ -28,6 +28,7 @@ Decision Routing lives in Settings > External Ask, after the channel list. It is
 | Confirmation | **Always confirm**, or **Auto-send above threshold**. |
 | Confidence threshold | Auto-send only when confidence is strictly above this value. Default 0.8. |
 | Timeout | 0.5 to 5 seconds, in 0.1-second steps. Default 2 seconds. |
+| On timeout | **Choose manually**, or **Answer in SpotAsk**. Default: choose manually. |
 | Show routing toggle in toolbar | Shows the per-conversation switch. Default on. |
 
 
