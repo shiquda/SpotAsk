@@ -7,6 +7,10 @@ SpotAsk 的所有重要变更都记录在本文件中。
 
 ## [Unreleased]
 
+### 修复
+
+- 通用 OpenAI 兼容模型选择「关闭」思考时不再发送会被 New API 一类网关以 HTTP 400 拒绝的 `reasoning_effort: none`。DeepSeek 兼容类型关闭思考时同时发送 `reasoning_effort: off`，思考才会真正停止。
+
 ## [0.2.7] - 2026-10-08
 
 **Gemini 服务、官方地址预填、模型发现更顺手**

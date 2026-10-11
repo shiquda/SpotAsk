@@ -14,20 +14,54 @@ final class RequestCompatibilityMappingTests: XCTestCase {
     }
 
     func testOpenAIFamilyMapsEffort() {
+        for profile in [RequestCompatibilityProfile.openAI, .azureOpenAI] {
+            XCTAssertEqual(
+                profile.automaticReasoningParameters(for: .high),
+                ["reasoning_effort": .string("high")],
+                "\(profile)"
+            )
+            XCTAssertEqual(
+                profile.automaticReasoningParameters(for: .disabled),
+                ["reasoning_effort": .string("none")],
+                "\(profile)"
+            )
+            XCTAssertEqual(
+                profile.automaticReasoningParameters(for: .minimal),
+                ["reasoning_effort": .string("minimal")],
+                "\(profile)"
+            )
+        }
+    }
+
+    func testGenericOpenAIMapsGatewayEffort() {
         XCTAssertEqual(
-            RequestCompatibilityProfile.openAI.automaticReasoningParameters(for: .high),
-            ["reasoning_effort": .string("high")]
+            RequestCompatibilityProfile.genericOpenAI.automaticReasoningParameters(for: .disabled),
+            ["reasoning_effort": .string("off")]
         )
         XCTAssertEqual(
-            RequestCompatibilityProfile.openAI.automaticReasoningParameters(for: .disabled),
-            ["reasoning_effort": .string("none")]
+            RequestCompatibilityProfile.genericOpenAI.automaticReasoningParameters(for: .minimal),
+            ["reasoning_effort": .string("low")]
+        )
+        XCTAssertEqual(
+            RequestCompatibilityProfile.genericOpenAI.automaticReasoningParameters(for: .xhigh),
+            ["reasoning_effort": .string("xhigh")]
         )
     }
 
     func testDeepSeekMapsThinkingAndEffort() {
         XCTAssertEqual(
             RequestCompatibilityProfile.deepSeek.automaticReasoningParameters(for: .disabled),
-            ["thinking": .object(["type": .string("disabled")])]
+            [
+                "thinking": .object(["type": .string("disabled")]),
+                "reasoning_effort": .string("off")
+            ]
+        )
+        XCTAssertEqual(
+            RequestCompatibilityProfile.deepSeek.automaticReasoningParameters(for: .minimal),
+            [
+                "thinking": .object(["type": .string("enabled")]),
+                "reasoning_effort": .string("low")
+            ]
         )
         XCTAssertEqual(
             RequestCompatibilityProfile.deepSeek.automaticReasoningParameters(for: .high),
