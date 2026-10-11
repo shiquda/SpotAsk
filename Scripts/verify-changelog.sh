@@ -47,7 +47,7 @@ for file in "$EN_FILE" "$ZH_FILE"; do
     fi
 done
 
-awk -v en_name='CHANGELOG.md' -v zh_name='CHANGELOG.zh-CN.md' '
+awk -v root_dir="$ROOT_DIR" -v en_name='CHANGELOG.md' -v zh_name='CHANGELOG.zh-CN.md' '
 function report(msg) {
     printf "FAIL: %s\n", msg > "/dev/stderr"
     problems++
@@ -184,6 +184,30 @@ f <= 2 {
         next
     }
 
+    if (line ~ /!\[[^]]*\]\([^)]+\)/) {
+        i = cur_sec[f]
+        if (i > 0) {
+            images[f, i, cur_sub[f]]++
+            img_target = line
+            sub(/^.*!\[[^]]*\]\(/, "", img_target)
+            sub(/\).*$/, "", img_target)
+            img_target = trim(img_target)
+            if (img_target !~ /^https?:\/\//) {
+                if (img_target ~ /^\/images\//) {
+                    disk_path = root_dir "/docs/site/public" img_target
+                } else {
+                    disk_path = root_dir "/" img_target
+                }
+                if ((getline dummy < disk_path) < 0) {
+                    report(sprintf("%s:%d: image `%s` does not exist", name[f], FNR, img_target))
+                } else {
+                    close(disk_path)
+                }
+            }
+        }
+        next
+    }
+
     if (line ~ /^\[[^]]+\]:/) {
         ref_label = line
         sub(/^\[/, "", ref_label)
@@ -289,6 +313,13 @@ END {
                 sub_disp = (k == 0 ? "" : sub_of[1, i, k])
                 where = (sub_disp == "" ? "`[%s]`" : sprintf("`[%s]` / `### %s`", label, sub_disp))
                 report(sprintf("%s has %d bullets in %s but %d in %s", where, en_bullets, en_name, zh_bullets, zh_name))
+            }
+            en_images = images[1, i, csub] + 0
+            zh_images = images[2, j, csub] + 0
+            if (en_images != zh_images) {
+                sub_disp = (k == 0 ? "" : sub_of[1, i, k])
+                where = (sub_disp == "" ? sprintf("`[%s]`", label) : sprintf("`[%s]` / `### %s`", label, sub_disp))
+                report(sprintf("%s has %d images in %s but %d in %s", where, en_images, en_name, zh_images, zh_name))
             }
         }
     }

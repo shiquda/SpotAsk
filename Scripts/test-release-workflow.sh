@@ -797,6 +797,8 @@ cat > "$notes_fixture/CHANGELOG.md" <<'EOF'
 
 - Shared entry EN-BETA.
 
+![Feature preview](docs/site/public/images/spotask-decision-routing.png)
+
 ### Fixed
 
 - Paired fix EN-BETA-FIX.
@@ -815,6 +817,8 @@ cat > "$notes_fixture/CHANGELOG.zh-CN.md" <<'EOF'
 ### Added
 
 - 共享条目 ZH-BETA。
+
+![功能预览](docs/site/public/images/spotask-decision-routing-zh.png)
 
 ### Fixed
 
@@ -841,6 +845,10 @@ grep -q 'ZH-BETA-FIX' "$zh_notes" || fail "--zh dropped the last subsection of t
 grep -q 'EN-BETA' "$zh_notes" && fail "--zh leaked the English section"
 grep -q 'example.test/compare' "$zh_notes" && fail "--zh included the changelog link references"
 
+grep -q 'https://shiquda.github.io/SpotAsk/images/spotask-decision-routing.png' "$en_notes" \
+    || fail "--en did not rewrite changelog image path to absolute docs URL"
+grep -q 'https://shiquda.github.io/SpotAsk/images/spotask-decision-routing-zh.png' "$zh_notes" \
+    || fail "--zh did not rewrite Chinese changelog image path to absolute docs URL"
 grep -q 'ZH-BETA' "$all_notes" || fail "--all is missing the Chinese section"
 grep -q 'EN-BETA' "$all_notes" || fail "--all is missing the English section"
 awk '/EN-BETA/{en=NR} /ZH-BETA/{zh=NR} END{exit !(zh && en && en < zh)}' "$all_notes" \
@@ -891,6 +899,9 @@ new_changelog_fixture() {
     dir=$1
     rm -rf "$dir"
     mkdir -p "$dir/Scripts"
+    mkdir -p "$dir/docs/site/public/images"
+    : > "$dir/docs/site/public/images/demo-en.png"
+    : > "$dir/docs/site/public/images/demo-zh.png"
     cp "$CHANGELOG_CHECK" "$dir/Scripts/verify-changelog.sh"
     cat > "$dir/CHANGELOG.md" <<'EOF'
 # Changelog
@@ -989,6 +1000,22 @@ expect_changelog_problem "$changelog_fixture" "an unknown subsection" \
 new_changelog_fixture "$changelog_fixture"
 rewrite "$changelog_fixture/CHANGELOG.zh-CN.md" 's/^### Added$/### 新增/; s/^### Fixed$/### 修复/'
 expect_changelog_ok "$changelog_fixture" "a localized subsection pair"
+new_changelog_fixture "$changelog_fixture"
+rewrite "$changelog_fixture/CHANGELOG.md" 's/^- Shared entry EN-ALPHA\.$/&\n\n![Demo](docs\/site\/public\/images\/demo-en.png)/'
+rewrite "$changelog_fixture/CHANGELOG.zh-CN.md" 's/^- Shared entry ZH-ALPHA\.$/&\n\n![演示](docs\/site\/public\/images\/demo-zh.png)/'
+expect_changelog_ok "$changelog_fixture" "a symmetric localized image pair"
+
+new_changelog_fixture "$changelog_fixture"
+rewrite "$changelog_fixture/CHANGELOG.md" 's/^- Shared entry EN-ALPHA\.$/&\n\n![Demo](docs\/site\/public\/images\/demo-en.png)/'
+expect_changelog_problem "$changelog_fixture" "an image present in only one language" \
+    '`[Unreleased]` / `### Added` has 1 images in CHANGELOG.md but 0 in CHANGELOG.zh-CN.md'
+
+new_changelog_fixture "$changelog_fixture"
+rewrite "$changelog_fixture/CHANGELOG.md" 's/^- Shared entry EN-ALPHA\.$/&\n\n![Missing](docs\/site\/public\/images\/no-such-file.png)/'
+rewrite "$changelog_fixture/CHANGELOG.zh-CN.md" 's/^- Shared entry ZH-ALPHA\.$/&\n\n![缺失](docs\/site\/public\/images\/no-such-file.png)/'
+expect_changelog_problem "$changelog_fixture" "an image path missing on disk" \
+    'image `docs/site/public/images/no-such-file.png` does not exist'
+
 new_changelog_fixture "$changelog_fixture"
 rewrite "$changelog_fixture/CHANGELOG.md" 's/^## \[9.9.9\] - 2030-01-01$/## [9.9] - 2030-01-01/'
 rewrite "$changelog_fixture/CHANGELOG.zh-CN.md" 's/^## \[9.9.9\] - 2030-01-01$/## [9.9] - 2030-01-01/'
