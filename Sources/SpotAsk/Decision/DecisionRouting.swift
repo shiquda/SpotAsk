@@ -109,9 +109,13 @@ enum DecisionRoutingPolicy {
         showsToolbarToggle ? sessionRoutingEnabled : true
     }
 
-    static func modelName(_ model: String) -> String {
+    /// The official service keeps its prefilled default. A custom service must name
+    /// its own model: an empty stored value is a configuration error, never a silent
+    /// fallback to the official model.
+    static func resolvedModel(_ model: String, isOfficialService: Bool) -> String? {
         let trimmed = model.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? defaultOfficialModel : trimmed
+        if !trimmed.isEmpty { return trimmed }
+        return isOfficialService ? defaultOfficialModel : nil
     }
 
     static func normalizedAPIKey(_ value: String?) -> String? {
@@ -157,14 +161,16 @@ enum DecisionRoutingMigration {
         legacyCustomModel: String?
     ) -> (serviceURL: String, model: String, preferLegacyCustomCredential: Bool) {
         if hasStoredServiceURL {
-            return (storedServiceURL, DecisionRoutingPolicy.modelName(storedModel), false)
+            return (storedServiceURL, storedModel.trimmingCharacters(in: .whitespacesAndNewlines), false)
         }
         if legacyEndpoint == "custom" {
             let url = (legacyCustomURL ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             let model = (legacyCustomModel ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            // The custom model is carried over as stored, including empty, so the
+            // settings validation reports it instead of adopting the official model.
             return (
                 url.isEmpty ? DecisionRoutingPolicy.defaultServiceURL : url,
-                model.isEmpty ? DecisionRoutingPolicy.defaultOfficialModel : model,
+                model,
                 true
             )
         }
@@ -185,6 +191,7 @@ struct DecisionRouteCandidate: Equatable, Sendable, Identifiable {
     var applicableDescription: String
     var forceConfirm: Bool
     var externalActionID: UUID?
+    var externalActionKind: QuickActionKind?
 
     var isInApp: Bool { id == DecisionRouteID.inApp }
 }
@@ -224,7 +231,8 @@ enum DecisionRouteCatalog {
                 brandIconSlug: nil,
                 applicableDescription: inAppDescription(customInApp),
                 forceConfirm: false,
-                externalActionID: nil
+                externalActionID: nil,
+                externalActionKind: nil
             )
         ]
         for action in actions where action.isEnabled {
@@ -236,7 +244,8 @@ enum DecisionRouteCatalog {
                     brandIconSlug: action.brandIconSlug,
                     applicableDescription: applicableDescription(for: action),
                     forceConfirm: action.requiresConfirmationOnAutoRoute,
-                    externalActionID: action.id
+                    externalActionID: action.id,
+                    externalActionKind: action.kind
                 )
             )
         }
@@ -266,21 +275,40 @@ enum SystemOneEndpoint {
     static let officialEvaluationURL = URL(string: "https://api.typesafe.ai/v1/systemone")!
 
     static func evaluationURL(_ raw: String) -> URL? {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        let source = trimmed.isEmpty ? DecisionRoutingPolicy.defaultServiceURL : trimmed
-        return normalizedEvaluationURL(source)
+        try? evaluationURLResult(raw).get()
     }
 
     static func requiresCredential(_ url: URL) -> Bool {
         url.host?.lowercased() == officialEvaluationURL.host?.lowercased()
     }
 
-    static func normalizedEvaluationURL(_ raw: String) -> URL? {
-        guard var components = URLComponents(string: raw),
+    /// Cleartext HTTP is kept for local debugging on this machine only. Anything
+    /// else must use HTTPS so a decision body and key never leave in the clear.
+    static func isLoopbackHost(_ host: String?) -> Bool {
+        let host = (host ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if host == "localhost" || host == "::1" || host == "[::1]" { return true }
+        let octets = host.split(separator: ".", omittingEmptySubsequences: false)
+        guard octets.count == 4, octets[0] == "127" else { return false }
+        return octets.allSatisfy { part in
+            guard let value = Int(part), part.allSatisfy(\.isNumber), value >= 0, value <= 255 else { return false }
+            return true
+        }
+    }
+
+    /// `evaluationURL` collapses every rejection to `nil`. This keeps the reason so
+    /// the settings page and chat can name the actual configuration problem.
+    static func evaluationURLResult(_ raw: String) -> Result<URL, DecisionServiceResolver.Failure> {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let source = trimmed.isEmpty ? DecisionRoutingPolicy.defaultServiceURL : trimmed
+        guard var components = URLComponents(string: source),
               let scheme = components.scheme?.lowercased(),
               scheme == "http" || scheme == "https",
-              components.host != nil else {
-            return nil
+              let host = components.host,
+              !host.isEmpty else {
+            return .failure(.invalidEndpoint)
+        }
+        if scheme == "http", !isLoopbackHost(host) {
+            return .failure(.insecureRemoteHTTP)
         }
         var path = components.path
         if path.count > 1, path.hasSuffix("/") {
@@ -298,7 +326,8 @@ enum SystemOneEndpoint {
         components.path = path
         components.query = nil
         components.fragment = nil
-        return components.url
+        guard let url = components.url else { return .failure(.invalidEndpoint) }
+        return .success(url)
     }
 }
 
@@ -313,22 +342,32 @@ struct DecisionServiceCall: Equatable, Sendable {
 enum DecisionServiceResolver {
     enum Failure: Error, Equatable {
         case invalidEndpoint
+        case insecureRemoteHTTP
+        case missingModel
         case missingCredential
     }
 
     static func resolve(settings: DecisionRoutingSettings, apiKey: String?) -> Result<DecisionServiceCall, Failure> {
-        guard let url = SystemOneEndpoint.evaluationURL(settings.serviceURL) else {
-            return .failure(.invalidEndpoint)
+        let url: URL
+        switch SystemOneEndpoint.evaluationURLResult(settings.serviceURL) {
+        case let .success(resolved):
+            url = resolved
+        case let .failure(failure):
+            return .failure(failure)
+        }
+        let isOfficial = SystemOneEndpoint.requiresCredential(url)
+        guard let model = DecisionRoutingPolicy.resolvedModel(settings.model, isOfficialService: isOfficial) else {
+            return .failure(.missingModel)
         }
         let key = DecisionRoutingPolicy.normalizedAPIKey(apiKey)
-        if SystemOneEndpoint.requiresCredential(url), key == nil {
+        if isOfficial, key == nil {
             return .failure(.missingCredential)
         }
         return .success(
             DecisionServiceCall(
                 provider: settings.provider,
                 url: url,
-                model: DecisionRoutingPolicy.modelName(settings.model),
+                model: model,
                 apiKey: key,
                 timeout: DecisionRoutingPolicy.normalizedTimeout(settings.timeoutSeconds)
             )
@@ -367,6 +406,8 @@ struct SystemOneChoiceAnswer: Equatable, Sendable {
 enum SystemOneClientError: Error, Equatable {
     case timedOut
     case httpStatus(Int)
+    /// The transport refused a redirect that left the request's origin.
+    case unsafeRedirect
     case invalidResponse
     case unknownChoice
     case confidenceOutOfRange
@@ -396,7 +437,10 @@ enum SystemOneRequestBuilder {
                 )
             ]
         )
-        return try JSONEncoder().encode(payload)
+        let encoder = JSONEncoder()
+        // Stable key order keeps the request reproducible across launches.
+        encoder.outputFormatting = .sortedKeys
+        return try encoder.encode(payload)
     }
 
     static func request(url: URL, apiKey: String?, timeout: TimeInterval, body: Data) -> URLRequest {
@@ -447,14 +491,131 @@ enum SystemOneResponseParser {
     }
 }
 
+/// Sanitized reason a routing attempt could not produce a recommendation. It never
+/// carries a response body, access key, request URL, or authorization material, so it
+/// is safe to show in settings and chat.
+enum DecisionRoutingFailure: Equatable, Sendable {
+    /// External Ask is off, so routing cannot run at all.
+    case notEnabled
+    /// Fewer than two routing channels, so there is nothing to choose between.
+    case notEnoughCandidates(available: Int)
+    case emptyQuestion
+    case missingCredential
+    case invalidEndpoint
+    /// Remote cleartext HTTP. Only localhost, 127.0.0.0/8, and ::1 may use HTTP.
+    case insecureRemoteHTTP
+    /// The custom service has no model; the official model is not substituted.
+    case missingModel
+    case httpUnauthorized
+    case httpForbidden
+    case httpNotFound
+    case httpRateLimited
+    case httpStatus(Int)
+    case networkUnavailable
+    case timedOut
+    case invalidResponse
+    case unrecognizedChoice
+    case unsafeRedirect
+
+    var localizationKey: String {
+        switch self {
+        case .notEnabled: "decisionRouting.notEnabled"
+        case .notEnoughCandidates: "decisionRouting.notEnoughCandidates"
+        case .emptyQuestion: "decisionRouting.emptyQuestion"
+        case .missingCredential: "decisionRouting.missingCredential"
+        case .invalidEndpoint: "decisionRouting.invalidEndpoint"
+        case .insecureRemoteHTTP: "decisionRouting.insecureRemoteHTTP"
+        case .missingModel: "decisionRouting.missingModel"
+        case .httpUnauthorized: "decisionRouting.httpUnauthorized"
+        case .httpForbidden: "decisionRouting.httpForbidden"
+        case .httpNotFound: "decisionRouting.httpNotFound"
+        case .httpRateLimited: "decisionRouting.httpRateLimited"
+        case .httpStatus: "decisionRouting.httpFailed"
+        case .networkUnavailable: "decisionRouting.networkUnavailable"
+        case .timedOut: "decisionRouting.timedOut"
+        case .invalidResponse: "decisionRouting.invalidResponse"
+        case .unrecognizedChoice: "decisionRouting.unknownChoice"
+        case .unsafeRedirect: "decisionRouting.unsafeRedirect"
+        }
+    }
+
+    var localizedText: String {
+        switch self {
+        case let .notEnoughCandidates(available):
+            L10n.string(localizationKey, available)
+        case let .httpStatus(code):
+            L10n.string(localizationKey, code)
+        default:
+            L10n.string(localizationKey)
+        }
+    }
+
+    /// True once a request could have left the app, so an elapsed time is meaningful.
+    /// Prerequisites and configuration problems never reach the service.
+    var reachedService: Bool {
+        switch self {
+        case .notEnabled, .notEnoughCandidates, .emptyQuestion,
+             .missingCredential, .invalidEndpoint, .insecureRemoteHTTP, .missingModel:
+            false
+        case .httpUnauthorized, .httpForbidden, .httpNotFound, .httpRateLimited,
+             .httpStatus, .networkUnavailable, .timedOut, .invalidResponse,
+             .unrecognizedChoice, .unsafeRedirect:
+            true
+        }
+    }
+
+    static func classify(configurationError: DecisionServiceResolver.Failure) -> DecisionRoutingFailure {
+        switch configurationError {
+        case .invalidEndpoint: .invalidEndpoint
+        case .insecureRemoteHTTP: .insecureRemoteHTTP
+        case .missingModel: .missingModel
+        case .missingCredential: .missingCredential
+        }
+    }
+
+    static func classify(_ error: Error) -> DecisionRoutingFailure {
+        if let clientError = error as? SystemOneClientError {
+            switch clientError {
+            case .timedOut:
+                return .timedOut
+            case .unsafeRedirect:
+                return .unsafeRedirect
+            case .invalidResponse, .confidenceOutOfRange:
+                return .invalidResponse
+            case .unknownChoice:
+                return .unrecognizedChoice
+            case let .httpStatus(code):
+                switch code {
+                case 401: return .httpUnauthorized
+                case 403: return .httpForbidden
+                case 404: return .httpNotFound
+                case 429: return .httpRateLimited
+                default: return .httpStatus(code)
+                }
+            }
+        }
+        if let urlError = error as? URLError {
+            return urlError.code == .timedOut ? .timedOut : .networkUnavailable
+        }
+        return .invalidResponse
+    }
+}
+
 enum DecisionPreviewResult: Equatable, Sendable {
     case recommendation(DecisionRouteCandidate, confidence: Double, release: DecisionRelease)
     case timeout(DecisionTimeoutAction)
-    case missingCredential
-    case invalidEndpoint
-    case missingModel
-    case unavailable
-    case unknownChoice
+    case failed(DecisionRoutingFailure)
+
+    /// Prerequisites and configuration problems never reach the service, so the
+    /// preview shows the reason without a misleading elapsed time.
+    var showsElapsedTime: Bool {
+        switch self {
+        case .recommendation, .timeout:
+            true
+        case let .failed(failure):
+            failure.reachedService
+        }
+    }
 }
 
 enum DecisionRoutingPreview {
@@ -467,15 +628,16 @@ enum DecisionRoutingPreview {
         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) async -> DecisionPreviewResult {
         let trimmed = question.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, candidates.count >= 2 else { return .unavailable }
+        guard !trimmed.isEmpty else { return .failed(.emptyQuestion) }
+        guard candidates.count >= 2 else {
+            return .failed(.notEnoughCandidates(available: candidates.count))
+        }
         let call: DecisionServiceCall
         switch DecisionServiceResolver.resolve(settings: settings, apiKey: apiKey) {
         case let .success(resolved):
             call = resolved
-        case .failure(.invalidEndpoint):
-            return .invalidEndpoint
-        case .failure(.missingCredential):
-            return .missingCredential
+        case let .failure(failure):
+            return .failed(DecisionRoutingFailure.classify(configurationError: failure))
         }
         do {
             let answer = try await DecisionProviderClient.evaluate(
@@ -486,7 +648,7 @@ enum DecisionRoutingPreview {
                 sleep: sleep
             )
             guard let candidate = DecisionRouteCatalog.candidate(matching: answer.choice, in: candidates) else {
-                return .unknownChoice
+                return .failed(.unrecognizedChoice)
             }
             let release = DecisionRoutingPolicy.release(
                 forceConfirm: candidate.forceConfirm,
@@ -495,20 +657,87 @@ enum DecisionRoutingPreview {
                 threshold: settings.confidenceThreshold
             )
             return .recommendation(candidate, confidence: answer.confidence, release: release)
-        } catch let error as SystemOneClientError {
-            switch error {
-            case .timedOut:
-                return .timeout(settings.timeoutAction)
-            case .unknownChoice:
-                return .unknownChoice
-            case .httpStatus, .invalidResponse, .confidenceOutOfRange:
-                return .unavailable
-            }
         } catch {
-            if SystemOneClient.isTimeout(error) {
-                return .timeout(settings.timeoutAction)
-            }
-            return .unavailable
+            let failure = DecisionRoutingFailure.classify(error)
+            return failure == .timedOut ? .timeout(settings.timeoutAction) : .failed(failure)
+        }
+    }
+}
+
+/// Prefills the settings credential and decides whether the legacy slot may stop
+/// being preferred. The legacy slot keeps winning until the new slot actually
+/// persists the key, so a failed save never drops the working credential.
+///
+/// Reads are injected as throwing closures rather than optional strings so a failed
+/// read is never mistaken for an absent credential: an unreadable legacy file keeps
+/// the preference in place and never triggers a migration save.
+enum DecisionCredentialMigration {
+    struct Outcome: Equatable {
+        /// Sanitized failure class, so the settings view can pick localized copy without
+        /// exposing key material or a raw error.
+        enum Failure: Equatable {
+            /// A credential could not be read; absence was never confirmed.
+            case read
+            /// The legacy credential was readable but could not persist in the new slot.
+            case save
+        }
+
+        var apiKey: String
+        var clearLegacyCustomPreference: Bool
+        var failure: Failure?
+
+        init(apiKey: String, clearLegacyCustomPreference: Bool, failure: Failure? = nil) {
+            self.apiKey = apiKey
+            self.clearLegacyCustomPreference = clearLegacyCustomPreference
+            self.failure = failure
+        }
+    }
+
+    static func resolve(
+        readSystemOne: () throws -> String?,
+        readLegacyCustom: () throws -> String?,
+        preferLegacyCustom: Bool,
+        saveToSystemOne: (String) throws -> Void
+    ) -> Outcome {
+        let current = read(readSystemOne)
+        guard preferLegacyCustom else {
+            return Outcome(
+                apiKey: current.text,
+                clearLegacyCustomPreference: false,
+                failure: current.failed ? .read : nil
+            )
+        }
+        let legacy = read(readLegacyCustom)
+        // A failed legacy read is not absence: keep the preference, surface the failure,
+        // and never attempt a migration save from an unreadable value.
+        guard !legacy.failed else {
+            return Outcome(apiKey: current.text, clearLegacyCustomPreference: false, failure: .read)
+        }
+        guard !legacy.text.isEmpty else {
+            // Confirmed absence, so a stale preference can be dropped even though a
+            // current-slot read failure keeps the field empty.
+            return Outcome(
+                apiKey: current.text,
+                clearLegacyCustomPreference: true,
+                failure: current.failed ? .read : nil
+            )
+        }
+        let legacyValue = legacy.text
+        do {
+            try saveToSystemOne(legacyValue)
+        } catch {
+            return Outcome(apiKey: legacyValue, clearLegacyCustomPreference: false, failure: .save)
+        }
+        return Outcome(apiKey: legacyValue, clearLegacyCustomPreference: true)
+    }
+
+    /// Trims a throwing read into an explicit value/absence versus read failure.
+    private static func read(_ closure: () throws -> String?) -> (text: String, failed: Bool) {
+        do {
+            let value = try closure()?.trimmingCharacters(in: .whitespacesAndNewlines)
+            return (value ?? "", false)
+        } catch {
+            return ("", true)
         }
     }
 }

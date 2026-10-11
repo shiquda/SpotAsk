@@ -5,6 +5,8 @@ struct DecisionRoutingSettingsSection: View {
     let keyStore: any APIKeyStoring
 
     @State private var apiKey = ""
+    /// Last value the field wrote or restored, so a programmatic restore is not re-saved.
+    @State private var restoredAPIKey = ""
     @State private var isAPIKeyVisible = false
     @State private var testQuestion = ""
     @State private var testResult: DecisionPreviewResult?
@@ -274,19 +276,35 @@ struct DecisionRoutingSettingsSection: View {
     }
 
     private func loadKeys() {
-        let legacy = (try? keyStore.readAPIKey(for: DecisionCredentialSlot.legacyCustom)) ?? ""
-        let current = (try? keyStore.readAPIKey(for: DecisionCredentialSlot.systemOne)) ?? ""
         let preferLegacy = settings.defaults.bool(forKey: DecisionCredentialSlot.preferLegacyCustomKey)
-        if preferLegacy, !legacy.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            apiKey = legacy
-            persist(legacy, slot: DecisionCredentialSlot.systemOne)
+        let outcome = DecisionCredentialMigration.resolve(
+            readSystemOne: { try keyStore.readAPIKey(for: DecisionCredentialSlot.systemOne) },
+            readLegacyCustom: { try keyStore.readAPIKey(for: DecisionCredentialSlot.legacyCustom) },
+            preferLegacyCustom: preferLegacy,
+            saveToSystemOne: { key in
+                try keyStore.saveAPIKey(key, for: DecisionCredentialSlot.systemOne)
+            }
+        )
+        apiKey = outcome.apiKey
+        // The restore already wrote (or failed) above, so the field's change handler
+        // must not repeat the same write and report the failure twice.
+        restoredAPIKey = outcome.apiKey
+        if outcome.clearLegacyCustomPreference {
             settings.defaults.set(false, forKey: DecisionCredentialSlot.preferLegacyCustomKey)
-        } else {
-            apiKey = current
+        }
+        switch outcome.failure {
+        case .read:
+            // Report read failures separately from failed migration saves.
+            StatusToastCenter.shared.show(L10n.string("decisionRouting.credentialReadFailed"), isError: true)
+        case .save:
+            StatusToastCenter.shared.show(L10n.string("decisionRouting.credentialSaveFailed"), isError: true)
+        case nil:
+            break
         }
     }
 
     private func persist(_ key: String, slot: UUID) {
+        guard key != restoredAPIKey else { return }
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
         do {
             if trimmed.isEmpty {
@@ -294,6 +312,8 @@ struct DecisionRoutingSettingsSection: View {
             } else {
                 try keyStore.saveAPIKey(trimmed, for: slot)
             }
+            restoredAPIKey = key
+            settings.defaults.set(false, forKey: DecisionCredentialSlot.preferLegacyCustomKey)
         } catch {
             StatusToastCenter.shared.show(L10n.string("decisionRouting.credentialSaveFailed"), isError: true)
         }
@@ -301,17 +321,24 @@ struct DecisionRoutingSettingsSection: View {
 
     private func runTest() {
         let question = testQuestion
+        testResult = nil
+        testElapsedMs = nil
+        guard settings.externalAskEnabled else {
+            testResult = .failed(.notEnabled)
+            return
+        }
+        guard !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            testResult = .failed(.emptyQuestion)
+            return
+        }
         let snapshot = settings.decisionRoutingSettings()
         let candidates = settings.decisionRoutingCandidates()
         guard candidates.count >= 2 else {
-            testElapsedMs = 0
-            testResult = .unavailable
+            testResult = .failed(.notEnoughCandidates(available: candidates.count))
             return
         }
         let key = apiKey
         isTesting = true
-        testResult = nil
-        testElapsedMs = nil
         let proxy = ChatNetworking.proxyConfiguration(settings: settings, keyStore: keyStore)
         Task {
             let clock = ContinuousClock()
@@ -328,7 +355,8 @@ struct DecisionRoutingSettingsSection: View {
             let elapsed = clock.now - startedAt
             let ms = max(1, Int(elapsed.components.seconds * 1000) + Int(elapsed.components.attoseconds / 1_000_000_000_000_000))
             isTesting = false
-            testElapsedMs = ms
+            // Prerequisites and configuration problems never reach the service.
+            testElapsedMs = result.showsElapsedTime ? ms : nil
             testResult = result
         }
     }
@@ -350,16 +378,8 @@ struct DecisionRoutingSettingsSection: View {
                 ? L10n.string("decisionRouting.timeoutInAppAction")
                 : L10n.string("decisionRouting.timeoutManualAction")
             return L10n.string("decisionRouting.testTimeout", actionText)
-        case .missingCredential:
-            return L10n.string("decisionRouting.missingCredential")
-        case .invalidEndpoint:
-            return L10n.string("decisionRouting.invalidEndpoint")
-        case .missingModel:
-            return L10n.string("decisionRouting.missingModel")
-        case .unknownChoice:
-            return L10n.string("decisionRouting.unknownChoice")
-        case .unavailable:
-            return L10n.string("decisionRouting.unavailable")
+        case let .failed(failure):
+            return failure.localizedText
         }
     }
 }

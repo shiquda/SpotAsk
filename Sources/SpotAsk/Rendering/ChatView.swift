@@ -63,12 +63,18 @@ struct ChatView: View {
             }
             .onChange(of: viewModel.input) { oldValue, newValue in
                 clearPendingExternalAskIfInputEmptied(from: oldValue, to: newValue)
-                routingController.noteInput(newValue)
+                restoreComposerFocusAfterRevocation(routingController.noteInput(newValue))
             }
-            .onChange(of: routingController.pendingExecution) { _, candidate in
-                guard let candidate else { return }
-                routingController.clearPendingExecution()
-                _ = executeDecisionRoute(candidate)
+            // A decision only covers the exact draft, attachments, preset,
+            // session and route set it was made for. Any later change revokes
+            // the decision even when the change is reverted afterwards.
+            .onChange(of: routingController.phase.isActive || routingController.hasPendingSend ? sendContextSnapshot : nil) { _, snapshot in
+                guard let snapshot else { return }
+                restoreComposerFocusAfterRevocation(routingController.noteSendContextChanged(snapshot))
+            }
+            .onChange(of: routingController.pendingSend) { _, pending in
+                guard pending != nil else { return }
+                consumeDeliveredDecisionRoute()
             }
     }
 
@@ -318,6 +324,23 @@ struct ChatView: View {
         )
     }
 
+    /// Everything a routing decision is allowed to send for, read live. The
+    /// controller freezes this at decision start and compares again before a
+    /// delivered result is consumed, so an edit, attachment, preset, session
+    /// or route change drops the decision instead of sending new content
+    /// through an old route.
+    private var sendContextSnapshot: DecisionSendSnapshot {
+        DecisionSendSnapshot(
+            draft: viewModel.input,
+            attachmentIDs: viewModel.pendingAttachments.map(\.id),
+            preset: viewModel.selectedPromptPreset,
+            sessionIdentity: viewModel.sessionIdentity,
+            routingEnabled: settings.decisionRoutingEnabled,
+            sessionRoutingEnabled: sessionAllowsAutomaticRouting,
+            manualChannelID: composerModeCoordinator.pendingExternalAsk?.id,
+            candidates: settings.decisionRoutingCandidates()
+        )
+    }
 
     private var effectiveProviderIconSlug: String? {
         guard let model = viewModel.effectiveModel,
@@ -441,9 +464,8 @@ struct ChatView: View {
         )
         let proxy = ChatNetworking.proxyConfiguration(settings: settings, keyStore: decisionKeyStore)
         routingController.start(
-            snapshotQuestion: snapshot,
+            sendSnapshot: sendContextSnapshot,
             modelQuestion: question,
-            candidates: candidates,
             settings: settings.decisionRoutingSettings(),
             apiKey: apiKey,
             transport: URLSessionSystemOneTransport(
@@ -453,16 +475,47 @@ struct ChatView: View {
         return true
     }
 
+    /// Consumption point for a delivered decision. The frozen snapshot is
+    /// validated against the live editor immediately before use; a revoked
+    /// decision keeps the draft and attachments, and only a valid snapshot is
+    /// executed — the composer is untouched in every other case.
+    private func consumeDeliveredDecisionRoute() {
+        switch routingController.consumePendingSend(against: sendContextSnapshot) {
+        case .none:
+            return
+        case let .revoked(change):
+            restoreComposerFocusAfterRevocation(change)
+        case let .consume(pending):
+            _ = executeDecisionRoute(pending.candidate, draft: pending.snapshot.draft)
+        }
+    }
+
+    /// The dropped recommendation is never turned into an implicit send. The
+    /// draft and attachments stay exactly as they are; the next send starts
+    /// from live input instead of reusing the revoked route.
+    private func restoreComposerFocusAfterRevocation(_ change: DecisionSnapshotChange?) {
+        guard change != nil else { return }
+        inputFocused = true
+    }
+
     @discardableResult
-    private func executeDecisionRoute(_ candidate: DecisionRouteCandidate) -> Bool {
+    private func executeDecisionRoute(_ candidate: DecisionRouteCandidate, draft: String) -> Bool {
         if candidate.isInApp {
+            // The live input was validated equal to the snapshot draft above.
             return performStandardOrManualSend()
         }
-        let question = viewModel.input.trimmingCharacters(in: .whitespacesAndNewlines)
+        // The external handoff carries exactly the decided draft, not whatever
+        // the composer holds now.
+        let question = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty,
               let actionID = candidate.externalActionID,
               let action = resolveEnabledQuickAction(actionID) else {
             StatusToastCenter.shared.show(L10n.string("decisionRouting.unavailable"), isError: true)
+            inputFocused = true
+            return false
+        }
+        // A target edit must never reuse a decision made for the old configuration.
+        guard action.kind == candidate.externalActionKind else {
             inputFocused = true
             return false
         }
@@ -986,7 +1039,7 @@ struct ChatView: View {
         case .cancelGeneration, .startNewConversation, .dismissWindow:
             break
         }
-        if routingController.phase.isActive {
+        if routingController.phase.isActive || routingController.hasPendingSend {
             routingController.cancel()
             inputFocused = true
             return

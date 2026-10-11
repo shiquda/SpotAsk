@@ -24,6 +24,10 @@ final class ChatViewModel {
     /// Per-conversation automatic routing. Not persisted. A new conversation
     /// starts on; the toolbar switch can turn it off for this chat only.
     private(set) var sessionRoutingEnabled = true
+    /// Monotonic identity of the visible conversation. Bumped whenever the
+    /// session is replaced or restored, so a routing decision made for one
+    /// conversation can never send into another.
+    private(set) var sessionIdentity: UInt64 = 0
 
     private let settings: AppSettings
     private let providerFactory: any ChatProviderFactory
@@ -246,6 +250,7 @@ final class ChatViewModel {
         selectionSnapshotsByAssistantID.removeAll()
         restorableSession = nil
         hasAcknowledgedInactivity = false
+        sessionIdentity &+= 1
         try? sessionStore.clear()
     }
 
@@ -268,6 +273,7 @@ final class ChatViewModel {
         error = nil
         retryPromptPreset = nil
         selectionSnapshotsByAssistantID.removeAll()
+        sessionIdentity &+= 1
         try? sessionStore.clear()
         return true
     }
@@ -276,6 +282,7 @@ final class ChatViewModel {
         guard let restorableSession else { return }
         messages = restorableSession
         self.restorableSession = nil
+        sessionIdentity &+= 1
         hasAcknowledgedInactivity = true
         persistIfNeeded()
     }

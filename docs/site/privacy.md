@@ -18,6 +18,8 @@ Selected text and attached files are sent to the service when you ask a question
 
 When automatic routing is on and you have not picked a channel, SpotAsk also sends the question text and the candidate channel names and descriptions to the decision address in Settings > External Ask. That can be TypeSafe (`https://api.typesafe.ai`) or another System One address you enter, such as OpenRouter (`https://openrouter.ai/api`). The decision access key is stored on this Mac and is sent only to that address. Routing does not run for a manually chosen channel, a message with attachments, or a conversation whose toolbar routing switch is off.
 
+Decision requests require HTTPS outside loopback debugging. SpotAsk rejects redirects to another origin before forwarding the request body; same-origin redirects remain allowed. Routing sends the current question and candidate descriptions, not full conversation history or attachments. Routing error messages expose only a failure category and, where relevant, an HTTP status—not question text, access keys, proxy passwords, or authentication headers. Cancelling a recommendation cannot retract a decision request already sent to its configured service, but prevents the pending destination handoff.
+
 ## Selection permission
 
 The selection assistant reads text you select through macOS Accessibility. Permission is requested only when you enable the feature, and SpotAsk does not keep selected text after the action completes unless conversation retention stores that conversation.

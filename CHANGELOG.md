@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Decision requests reject cross-origin redirects before forwarding the body and require HTTPS outside loopback debugging.
+- Pending routing decisions are bound to a revocable send snapshot, including each external channel's link, URI, or command template; editing, cancellation, attachment/preset changes, conversation changes, or routing/channel configuration changes cannot send a new draft or use an edited target with an old recommendation. Stale recommendations are discarded without a notification.
+- Routing tests show specific sanitized configuration, HTTP, network, timeout, and response errors without a misleading preflight latency; failed credential reads retain the legacy key preference, failed migration saves preserve the working legacy credential, blank custom models are rejected, and criteria encoding is deterministic.
 - Expansion toggles for full questions, full answers, and thinking sections respond immediately while a response is still streaming.
 - Scrolling a long conversation no longer jumps the message on screen.
 - Turning thinking off for generic OpenAI-compatible and DeepSeek models sends gateway-compatible reasoning effort settings instead of values rejected by New API-style gateways.
