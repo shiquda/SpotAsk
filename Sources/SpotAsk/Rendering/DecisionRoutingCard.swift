@@ -215,6 +215,8 @@ struct DecisionRoutingCard: View {
             L10n.string("decisionRouting.timeoutManual")
         case .unavailable:
             L10n.string("decisionRouting.unavailable")
+        case let .failed(failure):
+            failure.localizedText
         }
     }
 

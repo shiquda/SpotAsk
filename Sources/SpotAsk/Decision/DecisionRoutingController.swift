@@ -9,7 +9,10 @@ struct DecisionRoutingTicket: Equatable, Sendable {
 enum DecisionChooseReason: Equatable, Sendable {
     case changeChannel
     case timeout
+    /// A precondition with no typed failure (no in-app fallback route).
     case unavailable
+    /// A resolver, network or parser failure, classified and sanitized.
+    case failed(DecisionRoutingFailure)
 }
 
 enum DecisionRoutingPhase: Equatable, Sendable {
@@ -47,20 +50,95 @@ enum DecisionRoutingGate {
     }
 }
 
+/// What a routing decision is allowed to send for, frozen when the decision
+/// starts. Consumption compares this against the live editor and revokes the
+/// decision on any difference, so a route chosen for one draft can never send
+/// another.
+struct DecisionSendSnapshot: Equatable, Sendable {
+    /// Raw composer draft. Compared untrimmed so any edit marks a difference.
+    var draft: String
+    /// Draft attachments of that moment, by identifier.
+    var attachmentIDs: [UUID]
+    /// Explicit prompt preset the send was made with, compared by value so an
+    /// edited instruction revokes too. `nil` means none.
+    var preset: PromptPreset?
+    /// Visible conversation the decision was made in.
+    var sessionIdentity: UInt64
+    /// Global routing switch state.
+    var routingEnabled: Bool
+    /// Effective per-conversation routing state, after the hidden-toggle rule.
+    var sessionRoutingEnabled: Bool
+    /// Channel mounted in the composer by the user, when there is one.
+    var manualChannelID: UUID?
+    /// Routes offered to the decision model, availability and preferences included.
+    var candidates: [DecisionRouteCandidate]
+
+    /// First field that no longer matches `current`, in a fixed order. Names
+    /// describe the condition that stopped holding: a snapshot is only taken
+    /// while routing is on, so both boolean cases mean "was turned off".
+    func firstDifference(comparedTo current: DecisionSendSnapshot) -> DecisionSnapshotChange? {
+        if draft != current.draft { return .draft }
+        if attachmentIDs != current.attachmentIDs { return .attachments }
+        if preset != current.preset { return .preset }
+        if sessionIdentity != current.sessionIdentity { return .session }
+        if routingEnabled != current.routingEnabled { return .routingDisabled }
+        if sessionRoutingEnabled != current.sessionRoutingEnabled { return .sessionRoutingDisabled }
+        if manualChannelID != current.manualChannelID { return .manualChannel }
+        if candidates != current.candidates { return .candidates }
+        return nil
+    }
+}
+
+/// Why a delivered decision can no longer be used.
+enum DecisionSnapshotChange: Equatable, Sendable {
+    case draft
+    case attachments
+    case preset
+    case session
+    case routingDisabled
+    case sessionRoutingDisabled
+    case manualChannel
+    case candidates
+}
+
+/// A decided route delivered to the UI and not consumed yet.
+struct DecisionPendingSend: Equatable, Sendable {
+    var candidate: DecisionRouteCandidate
+    var ticket: DecisionRoutingTicket
+    /// The frozen send context this decision was made for.
+    var snapshot: DecisionSendSnapshot
+}
+
+/// Outcome of trying to consume a delivered decision.
+enum DecisionSendConsumption: Equatable, Sendable {
+    case none
+    case consume(DecisionPendingSend)
+    case revoked(DecisionSnapshotChange)
+}
+
 @MainActor
 @Observable
 final class DecisionRoutingController {
     private(set) var phase: DecisionRoutingPhase = .idle
     private(set) var candidates: [DecisionRouteCandidate] = []
-    private(set) var pendingExecution: DecisionRouteCandidate?
+    /// Decided route waiting for the send path to consume it, if any.
+    private(set) var pendingSend: DecisionPendingSend?
+    /// Send context the active decision was started for.
+    private var activeSnapshot: DecisionSendSnapshot?
     private var generation: UInt64 = 0
     private var consumed: Set<UInt64> = []
     private var task: Task<Void, Never>?
 
+    var hasPendingSend: Bool { pendingSend != nil }
+
+    /// Starts a decision for exactly `sendSnapshot`. The draft, attachments,
+    /// preset, session, routing state and routes the decision may act on are
+    /// frozen here; any later change revokes the decision and a delivered
+    /// result. A new start supersedes both an active decision and any
+    /// delivered-but-unconsumed result.
     func start(
-        snapshotQuestion: String,
+        sendSnapshot: DecisionSendSnapshot,
         modelQuestion: String,
-        candidates: [DecisionRouteCandidate],
         settings: DecisionRoutingSettings,
         apiKey: String?,
         transport: any SystemOneTransport,
@@ -70,16 +148,18 @@ final class DecisionRoutingController {
         if let ticket = phase.ticket {
             invalidate(ticket.generation)
         }
+        pendingSend = nil
         generation += 1
-        let ticket = DecisionRoutingTicket(generation: generation, question: snapshotQuestion)
-        self.candidates = candidates
+        let ticket = DecisionRoutingTicket(generation: generation, question: sendSnapshot.draft)
+        candidates = sendSnapshot.candidates
+        activeSnapshot = sendSnapshot
         phase = .deciding(ticket)
         let generation = ticket.generation
         task = Task { [weak self] in
             await self?.run(
                 generation: generation,
                 modelQuestion: modelQuestion,
-                candidates: candidates,
+                candidates: sendSnapshot.candidates,
                 settings: settings,
                 apiKey: apiKey,
                 transport: transport,
@@ -89,14 +169,58 @@ final class DecisionRoutingController {
         }
     }
 
-    func noteInput(_ text: String) {
-        guard let ticket = phase.ticket, text != ticket.question else { return }
-        invalidate(ticket.generation)
+    /// Draft edits drop a delivered-but-unconsumed result too.
+    /// Returns `.draft` when that happened, so the UI can say why.
+    @discardableResult
+    func noteInput(_ text: String) -> DecisionSnapshotChange? {
+        var revoked: DecisionSnapshotChange?
+        if let pending = pendingSend, pending.snapshot.draft != text {
+            pendingSend = nil
+            revoked = .draft
+        }
+        if let ticket = phase.ticket, text != ticket.question {
+            invalidate(ticket.generation)
+        }
+        return revoked
+    }
+
+    /// Called on every attachment, preset, session and settings change while a
+    /// decision is running or a delivered result is waiting. Either difference
+    /// revokes, so a change that is later reverted cannot revive them, and the
+    /// user's draft and attachments are never touched.
+    /// Returns why a delivered-but-unconsumed result was dropped, if it was.
+    @discardableResult
+    func noteSendContextChanged(_ current: DecisionSendSnapshot) -> DecisionSnapshotChange? {
+        if let activeSnapshot,
+           let ticket = phase.ticket,
+           activeSnapshot.firstDifference(comparedTo: current) != nil {
+            invalidate(ticket.generation)
+        }
+        guard let pending = pendingSend,
+              let change = pending.snapshot.firstDifference(comparedTo: current) else { return nil }
+        pendingSend = nil
+        return change
+    }
+
+    /// Validates against the live send context immediately before use and
+    /// consumes at most once: the pending result is cleared first, so a second
+    /// call cannot send it again and a revoked result is never executed.
+    func consumePendingSend(against current: DecisionSendSnapshot) -> DecisionSendConsumption {
+        guard let pending = pendingSend else { return .none }
+        pendingSend = nil
+        guard let change = pending.snapshot.firstDifference(comparedTo: current) else {
+            return .consume(pending)
+        }
+        return .revoked(change)
     }
 
     func cancel() {
-        guard let ticket = phase.ticket else { return }
-        invalidate(ticket.generation)
+        if let ticket = phase.ticket {
+            invalidate(ticket.generation)
+        }
+        // Esc and Cancel apply to a delivered result too, not only to the
+        // request that is still deciding.
+        pendingSend = nil
     }
 
     func acceptCurrent() {
@@ -132,10 +256,6 @@ final class DecisionRoutingController {
         phase = .choosing(ticket, reason, highlightedID: candidates[nextIndex].id)
     }
 
-    func clearPendingExecution() {
-        pendingExecution = nil
-    }
-
     private func run(
         generation: UInt64,
         modelQuestion: String,
@@ -151,8 +271,8 @@ final class DecisionRoutingController {
         switch DecisionServiceResolver.resolve(settings: settings, apiKey: apiKey) {
         case let .success(resolved):
             call = resolved
-        case .failure:
-            enterChoosing(generation, .unavailable)
+        case let .failure(configurationError):
+            enterChoosing(generation, .failed(DecisionRoutingFailure.classify(configurationError: configurationError)))
             return
         }
         do {
@@ -166,7 +286,7 @@ final class DecisionRoutingController {
             guard DecisionRoutingGate.shouldApply(generation: generation, phase: phase, consumed: consumed),
                   !Task.isCancelled else { return }
             guard let candidate = DecisionRouteCatalog.candidate(matching: answer.choice, in: candidates) else {
-                enterChoosing(generation, .unavailable)
+                enterChoosing(generation, .failed(.unrecognizedChoice))
                 return
             }
             let release = DecisionRoutingPolicy.release(
@@ -210,7 +330,7 @@ final class DecisionRoutingController {
             if SystemOneClient.isTimeout(error) {
                 applyTimeout(generation, action: settings.timeoutAction, candidates: candidates)
             } else {
-                enterChoosing(generation, .unavailable)
+                enterChoosing(generation, .failed(DecisionRoutingFailure.classify(error)))
             }
         }
     }
@@ -240,12 +360,15 @@ final class DecisionRoutingController {
     }
 
     private func deliver(_ candidate: DecisionRouteCandidate, generation: UInt64) {
-        guard !consumed.contains(generation) else { return }
+        guard !consumed.contains(generation),
+              let ticket = phase.ticket,
+              let snapshot = activeSnapshot else { return }
         consumed.insert(generation)
         task?.cancel()
         task = nil
         phase = .idle
-        pendingExecution = candidate
+        activeSnapshot = nil
+        pendingSend = DecisionPendingSend(candidate: candidate, ticket: ticket, snapshot: snapshot)
     }
 
     private func invalidate(_ generation: UInt64) {
@@ -254,5 +377,6 @@ final class DecisionRoutingController {
         task = nil
         phase = .idle
         candidates = []
+        activeSnapshot = nil
     }
 }

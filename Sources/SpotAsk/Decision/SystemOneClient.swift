@@ -4,11 +4,55 @@ protocol SystemOneTransport: Sendable {
     func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse)
 }
 
+/// Scoped to one evaluation: reject before URLSession sends the redirected body.
+private final class SystemOneRedirectDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    private let origin: URL?
+    private let lock = NSLock()
+    private var rejected = false
+
+    init(url: URL?) {
+        origin = url
+    }
+
+    var rejectedRedirect: Bool {
+        lock.withLock { rejected }
+    }
+
+    static func sameOrigin(_ lhs: URL, _ rhs: URL) -> Bool {
+        func effectivePort(_ url: URL) -> Int? {
+            url.port ?? (url.scheme?.lowercased() == "https" ? 443 : 80)
+        }
+        return lhs.scheme?.lowercased() == rhs.scheme?.lowercased()
+            && lhs.host?.lowercased() == rhs.host?.lowercased()
+            && effectivePort(lhs) == effectivePort(rhs)
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @escaping @Sendable (URLRequest?) -> Void
+    ) {
+        guard let origin, let destination = request.url,
+              Self.sameOrigin(origin, destination) else {
+            lock.withLock { rejected = true }
+            completionHandler(nil)
+            return
+        }
+        completionHandler(request)
+    }
+}
+
 struct URLSessionSystemOneTransport: SystemOneTransport {
     var session: URLSession
 
     func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
-        let (data, response) = try await session.data(for: request)
+        let delegate = SystemOneRedirectDelegate(url: request.url)
+        let (data, response) = try await session.data(for: request, delegate: delegate)
+        if delegate.rejectedRedirect {
+            throw SystemOneClientError.unsafeRedirect
+        }
         guard let http = response as? HTTPURLResponse else {
             throw SystemOneClientError.invalidResponse
         }

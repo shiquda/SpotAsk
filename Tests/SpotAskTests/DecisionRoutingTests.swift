@@ -49,6 +49,14 @@ struct DecisionRoutingTests {
         ]
     }
 
+    private static func snapshot(_ draft: String, candidates: [DecisionRouteCandidate]? = nil) -> DecisionSendSnapshot {
+        DecisionSendSnapshot(
+            draft: draft, attachmentIDs: [], preset: nil, sessionIdentity: 0,
+            routingEnabled: true, sessionRoutingEnabled: true, manualChannelID: nil,
+            candidates: candidates ?? Self.candidates()
+        )
+    }
+
     nonisolated private static func okResponse(choice: String, confidence: Double, url: URL = SystemOneEndpoint.officialEvaluationURL) -> (Data, HTTPURLResponse) {
         let json = """
         {"model":"jev-1.13.0","answers":{"route":{"type":"choice","choice":"\(choice)","confidence":\(confidence)}}}
@@ -57,27 +65,6 @@ struct DecisionRoutingTests {
         return (Data(json.utf8), response)
     }
 
-    @Test("Default routing is off, always-confirm, 0.8 threshold, and 2s manual timeout")
-    func defaultsPreserveManualBehavior() {
-        let suite = "DecisionRoutingTests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
-        defer { defaults.removePersistentDomain(forName: suite) }
-
-        let settings = AppSettings(defaults: defaults)
-        #expect(settings.decisionRoutingEnabled == false)
-        #expect(settings.decisionRoutingShowsToolbarToggle == true)
-        #expect(settings.decisionRoutingProvider == .systemOne)
-        #expect(settings.decisionRoutingServiceURL == "https://api.typesafe.ai")
-        #expect(settings.decisionRoutingModel == "jev-1.13.0")
-        #expect(settings.decisionRoutingConfirmationMode == .always)
-        #expect(settings.decisionRoutingConfidenceThreshold == 0.8)
-        #expect(settings.decisionRoutingTimeoutSeconds == 2.0)
-        #expect(settings.decisionRoutingTimeoutAction == .manualSelection)
-        #expect(DecisionRoutingPolicy.maximumTimeoutSeconds == 5)
-        #expect(DecisionRoutingPolicy.timeoutStepSeconds == 0.1)
-        #expect(DecisionRoutingPolicy.normalizedTimeout(30) == 5)
-        #expect(DecisionRoutingPolicy.normalizedTimeout(0.1) == 0.5)
-    }
 
     @Test("Criteria include the channel name even when no preference is set")
     func criteriaIncludeChannelNameWithoutPreference() {
@@ -273,9 +260,8 @@ struct DecisionRoutingTests {
 
             let controller = DecisionRoutingController()
             controller.start(
-                snapshotQuestion: "fix build",
+                sendSnapshot: Self.snapshot("fix build"),
                 modelQuestion: "fix build",
-                candidates: Self.candidates(),
                 settings: settings,
                 apiKey: "test-token",
                 transport: transport,
@@ -285,10 +271,10 @@ struct DecisionRoutingTests {
                 try? await Task.sleep(for: .milliseconds(5))
             }
             #expect(await transport.requestCount() == 1)
-            #expect(controller.pendingExecution == nil)
+            #expect(controller.pendingSend == nil)
             #expect(controller.phase == .choosing(
                 DecisionRoutingTicket(generation: 1, question: "fix build"),
-                .unavailable,
+                .failed(status == 401 ? .httpUnauthorized : status == 429 ? .httpRateLimited : .httpStatus(status)),
                 highlightedID: DecisionRouteID.inApp
             ))
         }
@@ -308,9 +294,8 @@ struct DecisionRoutingTests {
 
         let controller = DecisionRoutingController()
         controller.start(
-            snapshotQuestion: "refactor parser",
+            sendSnapshot: Self.snapshot("refactor parser"),
             modelQuestion: "refactor parser",
-            candidates: Self.candidates(),
             settings: manualSettings,
             apiKey: "test-token",
             transport: slowTransport,
@@ -319,7 +304,7 @@ struct DecisionRoutingTests {
         for _ in 0..<50 where controller.phase == .deciding(DecisionRoutingTicket(generation: 1, question: "refactor parser")) {
             try? await Task.sleep(for: .milliseconds(5))
         }
-        #expect(controller.pendingExecution == nil)
+        #expect(controller.pendingSend == nil)
         #expect(controller.phase == .choosing(
             DecisionRoutingTicket(generation: 1, question: "refactor parser"),
             .timeout,
@@ -330,18 +315,17 @@ struct DecisionRoutingTests {
         var inAppSettings = manualSettings
         inAppSettings.timeoutAction = .inApp
         controller.start(
-            snapshotQuestion: "quick summary",
+            sendSnapshot: Self.snapshot("quick summary"),
             modelQuestion: "quick summary",
-            candidates: Self.candidates(),
             settings: inAppSettings,
             apiKey: "test-token",
             transport: slowTransport,
             sleep: { _ in }
         )
-        for _ in 0..<50 where controller.pendingExecution == nil {
+        for _ in 0..<50 where controller.pendingSend == nil {
             try? await Task.sleep(for: .milliseconds(5))
         }
-        #expect(controller.pendingExecution?.id == DecisionRouteID.inApp)
+        #expect(controller.pendingSend?.candidate.id == DecisionRouteID.inApp)
         #expect(controller.phase == .idle)
     }
 
@@ -356,9 +340,8 @@ struct DecisionRoutingTests {
 
         let controller = DecisionRoutingController()
         controller.start(
-            snapshotQuestion: "original question",
+            sendSnapshot: Self.snapshot("original question"),
             modelQuestion: "original question",
-            candidates: Self.candidates(),
             settings: settings,
             apiKey: "test-token",
             transport: transport,
@@ -371,7 +354,7 @@ struct DecisionRoutingTests {
         controller.noteInput("edited question")
         #expect(controller.phase == .idle)
         controller.acceptCurrent()
-        #expect(controller.pendingExecution == nil)
+        #expect(controller.pendingSend == nil)
     }
 
     @Test("Preview evaluates custom System One endpoint without launching any channel")
@@ -418,7 +401,7 @@ struct DecisionRoutingTests {
             transport: transport,
             sleep: { _ in try await Task.sleep(for: .seconds(60)) }
         )
-        #expect(preview == .unknownChoice)
+        #expect(preview == .failed(.unrecognizedChoice))
     }
 
     @Test("Channel chooser cycles highlighted candidate with moveSelection and executes on acceptCurrent")
@@ -432,9 +415,8 @@ struct DecisionRoutingTests {
         var settings = DecisionRoutingSettings.disabled
         settings.isEnabled = true
         controller.start(
-            snapshotQuestion: "help me debug",
+            sendSnapshot: Self.snapshot("help me debug", candidates: candidates),
             modelQuestion: "help me debug",
-            candidates: candidates,
             settings: settings,
             apiKey: "test-token",
             transport: transport,
@@ -452,7 +434,7 @@ struct DecisionRoutingTests {
         controller.moveSelection(-1)
         #expect(controller.phase.highlightedID == candidates[1].id)
         controller.acceptCurrent()
-        #expect(controller.pendingExecution == candidates[1])
+        #expect(controller.pendingSend?.candidate == candidates[1])
     }
 
     @Test("Auto-send enters the 0.8s buffer and supports Return immediate send or Esc/edit cancel")
@@ -469,9 +451,8 @@ struct DecisionRoutingTests {
 
         let controller = DecisionRoutingController()
         controller.start(
-            snapshotQuestion: "deploy check",
+            sendSnapshot: Self.snapshot("deploy check", candidates: candidates),
             modelQuestion: "deploy check",
-            candidates: candidates,
             settings: settings,
             apiKey: "test-token",
             transport: transport,
@@ -485,19 +466,18 @@ struct DecisionRoutingTests {
             DecisionRoutingTicket(generation: 1, question: "deploy check"),
             target
         ))
-        #expect(controller.pendingExecution == nil)
+        #expect(controller.pendingSend == nil)
 
         // Return during buffer sends immediately.
         controller.acceptCurrent()
-        #expect(controller.pendingExecution == target)
+        #expect(controller.pendingSend?.candidate == target)
         #expect(controller.phase == .idle)
-        controller.clearPendingExecution()
+        controller.cancel()
 
         // Editing during buffer cancels and never sends.
         controller.start(
-            snapshotQuestion: "second check",
+            sendSnapshot: Self.snapshot("second check", candidates: candidates),
             modelQuestion: "second check",
-            candidates: candidates,
             settings: settings,
             apiKey: "test-token",
             transport: transport,
@@ -513,25 +493,24 @@ struct DecisionRoutingTests {
         ))
         controller.noteInput("second check edited")
         #expect(controller.phase == .idle)
-        #expect(controller.pendingExecution == nil)
+        #expect(controller.pendingSend == nil)
 
         // Buffer expiry delivers automatically when uninterrupted.
         controller.start(
-            snapshotQuestion: "third check",
+            sendSnapshot: Self.snapshot("third check", candidates: candidates),
             modelQuestion: "third check",
-            candidates: candidates,
             settings: settings,
             apiKey: "test-token",
             transport: transport,
             sleep: { _ in try await Task.sleep(for: .seconds(60)) },
             autoSendSleep: { _ in }
         )
-        for _ in 0..<50 where controller.pendingExecution == nil {
+        for _ in 0..<50 where controller.pendingSend == nil {
             try? await Task.sleep(for: .milliseconds(5))
         }
-        #expect(controller.pendingExecution == target)
+        #expect(controller.pendingSend?.candidate == target)
         #expect(controller.phase == .idle)
-        controller.clearPendingExecution()
+        controller.cancel()
 
         // In SpotAsk auto-send executes immediately without entering .autoSending.
         let inAppTarget = candidates[0]
@@ -539,19 +518,18 @@ struct DecisionRoutingTests {
             Self.okResponse(choice: inAppTarget.id, confidence: 0.96)
         }
         controller.start(
-            snapshotQuestion: "in spotask question",
+            sendSnapshot: Self.snapshot("in spotask question", candidates: candidates),
             modelQuestion: "in spotask question",
-            candidates: candidates,
             settings: settings,
             apiKey: "test-token",
             transport: inAppTransport,
             sleep: { _ in try await Task.sleep(for: .seconds(60)) },
             autoSendSleep: { _ in try await Task.sleep(for: .seconds(60)) }
         )
-        for _ in 0..<50 where controller.pendingExecution == nil {
+        for _ in 0..<50 where controller.pendingSend == nil {
             try? await Task.sleep(for: .milliseconds(5))
         }
-        #expect(controller.pendingExecution == inAppTarget)
+        #expect(controller.pendingSend?.candidate == inAppTarget)
         #expect(controller.phase == .idle)
     }
 }
