@@ -7,6 +7,8 @@ SpotAsk 的所有重要变更都记录在本文件中。
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-11
+
 **外部提问智能路由、内联确认与快速换渠道、长对话阅读体验优化**
 
 ### 新增
@@ -252,7 +254,8 @@ SpotAsk 的所有重要变更都记录在本文件中。
 - 服务配置卡片支持稳定平滑地展开与收起。
 - 修正思考过程展开行为：开启时思考中展开并在输出最终回答时收起，关闭时始终折叠。
 
-[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.2.7...HEAD
+[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/shiquda/SpotAsk/compare/v0.2.7...v0.3.0
 [0.2.7]: https://github.com/shiquda/SpotAsk/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/shiquda/SpotAsk/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/shiquda/SpotAsk/compare/v0.2.4...v0.2.5
