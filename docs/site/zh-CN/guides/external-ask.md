@@ -57,9 +57,11 @@ omp {query}
 <SpotAskSettingsLink section="external-ask" />
 
 
-## 智能路由
+## 智能路由 {#decision-routing}
 
 如果你希望在未手动指定外部目标时由决策模型推荐去向，可以在外部提问列表之后的**智能路由**章节中开启**启用自动路由**。
+
+<SpotAskSettingsLink section="external-ask" />
 
 ![智能路由内联确认与 Tab 快速切换渠道](/images/spotask-decision-routing-zh.png)
 

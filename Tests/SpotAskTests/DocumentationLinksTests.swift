@@ -54,6 +54,36 @@ struct DocumentationLinksTests {
         )
     }
 
+    @Test func decisionRoutingLinkScrollsToTheSharedGuideAnchor() {
+        #expect(
+            DocumentationLinks.url(
+                for: .externalAsk,
+                language: .english,
+                fragment: DocumentationLinks.decisionRoutingFragment
+            ).absoluteString
+                == "https://shiquda.github.io/SpotAsk/guides/external-ask#decision-routing"
+        )
+        #expect(
+            DocumentationLinks.url(
+                for: .externalAsk,
+                language: .simplifiedChinese,
+                fragment: DocumentationLinks.decisionRoutingFragment
+            ).absoluteString
+                == "https://shiquda.github.io/SpotAsk/zh-CN/guides/external-ask#decision-routing"
+        )
+
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        for relativePath in ["docs/site/guides/external-ask.md", "docs/site/zh-CN/guides/external-ask.md"] {
+            let page = repositoryRoot.appendingPathComponent(relativePath)
+            let source = try? String(contentsOf: page, encoding: .utf8)
+            #expect(source?.contains("{#decision-routing}") == true, "\(relativePath) is missing the decision-routing anchor")
+            #expect(source?.contains("<SpotAskSettingsLink section=\"external-ask\" />") == true)
+        }
+    }
+
     @Test func topicsTargetPublishedPages() {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent() // SpotAskTests

@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Built-in External Ask channels can now be edited or deleted just like custom ones, and the channel editor uses a unified two-card layout with 20 localized icon options.
 - Enable External Ask sits in its own switch card at the top of Settings > External Ask, and the in-app destination is named **In SpotAsk** across routing settings and confirmation cards.
+- The Decision Routing settings group links to the decision-routing section of the External Ask guide, and that guide section can open Settings > External Ask.
 
 ### Fixed
 

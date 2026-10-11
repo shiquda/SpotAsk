@@ -42,14 +42,25 @@ enum DocumentationLinks {
             : englishUserGuide
     }
 
+    /// Anchor on the External Ask guide for the decision-routing section.
+    /// Both language pages use this id, so a released build can scroll to it
+    /// after the site is republished.
+    static let decisionRoutingFragment = "decision-routing"
+
     /// The published page for one settings topic, in the reader's language.
     static func url(
         for topic: Topic,
         language: AppLanguage,
+        fragment: String? = nil,
         preferredLanguages: [String] = Locale.preferredLanguages
     ) -> URL {
-        userGuideURL(for: language, preferredLanguages: preferredLanguages)
+        let page = userGuideURL(for: language, preferredLanguages: preferredLanguages)
             .appendingPathComponent(topic.rawValue)
+        guard let fragment, var components = URLComponents(url: page, resolvingAgainstBaseURL: false) else {
+            return page
+        }
+        components.fragment = fragment
+        return components.url ?? page
     }
 
     private static func usesChineseDocumentation(

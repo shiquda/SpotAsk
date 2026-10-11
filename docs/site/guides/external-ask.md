@@ -57,9 +57,11 @@ Entries can be reordered, disabled, edited, or deleted from the same settings pa
 <SpotAskSettingsLink section="external-ask" />
 
 
-## Decision routing
+## Decision routing {#decision-routing}
 
 When you want SpotAsk to recommend a destination before sending, turn on **Enable automatic routing** in the **Decision Routing** section after the External Ask catalog.
+
+<SpotAskSettingsLink section="external-ask" />
 
 ![Decision routing inline confirmation and Tab channel switcher](/images/spotask-decision-routing.png)
 
