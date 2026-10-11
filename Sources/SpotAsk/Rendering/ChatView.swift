@@ -514,6 +514,11 @@ struct ChatView: View {
             inputFocused = true
             return false
         }
+        // A target edit must never reuse a decision made for the old configuration.
+        guard action.kind == candidate.externalActionKind else {
+            inputFocused = true
+            return false
+        }
         guard QuickActionLaunch.perform(action, query: question) else {
             StatusToastCenter.shared.show(
                 L10n.string("atCommand.launchFailed", action.displayName),

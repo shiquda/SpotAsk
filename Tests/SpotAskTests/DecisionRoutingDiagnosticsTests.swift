@@ -20,21 +20,30 @@ private actor DiagnosticScriptedTransport: SystemOneTransport {
     }
 }
 
-/// Synthetic key store. Never reads a real credential; the save path can be made to
-/// fail so credential migration is exercised without touching user data.
+/// Synthetic key store. Never reads a real credential; read and save paths can be made
+/// to fail so credential migration is exercised without touching user data.
 private final class SyntheticKeyStore: APIKeyStoring, @unchecked Sendable {
     private let lock = NSLock()
     private var storage: [UUID: String]
     private let failingSlots: Set<UUID>
+    private let unreadableSlots: Set<UUID>
     private var savedKeys: [String] = []
 
-    init(storage: [UUID: String] = [:], failingSlots: Set<UUID> = []) {
+    init(
+        storage: [UUID: String] = [:],
+        failingSlots: Set<UUID> = [],
+        unreadableSlots: Set<UUID> = []
+    ) {
         self.storage = storage
         self.failingSlots = failingSlots
+        self.unreadableSlots = unreadableSlots
     }
 
     func readAPIKey(for providerID: UUID) throws -> String? {
-        lock.withLock { storage[providerID] }
+        try lock.withLock {
+            if unreadableSlots.contains(providerID) { throw KeyStoreTestError.readFailed }
+            return storage[providerID]
+        }
     }
 
     func saveAPIKey(_ key: String, for providerID: UUID) throws {
@@ -59,6 +68,7 @@ private final class SyntheticKeyStore: APIKeyStoring, @unchecked Sendable {
 }
 
 private enum KeyStoreTestError: Error, Equatable {
+    case readFailed
     case saveFailed
 }
 
@@ -77,7 +87,8 @@ struct DecisionRoutingDiagnosticsTests {
                 brandIconSlug: nil,
                 applicableDescription: "Short in-app chat",
                 forceConfirm: false,
-                externalActionID: nil
+                externalActionID: nil,
+                externalActionKind: nil
             ),
             DecisionRouteCandidate(
                 id: "ext_agent",
@@ -86,7 +97,8 @@ struct DecisionRoutingDiagnosticsTests {
                 brandIconSlug: nil,
                 applicableDescription: "Local code edits",
                 forceConfirm: false,
-                externalActionID: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+                externalActionID: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
+                externalActionKind: .terminal(commandTemplate: "omp {query}")
             )
         ]
     }
@@ -503,26 +515,25 @@ struct DecisionRoutingDiagnosticsTests {
         #expect(route["type"] as? String == "choice")
     }
 
-    @Test("Credential migration keeps the legacy key preferred until the new slot saves")
-    func credentialMigrationFailureKeepsLegacyPreference() throws {
-        let legacySlot = DecisionCredentialSlot.legacyCustom
-        let currentSlot = DecisionCredentialSlot.systemOne
+    @Test("Credential migration clears the legacy preference only after the new slot saves")
+    func credentialMigrationSaveOutcome() throws {
         let legacy = "synthetic-legacy-credential"
         let current = "synthetic-current-credential"
 
-        var savedToSystemOne: [String] = []
+        var attempted: [String] = []
         let failed = DecisionCredentialMigration.resolve(
-            systemOne: current,
-            legacyCustom: legacy,
+            readSystemOne: { current },
+            readLegacyCustom: { legacy },
             preferLegacyCustom: true,
             saveToSystemOne: { key in
-                savedToSystemOne.append(key)
+                attempted.append(key)
                 throw KeyStoreTestError.saveFailed
             }
         )
         #expect(failed.apiKey == legacy)
         #expect(!failed.clearLegacyCustomPreference)
-        #expect(savedToSystemOne == [legacy])
+        #expect(failed.failure == .save)
+        #expect(attempted == [legacy])
         #expect(
             DecisionCredentialSlot.activeAPIKey(
                 systemOne: current,
@@ -533,46 +544,229 @@ struct DecisionRoutingDiagnosticsTests {
 
         var saved: [String] = []
         let migrated = DecisionCredentialMigration.resolve(
-            systemOne: current,
-            legacyCustom: legacy,
+            readSystemOne: { current },
+            readLegacyCustom: { legacy },
             preferLegacyCustom: true,
             saveToSystemOne: { saved.append($0) }
         )
         #expect(migrated.apiKey == legacy)
         #expect(migrated.clearLegacyCustomPreference)
+        #expect(migrated.failure == nil)
+        #expect(saved == [legacy])
+    }
+
+    @Test("No legacy preference reads nothing to migrate and never saves")
+    func credentialMigrationWithoutPreference() {
+        var saves: [String] = []
+        let outcome = DecisionCredentialMigration.resolve(
+            readSystemOne: { "synthetic-current-credential" },
+            readLegacyCustom: {
+                Issue.record("the legacy slot must not be read without a preference")
+                return nil
+            },
+            preferLegacyCustom: false,
+            saveToSystemOne: { saves.append($0) }
+        )
+        #expect(outcome.apiKey == "synthetic-current-credential")
+        #expect(!outcome.clearLegacyCustomPreference)
+        #expect(outcome.failure == nil)
+        #expect(saves.isEmpty)
+    }
+
+    @Test("A failed legacy read keeps the preference and never saves, with or without a current key")
+    func legacyReadFailureKeepsPreference() {
+        let current = "synthetic-current-credential"
+        let currentReads: [() throws -> String?] = [
+            { current },
+            { nil as String? },
+            { throw KeyStoreTestError.readFailed }
+        ]
+        let expectedKeys = [current, "", ""]
+        for (readSystemOne, expectedKey) in zip(currentReads, expectedKeys) {
+            var saves: [String] = []
+            let outcome = DecisionCredentialMigration.resolve(
+                readSystemOne: readSystemOne,
+                readLegacyCustom: { throw KeyStoreTestError.readFailed },
+                preferLegacyCustom: true,
+                saveToSystemOne: { saves.append($0) }
+            )
+            #expect(outcome.failure == .read)
+            #expect(!outcome.clearLegacyCustomPreference)
+            #expect(outcome.apiKey == expectedKey)
+            #expect(saves.isEmpty)
+        }
+    }
+
+    @Test("A confirmed legacy absence clears the preference and never saves")
+    func legacyAbsenceClearsPreference() {
+        let current = "synthetic-current-credential"
+        let missingReads: [() throws -> String?] = [
+            { nil as String? },
+            { "" as String? },
+            { "   " as String? }
+        ]
+        for legacyRead in missingReads {
+            var saves: [String] = []
+            let outcome = DecisionCredentialMigration.resolve(
+                readSystemOne: { current },
+                readLegacyCustom: legacyRead,
+                preferLegacyCustom: true,
+                saveToSystemOne: { saves.append($0) }
+            )
+            #expect(outcome.clearLegacyCustomPreference)
+            #expect(outcome.failure == nil)
+            #expect(outcome.apiKey == current)
+            #expect(saves.isEmpty)
+        }
+    }
+
+    @Test("A current-slot read failure still migrates a readable legacy key when the new slot saves")
+    func currentReadFailureMigratesReadableLegacy() {
+        let legacy = "synthetic-legacy-credential"
+
+        var saved: [String] = []
+        let migrated = DecisionCredentialMigration.resolve(
+            readSystemOne: { throw KeyStoreTestError.readFailed },
+            readLegacyCustom: { legacy },
+            preferLegacyCustom: true,
+            saveToSystemOne: { saved.append($0) }
+        )
+        #expect(migrated.apiKey == legacy)
+        #expect(migrated.clearLegacyCustomPreference)
+        #expect(migrated.failure == nil)
         #expect(saved == [legacy])
 
-        var unexpectedSaves: [String] = []
-        let noPreference = DecisionCredentialMigration.resolve(
-            systemOne: current,
-            legacyCustom: legacy,
-            preferLegacyCustom: false,
-            saveToSystemOne: { unexpectedSaves.append($0) }
-        )
-        #expect(noPreference.apiKey == current)
-        #expect(!noPreference.clearLegacyCustomPreference)
-
-        let emptyLegacy = DecisionCredentialMigration.resolve(
-            systemOne: current,
-            legacyCustom: "   ",
+        var attempted: [String] = []
+        let kept = DecisionCredentialMigration.resolve(
+            readSystemOne: { throw KeyStoreTestError.readFailed },
+            readLegacyCustom: { legacy },
             preferLegacyCustom: true,
-            saveToSystemOne: { unexpectedSaves.append($0) }
+            saveToSystemOne: { key in
+                attempted.append(key)
+                throw KeyStoreTestError.saveFailed
+            }
         )
-        #expect(emptyLegacy.apiKey == current)
-        #expect(emptyLegacy.clearLegacyCustomPreference)
-        #expect(unexpectedSaves.isEmpty)
+        #expect(kept.apiKey == legacy)
+        #expect(!kept.clearLegacyCustomPreference)
+        #expect(kept.failure == .save)
+        #expect(attempted == [legacy])
+    }
 
-        let store = SyntheticKeyStore(storage: [currentSlot: current, legacySlot: legacy], failingSlots: [currentSlot])
-        let storedLegacy = try store.readAPIKey(for: legacySlot)
-        #expect(storedLegacy == legacy)
-        #expect(throws: KeyStoreTestError.saveFailed) {
-            try store.saveAPIKey(legacy, for: currentSlot)
-        }
+    @Test("A current-slot read failure without a legacy preference surfaces a read failure and never saves")
+    func currentReadFailureWithoutPreference() {
+        var saves: [String] = []
+        let outcome = DecisionCredentialMigration.resolve(
+            readSystemOne: { throw KeyStoreTestError.readFailed },
+            readLegacyCustom: {
+                Issue.record("the legacy slot must not be read without a preference")
+                return nil
+            },
+            preferLegacyCustom: false,
+            saveToSystemOne: { saves.append($0) }
+        )
+        #expect(outcome.apiKey.isEmpty)
+        #expect(!outcome.clearLegacyCustomPreference)
+        #expect(outcome.failure == .read)
+        #expect(saves.isEmpty)
+    }
+
+    @Test("A store read failure keeps the preference so recovery still resolves the legacy key")
+    func storeReadFailureKeepsPreferenceUntilRecovery() throws {
+        let legacySlot = DecisionCredentialSlot.legacyCustom
+        let currentSlot = DecisionCredentialSlot.systemOne
+        let legacy = "synthetic-legacy-credential"
+        let current = "synthetic-current-credential"
+        let broken = SyntheticKeyStore(
+            storage: [currentSlot: current, legacySlot: legacy],
+            unreadableSlots: [legacySlot]
+        )
+
+        var saves: [String] = []
+        let outcome = DecisionCredentialMigration.resolve(
+            readSystemOne: { try broken.readAPIKey(for: currentSlot) },
+            readLegacyCustom: { try broken.readAPIKey(for: legacySlot) },
+            preferLegacyCustom: true,
+            saveToSystemOne: { saves.append($0) }
+        )
+        #expect(outcome.failure == .read)
+        #expect(!outcome.clearLegacyCustomPreference)
+        #expect(outcome.apiKey == current)
+        #expect(saves.isEmpty)
+
+        // Recovery: the previously unreadable legacy slot reads again, and the preserved
+        // preference resolves the old key.
+        let recovered = SyntheticKeyStore(storage: [currentSlot: current, legacySlot: legacy])
+        #expect(
+            DecisionCredentialSlot.activeAPIKey(
+                systemOne: try recovered.readAPIKey(for: currentSlot),
+                legacyCustom: try recovered.readAPIKey(for: legacySlot),
+                preferLegacyCustom: !outcome.clearLegacyCustomPreference
+            ) == legacy
+        )
+    }
+
+    @Test("A corrupt credential file keeps the legacy preference until the real store recovers")
+    func corruptLocalKeyStoreKeepsPreferenceUntilRecovery() throws {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SpotAskTests-\(UUID().uuidString)", isDirectory: true)
+        let fileURL = folder.appendingPathComponent("credentials.json")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try Data("not valid credentials json".utf8).write(to: fileURL)
+        let store = LocalAPIKeyStore(fileURL: fileURL)
+
+        var saves: [String] = []
+        let broken = DecisionCredentialMigration.resolve(
+            readSystemOne: { try store.readAPIKey(for: DecisionCredentialSlot.systemOne) },
+            readLegacyCustom: { try store.readAPIKey(for: DecisionCredentialSlot.legacyCustom) },
+            preferLegacyCustom: true,
+            saveToSystemOne: { saves.append($0) }
+        )
+        #expect(broken.failure == .read)
+        #expect(!broken.clearLegacyCustomPreference)
+        #expect(broken.apiKey.isEmpty)
+        #expect(saves.isEmpty)
+
+        // Recovery: rewrite the file with a valid credential in the legacy slot only.
+        let legacy = "synthetic-legacy-credential"
+        let legacyID = DecisionCredentialSlot.legacyCustom.uuidString
+        try Data("{\"apiKeys\":{\"\(legacyID)\":\"\(legacy)\"}}".utf8).write(to: fileURL)
+
+        let recovered = DecisionCredentialMigration.resolve(
+            readSystemOne: { try store.readAPIKey(for: DecisionCredentialSlot.systemOne) },
+            readLegacyCustom: { try store.readAPIKey(for: DecisionCredentialSlot.legacyCustom) },
+            preferLegacyCustom: !broken.clearLegacyCustomPreference,
+            saveToSystemOne: { try store.saveAPIKey($0, for: DecisionCredentialSlot.systemOne) }
+        )
+        #expect(recovered.apiKey == legacy)
+        #expect(recovered.clearLegacyCustomPreference)
+        #expect(recovered.failure == nil)
+        #expect(try store.readAPIKey(for: DecisionCredentialSlot.systemOne) == legacy)
+    }
+
+    @Test("A failed new-slot save keeps the legacy key in place")
+    func failedStoreSaveKeepsLegacyPreference() throws {
+        let legacySlot = DecisionCredentialSlot.legacyCustom
+        let currentSlot = DecisionCredentialSlot.systemOne
+        let legacy = "synthetic-legacy-credential"
+        let current = "synthetic-current-credential"
+        let store = SyntheticKeyStore(
+            storage: [currentSlot: current, legacySlot: legacy],
+            failingSlots: [currentSlot]
+        )
+
+        let outcome = DecisionCredentialMigration.resolve(
+            readSystemOne: { try store.readAPIKey(for: currentSlot) },
+            readLegacyCustom: { try store.readAPIKey(for: legacySlot) },
+            preferLegacyCustom: true,
+            saveToSystemOne: { try store.saveAPIKey($0, for: currentSlot) }
+        )
+        #expect(outcome.failure == .save)
+        #expect(!outcome.clearLegacyCustomPreference)
+        #expect(outcome.apiKey == legacy)
         #expect(store.savedSnapshot().isEmpty)
-        let storedCurrent = try store.readAPIKey(for: currentSlot)
-        #expect(storedCurrent == current)
-        let storedLegacyAfterFailure = try store.readAPIKey(for: legacySlot)
-        #expect(storedLegacyAfterFailure == legacy)
+        #expect(try store.readAPIKey(for: currentSlot) == current)
+        #expect(try store.readAPIKey(for: legacySlot) == legacy)
     }
 
     @Test("Successful migration writes the synthetic key into the new slot only")
@@ -581,13 +775,14 @@ struct DecisionRoutingDiagnosticsTests {
             DecisionCredentialSlot.legacyCustom: "synthetic-legacy-credential"
         ])
         let outcome = DecisionCredentialMigration.resolve(
-            systemOne: try store.readAPIKey(for: DecisionCredentialSlot.systemOne),
-            legacyCustom: try store.readAPIKey(for: DecisionCredentialSlot.legacyCustom),
+            readSystemOne: { try store.readAPIKey(for: DecisionCredentialSlot.systemOne) },
+            readLegacyCustom: { try store.readAPIKey(for: DecisionCredentialSlot.legacyCustom) },
             preferLegacyCustom: true,
             saveToSystemOne: { try store.saveAPIKey($0, for: DecisionCredentialSlot.systemOne) }
         )
         #expect(outcome.apiKey == "synthetic-legacy-credential")
         #expect(outcome.clearLegacyCustomPreference)
+        #expect(outcome.failure == nil)
         #expect(store.savedSnapshot() == ["synthetic-legacy-credential"])
         #expect(try store.readAPIKey(for: DecisionCredentialSlot.systemOne) == "synthetic-legacy-credential")
         #expect(try store.readAPIKey(for: DecisionCredentialSlot.legacyCustom) == "synthetic-legacy-credential")

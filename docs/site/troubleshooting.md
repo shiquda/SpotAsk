@@ -60,6 +60,8 @@ Remote decision addresses require HTTPS; plain HTTP works only on loopback hosts
 
 The settings test reports missing credentials, invalid addresses/models, 401/403 authentication or permission failures, 404 endpoint errors, 429 rate limits, other HTTP statuses, network failures, timeout, and invalid/unrecognized answers separately. No evaluation time is shown when prerequisites or configuration prevent a request. After correcting the named cause, test again; SpotAsk does not automatically retry or send to another external channel.
 
+If Settings reports that a saved access key could not be read, that is not the same as a missing key. SpotAsk keeps the previous key preference when that key cannot be read and does not migrate an empty value. After access to the saved local data is restored, reopen External Ask settings to read it again. The old preference is cleared only when the old key is confirmed absent or a migration saves successfully.
+
 ## Need more detail
 
 Settings > General > **Diagnostics** can record recent request and selection details locally, then **Export Log** creates a file you can share. Credentials are never included.

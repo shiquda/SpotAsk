@@ -276,12 +276,10 @@ struct DecisionRoutingSettingsSection: View {
     }
 
     private func loadKeys() {
-        let legacy = (try? keyStore.readAPIKey(for: DecisionCredentialSlot.legacyCustom)) ?? ""
-        let current = (try? keyStore.readAPIKey(for: DecisionCredentialSlot.systemOne)) ?? ""
         let preferLegacy = settings.defaults.bool(forKey: DecisionCredentialSlot.preferLegacyCustomKey)
         let outcome = DecisionCredentialMigration.resolve(
-            systemOne: current,
-            legacyCustom: legacy,
+            readSystemOne: { try keyStore.readAPIKey(for: DecisionCredentialSlot.systemOne) },
+            readLegacyCustom: { try keyStore.readAPIKey(for: DecisionCredentialSlot.legacyCustom) },
             preferLegacyCustom: preferLegacy,
             saveToSystemOne: { key in
                 try keyStore.saveAPIKey(key, for: DecisionCredentialSlot.systemOne)
@@ -293,9 +291,15 @@ struct DecisionRoutingSettingsSection: View {
         restoredAPIKey = outcome.apiKey
         if outcome.clearLegacyCustomPreference {
             settings.defaults.set(false, forKey: DecisionCredentialSlot.preferLegacyCustomKey)
-        } else if preferLegacy {
-            // The working legacy key stays in effect until the new slot accepts it.
+        }
+        switch outcome.failure {
+        case .read:
+            // Report read failures separately from failed migration saves.
+            StatusToastCenter.shared.show(L10n.string("decisionRouting.credentialReadFailed"), isError: true)
+        case .save:
             StatusToastCenter.shared.show(L10n.string("decisionRouting.credentialSaveFailed"), isError: true)
+        case nil:
+            break
         }
     }
 

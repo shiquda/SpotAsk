@@ -580,6 +580,7 @@
 "decisionRouting.credentialPlaceholder" = "TypeSafe API Key";
 "decisionRouting.credentialNote" = "密钥仅发往上方填写的服务地址。";
 "decisionRouting.credentialSaveFailed" = "无法保存访问密钥。";
+"decisionRouting.credentialReadFailed" = "无法读取已保存的访问密钥。";
 "decisionRouting.confirmationMode" = "发送确认";
 "decisionRouting.confirmAlways" = "每次都需确认";
 "decisionRouting.confirmThreshold" = "高于阈值自动发送";

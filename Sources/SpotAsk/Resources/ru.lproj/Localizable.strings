@@ -580,6 +580,7 @@
 "decisionRouting.credentialPlaceholder" = "TypeSafe API key";
 "decisionRouting.credentialNote" = "Your key is sent only to the service address above.";
 "decisionRouting.credentialSaveFailed" = "Could not save the access key.";
+"decisionRouting.credentialReadFailed" = "Не удалось прочитать сохранённый ключ доступа.";
 "decisionRouting.confirmationMode" = "Confirmation";
 "decisionRouting.confirmAlways" = "Always confirm";
 "decisionRouting.confirmThreshold" = "Auto-send above threshold";

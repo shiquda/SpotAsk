@@ -23,6 +23,28 @@ struct DecisionSendSnapshotTests {
     private static let attachmentID = UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
     private static let presetID = UUID(uuidString: "33333333-3333-3333-3333-333333333333")!
     private static let manualChannelID = UUID(uuidString: "44444444-4444-4444-4444-444444444444")!
+    private static let externalActionID = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+
+    private static func externalCandidate(kind: QuickActionKind) -> DecisionRouteCandidate {
+        let action = QuickAction(
+            id: externalActionID, name: "Local Agent", kind: kind,
+            symbolName: "terminal", isEnabled: true,
+            routingPurpose: "Local code edits", routingScenario: "",
+            requiresConfirmationOnAutoRoute: false
+        )
+        return DecisionRouteCatalog.candidates(actions: [action], inAppDescription: "")[1]
+    }
+
+    private static let targetEdits: [(original: QuickActionKind, edited: QuickActionKind)] = [
+        (.web(urlTemplate: "https://old.example/?q={query}"),
+         .web(urlTemplate: "https://new.example/?q={query}")),
+        (.uriScheme(urlTemplate: "synthetic://old?q={query}"),
+         .uriScheme(urlTemplate: "synthetic://new?q={query}")),
+        (.terminal(commandTemplate: "agent --ask {query}"),
+         .terminal(commandTemplate: "agent --ask --verbose {query}")),
+        (.web(urlTemplate: "https://example.com/?q={query}"),
+         .uriScheme(urlTemplate: "https://example.com/?q={query}"))
+    ]
 
     private static func preset(instruction: String = "Summarize in one line") -> PromptPreset {
         PromptPreset(
@@ -35,7 +57,9 @@ struct DecisionSendSnapshotTests {
         )
     }
 
-    private static func candidates() -> [DecisionRouteCandidate] {
+    private static func candidates(
+        externalKind: QuickActionKind = .terminal(commandTemplate: "agent --ask {query}")
+    ) -> [DecisionRouteCandidate] {
         [
             DecisionRouteCandidate(
                 id: DecisionRouteID.inApp,
@@ -44,17 +68,10 @@ struct DecisionSendSnapshotTests {
                 brandIconSlug: nil,
                 applicableDescription: "Short in-app chat",
                 forceConfirm: false,
-                externalActionID: nil
+                externalActionID: nil,
+                externalActionKind: nil
             ),
-            DecisionRouteCandidate(
-                id: "ext_agent",
-                title: "Local Agent",
-                symbolName: "terminal",
-                brandIconSlug: nil,
-                applicableDescription: "Local code edits",
-                forceConfirm: false,
-                externalActionID: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
-            )
+            externalCandidate(kind: externalKind)
         ]
     }
 
@@ -406,5 +423,85 @@ struct DecisionSendSnapshotTests {
         #expect(controller.noteSendContextChanged(changed) == .session)
         #expect(controller.consumePendingSend(against: pending.snapshot) == .none)
         #expect(controller.pendingSend == nil)
+    }
+
+    @Test("Same-id action target edits revoke the delivered result")
+    func actionTargetEditRevokesDeliveredResult() async throws {
+        for change in Self.targetEdits {
+            let routes = Self.candidates(externalKind: change.original)
+            let edited = Self.candidates(externalKind: change.edited)
+            let (controller, pending) = try await Self.deliveredExternalPending(candidates: routes)
+            var current = pending.snapshot
+            current.candidates = edited
+            #expect(controller.noteSendContextChanged(current) == .candidates)
+            #expect(controller.pendingSend == nil)
+            #expect(controller.consumePendingSend(against: current) == .none)
+            #expect(current.draft == pending.snapshot.draft)
+        }
+    }
+
+    @Test("A target edit hidden from the UI is still rejected at consume time and keeps the draft")
+    func targetEditRejectedAtConsumeTimeWithoutObserver() async throws {
+        let routes = Self.candidates(externalKind: .terminal(commandTemplate: "agent --ask {query}"))
+        let (controller, pending) = try await Self.deliveredExternalPending(candidates: routes)
+        // Simulate an edit that never reached noteSendContextChanged: consumption
+        // must revalidate the live snapshot itself.
+        var current = pending.snapshot
+        current.candidates = Self.candidates(externalKind: .web(urlTemplate: "https://example.com/?q={query}"))
+        #expect(controller.consumePendingSend(against: current) == .revoked(.candidates))
+        #expect(controller.pendingSend == nil)
+        // The rejection never rewrites the frozen draft or the decided target.
+        #expect(pending.snapshot.draft == "original question")
+        #expect(pending.candidate == routes[1])
+    }
+
+
+    @Test("Same-id target edits cancel confirmation and the 0.8s buffer")
+    func targetEditInvalidatesActivePhases() async throws {
+        for change in Self.targetEdits {
+            let routes = Self.candidates(externalKind: change.original)
+            let edited = Self.candidates(externalKind: change.edited)
+            for mode in [DecisionConfirmationMode.always, .threshold] {
+                let transport = SnapshotScriptedTransport { request in
+                    Self.okResponse(choice: routes[1].id, confidence: 0.95, url: request.url!)
+                }
+                var settings = DecisionRoutingSettings.disabled
+                settings.isEnabled = true
+                settings.confirmationMode = mode
+                settings.confidenceThreshold = 0.8
+                let controller = DecisionRoutingController()
+                let snapshot = Self.snapshot(draft: "retained question", candidates: routes)
+                controller.start(
+                    sendSnapshot: snapshot,
+                    modelQuestion: snapshot.draft,
+                    settings: settings,
+                    apiKey: "test-token",
+                    transport: transport,
+                    sleep: { _ in try await Task.sleep(for: .seconds(60)) },
+                    autoSendSleep: { _ in try await Task.sleep(for: .seconds(60)) }
+                )
+                var reachedPhase = false
+                for _ in 0..<1_000 {
+                    if mode == .always, case .confirming = controller.phase {
+                        reachedPhase = true
+                        break
+                    }
+                    if mode == .threshold, case .autoSending = controller.phase {
+                        reachedPhase = true
+                        break
+                    }
+                    await Task.yield()
+                }
+                try #require(reachedPhase)
+                var current = snapshot
+                current.candidates = edited
+                #expect(controller.noteSendContextChanged(current) == nil)
+                #expect(controller.phase == .idle)
+                controller.acceptCurrent()
+                #expect(controller.consumePendingSend(against: current) == .none)
+                #expect(controller.pendingSend == nil)
+                #expect(current.draft == snapshot.draft)
+            }
+        }
     }
 }

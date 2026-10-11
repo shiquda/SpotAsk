@@ -35,7 +35,8 @@ struct DecisionRoutingTests {
                 brandIconSlug: nil,
                 applicableDescription: "Short in-app chat",
                 forceConfirm: false,
-                externalActionID: nil
+                externalActionID: nil,
+                externalActionKind: nil
             ),
             DecisionRouteCandidate(
                 id: "ext_agent",
@@ -44,7 +45,8 @@ struct DecisionRoutingTests {
                 brandIconSlug: nil,
                 applicableDescription: "Local code edits",
                 forceConfirm: forceExternalConfirm,
-                externalActionID: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+                externalActionID: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
+                externalActionKind: .terminal(commandTemplate: "agent --ask {query}")
             )
         ]
     }
@@ -77,6 +79,7 @@ struct DecisionRoutingTests {
         #expect(DecisionRouteCatalog.criterionText(name: "Terminal", description: "") == "Terminal")
         #expect(DecisionRouteCatalog.criterionText(name: "Terminal", description: "Local files") == "Terminal. Local files")
     }
+
 
     @Test("Release rules enforce force-confirm, always-confirm, and strict threshold comparison")
     func releasePolicyPrecedence() {

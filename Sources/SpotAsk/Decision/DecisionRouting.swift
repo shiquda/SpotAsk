@@ -191,6 +191,7 @@ struct DecisionRouteCandidate: Equatable, Sendable, Identifiable {
     var applicableDescription: String
     var forceConfirm: Bool
     var externalActionID: UUID?
+    var externalActionKind: QuickActionKind?
 
     var isInApp: Bool { id == DecisionRouteID.inApp }
 }
@@ -230,7 +231,8 @@ enum DecisionRouteCatalog {
                 brandIconSlug: nil,
                 applicableDescription: inAppDescription(customInApp),
                 forceConfirm: false,
-                externalActionID: nil
+                externalActionID: nil,
+                externalActionKind: nil
             )
         ]
         for action in actions where action.isEnabled {
@@ -242,7 +244,8 @@ enum DecisionRouteCatalog {
                     brandIconSlug: action.brandIconSlug,
                     applicableDescription: applicableDescription(for: action),
                     forceConfirm: action.requiresConfirmationOnAutoRoute,
-                    externalActionID: action.id
+                    externalActionID: action.id,
+                    externalActionKind: action.kind
                 )
             )
         }
@@ -664,32 +667,77 @@ enum DecisionRoutingPreview {
 /// Prefills the settings credential and decides whether the legacy slot may stop
 /// being preferred. The legacy slot keeps winning until the new slot actually
 /// persists the key, so a failed save never drops the working credential.
+///
+/// Reads are injected as throwing closures rather than optional strings so a failed
+/// read is never mistaken for an absent credential: an unreadable legacy file keeps
+/// the preference in place and never triggers a migration save.
 enum DecisionCredentialMigration {
     struct Outcome: Equatable {
+        /// Sanitized failure class, so the settings view can pick localized copy without
+        /// exposing key material or a raw error.
+        enum Failure: Equatable {
+            /// A credential could not be read; absence was never confirmed.
+            case read
+            /// The legacy credential was readable but could not persist in the new slot.
+            case save
+        }
+
         var apiKey: String
         var clearLegacyCustomPreference: Bool
+        var failure: Failure?
+
+        init(apiKey: String, clearLegacyCustomPreference: Bool, failure: Failure? = nil) {
+            self.apiKey = apiKey
+            self.clearLegacyCustomPreference = clearLegacyCustomPreference
+            self.failure = failure
+        }
     }
 
     static func resolve(
-        systemOne: String?,
-        legacyCustom: String?,
+        readSystemOne: () throws -> String?,
+        readLegacyCustom: () throws -> String?,
         preferLegacyCustom: Bool,
         saveToSystemOne: (String) throws -> Void
     ) -> Outcome {
-        let legacy = (legacyCustom ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let current = (systemOne ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let current = read(readSystemOne)
         guard preferLegacyCustom else {
-            return Outcome(apiKey: current, clearLegacyCustomPreference: false)
+            return Outcome(
+                apiKey: current.text,
+                clearLegacyCustomPreference: false,
+                failure: current.failed ? .read : nil
+            )
         }
-        guard !legacy.isEmpty else {
-            // Nothing left to migrate, so a stale preference can be dropped.
-            return Outcome(apiKey: current, clearLegacyCustomPreference: true)
+        let legacy = read(readLegacyCustom)
+        // A failed legacy read is not absence: keep the preference, surface the failure,
+        // and never attempt a migration save from an unreadable value.
+        guard !legacy.failed else {
+            return Outcome(apiKey: current.text, clearLegacyCustomPreference: false, failure: .read)
         }
+        guard !legacy.text.isEmpty else {
+            // Confirmed absence, so a stale preference can be dropped even though a
+            // current-slot read failure keeps the field empty.
+            return Outcome(
+                apiKey: current.text,
+                clearLegacyCustomPreference: true,
+                failure: current.failed ? .read : nil
+            )
+        }
+        let legacyValue = legacy.text
         do {
-            try saveToSystemOne(legacy)
+            try saveToSystemOne(legacyValue)
         } catch {
-            return Outcome(apiKey: legacy, clearLegacyCustomPreference: false)
+            return Outcome(apiKey: legacyValue, clearLegacyCustomPreference: false, failure: .save)
         }
-        return Outcome(apiKey: legacy, clearLegacyCustomPreference: true)
+        return Outcome(apiKey: legacyValue, clearLegacyCustomPreference: true)
+    }
+
+    /// Trims a throwing read into an explicit value/absence versus read failure.
+    private static func read(_ closure: () throws -> String?) -> (text: String, failed: Bool) {
+        do {
+            let value = try closure()?.trimmingCharacters(in: .whitespacesAndNewlines)
+            return (value ?? "", false)
+        } catch {
+            return ("", true)
+        }
     }
 }
