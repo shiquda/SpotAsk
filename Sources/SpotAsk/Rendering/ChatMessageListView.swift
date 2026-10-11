@@ -23,16 +23,6 @@ struct ChatMessageListView: View {
 
     @State private var pendingScrollTask: Task<Void, Never>?
 
-    private static let conversationTailCount = 3
-
-    private var historicalMessages: [ChatMessage] {
-        Array(viewModel.messages.prefix(max(0, viewModel.messages.count - Self.conversationTailCount)))
-    }
-
-    private var activeTailMessages: [ChatMessage] {
-        Array(viewModel.messages.suffix(Self.conversationTailCount))
-    }
-
     var body: some View {
         if viewModel.messages.isEmpty {
             emptyConversation
@@ -155,15 +145,10 @@ struct ChatMessageListView: View {
 
     private func conversationContent(contentWidth: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 20) {
-            if !historicalMessages.isEmpty {
-                LazyVStack(alignment: .leading, spacing: 20) {
-                    ForEach(historicalMessages) { message in
-                        messageRow(message, contentWidth: contentWidth)
-                            .id(message.id)
-                    }
-                }
-            }
-            ForEach(activeTailMessages) { message in
+            // Keep every row mounted. LazyVStack replaces offscreen rows with
+            // estimated heights; a long Markdown message misses that estimate
+            // by hundreds of points, so a small scroll jumps the visible text.
+            ForEach(viewModel.messages) { message in
                 messageRow(message, contentWidth: contentWidth)
                     .id(message.id)
             }

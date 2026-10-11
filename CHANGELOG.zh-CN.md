@@ -10,6 +10,7 @@ SpotAsk 的所有重要变更都记录在本文件中。
 ### 修复
 
 - 通用 OpenAI 兼容模型选择「关闭」思考时不再发送会被 New API 一类网关以 HTTP 400 拒绝的 `reasoning_effort: none`。DeepSeek 兼容类型关闭思考时同时发送 `reasoning_effort: off`，思考才会真正停止。
+- 多轮对话后上下滚动时，正在阅读的内容不再突然跳位。
 
 ## [0.2.7] - 2026-10-08
 

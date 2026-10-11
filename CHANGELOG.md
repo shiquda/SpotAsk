@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Turning thinking off for a generic OpenAI-compatible model no longer sends `reasoning_effort: none`, which New API-style gateways reject with HTTP 400. DeepSeek's off setting now also sends `reasoning_effort: off`, so thinking actually stops.
+- Scrolling a long conversation no longer jumps the message on screen.
 
 ## [0.2.7] - 2026-10-08
 
