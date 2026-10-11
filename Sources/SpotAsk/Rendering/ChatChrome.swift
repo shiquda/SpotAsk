@@ -230,10 +230,10 @@ struct SmartRoutingHeaderIcon: View {
             context.stroke(head(tipU, junction), with: .foreground, style: stroke)
             context.stroke(head(tipL, junction), with: .foreground, style: stroke)
 
-            // AI diamond: edges pinch inward about 0.35pt; top vertex overlaps the stem.
+            // AI diamond: edges pinch inward about 0.55pt; top vertex overlaps the stem.
             var diamond = Path()
             let dT = P(5.0, 7.6), dR = P(8.4, 11.9), dB = P(5.0, 16.2), dL = P(1.6, 11.9)
-            let cOff = -0.7 * sx
+            let cOff = -1.1 * sx
             func curvedEdge(_ path: inout Path, _ a: CGPoint, _ b: CGPoint, _ nx: CGFloat, _ ny: CGFloat) {
                 let n = hypot(nx, ny)
                 let mid = CGPoint(x: (a.x + b.x) / 2, y: (a.y + b.y) / 2)
