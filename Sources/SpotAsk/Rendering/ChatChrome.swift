@@ -230,10 +230,20 @@ struct SmartRoutingHeaderIcon: View {
             context.stroke(head(tipU, junction), with: .foreground, style: stroke)
             context.stroke(head(tipL, junction), with: .foreground, style: stroke)
 
-            // AI diamond: top vertex slightly overlaps the stem.
+            // AI diamond: edges bulge outward about 0.35pt; top vertex overlaps the stem.
             var diamond = Path()
-            diamond.move(to: P(5.0, 7.6)); diamond.addLine(to: P(8.4, 11.9))
-            diamond.addLine(to: P(5.0, 16.2)); diamond.addLine(to: P(1.6, 11.9))
+            let dT = P(5.0, 7.6), dR = P(8.4, 11.9), dB = P(5.0, 16.2), dL = P(1.6, 11.9)
+            let cOff = 0.7 * sx
+            func curvedEdge(_ path: inout Path, _ a: CGPoint, _ b: CGPoint, _ nx: CGFloat, _ ny: CGFloat) {
+                let n = hypot(nx, ny)
+                let mid = CGPoint(x: (a.x + b.x) / 2, y: (a.y + b.y) / 2)
+                path.addQuadCurve(to: b, control: CGPoint(x: mid.x + nx / n * cOff, y: mid.y + ny / n * cOff))
+            }
+            diamond.move(to: dT)
+            curvedEdge(&diamond, dT, dR, 3.4, -4.3)
+            curvedEdge(&diamond, dR, dB, 3.4, 4.3)
+            curvedEdge(&diamond, dB, dL, -3.4, 4.3)
+            curvedEdge(&diamond, dL, dT, -3.4, -4.3)
             diamond.closeSubpath()
             if isOn {
                 context.fill(diamond, with: .foreground)
