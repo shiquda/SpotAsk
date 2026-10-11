@@ -5,7 +5,7 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  A native macOS menu-bar AI assistant & query router. Summon with a hotkey, get instant answers, route anywhere in one click — or let a decision model pick the destination for you.
+  A native macOS menu-bar AI assistant & query router. Summon with a hotkey, then answer in-app (BYOK) or route to web AI and local CLI agents — automatically with a decision model, or in one keystroke.
 </p>
 
 <p align="center">

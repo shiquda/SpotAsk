@@ -5,7 +5,7 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  原生 macOS 菜单栏 AI 助手与分流工具：一个快捷键随时呼出，去处自己挑——也可以交给决策模型替你决定。
+  原生 macOS 菜单栏 AI 助手与问题路由器：快捷键随时呼出，在应用内流式作答，或由决策模型自动（及按键一键）分流至网页 AI 与本地 CLI Agent。
 </p>
 
 <p align="center">
