@@ -32,11 +32,27 @@ struct ChatComposerView: View {
     let onAtCommandMoveHighlight: (Int) -> Void
     let onAtCommandConfirm: () -> Void
     let onPrimaryAction: () -> Void
-
+    var routingPhase: DecisionRoutingPhase = .idle
+    var routingCandidates: [DecisionRouteCandidate] = []
+    var onAcceptRoute: () -> Void = {}
+    var onChangeRoute: () -> Void = {}
+    var onSelectRoute: (String) -> Void = { _ in }
+    var onCancelRoute: () -> Void = {}
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             if !viewModel.pendingAttachments.isEmpty {
                 attachmentStrip
+            }
+            if routingPhase.isActive {
+                DecisionRoutingCard(
+                    phase: routingPhase,
+                    candidates: routingCandidates,
+                    onAccept: onAcceptRoute,
+                    onChangeChannel: onChangeRoute,
+                    onSelect: onSelectRoute,
+                    onCancel: onCancelRoute
+                )
+                .transition(.opacity)
             }
             HStack(alignment: .bottom, spacing: 8) {
                 if !viewModel.messages.isEmpty {
@@ -127,6 +143,7 @@ struct ChatComposerView: View {
                 )
             }
         }
+        .animation(.easeOut(duration: 0.12), value: routingPhase)
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
     }

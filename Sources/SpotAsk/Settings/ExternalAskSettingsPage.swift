@@ -5,8 +5,10 @@ import SwiftUI
 
 struct ExternalAskSettingsPage: View {
     @Bindable var settings: AppSettings
+    let keyStore: any APIKeyStoring
     @State private var editorAction: QuickAction?
     @State private var deletingAction: QuickAction?
+    @State private var routingAction: QuickAction?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
@@ -19,6 +21,7 @@ struct ExternalAskSettingsPage: View {
             ) {
                 Toggle(L10n.string("settings.externalAskEnabled"), isOn: $settings.externalAskEnabled)
 
+                DecisionRoutingSettingsSection(settings: settings, keyStore: keyStore)
                 HStack {
                     Text(L10n.string("settings.promptCatalogDescription"))
                         .font(.caption)
@@ -49,6 +52,7 @@ struct ExternalAskSettingsPage: View {
                                 onMoveUp: index > 0 ? { moveAction(id: action.id, by: -1) } : nil,
                                 onMoveDown: index + 1 < settings.quickActions.count ? { moveAction(id: action.id, by: 1) } : nil,
                                 onEdit: action.isBuiltIn ? nil : { editorAction = action },
+                                onEditRouting: { routingAction = action },
                                 onDelete: action.isBuiltIn ? nil : { deletingAction = action }
                             )
                         }
@@ -60,6 +64,17 @@ struct ExternalAskSettingsPage: View {
             QuickActionEditor(action: action) { savedAction in
                 guard settings.saveCustomQuickAction(savedAction) else { return }
                 editorAction = nil
+            }
+        }
+        .sheet(item: $routingAction) { action in
+            QuickActionRoutingEditor(action: action) { purpose, scenario, requiresConfirmation in
+                settings.updateQuickActionRouting(
+                    id: action.id,
+                    purpose: purpose,
+                    scenario: scenario,
+                    requiresConfirmation: requiresConfirmation
+                )
+                routingAction = nil
             }
         }
         .alert(
@@ -105,12 +120,13 @@ struct ExternalAskSettingsPage: View {
 @MainActor
 private struct QuickActionRow: View {
     let action: QuickAction
-    @Bindable var settings: AppSettings
+    let settings: AppSettings
     let position: Int
     let totalCount: Int
     var onMoveUp: (() -> Void)?
     var onMoveDown: (() -> Void)?
     var onEdit: (() -> Void)?
+    var onEditRouting: () -> Void
     var onDelete: (() -> Void)?
 
     var body: some View {
@@ -139,6 +155,12 @@ private struct QuickActionRow: View {
             }
             Spacer(minLength: 8)
             HStack(spacing: 6) {
+                Button(action: onEditRouting) {
+                    Image(systemName: "arrow.triangle.branch")
+                }
+                .buttonStyle(.borderless)
+                .help(L10n.string("decisionRouting.editChannel"))
+                .accessibilityLabel(L10n.string("decisionRouting.editChannel") + " " + action.displayName)
                 if let onEdit, let onDelete {
                     Menu {
                         Button(action: onEdit) {
@@ -415,7 +437,10 @@ private struct QuickActionEditor: View {
                             kind: currentKind,
                             symbolName: symbolName,
                             isBuiltIn: false,
-                            isEnabled: action.isEnabled
+                            isEnabled: action.isEnabled,
+                            routingPurpose: action.routingPurpose,
+                            routingScenario: action.routingScenario,
+                            requiresConfirmationOnAutoRoute: action.requiresConfirmationOnAutoRoute
                         )
                     )
                 }

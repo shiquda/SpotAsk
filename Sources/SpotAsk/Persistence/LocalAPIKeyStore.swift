@@ -133,3 +133,10 @@ final class LocalAPIKeyStore: LegacyAPIKeyMigrating, @unchecked Sendable {
             .appendingPathComponent("credentials.json", isDirectory: false)
     }
 }
+
+struct UnavailableAPIKeyStore: APIKeyStoring {
+    func saveAPIKey(_ apiKey: String, for providerID: UUID) throws {}
+    func readAPIKey(for providerID: UUID) throws -> String? { nil }
+    func deleteAPIKey(for providerID: UUID) throws {}
+    func deleteAllAPIKeys() throws {}
+}

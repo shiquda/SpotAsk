@@ -556,11 +556,88 @@ final class AppSettings {
     var externalAskEnabled: Bool = true {
         didSet { saveSetting("webQuickAskEnabled") }
     }
+    /// Off by default so an ordinary send stays a manual send.
+    var decisionRoutingEnabled: Bool = false {
+        didSet { saveSetting("decisionRoutingEnabled") }
+    }
+
+    var decisionRoutingEndpoint: DecisionEndpointKind = .official {
+        didSet { saveSetting("decisionRoutingEndpoint") }
+    }
+
+    var decisionRoutingOfficialModel: String = DecisionRoutingPolicy.defaultOfficialModel {
+        didSet { saveSetting("decisionRoutingOfficialModel") }
+    }
+
+    var decisionRoutingCustomBaseURL: String = "" {
+        didSet { saveSetting("decisionRoutingCustomBaseURL") }
+    }
+
+    var decisionRoutingCustomModel: String = "" {
+        didSet { saveSetting("decisionRoutingCustomModel") }
+    }
+
+    var decisionRoutingConfirmationMode: DecisionConfirmationMode = .always {
+        didSet { saveSetting("decisionRoutingConfirmationMode") }
+    }
+
+    var decisionRoutingConfidenceThreshold: Double = DecisionRoutingPolicy.defaultThreshold {
+        didSet {
+            let clamped = DecisionRoutingPolicy.normalizedThreshold(decisionRoutingConfidenceThreshold)
+            if clamped != decisionRoutingConfidenceThreshold {
+                decisionRoutingConfidenceThreshold = clamped
+                return
+            }
+            saveSetting("decisionRoutingConfidenceThreshold")
+        }
+    }
+
+    var decisionRoutingTimeoutSeconds: Double = DecisionRoutingPolicy.defaultTimeoutSeconds {
+        didSet {
+            let clamped = DecisionRoutingPolicy.normalizedTimeout(decisionRoutingTimeoutSeconds)
+            if clamped != decisionRoutingTimeoutSeconds {
+                decisionRoutingTimeoutSeconds = clamped
+                return
+            }
+            saveSetting("decisionRoutingTimeoutSeconds")
+        }
+    }
+
+    var decisionRoutingTimeoutAction: DecisionTimeoutAction = .manualSelection {
+        didSet { saveSetting("decisionRoutingTimeoutAction") }
+    }
+
+    var decisionRoutingInAppDescription: String = "" {
+        didSet { saveSetting("decisionRoutingInAppDescription") }
+    }
+
 
     var enabledQuickActions: [QuickAction] {
         guard externalAskEnabled else { return [] }
         return quickActionCatalog.filter(\.isEnabled)
     }
+    func decisionRoutingSettings() -> DecisionRoutingSettings {
+        DecisionRoutingSettings(
+            isEnabled: decisionRoutingEnabled,
+            endpoint: decisionRoutingEndpoint,
+            officialModel: decisionRoutingOfficialModel,
+            customBaseURL: decisionRoutingCustomBaseURL,
+            customModel: decisionRoutingCustomModel,
+            confirmationMode: decisionRoutingConfirmationMode,
+            confidenceThreshold: decisionRoutingConfidenceThreshold,
+            timeoutSeconds: decisionRoutingTimeoutSeconds,
+            timeoutAction: decisionRoutingTimeoutAction,
+            inAppDescription: decisionRoutingInAppDescription
+        )
+    }
+
+    func decisionRoutingCandidates() -> [DecisionRouteCandidate] {
+        DecisionRouteCatalog.candidates(
+            actions: enabledQuickActions,
+            inAppDescription: decisionRoutingInAppDescription
+        )
+    }
+
 
     var customQuickActions: [QuickAction] {
         quickActionCatalog.filter { !$0.isBuiltIn }
@@ -686,7 +763,10 @@ final class AppSettings {
             kind: action.kind,
             symbolName: symbolName,
             isBuiltIn: false,
-            isEnabled: isEnabled
+            isEnabled: isEnabled,
+            routingPurpose: action.routingPurpose,
+            routingScenario: action.routingScenario,
+            requiresConfirmationOnAutoRoute: action.requiresConfirmationOnAutoRoute
         )
 
         if let index = quickActionCatalog.firstIndex(where: { $0.id == action.id && !$0.isBuiltIn }) {
@@ -705,6 +785,18 @@ final class AppSettings {
         guard let index = quickActionCatalog.firstIndex(where: { $0.id == id }) else { return }
         quickActionCatalog[index].isEnabled = isEnabled
     }
+    func updateQuickActionRouting(
+        id: UUID,
+        purpose: String,
+        scenario: String,
+        requiresConfirmation: Bool
+    ) {
+        guard let index = quickActionCatalog.firstIndex(where: { $0.id == id }) else { return }
+        quickActionCatalog[index].routingPurpose = purpose.trimmingCharacters(in: .whitespacesAndNewlines)
+        quickActionCatalog[index].routingScenario = scenario.trimmingCharacters(in: .whitespacesAndNewlines)
+        quickActionCatalog[index].requiresConfirmationOnAutoRoute = requiresConfirmation
+    }
+
 
     @discardableResult
     func moveQuickAction(id: UUID, by offset: Int) -> Bool {
@@ -827,6 +919,11 @@ final class AppSettings {
                !proxyPassword.isEmpty {
                 apiKeys[ProxyCredentialSlot.providerID.uuidString] = proxyPassword
             }
+            for slot in DecisionCredentialSlot.all {
+                if let key = try keyStore.readAPIKey(for: slot), !key.isEmpty {
+                    apiKeys[slot.uuidString] = key
+                }
+            }
             backup.apiKeys = apiKeys
         }
         return backup
@@ -864,7 +961,9 @@ final class AppSettings {
                 let providerIDs = Set(providerRegistry.catalog?.providers.map(\.id) ?? [])
                 for (rawID, key) in apiKeys {
                     guard let providerID = UUID(uuidString: rawID),
-                          providerID == ProxyCredentialSlot.providerID || providerIDs.contains(providerID) else { continue }
+                          providerID == ProxyCredentialSlot.providerID
+                            || providerIDs.contains(providerID)
+                            || DecisionCredentialSlot.all.contains(providerID) else { continue }
                     if !touchedKeySlots.keys.contains(providerID) {
                         let original = try keyStore.readAPIKey(for: providerID)
                         touchedKeySlots[providerID] = original
@@ -1070,7 +1169,10 @@ final class AppSettings {
                     kind: builtIn.kind,
                     symbolName: builtIn.symbolName,
                     isBuiltIn: true,
-                    isEnabled: action.isEnabled
+                    isEnabled: action.isEnabled,
+                    routingPurpose: action.routingPurpose,
+                    routingScenario: action.routingScenario,
+                    requiresConfirmationOnAutoRoute: action.requiresConfirmationOnAutoRoute
                 ))
             } else if !action.isBuiltIn {
                 let symbol = QuickAction.isValidSymbol(action.symbolName)
@@ -1082,7 +1184,10 @@ final class AppSettings {
                     kind: action.kind,
                     symbolName: symbol,
                     isBuiltIn: false,
-                    isEnabled: action.isEnabled
+                    isEnabled: action.isEnabled,
+                    routingPurpose: action.routingPurpose,
+                    routingScenario: action.routingScenario,
+                    requiresConfirmationOnAutoRoute: action.requiresConfirmationOnAutoRoute
                 ))
             }
         }

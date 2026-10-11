@@ -57,7 +57,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         switch self {
         case .provider: ["service", "provider", "model", "models", "access key", "endpoint", "connection", "服务", "模型", "密钥", "地址"]
         case .prompts: ["prompt", "prompts", "instruction", "preset", "提示词", "指令"]
-        case .externalAsk: ["external ask", "quick action", "web", "app", "terminal", "外部提问", "网页", "应用", "终端"]
+        case .externalAsk: ["external ask", "quick action", "web", "app", "terminal", "decision", "routing", "route", "confidence", "jev", "system one", "外部提问", "网页", "应用", "终端", "决策", "路由", "置信度"]
         case .selectionAssistant: ["selection", "selected text", "accessibility", "application", "划词", "选中文字", "辅助功能", "应用"]
         case .shortcuts: ["shortcut", "keyboard", "command", "快捷键", "键盘"]
         case .general: ["behavior", "proxy", "diagnostics", "language", "launch", "window", "local data", "configuration", "行为", "代理", "诊断", "语言", "启动", "窗口", "数据", "配置"]
@@ -179,7 +179,7 @@ enum SettingsSearchIndex {
         Entry(section: .provider, titleKey: "settings.availableModels", labelKeys: ["settings.modelRefreshDescription"]),
         Entry(section: .prompts, titleKey: "settings.savedPrompts", labelKeys: ["settings.promptCatalogDescription"]),
         Entry(section: .prompts, titleKey: "settings.customInstruction", labelKeys: ["settings.customInstruction"]),
-        Entry(section: .externalAsk, titleKey: "settings.externalAsk", labelKeys: ["settings.externalAskEnabled", "settings.promptCatalogDescription"]),
+        Entry(section: .externalAsk, titleKey: "settings.externalAsk", labelKeys: ["settings.externalAskEnabled", "settings.promptCatalogDescription", "decisionRouting.sectionTitle", "decisionRouting.enabled", "decisionRouting.endpoint", "decisionRouting.model", "decisionRouting.credential", "decisionRouting.confirmationMode", "decisionRouting.threshold", "decisionRouting.timeout", "decisionRouting.timeoutAction", "decisionRouting.inAppDescription", "decisionRouting.testAsk"]),
         Entry(section: .selectionAssistant, titleKey: "settings.selectionAssistant", labelKeys: ["settings.selectionAssistantEnabled", "settings.selectionAssistantPermissionStatus", "settings.selectionAssistantMode", "settings.selectionAssistantAutoShow", "settings.selectionAssistantActionLabels", "settings.selectionAssistantActionPrompts", "settings.selectionAssistantActionExternalAsk", "settings.selectionAssistantActionBarPreview", "settings.selectionAssistantAutoShowScope", "settings.selectionAssistantAutoShowDelay", "settings.selectionAssistantDefaultAction", "settings.selectionAssistantAutoShowApps"]),
         Entry(section: .shortcuts, titleKey: "settings.shortcutActions", labelKeys: ["settings.selectionAssistantToggleShortcut"]),
         Entry(section: .shortcuts, titleKey: "settings.shortcutPrompts", labelKeys: ["settings.promptCatalogDescription"]),
@@ -281,6 +281,7 @@ final class SettingsWindowModel {
 
 struct SettingsView: View {
     let settings: AppSettings
+    let keyStore: any APIKeyStoring
     let accessibilityPermissionCoordinator: AccessibilityPermissionCoordinator
     private let accessibilitySettingsOpener: any AccessibilityPermissionSettingsOpening
 
@@ -329,6 +330,7 @@ struct SettingsView: View {
         onClearAllData: (() -> Void)? = nil
     ) {
         self.settings = settings
+        self.keyStore = keyStore
         self.accessibilityPermissionCoordinator = accessibilityPermissionCoordinator
         self.accessibilitySettingsOpener = accessibilitySettingsOpener
         self.settingsWindowProvider = settingsWindowProvider
@@ -384,7 +386,7 @@ struct SettingsView: View {
                         section: .externalAsk,
                         pendingTarget: $pendingGroupTarget
                     ) {
-                        ExternalAskSettingsPage(settings: settings)
+                        ExternalAskSettingsPage(settings: settings, keyStore: keyStore)
                     }
                 case .selectionAssistant:
                     SettingsPageScrollView(

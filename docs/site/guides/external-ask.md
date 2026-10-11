@@ -56,6 +56,17 @@ Entries can be reordered, disabled, edited, or deleted from the same settings pa
 
 <SpotAskSettingsLink section="external-ask" />
 
+
+## Decision routing
+
+When you want SpotAsk to recommend a destination before sending, turn on **Enable automatic routing** in Settings > **External Ask**.
+
+- **System One / Jev protocol**: Connect to TypeSafe Official (`https://api.typesafe.ai/v1/systemone`, default model `jev-1.13.0`) or a custom System One service address with its own separate credential. Decision routing evaluates candidate destinations; it does not replace your generative chat providers.
+- **Channel descriptions**: Click the routing button on any built-in or custom entry to describe what it does, when it fits, and whether it must always be confirmed.
+- **Confirmation & confidence**: The default mode confirms every routed send on an inline card above the composer (`↩` to continue, **Change Channel** to pick manually, `Esc` to cancel and keep the question). In threshold mode, only scores strictly above your threshold auto-send; confidence reflects option certainty, not accuracy.
+- **Timeout & manual priority**: The default timeout is 2 seconds and falls back to manual channel selection (or in-app chat if configured). Manually selecting an External Ask target or attaching files always bypasses the decision model.
+- **Test question**: Preview the recommended destination, confidence, and release rule directly in Settings without opening any external app or browser tab.
+
 ## Shortcuts
 
 Enabled entries get in-app shortcuts that continue after your prompt shortcuts: with the four built-in prompts enabled, the first two External Ask entries are `⌘ + 5` and `⌘ + 6`. Reassign or clear them in Settings > **Shortcuts**.
@@ -70,6 +81,6 @@ External Ask entries are included in configuration backups, and restoring an old
 
 **Why are Claude and Gemini not built in?** Only services that reliably open and answer a question from a link are built in. Claude opens with the question filled in but waits for you to send it; Gemini does not accept a question in its link at all. You can still add Claude as a custom entry and press send yourself.
 
-**What happens to my question?** External Ask sends the question only to the destination you pick; SpotAsk does not send it anywhere else and does not keep it.
+**What happens to my question?** External Ask sends the question only to the destination you pick. When optional decision routing is enabled and no target is manually selected, the question and candidate descriptions are also sent to your configured System One endpoint to choose a destination.
 
 Related: [Prompts](/guides/prompts), [Privacy & Local Data](/privacy), [Settings & Shortcuts Reference](/reference)
