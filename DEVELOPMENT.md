@@ -215,6 +215,7 @@ Changelog entries follow a concise, user-centric format inspired by Multica:
    - English (`CHANGELOG.md`): use standard `### Added`, `### Changed`, and `### Fixed`.
    - Simplified Chinese (`CHANGELOG.zh-CN.md`): use translated headings: `### 新增`, `### 变更`, and `### 修复`.
 4. **1:1 alignment**: the subsection sequence and bullet counts must strictly match between the two files.
+5. **Feature showcase images**: store screenshots or GIFs once in `docs/site/public/images/` and reference them in `CHANGELOG.md` and `CHANGELOG.zh-CN.md` as `![Alt text](docs/site/public/images/<file>)` (localized filenames such as `spotask-decision-routing.png` and `spotask-decision-routing-zh.png` are supported as long as image counts match per section). `Scripts/generate-docs-metadata.mjs` rewrites the path to `/images/<file>` for the VitePress changelog pages, and `Scripts/release-notes-from-changelog.sh` rewrites it to `https://shiquda.github.io/SpotAsk/images/<file>` for GitHub Releases and Sparkle appcasts.
 
 ### Consistency gate — run on every change
 
@@ -229,6 +230,7 @@ Compares both files and fails on any drift:
 - an `[Unreleased]` section that carries a release date, or a released section without one
 - a version that does not descend from `[Unreleased]`, or a release dated later than the version above it
 - a missing or mismatched `### subsection` (e.g. `Added` / `新增`, `Changed` / `变更`, `Fixed` / `修复`), or a subsection whose bullet count differs between the languages
+- a Markdown image whose local file is missing from `docs/site/public/images/`, or a section whose image count differs between `CHANGELOG.md` and `CHANGELOG.zh-CN.md`
 - a version heading without its `[X.Y.Z]: ...` link reference, which renders the heading as literal text
 
 CI runs it on every pull request and every push to `main` (`.github/workflows/ci.yml`), before the test suite. Each failure names the file, the version, and the actual problem, so no separate run of the script is needed to diagnose it.

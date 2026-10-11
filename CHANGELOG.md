@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An inline confirmation card above the composer shows the recommended destination and confidence score, with Return to send, Tab or arrow keys to switch channels, Esc to cancel, and optional auto-send above your confidence threshold.
 - Each External Ask channel can define its description, best-fit questions, and an always-confirm rule, and Settings > External Ask includes a live route test that previews the recommended channel, confidence, release mode, and evaluation latency.
 
+![Decision routing inline confirmation and Tab channel switcher](docs/site/public/images/spotask-decision-routing.png)
+
 ### Changed
 
 - Built-in External Ask channels can now be edited or deleted just like custom ones, and the channel editor uses a unified two-card layout with 20 localized icon options.

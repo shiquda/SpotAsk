@@ -73,28 +73,38 @@ function isSettingsSectionId(value) {
  * the app still has a way in. Unknown section ids are dropped, matching the
  * site component, instead of publishing a broken `spotask://` URL.
  */
+function rewriteChangelogImages(source, basePrefix = '/images/') {
+  return source.replace(
+    /(!\[[^\]]*\]\()(?:docs\/site\/public\/images\/|\/images\/)([^)]+\))/g,
+    `$1${basePrefix}$2`
+  )
+}
+
 function markdownForConsumers(relativePath, source) {
   const isChinese = relativePath.startsWith('zh-CN/')
-  return source.replace(/^<SpotAskSettingsLink section="([^"]+)" \/>$/gm, (_match, section) => {
-    if (!isSettingsSectionId(section)) {
-      console.warn(`[spotask-docs] Unknown SpotAsk settings section "${section}"`)
-      return ''
-    }
-    const url = `spotask://settings/${section}`
-    const title = isChinese ? sectionTitles[section]['zh-CN'] : sectionTitles[section].en
-    if (isChinese) {
+  return rewriteChangelogImages(source, `${docsUrl}images/`).replace(
+    /^<SpotAskSettingsLink section="([^"]+)" \/>$/gm,
+    (_match, section) => {
+      if (!isSettingsSectionId(section)) {
+        console.warn(`[spotask-docs] Unknown SpotAsk settings section "${section}"`)
+        return ''
+      }
+      const url = `spotask://settings/${section}`
+      const title = isChinese ? sectionTitles[section]['zh-CN'] : sectionTitles[section].en
+      if (isChinese) {
+        return [
+          `在 SpotAsk 中打开设置：\`${url}\``,
+          '',
+          `打开 SpotAsk 的「${title}」页。未安装 SpotAsk 时此链接不会有反应，可手动打开：SpotAsk 菜单栏图标 → 设置… → ${title}，或按 ⌘ + , 打开设置。`
+        ].join('\n')
+      }
       return [
-        `在 SpotAsk 中打开设置：\`${url}\``,
+        `Open Settings in SpotAsk: \`${url}\``,
         '',
-        `打开 SpotAsk 的「${title}」页。未安装 SpotAsk 时此链接不会有反应，可手动打开：SpotAsk 菜单栏图标 → 设置… → ${title}，或按 ⌘ + , 打开设置。`
+        `Opens the ${title} page in SpotAsk. If SpotAsk is not installed this link does nothing — open it by hand instead: SpotAsk menu bar icon → Settings... → ${title}, or press ⌘ + , to open Settings.`
       ].join('\n')
     }
-    return [
-      `Open Settings in SpotAsk: \`${url}\``,
-      '',
-      `Opens the ${title} page in SpotAsk. If SpotAsk is not installed this link does nothing — open it by hand instead: SpotAsk menu bar icon → Settings... → ${title}, or press ⌘ + , to open Settings.`
-    ].join('\n')
-  })
+  )
 }
 
 /**
@@ -121,7 +131,8 @@ const changelogs = [
 
 async function writeChangelogPages() {
   for (const changelog of changelogs) {
-    const contents = await readFile(path.join(repositoryRoot, changelog.source), 'utf8')
+    const rawContents = await readFile(path.join(repositoryRoot, changelog.source), 'utf8')
+    const contents = rewriteChangelogImages(rawContents, '/images/')
     const destination = path.join(docsRoot, changelog.page)
     const frontmatter = [
       '---',

@@ -62,17 +62,24 @@ case "$RELEASE_TAG" in
 esac
 
 VERSION=${RELEASE_TAG#v}
+DOCS_IMAGE_BASE_URL=${DOCS_IMAGE_BASE_URL:-https://shiquda.github.io/SpotAsk/images}
+DOCS_IMAGE_BASE_URL=${DOCS_IMAGE_BASE_URL%/}
 
 # Print the body of the "## [VERSION]" section of one changelog.
 # Exits 1 when the changelog, the section, or the section content is missing.
 changelog_section() {
     changelog=$1
     [ -f "$changelog" ] || return 1
-    body=$(awk -v version="$VERSION" '
+    body=$(awk -v version="$VERSION" -v img_base="$DOCS_IMAGE_BASE_URL" '
         $0 ~ "^## \\[" version "\\]" { found = 1; next }
         found && /^## / { exit }
         found && /^\[[^]]*\]:/ { exit }
-        found { print }
+        found {
+            gsub(/\]\(docs\/site\/public\/images\//, "](" img_base "/")
+            gsub(/\]\(\/images\//, "](" img_base "/")
+            gsub(/\]\(images\//, "](" img_base "/")
+            print
+        }
         END { if (!found) exit 1 }
     ' "$changelog") || return 1
     body=$(printf '%s\n' "$body" | awk '
