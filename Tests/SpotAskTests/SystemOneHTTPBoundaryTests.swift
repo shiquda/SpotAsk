@@ -92,12 +92,16 @@ private final class DecisionHTTPOrigin: @unchecked Sendable {
 }
 
 struct SystemOneHTTPBoundaryTests {
-    private func evaluate(_ origin: DecisionHTTPOrigin, timeout: TimeInterval = 1) async throws -> SystemOneChoiceAnswer {
+    private func evaluate(
+        _ origin: DecisionHTTPOrigin,
+        timeout: TimeInterval = 1,
+        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+    ) async throws -> SystemOneChoiceAnswer {
         let session = URLSession(configuration: .ephemeral)
         defer { session.invalidateAndCancel() }
         return try await SystemOneClient(
             transport: URLSessionSystemOneTransport(session: session),
-            sleep: { try await Task.sleep(for: $0) }
+            sleep: sleep
         ).evaluate(question: "synthetic boundary question", model: "synthetic-model",
                    criteria: ["in_app": "Synthetic in-app", "external": "Synthetic external"],
                    url: origin.url, apiKey: "synthetic-auth-marker", timeout: timeout)
@@ -147,10 +151,25 @@ struct SystemOneHTTPBoundaryTests {
 
     @Test("Late HTTP answer cannot replace the timeout")
     func lateAnswer() async throws {
-        let source = try DecisionHTTPOrigin { _ in .init(delay: 0.15) }
-        defer { source.stop() }
+        let received = AsyncStream<Void>.makeStream()
+        let releaseReply = DispatchSemaphore(value: 0)
+        let source = try DecisionHTTPOrigin { _ in
+            received.continuation.yield(())
+            received.continuation.finish()
+            releaseReply.wait()
+            return .init()
+        }
+        defer {
+            releaseReply.signal()
+            source.stop()
+        }
         do {
-            _ = try await evaluate(source, timeout: 0.03)
+            // Start the short deadline only after real HTTP receipt; CI scheduling
+            // must not turn this late-answer regression into a pre-connect timeout.
+            _ = try await evaluate(source, timeout: 0.03, sleep: { duration in
+                for await _ in received.stream { break }
+                try await Task.sleep(for: duration)
+            })
             Issue.record("Late response replaced the deadline")
         } catch {
             #expect(SystemOneClient.isTimeout(error))
