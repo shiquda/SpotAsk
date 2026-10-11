@@ -16,6 +16,8 @@ SpotAsk is a bring-your-own-key app. It does not provide its own AI account, and
 
 Selected text and attached files are sent to the service when you ask a question about them. Before handling sensitive information, review the privacy and data-retention policies of the service you use.
 
+When automatic routing is on and you have not picked a channel, SpotAsk also sends the question text and the candidate channel names and descriptions to the decision address in Settings > External Ask. That can be TypeSafe (`https://api.typesafe.ai`) or another System One address you enter, such as OpenRouter (`https://openrouter.ai/api`). The decision access key is stored on this Mac and is sent only to that address. Routing does not run for a manually chosen channel, a message with attachments, or a conversation whose toolbar routing switch is off.
+
 ## Selection permission
 
 The selection assistant reads text you select through macOS Accessibility. Permission is requested only when you enable the feature, and SpotAsk does not keep selected text after the action completes unless conversation retention stores that conversation.

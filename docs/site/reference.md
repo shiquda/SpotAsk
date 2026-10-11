@@ -18,6 +18,19 @@ description: A compact reference for SpotAsk settings sections, default shortcut
 | Appearance | Appearance, font size, message style, and reading size |
 | About | Version, project source, automatic update checks, and manual update checks |
 
+Decision Routing lives in Settings > External Ask, after the channel list. It is off until you turn on **Enable automatic routing**.
+
+| Field | What to enter |
+| --- | --- |
+| Service address | TypeSafe official: `https://api.typesafe.ai`. OpenRouter: `https://openrouter.ai/api`. |
+| Decision model | TypeSafe official: `jev-1.13.0`. OpenRouter: `typesafe/jev-1.13`. |
+| Access key | A key for that same service. It is sent only to the address above. |
+| Confirmation | **Always confirm**, or **Auto-send above threshold**. |
+| Confidence threshold | Auto-send only when confidence is strictly above this value. Default 0.8. |
+| Timeout | 0.5 to 5 seconds, in 0.1-second steps. Default 2 seconds. |
+| Show routing toggle in toolbar | Shows the per-conversation switch. Default on. |
+
+
 ## Default shortcuts
 
 | Action | Shortcut |
@@ -26,6 +39,7 @@ description: A compact reference for SpotAsk settings sections, default shortcut
 | Trigger the selection assistant | `⌥ + ⇧ + Space` |
 | Focus the input | `⌘ + L` |
 | Regenerate or retry | `⌘ + R` |
+| Toggle automatic routing for this conversation | `⌘ + ⇧ + R` |
 | Copy the latest answer | `⌘ + ⇧ + C` |
 | Open Settings | `⌘ + ,` |
 | New conversation | `⌘ + N` |

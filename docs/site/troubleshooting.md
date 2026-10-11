@@ -43,6 +43,19 @@ Settings > General > **Clear All Local Data** resets corrupted local service dat
 
 <SpotAskSettingsLink section="general" />
 
+## Decision routing does not recommend a channel
+
+Check Settings > **External Ask** > **Decision Routing**:
+
+1. **Enable automatic routing** is on, and the toolbar switch for this conversation is on.
+2. The service address is a System One base address, not a chat-completions URL. TypeSafe official is `https://api.typesafe.ai`. OpenRouter is `https://openrouter.ai/api`.
+3. The decision model matches that service: `jev-1.13.0` for TypeSafe official, `typesafe/jev-1.13` for OpenRouter.
+4. The access key belongs to that same service. TypeSafe official will not send a request without a key. OpenRouter rejects a missing or TypeSafe key at its own endpoint.
+5. **Timeout** is long enough for that service. The default is 2 seconds, and the maximum is 5 seconds. A timeout falls back to manual channel selection unless you chose **Answer in SpotAsk**.
+6. Use **Test question** in Settings. It shows the recommended destination without opening an external app.
+
+A message with attachments, or a channel you already picked, skips the decision model on purpose.
+
 ## Need more detail
 
 Settings > General > **Diagnostics** can record recent request and selection details locally, then **Export Log** creates a file you can share. Credentials are never included.

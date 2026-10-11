@@ -63,7 +63,32 @@ When you want SpotAsk to recommend a destination before sending, turn on **Enabl
 
 ![Decision routing inline confirmation and Tab channel switcher](/images/spotask-decision-routing.png)
 
-- **System One / Jev protocol**: One service address and model, prefilled with TypeSafe Official (`https://api.typesafe.ai`, model `jev-1.13.0`). Change the address to use another compatible System One service. The access key is sent only to that address. Decision routing evaluates candidate destinations; it does not replace your generative chat providers. Other decision APIs are not connected yet.
+SpotAsk asks a System One decision service which enabled channel fits the question. It does not change the chat service that writes answers. Fill **Service address**, **Decision model**, and **Access key**. The key is sent only to the address you enter.
+
+Two setups are recommended. Run **Test question** in that section before relying on either one.
+
+### TypeSafe official
+
+These values are already filled in. Add a TypeSafe key. This address will not send a request without one.
+
+| Field | Value |
+| --- | --- |
+| Service address | `https://api.typesafe.ai` |
+| Decision model | `jev-1.13.0` |
+| Access key | A TypeSafe API key |
+
+### OpenRouter
+
+OpenRouter serves the same System One request at `https://openrouter.ai/api/v1/systemone`. Use an OpenRouter key, not a TypeSafe key. Enter the base address below; SpotAsk adds `/v1/systemone`. Do not paste a chat-completions URL.
+
+| Field | Value |
+| --- | --- |
+| Service address | `https://openrouter.ai/api` |
+| Decision model | `typesafe/jev-1.13` |
+| Access key | An OpenRouter API key |
+
+Pin `typesafe/jev-1.13` if you want a fixed model. `~typesafe/jev-latest` follows OpenRouter’s newest Jev alias and can change. Access and pricing are OpenRouter’s: [Jev on OpenRouter](https://openrouter.ai/docs/guides/community/jev).
+
 - **Channel descriptions**: Edit any entry to set its link or command, what it does, when it fits, and whether it must always be confirmed. If you leave the preference blank, routing still sends the channel name to the decision model.
 - **Confirmation, confidence & auto-send notice**: The default mode confirms every routed send on an inline card above the composer (`↩` to continue, `Tab` for other channels, `Esc` to cancel and keep the question). In the channel list, Tab moves the highlight and Return sends it. In threshold mode, scores strictly above your threshold answer immediately when routed to **In SpotAsk**, or show a brief 0.8-second notice before opening an external channel (`↩` sends immediately, `Esc` or editing cancels); confidence reflects option certainty, not accuracy.
 - **Per-conversation toolbar toggle**: When automatic routing is enabled, a smart-routing icon in the chat toolbar (`⌘ + ⇧ + R` by default) lets you turn automatic routing off for the current conversation without changing Settings. Starting a new conversation resets it to on. You can hide this icon in **Settings > External Ask**.
@@ -86,6 +111,6 @@ External Ask entries are included in configuration backups, and restoring an old
 
 **Why are Claude and Gemini not built in?** Only services that reliably open and answer a question from a link are built in. Claude opens with the question filled in but waits for you to send it; Gemini does not accept a question in its link at all. You can still add Claude as a custom entry and press send yourself.
 
-**What happens to my question?** External Ask sends the question only to the destination you pick. When optional decision routing is enabled and no target is manually selected, the question and candidate descriptions are also sent to your configured System One endpoint to choose a destination.
+**What happens to my question?** A manual External Ask send goes only to the destination you pick. When automatic routing runs, the question text and the candidate channel names and descriptions are also sent to the decision address you configured, so it can choose a destination. Routing does not run if you already picked a channel, the message has attachments, or the toolbar routing switch for this conversation is off.
 
 Related: [Prompts](/guides/prompts), [Privacy & Local Data](/privacy), [Settings & Shortcuts Reference](/reference)
