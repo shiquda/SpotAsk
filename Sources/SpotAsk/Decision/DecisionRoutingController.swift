@@ -116,6 +116,15 @@ final class DecisionRoutingController {
         phase = .choosing(ticket, .changeChannel, highlightedID: candidates.first?.id ?? DecisionRouteID.inApp)
     }
 
+    func moveSelection(_ delta: Int) {
+        guard case let .choosing(ticket, reason, highlightedID) = phase,
+              !candidates.isEmpty else { return }
+        let currentIndex = candidates.firstIndex(where: { $0.id == highlightedID }) ?? 0
+        let count = candidates.count
+        let nextIndex = ((currentIndex + delta) % count + count) % count
+        phase = .choosing(ticket, reason, highlightedID: candidates[nextIndex].id)
+    }
+
     func clearPendingExecution() {
         pendingExecution = nil
     }

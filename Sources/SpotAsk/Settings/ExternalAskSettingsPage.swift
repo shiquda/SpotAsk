@@ -8,7 +8,6 @@ struct ExternalAskSettingsPage: View {
     let keyStore: any APIKeyStoring
     @State private var editorAction: QuickAction?
     @State private var deletingAction: QuickAction?
-    @State private var routingAction: QuickAction?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
@@ -50,9 +49,8 @@ struct ExternalAskSettingsPage: View {
                                 totalCount: settings.quickActions.count,
                                 onMoveUp: index > 0 ? { moveAction(id: action.id, by: -1) } : nil,
                                 onMoveDown: index + 1 < settings.quickActions.count ? { moveAction(id: action.id, by: 1) } : nil,
-                                onEdit: action.isBuiltIn ? nil : { editorAction = action },
-                                onEditRouting: { routingAction = action },
-                                onDelete: action.isBuiltIn ? nil : { deletingAction = action }
+                                onEdit: { editorAction = action },
+                                onDelete: { deletingAction = action }
                             )
                         }
                     }
@@ -63,19 +61,8 @@ struct ExternalAskSettingsPage: View {
         }
         .sheet(item: $editorAction) { action in
             QuickActionEditor(action: action) { savedAction in
-                guard settings.saveCustomQuickAction(savedAction) else { return }
+                guard settings.saveQuickAction(savedAction) else { return }
                 editorAction = nil
-            }
-        }
-        .sheet(item: $routingAction) { action in
-            QuickActionRoutingEditor(action: action) { purpose, scenario, requiresConfirmation in
-                settings.updateQuickActionRouting(
-                    id: action.id,
-                    purpose: purpose,
-                    scenario: scenario,
-                    requiresConfirmation: requiresConfirmation
-                )
-                routingAction = nil
             }
         }
         .alert(
@@ -90,12 +77,12 @@ struct ExternalAskSettingsPage: View {
             }
             Button(L10n.string("settings.delete"), role: .destructive) {
                 if let deletingAction {
-                    settings.deleteCustomQuickAction(id: deletingAction.id)
+                    settings.deleteQuickAction(id: deletingAction.id)
                 }
                 deletingAction = nil
             }
         } message: {
-            Text(L10n.string("externalAsk.deleteMessage"))
+            Text(L10n.string("externalAsk.deleteMessage", deletingAction?.displayName ?? ""))
         }
     }
 
@@ -137,9 +124,8 @@ private struct QuickActionRow: View {
     let totalCount: Int
     var onMoveUp: (() -> Void)?
     var onMoveDown: (() -> Void)?
-    var onEdit: (() -> Void)?
-    var onEditRouting: () -> Void
-    var onDelete: (() -> Void)?
+    var onEdit: () -> Void
+    var onDelete: () -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
@@ -167,32 +153,20 @@ private struct QuickActionRow: View {
             }
             Spacer(minLength: 8)
             HStack(spacing: 6) {
-                Button(action: onEditRouting) {
-                    Image(systemName: "arrow.triangle.branch")
+                Button(action: onEdit) {
+                    Image(systemName: "pencil")
+                        .frame(width: 22, height: 22)
                 }
                 .buttonStyle(.borderless)
-                .help(L10n.string("decisionRouting.editChannel"))
-                .accessibilityLabel(L10n.string("decisionRouting.editChannel") + " " + action.displayName)
-                if let onEdit, let onDelete {
-                    Menu {
-                        Button(action: onEdit) {
-                            Label(L10n.string("settings.edit"), systemImage: "pencil")
-                        }
-                        Button(role: .destructive, action: onDelete) {
-                            Label(L10n.string("settings.delete"), systemImage: "trash")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .frame(width: 22, height: 22)
-                    }
-                    .menuStyle(.borderlessButton)
-                    .help(L10n.string("settings.edit") + " / " + L10n.string("settings.delete"))
-                    .accessibilityLabel(L10n.string("settings.edit") + " / " + L10n.string("settings.delete") + " " + action.displayName)
-                } else {
-                    Color.clear
+                .help(L10n.string("settings.edit"))
+                .accessibilityLabel(L10n.string("settings.edit") + " " + action.displayName)
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
                         .frame(width: 22, height: 22)
-                        .accessibilityHidden(true)
                 }
+                .buttonStyle(.borderless)
+                .help(L10n.string("settings.delete"))
+                .accessibilityLabel(L10n.string("settings.delete") + " " + action.displayName)
                 Toggle(
                     "",
                     isOn: Binding(
@@ -278,24 +252,21 @@ private struct QuickActionEditor: View {
     @State private var selectedKindOption: ActionKindOption
     @State private var template: String
     @State private var symbolName: String
+    @State private var purpose: String
+    @State private var scenario: String
+    @State private var requiresConfirmation: Bool
 
-    private static let availableSymbols: [String] = [
-        "globe",
-        "bubble.left.and.bubble.right",
-        "sparkles",
-        "link",
-        "safari",
-        "terminal",
-        "chevron.left.forwardslash.chevron.right",
-        "magnifyingglass",
-        "bolt",
-        "character.bubble"
-    ]
+    private var symbolChoices: [String] {
+        if QuickAction.availableSymbols.contains(symbolName) {
+            return QuickAction.availableSymbols
+        }
+        return [symbolName] + QuickAction.availableSymbols
+    }
 
     init(action: QuickAction, onSave: @escaping (QuickAction) -> Void) {
         self.action = action
         self.onSave = onSave
-        _name = State(initialValue: action.name)
+        _name = State(initialValue: action.displayName)
         _template = State(initialValue: action.kind.template)
         let kindOption: ActionKindOption
         switch action.kind {
@@ -305,6 +276,9 @@ private struct QuickActionEditor: View {
         }
         _selectedKindOption = State(initialValue: kindOption)
         _symbolName = State(initialValue: QuickAction.isValidSymbol(action.symbolName) ? action.symbolName : QuickAction.defaultSymbolName)
+        _purpose = State(initialValue: action.routingPurpose)
+        _scenario = State(initialValue: action.routingScenario)
+        _requiresConfirmation = State(initialValue: action.requiresConfirmationOnAutoRoute)
     }
 
     private var currentKind: QuickActionKind {
@@ -383,62 +357,92 @@ private struct QuickActionEditor: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text(action.name.isEmpty ? L10n.string("externalAsk.new") : L10n.string("settings.edit"))
-                .font(.title2.weight(.semibold))
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 14) {
+                Text(action.name.isEmpty && !action.isBuiltIn ? L10n.string("externalAsk.new") : L10n.string("settings.edit"))
+                    .font(.title2.weight(.semibold))
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.string("externalAsk.typeLabel"))
-                    .font(.headline)
-                Picker(L10n.string("externalAsk.typeLabel"), selection: $selectedKindOption) {
-                    ForEach(ActionKindOption.allCases) { option in
-                        Text(option.label).tag(option)
+                SettingsGroup(title: L10n.string("settings.externalAsk")) {
+                    SettingsFieldRow(label: L10n.string("externalAsk.typeLabel")) {
+                        HStack(spacing: 0) {
+                            Spacer(minLength: 0)
+                            Picker(L10n.string("externalAsk.typeLabel"), selection: $selectedKindOption) {
+                                ForEach(ActionKindOption.allCases) { option in
+                                    Text(option.label).tag(option)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+                        }
+                    }
+
+                    SettingsFieldRow(label: L10n.string("externalAsk.nameLabel")) {
+                        styledInputField(L10n.string("externalAsk.namePlaceholder"), text: $name)
+                    }
+
+                    SettingsFieldRow(label: templateLabel) {
+                        styledInputField(templatePlaceholder, text: $template)
+                    }
+                    Text(templateHint)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 148)
+                        .padding(.top, -6)
+
+                    SettingsFieldRow(label: L10n.string("externalAsk.iconLabel")) {
+                        HStack(spacing: 0) {
+                            Spacer(minLength: 0)
+                            Picker(L10n.string("externalAsk.iconLabel"), selection: $symbolName) {
+                                ForEach(symbolChoices, id: \.self) { symbol in
+                                    Label(QuickAction.localizedSymbolLabel(for: symbol), systemImage: symbol)
+                                        .tag(symbol)
+                                }
+                            }
+                            .labelsHidden()
+                            .fixedSize()
+                        }
                     }
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-            }
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.string("externalAsk.nameLabel"))
-                    .font(.headline)
-                TextField(L10n.string("externalAsk.namePlaceholder"), text: $name)
-                    .textFieldStyle(.roundedBorder)
-            }
+                SettingsGroup(title: L10n.string("decisionRouting.editChannel")) {
+                    Text(L10n.string("decisionRouting.editChannelNote"))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text(templateLabel)
-                    .font(.headline)
-                TextField(templatePlaceholder, text: $template)
-                    .textFieldStyle(.roundedBorder)
-                Text(templateHint)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.string("externalAsk.iconLabel"))
-                    .font(.headline)
-                Picker(L10n.string("externalAsk.iconLabel"), selection: $symbolName) {
-                    ForEach(Self.availableSymbols, id: \.self) { symbol in
-                        Label(symbol, systemImage: symbol).tag(symbol)
+                    SettingsFieldRow(label: L10n.string("decisionRouting.purpose")) {
+                        styledInputField(L10n.string("decisionRouting.purposePlaceholder"), text: $purpose)
                     }
+
+                    SettingsFieldRow(label: L10n.string("decisionRouting.scenario")) {
+                        styledInputField(L10n.string("decisionRouting.scenarioPlaceholder"), text: $scenario)
+                    }
+
+                    Divider()
+
+                    SettingsToggleRow(
+                        label: L10n.string("decisionRouting.forceConfirm"),
+                        description: L10n.string("decisionRouting.forceConfirmDescription"),
+                        isOn: $requiresConfirmation
+                    )
                 }
-                .labelsHidden()
             }
+            .padding(20)
 
-            if let error = validationErrorMessage {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            } else if let warning = validationWarningMessage {
-                Text(warning)
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-            }
-
-            HStack {
-                Spacer()
+            Divider()
+            HStack(spacing: 10) {
+                if let error = validationErrorMessage {
+                    Label(error, systemImage: "exclamationmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .lineLimit(1)
+                } else if let warning = validationWarningMessage {
+                    Label(warning, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 8)
                 Button(L10n.string("settings.cancel")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Button(L10n.string("settings.save")) {
@@ -448,11 +452,11 @@ private struct QuickActionEditor: View {
                             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
                             kind: currentKind,
                             symbolName: symbolName,
-                            isBuiltIn: false,
+                            isBuiltIn: action.isBuiltIn,
                             isEnabled: action.isEnabled,
-                            routingPurpose: action.routingPurpose,
-                            routingScenario: action.routingScenario,
-                            requiresConfirmationOnAutoRoute: action.requiresConfirmationOnAutoRoute
+                            routingPurpose: purpose,
+                            routingScenario: scenario,
+                            requiresConfirmationOnAutoRoute: requiresConfirmation
                         )
                     )
                 }
@@ -460,8 +464,16 @@ private struct QuickActionEditor: View {
                 .keyboardShortcut(.defaultAction)
                 .disabled(validationStatus != .valid)
             }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
         }
-        .padding(24)
-        .frame(width: 460)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .frame(width: 560)
+    }
+
+    private func styledInputField(_ placeholder: String, text: Binding<String>) -> some View {
+        TextField(placeholder, text: text)
+            .textFieldStyle(.roundedBorder)
+            .frame(minWidth: 120, idealWidth: 200, maxWidth: .infinity)
     }
 }

@@ -78,6 +78,18 @@ struct DecisionRoutingTests {
         #expect(DecisionRoutingPolicy.normalizedTimeout(0.1) == 0.5)
     }
 
+    @Test("Criteria include the channel name even when no preference is set")
+    func criteriaIncludeChannelNameWithoutPreference() {
+        let custom = QuickAction(name: "Perplexity", urlTemplate: "https://perplexity.ai/?q={query}")
+        let candidates = DecisionRouteCatalog.candidates(actions: [custom], inAppDescription: "")
+        let criteria = DecisionRouteCatalog.criteria(for: candidates)
+        let externalID = DecisionRouteID.external(custom.id)
+        #expect(criteria[externalID]?.hasPrefix("Perplexity") == true)
+        #expect(criteria[DecisionRouteID.inApp]?.hasPrefix(L10n.string("decisionRouting.inAppTitle")) == true)
+        #expect(DecisionRouteCatalog.criterionText(name: "Terminal", description: "") == "Terminal")
+        #expect(DecisionRouteCatalog.criterionText(name: "Terminal", description: "Local files") == "Terminal. Local files")
+    }
+
     @Test("Release rules enforce force-confirm, always-confirm, and strict threshold comparison")
     func releasePolicyPrecedence() {
         #expect(
@@ -398,5 +410,39 @@ struct DecisionRoutingTests {
             sleep: { _ in try await Task.sleep(for: .seconds(60)) }
         )
         #expect(preview == .unknownChoice)
+    }
+
+    @Test("Channel chooser cycles highlighted candidate with moveSelection and executes on acceptCurrent")
+    func choosingMoveSelectionCyclesCandidates() async {
+        let candidates = Self.candidates()
+        let targetID = candidates[1].id
+        let transport = ScriptedTransport { request in
+            Self.okResponse(choice: targetID, confidence: 0.72, url: request.url!)
+        }
+        let controller = DecisionRoutingController()
+        var settings = DecisionRoutingSettings.disabled
+        settings.isEnabled = true
+        controller.start(
+            snapshotQuestion: "help me debug",
+            modelQuestion: "help me debug",
+            candidates: candidates,
+            settings: settings,
+            apiKey: "test-token",
+            transport: transport,
+            sleep: { _ in try await Task.sleep(for: .seconds(60)) }
+        )
+        while case .deciding = controller.phase {
+            await Task.yield()
+        }
+        controller.showManualChoice()
+        #expect(controller.phase.highlightedID == candidates[0].id)
+        controller.moveSelection(1)
+        #expect(controller.phase.highlightedID == candidates[1].id)
+        controller.moveSelection(1)
+        #expect(controller.phase.highlightedID == candidates[0].id)
+        controller.moveSelection(-1)
+        #expect(controller.phase.highlightedID == candidates[1].id)
+        controller.acceptCurrent()
+        #expect(controller.pendingExecution == candidates[1])
     }
 }

@@ -61,7 +61,7 @@ enum DecisionRoutingPolicy {
     static let maximumTimeoutSeconds = 5.0
     static let timeoutStepSeconds = 0.1
     static let routeQuestionID = "route"
-    static let routeInstructions = "Choose the single best destination for this question. Use only the option descriptions. Do not invent an option."
+    static let routeInstructions = "Choose the single best destination for this question. Each option starts with its channel name, then any preference. If no preference is present, use the channel name. Do not invent an option."
 
     static func normalizedThreshold(_ value: Double) -> Double {
         guard value.isFinite else { return defaultThreshold }
@@ -233,9 +233,17 @@ enum DecisionRouteCatalog {
         return routes
     }
 
+    static func criterionText(name: String, description: String) -> String {
+        let title = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let detail = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        if title.isEmpty { return detail }
+        if detail.isEmpty { return title }
+        return "\(title). \(detail)"
+    }
+
     static func criteria(for candidates: [DecisionRouteCandidate]) -> [String: String] {
         Dictionary(uniqueKeysWithValues: candidates.map { candidate in
-            (candidate.id, "\(candidate.title). \(candidate.applicableDescription)")
+            (candidate.id, criterionText(name: candidate.title, description: candidate.applicableDescription))
         })
     }
 

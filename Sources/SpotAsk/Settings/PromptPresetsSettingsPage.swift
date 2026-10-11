@@ -205,21 +205,9 @@ private struct PromptPresetEditor: View {
     @State private var symbolName: String
     @State private var instruction: String
 
-    private static let availableSymbols: [String] = [
-        "sparkles",
-        "character.bubble",
-        "doc.text.magnifyingglass",
-        "list.bullet.rectangle",
-        "pencil.and.scribble",
-        "globe",
-        "bubble.left.and.bubble.right",
-        "link",
-        "safari",
-        "terminal",
-        "chevron.left.forwardslash.chevron.right",
-        "magnifyingglass",
-        "bolt"
-    ]
+    private static var availableSymbols: [String] {
+        QuickAction.availableSymbols
+    }
 
     init(preset: PromptPreset, onSave: @escaping (PromptPreset) -> Void) {
         self.preset = preset
@@ -244,7 +232,7 @@ private struct PromptPresetEditor: View {
                     .font(.headline)
                 Picker(L10n.string("externalAsk.iconLabel"), selection: $symbolName) {
                     ForEach(Self.availableSymbols, id: \.self) { symbol in
-                        Label(symbol, systemImage: symbol).tag(symbol)
+                        Label(QuickAction.localizedSymbolLabel(for: symbol), systemImage: symbol).tag(symbol)
                     }
                 }
                 .labelsHidden()

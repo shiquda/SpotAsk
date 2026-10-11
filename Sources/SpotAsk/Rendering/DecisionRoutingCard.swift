@@ -44,95 +44,141 @@ struct DecisionRoutingCard: View {
     }
 
     private func confirmation(_ candidate: DecisionRouteCandidate, confidence: Double) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 9) {
             HStack(spacing: 8) {
                 routeIcon(candidate)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(candidate.title)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Brand.fg)
-                    Text(L10n.string("decisionRouting.applicableLabel"))
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(Brand.muted)
-                }
-                Spacer(minLength: 8)
-                Text(Self.confidenceText(confidence))
-                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                Text(candidate.title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Brand.fg)
+                Text(L10n.string("decisionRouting.recommendedBadge"))
+                    .font(.system(size: 10.5, weight: .medium))
                     .foregroundStyle(Brand.accent)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Brand.accent.opacity(0.12), in: Capsule())
+                Spacer(minLength: 8)
+                Text(L10n.string("decisionRouting.confidenceBadge", Self.confidenceText(confidence)))
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(Brand.accent)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(Brand.accent.opacity(0.1), in: Capsule())
             }
-            Text(candidate.applicableDescription)
-                .font(.system(size: 12))
-                .foregroundStyle(Brand.fg)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.string("decisionRouting.confidenceNote", Self.confidenceText(confidence)))
-                .font(.system(size: 11))
-                .foregroundStyle(Brand.muted)
-                .fixedSize(horizontal: false, vertical: true)
+            if !candidate.applicableDescription.isEmpty {
+                Text(candidate.applicableDescription)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Brand.muted)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             HStack(spacing: 8) {
-                Button(L10n.string("decisionRouting.continue"), action: onAccept)
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-                Button(L10n.string("decisionRouting.changeChannel"), action: onChangeChannel)
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+                Button(action: onAccept) {
+                    HStack(spacing: 5) {
+                        Text(L10n.string("decisionRouting.continue"))
+                        Text("↩")
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .opacity(0.85)
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+
+                Button(action: onChangeChannel) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.left.arrow.right")
+                            .font(.system(size: 10, weight: .semibold))
+                        Text(L10n.string("decisionRouting.changeChannel"))
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
                 Spacer(minLength: 0)
                 cancelButton
             }
-            Text(L10n.string("decisionRouting.confirmHint"))
-                .font(.system(size: 10))
-                .foregroundStyle(Brand.muted)
         }
     }
 
     private func choosing(reason: DecisionChooseReason, highlightedID: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(L10n.string("decisionRouting.chooseTitle"))
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Brand.fg)
-                Spacer(minLength: 0)
+            HStack(alignment: .center, spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L10n.string("decisionRouting.chooseTitle"))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Brand.fg)
+                    Text(reasonText(reason))
+                        .font(.system(size: 11))
+                        .foregroundStyle(Brand.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 8)
                 cancelButton
             }
-            Text(reasonText(reason))
-                .font(.system(size: 11))
-                .foregroundStyle(Brand.muted)
-                .fixedSize(horizontal: false, vertical: true)
-            ForEach(candidates) { candidate in
-                Button {
-                    onSelect(candidate.id)
-                } label: {
-                    HStack(spacing: 8) {
-                        routeIcon(candidate)
-                        Text(candidate.title)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(Brand.fg)
-                        Spacer(minLength: 0)
-                        if candidate.id == highlightedID {
-                            Text(L10n.string("decisionRouting.enterTarget"))
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(Brand.muted)
+            VStack(spacing: 5) {
+                ForEach(candidates) { candidate in
+                    let isHighlighted = candidate.id == highlightedID
+                    Button {
+                        onSelect(candidate.id)
+                    } label: {
+                        HStack(spacing: 8) {
+                            routeIcon(candidate)
+                            Text(candidate.title)
+                                .font(.system(size: 12.5, weight: isHighlighted ? .semibold : .medium))
+                                .foregroundStyle(Brand.fg)
+                            if !candidate.applicableDescription.isEmpty {
+                                Text(candidate.applicableDescription)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Brand.muted)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                            }
+                            Spacer(minLength: 8)
+                            if isHighlighted {
+                                Text(L10n.string("decisionRouting.enterTarget"))
+                                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                    .foregroundStyle(Brand.accent)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Brand.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+                            } else {
+                                Image(systemName: "arrow.up.right")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundStyle(Brand.muted.opacity(0.75))
+                            }
                         }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            isHighlighted ? Brand.accent.opacity(0.14) : Brand.fg.opacity(0.04),
+                            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .strokeBorder(
+                                    isHighlighted ? Brand.accent.opacity(0.45) : Brand.border,
+                                    lineWidth: 1
+                                )
+                        }
+                        .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        candidate.id == highlightedID ? Brand.accent.opacity(0.12) : Color.clear,
-                        in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    )
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
     }
 
     private var cancelButton: some View {
         Button(action: onCancel) {
-            Text(L10n.string("decisionRouting.cancel"))
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Brand.muted)
+            HStack(spacing: 4) {
+                Text(L10n.string("decisionRouting.cancel"))
+                Text("Esc")
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Brand.muted)
+            }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.bordered)
+        .controlSize(.small)
     }
 
     private func routeIcon(_ candidate: DecisionRouteCandidate) -> some View {

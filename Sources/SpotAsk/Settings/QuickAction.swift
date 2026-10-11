@@ -81,6 +81,8 @@ struct QuickAction: Identifiable, Codable, Equatable, Sendable {
     var routingScenario: String
     /// Forces a confirmation even when the global mode would auto-send.
     var requiresConfirmationOnAutoRoute: Bool
+    /// When true, a built-in channel keeps the saved name instead of the localized title.
+    var hasCustomDisplayName: Bool
 
     enum BuiltInID {
         static let chatGPT: UUID = UUID(uuidString: "B9740E49-A922-41EC-A56A-C5ACC2F41A8D")!
@@ -98,6 +100,7 @@ struct QuickAction: Identifiable, Codable, Equatable, Sendable {
         case routingPurpose
         case routingScenario
         case requiresConfirmationOnAutoRoute
+        case hasCustomDisplayName
     }
 
     init(
@@ -109,7 +112,8 @@ struct QuickAction: Identifiable, Codable, Equatable, Sendable {
         isEnabled: Bool = true,
         routingPurpose: String = "",
         routingScenario: String = "",
-        requiresConfirmationOnAutoRoute: Bool = false
+        requiresConfirmationOnAutoRoute: Bool = false,
+        hasCustomDisplayName: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -120,6 +124,7 @@ struct QuickAction: Identifiable, Codable, Equatable, Sendable {
         self.routingPurpose = routingPurpose
         self.routingScenario = routingScenario
         self.requiresConfirmationOnAutoRoute = requiresConfirmationOnAutoRoute
+        self.hasCustomDisplayName = hasCustomDisplayName
     }
 
     /// Convenience initializer for .web actions
@@ -159,6 +164,7 @@ struct QuickAction: Identifiable, Codable, Equatable, Sendable {
         routingPurpose = try container.decodeIfPresent(String.self, forKey: .routingPurpose) ?? ""
         routingScenario = try container.decodeIfPresent(String.self, forKey: .routingScenario) ?? ""
         requiresConfirmationOnAutoRoute = try container.decodeIfPresent(Bool.self, forKey: .requiresConfirmationOnAutoRoute) ?? false
+        hasCustomDisplayName = try container.decodeIfPresent(Bool.self, forKey: .hasCustomDisplayName) ?? false
     }
 
     func encode(to encoder: any Encoder) throws {
@@ -172,6 +178,7 @@ struct QuickAction: Identifiable, Codable, Equatable, Sendable {
         try container.encode(routingPurpose, forKey: .routingPurpose)
         try container.encode(routingScenario, forKey: .routingScenario)
         try container.encode(requiresConfirmationOnAutoRoute, forKey: .requiresConfirmationOnAutoRoute)
+        try container.encode(hasCustomDisplayName, forKey: .hasCustomDisplayName)
     }
     static var builtIn: [QuickAction] {
         [
@@ -194,15 +201,22 @@ struct QuickAction: Identifiable, Codable, Equatable, Sendable {
         ]
     }
 
-    var displayName: String {
+    static func localizedTitle(for id: UUID) -> String? {
         switch id {
         case BuiltInID.chatGPT:
             L10n.string("externalAsk.askChatGPT")
         case BuiltInID.grok:
             L10n.string("externalAsk.askGrok")
         default:
-            name
+            nil
         }
+    }
+
+    var displayName: String {
+        if isBuiltIn, !hasCustomDisplayName, let localized = Self.localizedTitle(for: id) {
+            return localized
+        }
+        return name
     }
 
     /// Bundled LobeHub brand icon slug, matching the model/provider picker
@@ -227,6 +241,76 @@ struct QuickAction: Identifiable, Codable, Equatable, Sendable {
             return false
         }
         return NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) != nil
+    }
+
+    static let availableSymbols: [String] = [
+        "globe",
+        "safari",
+        "magnifyingglass",
+        "sparkles",
+        "bubble.left.and.bubble.right",
+        "character.bubble",
+        "terminal",
+        "chevron.left.forwardslash.chevron.right",
+        "cpu",
+        "hammer",
+        "wrench.and.screwdriver",
+        "doc.text.magnifyingglass",
+        "doc.text",
+        "list.bullet.rectangle",
+        "pencil.and.scribble",
+        "book",
+        "folder",
+        "link",
+        "paperplane",
+        "bolt"
+    ]
+
+    static func localizedSymbolLabel(for symbolName: String) -> String {
+        switch symbolName {
+        case "globe":
+            L10n.string("externalAsk.symbol.globe")
+        case "safari":
+            L10n.string("externalAsk.symbol.safari")
+        case "magnifyingglass":
+            L10n.string("externalAsk.symbol.magnifyingglass")
+        case "sparkles":
+            L10n.string("externalAsk.symbol.sparkles")
+        case "bubble.left.and.bubble.right":
+            L10n.string("externalAsk.symbol.chat")
+        case "character.bubble":
+            L10n.string("externalAsk.symbol.characterBubble")
+        case "terminal":
+            L10n.string("externalAsk.symbol.terminal")
+        case "chevron.left.forwardslash.chevron.right":
+            L10n.string("externalAsk.symbol.code")
+        case "cpu":
+            L10n.string("externalAsk.symbol.cpu")
+        case "hammer":
+            L10n.string("externalAsk.symbol.hammer")
+        case "wrench.and.screwdriver":
+            L10n.string("externalAsk.symbol.wrench")
+        case "doc.text.magnifyingglass":
+            L10n.string("externalAsk.symbol.docSearch")
+        case "doc.text":
+            L10n.string("externalAsk.symbol.docText")
+        case "list.bullet.rectangle":
+            L10n.string("externalAsk.symbol.list")
+        case "pencil.and.scribble":
+            L10n.string("externalAsk.symbol.pencil")
+        case "book":
+            L10n.string("externalAsk.symbol.book")
+        case "folder":
+            L10n.string("externalAsk.symbol.folder")
+        case "link":
+            L10n.string("externalAsk.symbol.link")
+        case "paperplane":
+            L10n.string("externalAsk.symbol.paperplane")
+        case "bolt":
+            L10n.string("externalAsk.symbol.bolt")
+        default:
+            symbolName
+        }
     }
 }
 

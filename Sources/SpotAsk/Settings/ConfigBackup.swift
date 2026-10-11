@@ -106,6 +106,7 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
     var general: General
     var promptPresetCatalog: [PromptPreset]
     var quickActionCatalog: [QuickAction]?
+    var removedBuiltInQuickActionIDs: [UUID]?
     var shortcutConfiguration: InAppShortcutConfiguration
     var providerCatalog: ProviderModelCatalog
     var apiKeys: [String: String]?
@@ -115,6 +116,7 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
         general: General,
         promptPresetCatalog: [PromptPreset],
         quickActionCatalog: [QuickAction]? = nil,
+        removedBuiltInQuickActionIDs: [UUID]? = nil,
         shortcutConfiguration: InAppShortcutConfiguration,
         providerCatalog: ProviderModelCatalog,
         apiKeys: [String: String]? = nil
@@ -123,6 +125,7 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
         self.general = general
         self.promptPresetCatalog = promptPresetCatalog
         self.quickActionCatalog = quickActionCatalog
+        self.removedBuiltInQuickActionIDs = removedBuiltInQuickActionIDs
         self.shortcutConfiguration = shortcutConfiguration
         self.providerCatalog = providerCatalog
         self.apiKeys = apiKeys
@@ -140,6 +143,7 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
         } else {
             quickActionCatalog = nil
         }
+        removedBuiltInQuickActionIDs = try container.decodeIfPresent([UUID].self, forKey: .removedBuiltInQuickActionIDs)
         shortcutConfiguration = try container.decode(InAppShortcutConfiguration.self, forKey: .shortcutConfiguration)
         providerCatalog = try container.decode(ProviderModelCatalog.self, forKey: .providerCatalog)
         apiKeys = try container.decodeIfPresent([String: String].self, forKey: .apiKeys)
@@ -151,6 +155,7 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
         try container.encode(general, forKey: .general)
         try container.encode(promptPresetCatalog, forKey: .promptPresetCatalog)
         try container.encodeIfPresent(quickActionCatalog, forKey: .quickActionCatalog)
+        try container.encodeIfPresent(removedBuiltInQuickActionIDs, forKey: .removedBuiltInQuickActionIDs)
         try container.encode(shortcutConfiguration, forKey: .shortcutConfiguration)
         try container.encode(providerCatalog, forKey: .providerCatalog)
         try container.encodeIfPresent(apiKeys, forKey: .apiKeys)
@@ -377,6 +382,7 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
         case general
         case promptPresetCatalog
         case quickActionCatalog
+        case removedBuiltInQuickActionIDs
         case webQuickAskProviderCatalog
         case shortcutConfiguration
         case providerCatalog

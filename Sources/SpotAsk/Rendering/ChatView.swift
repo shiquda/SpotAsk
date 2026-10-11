@@ -215,7 +215,7 @@ struct ChatView: View {
             inputFocused: $inputFocused,
             inputHeight: $inputHeight,
             isPresetPopoverPresented: $isPresetPopoverPresented,
-            isAtPalettePresented: atCommandState != nil,
+            isAtPalettePresented: atCommandState != nil || isRoutingChoosing,
             composerTextView: composerTextView,
             shortcutHint: shortcutHint(for:),
             onApplyPreset: { applyPreset($0) },
@@ -737,13 +737,28 @@ struct ChatView: View {
         atCommandState = nil
     }
 
+    private var isRoutingChoosing: Bool {
+        if case .choosing = routingController.phase {
+            return true
+        }
+        return false
+    }
+
     private func moveAtCommandHighlight(_ delta: Int) {
+        if case .choosing = routingController.phase {
+            routingController.moveSelection(delta)
+            return
+        }
         let count = atCommandRows.count
         guard count > 0 else { return }
         atCommandHighlightedIndex = ((atCommandHighlightedIndex + delta) % count + count) % count
     }
 
     private func confirmAtCommandSelection() {
+        if case .choosing = routingController.phase {
+            routingController.acceptCurrent()
+            return
+        }
         let rows = atCommandRows
         guard rows.indices.contains(atCommandHighlightedIndex) else { return }
         switch rows[atCommandHighlightedIndex] {
