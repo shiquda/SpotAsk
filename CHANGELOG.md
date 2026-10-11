@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Scrolling a long conversation no longer jumps the message on screen.
+
 ## [0.2.7] - 2026-10-08
 
 **Gemini services, pre-filled official addresses, smoother model discovery**
