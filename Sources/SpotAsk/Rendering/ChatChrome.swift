@@ -191,64 +191,54 @@ struct HeaderIconButton<Label: View>: View {
 }
 
 /// Matches the right-side toolbar icon set (`pin` / `pin.fill`, `gearshape`,
-/// `plus.bubble`): a 4-point AI decision star on the left branching into two
-/// route arrows on the right, outlined when off and solid-filled when on.
+/// `plus.bubble`): a right-forking arrow for routing, plus a diamond for the
+/// AI decision model. The diamond slightly overlaps the stem, is outlined when
+/// routing is off, and solid-filled when on.
 struct SmartRoutingHeaderIcon: View {
     let isOn: Bool
 
     var body: some View {
         Canvas { context, size in
-            let w = size.width
-            let h = size.height
-            let starStroke = StrokeStyle(lineWidth: 1.4, lineCap: .round, lineJoin: .round)
-            let branchStroke = StrokeStyle(lineWidth: 1.35, lineCap: .round, lineJoin: .round)
+            let sx = size.width / 18
+            func P(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * sx, y: y * sx) }
 
-            let cx = w * 0.29
-            let cy = h * 0.50
-            let r = w * (isOn ? 0.23 : 0.21)
-            let k = r * 0.26
+            let stroke = StrokeStyle(lineWidth: 1.7 * sx, lineCap: .round, lineJoin: .round)
+            let junction = P(9.2, 7.8)
+            let tipU = P(16.5, 1.9)
+            let tipL = P(16.5, 13.7)
 
-            var star = Path()
-            star.move(to: CGPoint(x: cx, y: cy - r))
-            star.addQuadCurve(to: CGPoint(x: cx + r, y: cy), control: CGPoint(x: cx + k, y: cy - k))
-            star.addQuadCurve(to: CGPoint(x: cx, y: cy + r), control: CGPoint(x: cx + k, y: cy + k))
-            star.addQuadCurve(to: CGPoint(x: cx - r, y: cy), control: CGPoint(x: cx - k, y: cy + k))
-            star.addQuadCurve(to: CGPoint(x: cx, y: cy - r), control: CGPoint(x: cx - k, y: cy - k))
-            star.closeSubpath()
+            var fork = Path()
+            fork.move(to: P(2.2, 7.8)); fork.addLine(to: junction); fork.addLine(to: tipU)
+            fork.move(to: junction); fork.addLine(to: tipL)
+            context.stroke(fork, with: .foreground, style: stroke)
 
-            if isOn {
-                context.fill(star, with: .foreground)
-            } else {
-                context.stroke(star, with: .foreground, style: starStroke)
+            // Open arrowheads: back up 2.6pt along the branch, about 87° spread.
+            func head(_ tip: CGPoint, _ from: CGPoint) -> Path {
+                var dx = tip.x - from.x, dy = tip.y - from.y
+                let n = hypot(dx, dy); dx /= n; dy /= n
+                let wing = 2.6 * sx, spread: CGFloat = 0.95
+                var path = Path()
+                for sign: CGFloat in [1, -1] {
+                    path.move(to: tip)
+                    path.addLine(to: CGPoint(
+                        x: tip.x - dx * wing - dy * wing * spread * sign,
+                        y: tip.y - dy * wing + dx * wing * spread * sign
+                    ))
+                }
+                return path
             }
+            context.stroke(head(tipU, junction), with: .foreground, style: stroke)
+            context.stroke(head(tipL, junction), with: .foreground, style: stroke)
 
-            let start = CGPoint(x: cx + r - 0.3, y: cy)
-            let upperTip = CGPoint(x: w * 0.86, y: h * 0.25)
-            let lowerTip = CGPoint(x: w * 0.86, y: h * 0.75)
-
-            var branches = Path()
-            branches.move(to: start)
-            branches.addCurve(
-                to: upperTip,
-                control1: CGPoint(x: w * 0.60, y: cy),
-                control2: CGPoint(x: w * 0.63, y: upperTip.y)
-            )
-            branches.move(to: start)
-            branches.addCurve(
-                to: lowerTip,
-                control1: CGPoint(x: w * 0.60, y: cy),
-                control2: CGPoint(x: w * 0.63, y: lowerTip.y)
-            )
-            context.stroke(branches, with: .foreground, style: branchStroke)
-
-            let wingX: CGFloat = 2.15
-            let wingY: CGFloat = 1.75
-            for tip in [upperTip, lowerTip] {
-                var head = Path()
-                head.move(to: CGPoint(x: tip.x - wingX, y: tip.y - wingY))
-                head.addLine(to: tip)
-                head.addLine(to: CGPoint(x: tip.x - wingX, y: tip.y + wingY))
-                context.stroke(head, with: .foreground, style: branchStroke)
+            // AI diamond: top vertex slightly overlaps the stem.
+            var diamond = Path()
+            diamond.move(to: P(5.0, 7.6)); diamond.addLine(to: P(8.4, 11.9))
+            diamond.addLine(to: P(5.0, 16.2)); diamond.addLine(to: P(1.6, 11.9))
+            diamond.closeSubpath()
+            if isOn {
+                context.fill(diamond, with: .foreground)
+            } else {
+                context.stroke(diamond, with: .foreground, style: StrokeStyle(lineWidth: 1.6 * sx, lineCap: .round, lineJoin: .round))
             }
         }
         .frame(width: 18, height: 18)
