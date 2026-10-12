@@ -250,6 +250,7 @@ export default defineConfig({
     ]
   },
   head: [
+    ['meta', { name: 'google-site-verification', content: 'Ql8N_lmVtP3E7_UWahGD9Z98qn52SCfpR53f8tIXW3E' }],
     ['link', { rel: 'icon', href: '/SpotAsk/spotask-icon.png' }],
     ['link', { rel: 'sitemap', type: 'application/xml', href: `${docsUrl}sitemap.xml` }]
   ],
