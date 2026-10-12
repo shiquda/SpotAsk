@@ -14,7 +14,7 @@ SpotAsk runs as a native macOS menu bar app. After you connect an AI service, th
 ## Requirements
 
 - macOS 15 or later
-- An OpenAI-compatible or Anthropic chat service account with an access key
+- An OpenAI-compatible, Anthropic, or Gemini chat service account with an access key
 
 ## Install SpotAsk
 
@@ -37,7 +37,7 @@ Open the DMG and move SpotAsk to Applications. The official release is signed wi
 Open Settings from the menu bar (or press `⌘ + ,`), then open **Services**.
 
 1. Add or select a service.
-2. Choose **API Format**: **OpenAI Compatible** or **Anthropic**.
+2. Choose **API Format**: **OpenAI**, **Anthropic**, or **Gemini**.
 3. Enter the service address.
 4. Choose **Address Type**: **Service Root** or **Full Request Address**.
 5. Enter your **Access Key**.

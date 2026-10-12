@@ -21,7 +21,7 @@ Highlight text in Safari, Notes, or Xcode to trigger the inline action bar. Tran
 
 ## Route questions with External Ask
 
-Handoff queries to web AI platforms (ChatGPT, Perplexity, Grok), desktop apps via URI schemes, or local CLI agents in Terminal with 1 click without spending tokens or cluttering history.
+Handoff queries to web AI platforms (ChatGPT, Perplexity, Grok), desktop apps via URI schemes, or local CLI agents in Terminal — in 1 click or automatically with a decision model — without spending chat tokens or cluttering history.
 
 - [External Ask guide](/guides/external-ask)
 

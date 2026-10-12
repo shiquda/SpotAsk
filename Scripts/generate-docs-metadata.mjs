@@ -36,6 +36,27 @@ function frontmatterValue(source, key) {
   return match?.[1].trim().replace(/^['"]|['"]$/g, '')
 }
 
+function routeForPage(page) {
+  const withoutExtension = page.replace(/\.md$/, '')
+  if (withoutExtension === 'index') return ''
+  return withoutExtension.endsWith('/index')
+    ? withoutExtension.slice(0, -'index'.length)
+    : withoutExtension
+}
+
+function canonicalUrlForPage(page) {
+  return `${docsUrl}${routeForPage(page)}`
+}
+
+function injectCanonicalFrontmatter(source, canonicalUrl) {
+  if (!source.startsWith('---\n')) return source
+  const end = source.indexOf('\n---\n', 4)
+  if (end === -1) return source
+  const header = source.slice(4, end)
+  if (/^canonical:/m.test(header)) return source
+  return `---\n${header}\ncanonical: ${canonicalUrl}\n---\n${source.slice(end + 5)}`
+}
+
 function pageMetadata(relativePath, source) {
   const isChinese = relativePath.startsWith('zh-CN/')
   const fallbackTitle = isChinese ? 'SpotAsk 文档' : 'SpotAsk Documentation'
@@ -46,6 +67,7 @@ function pageMetadata(relativePath, source) {
   return {
     title: frontmatterValue(source, 'title') ?? fallbackTitle,
     description: frontmatterValue(source, 'description') ?? fallbackDescription,
+    canonicalUrl: canonicalUrlForPage(relativePath),
     markdownUrl: `${docsUrl}markdown/${relativePath}`
   }
 }
@@ -161,11 +183,15 @@ for (const relativePath of relativePaths) {
   const sourcePath = path.join(docsRoot, relativePath)
   const destinationPath = path.join(markdownRoot, relativePath)
   const source = await readFile(sourcePath, 'utf8')
-  const markdown = markdownForConsumers(relativePath, source)
+  const meta = pageMetadata(relativePath, source)
+  const markdown = injectCanonicalFrontmatter(
+    markdownForConsumers(relativePath, source),
+    meta.canonicalUrl
+  )
 
   await mkdir(path.dirname(destinationPath), { recursive: true })
   await writeFile(destinationPath, markdown)
-  documents.push({ relativePath, source: markdown, ...pageMetadata(relativePath, source) })
+  documents.push({ relativePath, source: markdown, ...meta })
 }
 
 const englishDocuments = documents.filter((document) => !document.relativePath.startsWith('zh-CN/'))
@@ -207,8 +233,8 @@ const llmsFull = [
     '',
     `## Source: ${document.relativePath}`,
     '',
+    `Canonical URL: ${document.canonicalUrl}`,
     `Markdown URL: ${document.markdownUrl}`,
-    '',
     document.source.trim()
   ]),
   ''

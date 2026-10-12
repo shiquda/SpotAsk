@@ -6,7 +6,7 @@ This guide is for people who build, test, package, localize, or release SpotAsk.
 
 - macOS 15 or later
 - Xcode 16 or later
-- A service account with an OpenAI-compatible or Anthropic endpoint to exercise chat features
+- A service account with an OpenAI-compatible, Anthropic, or Gemini endpoint to exercise chat features
 
 ## Documentation site
 
@@ -16,10 +16,11 @@ The user documentation lives in `docs/site` and is built with VitePress. The sou
 npm install
 npm run docs:dev
 npm run docs:build
+npm run docs:verify
 npm run docs:preview
 ```
 
-The GitHub Pages workflow in `.github/workflows/docs.yml` builds `docs/site` and deploys it to `https://shiquda.github.io/SpotAsk/`.
+The GitHub Pages workflow in `.github/workflows/docs.yml` builds `docs/site`, runs `npm run docs:verify` to validate sitemap URLs, canonicals, `hreflang` reciprocity, JSON-LD structured data, and internal links, and deploys the artifact to `https://shiquda.github.io/SpotAsk/`.
 
 ## Build and test
 

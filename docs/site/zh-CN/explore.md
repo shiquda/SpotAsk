@@ -21,7 +21,7 @@ description: SpotAsk 的能力地图：提问、划词、模型、附件、提�
 
 ## 外部提问与多向路由
 
-将问题一键直派至 ChatGPT、Perplexity 等网页平台、本地终端 CLI Agent 或桌面应用，不消耗 API 额度，不留多余历史。
+将问题一键或由决策模型自动分流至 ChatGPT、Perplexity、Grok 等网页平台、本地终端 CLI Agent 或桌面应用，不消耗对话 API 额度，不留多余历史。
 
 - [外部提问指南](/zh-CN/guides/external-ask)
 ## 多服务与模型自由切换
