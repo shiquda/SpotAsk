@@ -12,10 +12,10 @@ hero:
   actions:
     - theme: brand
       text: 快速开始
-      link: /zh-CN/getting-started/
+      link: /zh-CN/getting-started
     - theme: alt
       text: 探索 SpotAsk
-      link: /zh-CN/explore/
+      link: /zh-CN/explore
 
 features:
   - title: "先提问，随心分流"

@@ -6,6 +6,7 @@
     "docs:prepare": "node Scripts/generate-docs-metadata.mjs",
     "docs:dev": "npm run docs:prepare && vitepress dev docs/site",
     "docs:build": "npm run docs:prepare && vitepress build docs/site",
+    "docs:verify": "node Scripts/verify-docs-seo.mjs",
     "docs:preview": "vitepress preview docs/site"
   },
   "devDependencies": {

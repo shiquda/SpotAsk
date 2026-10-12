@@ -211,21 +211,51 @@ export default defineConfig({
     const pages = localizedPages(page)
     const isChinese = page.startsWith('zh-CN/')
     const language = isChinese ? 'zh-CN' : 'en'
-    const structuredData = {
-      '@context': 'https://schema.org',
-      '@type': routeForPage(page) ? 'WebPage' : 'WebSite',
-      name: title,
-      description,
-      url: canonicalUrl,
-      inLanguage: language,
-      isPartOf: routeForPage(page)
-        ? {
+    const isHomePage = page === 'index.md' || page === 'zh-CN/index.md'
+    const structuredData = isHomePage
+      ? {
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'WebSite',
+              name: title,
+              description,
+              url: canonicalUrl,
+              inLanguage: language
+            },
+            {
+              '@type': 'SoftwareApplication',
+              name: 'SpotAsk',
+              description,
+              url: canonicalUrl,
+              inLanguage: language,
+              applicationCategory: 'DeveloperApplication',
+              operatingSystem: 'macOS 15 or later',
+              softwareVersion: '0.3.0',
+              license: 'https://www.gnu.org/licenses/agpl-3.0.html',
+              downloadUrl: 'https://github.com/shiquda/SpotAsk/releases/latest',
+              codeRepository: repositoryUrl,
+              offers: {
+                '@type': 'Offer',
+                price: '0',
+                priceCurrency: 'USD'
+              }
+            }
+          ]
+        }
+      : {
+          '@context': 'https://schema.org',
+          '@type': 'WebPage',
+          name: title,
+          description,
+          url: canonicalUrl,
+          inLanguage: language,
+          isPartOf: {
             '@type': 'WebSite',
             name: 'SpotAsk Documentation',
             url: docsUrl
           }
-        : undefined
-    }
+        }
 
     return [
       ['link', { rel: 'canonical', href: canonicalUrl }],

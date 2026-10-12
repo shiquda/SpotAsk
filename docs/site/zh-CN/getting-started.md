@@ -14,7 +14,7 @@ SpotAsk 是原生 macOS 菜单栏应用。连接 AI 服务后，最短使用流�
 ## 环境要求
 
 - macOS 15 或更高版本
-- 一个提供 OpenAI 兼容或 Anthropic 聊天 API 的服务账户和访问密钥
+- 一个提供 OpenAI 兼容、Anthropic 或 Gemini 聊天 API 的服务账户和访问密钥
 
 ## 安装 SpotAsk
 
@@ -37,7 +37,7 @@ brew install --cask shiquda/spotask/spotask
 从菜单栏打开设置（或按 <kbd>⌘ + ,</kbd>），进入“服务”。
 
 1. 添加或选择一个服务。
-2. 选择“接口格式”：**OpenAI 兼容**或 **Anthropic**。
+2. 选择“接口格式”：**OpenAI**、**Anthropic** 或 **Gemini**。
 3. 输入服务地址。
 4. 选择“地址类型”：**服务根地址**或**完整请求地址**。
 5. 输入并保存访问密钥。

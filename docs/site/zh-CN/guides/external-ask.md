@@ -1,6 +1,6 @@
 ---
 title: 外部提问
-description: "先在 SpotAsk 快速敲下问题，再一键分流至 ChatGPT、Grok、桌面应用或终端 CLI 命令。"
+description: "先在 SpotAsk 快速敲下问题，再通过快捷键一键或由决策模型自动分流至 ChatGPT、Perplexity、Grok、桌面应用或本地终端 CLI Agent。"
 ---
 
 # 外部提问

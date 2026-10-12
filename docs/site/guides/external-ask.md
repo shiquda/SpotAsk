@@ -1,6 +1,6 @@
 ---
 title: External Ask
-description: "Capture queries instantly in SpotAsk, then hand them off to ChatGPT, Grok, desktop apps, or terminal commands in 1 click."
+description: "Capture queries instantly in SpotAsk, then route them to ChatGPT, Perplexity, Grok, desktop apps, or local CLI agents in 1 click or automatically with a decision model."
 ---
 
 # External Ask

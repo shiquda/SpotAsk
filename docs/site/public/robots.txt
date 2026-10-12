@@ -6,6 +6,15 @@
 User-agent: *
 Allow: /
 
+# Prevent traditional search engines from indexing raw Markdown mirrors as
+# duplicate pages alongside the canonical HTML documentation.
+User-agent: Googlebot
+Allow: /
+Disallow: /SpotAsk/markdown/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /SpotAsk/markdown/
 # Explicitly welcome AI / LLM crawlers (GEO).
 User-agent: GPTBot
 Allow: /
@@ -34,9 +43,7 @@ Allow: /
 User-agent: GoogleOther
 Allow: /
 
-User-agent: Bingbot
-Allow: /
-
+# Bingbot rules are declared above with /SpotAsk/markdown/ excluded.
 User-agent: Applebot
 Allow: /
 
