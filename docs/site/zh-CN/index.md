@@ -11,11 +11,16 @@ hero:
   tagline: '<span class="nowrap">一次提问，三个去向。</span><br class="hidden sm:inline"><span class="nowrap">随时唤起，随问随走。</span>'
   actions:
     - theme: brand
+      text: 下载 macOS 版
+      link: https://github.com/shiquda/SpotAsk/releases/latest
+    - theme: alt
       text: 快速开始
       link: /zh-CN/getting-started
-    - theme: alt
-      text: 探索 SpotAsk
-      link: /zh-CN/explore
+
+# Rendered by SpotAskHeroCompat (above the hero actions) and
+# SpotAskHeroInstall (below them) — see docs/site/.vitepress/theme/Layout.vue.
+heroInstall:
+  compat: "macOS 15+ · Apple Silicon / Intel · Native Swift"
 
 features:
   - title: "先提问，随心分流"
@@ -25,9 +30,9 @@ features:
   - title: "自带密钥 (BYOK)，数据留在本机"
     details: "直连 OpenAI 兼容、Anthropic 或 Gemini 接口。密钥加密保存在本地钥匙串，无中间服务器，无隐私收集。"
   - title: "纯原生轻量，无 Electron"
-    details: "纯 Swift 与 AppKit 构建，安装包仅约 10 MB；全键盘驱动，按 <kbd>Esc</kbd> 随问随走，极致克制。"
+    details: "纯 Swift 与 AppKit 构建，零 Electron 运行时；全键盘驱动，按 <kbd>Esc</kbd> 随问随走，极致克制。"
 
-# Rendered between the hero actions and the feature cards by SpotAskHeroShowcase.
+# Rendered below the hero install block by SpotAskHeroShowcase.
 heroShowcase:
   src: /images/spotask-hero-zh.png
   alt: "SpotAsk — 一次提问，分流至应用内回答、网页 AI 或本地 Agent"

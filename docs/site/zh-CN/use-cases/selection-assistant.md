@@ -21,19 +21,19 @@ SpotAsk 划词助手将 AI 文本处理能力直接送达你正在阅读或撰�
 
 ## 安装 SpotAsk
 
-使用 Homebrew 快速安装：
+从 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) 下载最新 DMG：
+
+- **Apple Silicon**（M 系列芯片）：下载 `arm64` 安装包。
+- **Intel Mac**（x86 芯片）：下载 `x86_64` 安装包。
+
+官方发布包均通过 Apple Developer ID 签名并经 Apple 公证（`macOS 15+ · Apple Silicon / Intel · Native Swift`）。
+
+也可以使用 Homebrew 安装：
 
 ```sh
 brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
 brew install --cask shiquda/spotask/spotask
 ```
-
-或从 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) 下载对应架构的安装包：
-
-- **Apple Silicon**（M 系列芯片）：下载 `SpotAsk-arm64.dmg`。
-- **Intel Mac**（x86 芯片）：下载 `SpotAsk-x86_64.dmg`。
-
-官方安装包通过 Apple Developer ID 签名并公证。
 
 ## 场景痛点：传统跨应用复制粘贴的“七步泥潭”
 
@@ -119,14 +119,9 @@ SpotAsk 浮动操作条将即刻跟随在选中文本附近。
 
 ## 立即下载 SpotAsk
 
-体验无缝流畅的跨应用划词 AI 处理：
+体验无缝流畅的跨应用划词 AI 处理。
 
-```sh
-brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
-brew install --cask shiquda/spotask/spotask
-```
-
-安装包可直接前往 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) 下载。
+从 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) 下载 `arm64` 或 `x86_64` 安装包，或使用[上方 Homebrew 命令](#安装-spotask)安装。
 
 ### 继续探索
 

@@ -10,11 +10,16 @@ hero:
   tagline: "Ask first, decide where it goes after. A fast, native macOS menu-bar AI assistant & query router."
   actions:
     - theme: brand
+      text: Download for macOS
+      link: https://github.com/shiquda/SpotAsk/releases/latest
+    - theme: alt
       text: Get Started
       link: /getting-started
-    - theme: alt
-      text: Explore SpotAsk
-      link: /explore
+
+# Rendered by SpotAskHeroCompat (above the hero actions) and
+# SpotAskHeroInstall (below them) — see docs/site/.vitepress/theme/Layout.vue.
+heroInstall:
+  compat: "macOS 15+ · Apple Silicon / Intel · Native Swift"
 
 features:
   - title: "Ask first, route anywhere"
@@ -24,9 +29,9 @@ features:
   - title: "Bring your own AI service (BYOK)"
     details: "Connect OpenAI-compatible, Anthropic, or Gemini endpoints. Access keys stay encrypted in your Keychain with zero middle servers or telemetry."
   - title: "Lightweight & pure native"
-    details: "~10 MB installer, pure Swift/AppKit, zero Electron runtime, keyboard-first with Esc-to-close, and instant cold launch."
+    details: "Pure Swift/AppKit, zero Electron runtime, keyboard-first with Esc-to-close, and instant cold launch."
 
-# Rendered between the hero actions and the feature cards by SpotAskHeroShowcase.
+# Rendered below the hero install block by SpotAskHeroShowcase.
 heroShowcase:
   src: /images/spotask-hero.png
   alt: "SpotAsk — one prompt routed to an in-app answer, a web AI, or a local CLI agent"
