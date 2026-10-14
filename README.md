@@ -86,6 +86,11 @@ Turn on automatic routing and SpotAsk asks a System One decision model before se
   <img src="docs/site/public/images/spotask-decision-routing.png" width="720" alt="SpotAsk recommendation card naming the destination and its confidence, next to the decision model choosing between In SpotAsk, Web Chat, and Local Agent">
 </p>
 
+<p align="center">
+  <video src="https://github.com/shiquda/SpotAsk/releases/download/v0.3.0/SpotAsk-smart-routing-v5.mp4" controls muted playsinline width="720"></video>
+</p>
+<p align="center"><em>Demo: one question, three destinations — decision routing on real app footage (28s).</em></p>
+
 ## Quick start
 
 1. **Configure provider**: Open Settings (`⌘ + ,`), choose **Services**, and add your OpenAI-compatible, Anthropic, or Gemini endpoint, model ID, and API key.
