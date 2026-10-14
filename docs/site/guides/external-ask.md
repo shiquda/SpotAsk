@@ -115,9 +115,9 @@ When you want SpotAsk to recommend a destination before sending, turn on **Enabl
 
 SpotAsk asks a System One decision service which enabled channel fits the question. It does not change the chat service that writes answers. Fill **Service address**, **Decision model**, and **Access key**. The key is sent only to the address you enter.
 
-<video src="/videos/SpotAsk-smart-routing-v5.mp4" controls muted playsinline width="720"></video>
+<video poster="/images/spotask-smart-routing-preview.gif" src="/videos/SpotAsk-smart-routing-v5.mp4" controls muted playsinline width="720"></video>
 
-*Video: one question, three destinations — decision routing demonstrated on real app footage (28s): an in-app answer, an auto-send route notice to Web Chat, and a Local Agent confirmation card with confidence score.*
+*Video: one question, three destinations — decision routing demonstrated on real app footage (28s): an in-app answer, an auto-send route notice to Web Chat, and a Local Agent confirmation card with confidence score. [Download / Watch HD Video (1080p MP4)](/videos/SpotAsk-smart-routing-v5.mp4)*
 
 Two setups are recommended. Run **Test question** in that section before relying on either one.
 

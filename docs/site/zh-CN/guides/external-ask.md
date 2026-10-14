@@ -67,9 +67,9 @@ omp {query}
 
 SpotAsk 用 System One 决策服务判断问题该去哪个已启用渠道，不会改动负责写回答的对话服务。填写**服务地址**、**决策模型**和**访问密钥**。密钥只发给你填写的地址。
 
-<video src="/videos/SpotAsk-smart-routing-v5.mp4" controls muted playsinline width="720"></video>
+<video poster="/images/spotask-smart-routing-preview.gif" src="/videos/SpotAsk-smart-routing-v5.mp4" controls muted playsinline width="720"></video>
 
-*视频：一个问题，三种去向——智能路由实机演示（28 秒）：应用内直接作答、自动发往网页 AI 的交接提示、本地 Agent 推荐去向确认卡（含置信度）。*
+*视频：一个问题，三种去向——智能路由实机演示（28 秒）：应用内直接作答、自动发往网页 AI 的交接提示、本地 Agent 推荐去向确认卡（含置信度）。[下载 / 观看高清视频 (1080p MP4)](/videos/SpotAsk-smart-routing-v5.mp4)*
 
 推荐两种配置。正式使用前，先在同一章节里用**测试提问**看一次结果。
 

@@ -87,9 +87,13 @@ SpotAsk 围绕 **“先提问再分流（Ask first. Decide where it goes after.�
 </p>
 
 <p align="center">
-  <video src="https://github.com/shiquda/SpotAsk/releases/download/v0.3.0/SpotAsk-smart-routing-v5.mp4" controls muted playsinline width="720"></video>
+  <a href="https://github.com/shiquda/SpotAsk/releases/download/v0.3.0/SpotAsk-smart-routing-v5.mp4">
+    <img src="docs/site/public/images/spotask-smart-routing-preview.gif" width="720" alt="SpotAsk 智能路由实机演示动图预览">
+  </a>
 </p>
-<p align="center"><em>实机演示：一个问题，三种去向——决策模型自动选路（28 秒）。</em></p>
+<p align="center">
+  ▶️ <a href="https://github.com/shiquda/SpotAsk/releases/download/v0.3.0/SpotAsk-smart-routing-v5.mp4"><strong>观看实机演示完整视频（1080p · 60fps · 28 秒 MP4）</strong></a> — <em>一个问题，三种去向：决策模型自动选路实机交互。</em>
+</p>
 
 ## 快速上手
 
