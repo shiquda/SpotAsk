@@ -19,19 +19,19 @@ Built with pure Swift and AppKit, SpotAsk eliminates the 500&nbsp;MB+ RAM footpr
 
 ## Install SpotAsk
 
-Install in seconds using Homebrew:
+Download the latest DMG directly from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest):
+
+- **Apple Silicon** (`arm64`): Download the `arm64` DMG for M-series Macs.
+- **Intel Mac** (`x86_64`): Download the `x86_64` DMG for Intel Macs.
+
+Official binaries are signed with an Apple Developer ID certificate and notarized by Apple (`macOS 15+ · Apple Silicon / Intel · Native Swift`).
+
+Or install using Homebrew:
 
 ```sh
 brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
 brew install --cask shiquda/spotask/spotask
 ```
-
-Or download the universal installer directly from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest):
-
-- **Apple Silicon** (`arm64`): Download `SpotAsk-arm64.dmg`.
-- **Intel Mac** (`x86_64`): Download `SpotAsk-x86_64.dmg`.
-
-Official binaries are signed with an Apple Developer ID certificate and notarized by Apple.
 
 ## The Problem: Why Heavy AI Launchers and Web Tabs Fail
 
@@ -108,14 +108,9 @@ Navigate to **Settings > Services**. SpotAsk supports OpenAI, Anthropic, Gemini,
 
 ## Download SpotAsk
 
-Get started with the fastest native macOS AI launcher today:
+Get started with the fastest native macOS AI launcher today.
 
-```sh
-brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
-brew install --cask shiquda/spotask/spotask
-```
-
-Direct installer packages are available on [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest).
+Download the `arm64` or `x86_64` DMG from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest), or install with the [Homebrew commands above](#install-spotask).
 
 ### Explore Next
 

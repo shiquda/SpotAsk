@@ -18,19 +18,19 @@ SpotAsk 是原生 macOS 菜单栏应用。连接 AI 服务后，最短使用流�
 
 ## 安装 SpotAsk
 
-使用 Homebrew 安装：
-
-```sh
-brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
-brew install --cask shiquda/spotask/spotask
-```
-
-或者从 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases) 下载匹配的软件包：
+从 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) 下载匹配的软件包：
 
 - Apple silicon Mac 使用名称带 `arm64` 的 DMG。
 - Intel Mac 使用名称带 `x86_64` 的 DMG。
 
 打开 DMG 并将 SpotAsk 移到“应用程序”。官方发布版本已使用 Apple Developer ID 签名并通过公证。启动后 SpotAsk 只显示在菜单栏。
+
+也可以使用 Homebrew 安装：
+
+```sh
+brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
+brew install --cask shiquda/spotask/spotask
+```
 
 ## 连接你的 AI 服务
 

@@ -26,19 +26,19 @@ SpotAsk External Ask（外部提问）带来了一种颠覆传统工作流的 AI
 
 ## 安装 SpotAsk
 
-使用 Homebrew 快速安装：
+从 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) 下载最新 DMG：
+
+- **Apple Silicon**（M 系列芯片）：下载 `arm64` 安装包。
+- **Intel Mac**（x86 芯片）：下载 `x86_64` 安装包。
+
+官方发布包均通过 Apple Developer ID 签名并经 Apple 公证（`macOS 15+ · Apple Silicon / Intel · Native Swift`）。
+
+也可以使用 Homebrew 安装：
 
 ```sh
 brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
 brew install --cask shiquda/spotask/spotask
 ```
-
-或从 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) 下载安装包：
-
-- **Apple Silicon**（M 系列芯片）：下载 `SpotAsk-arm64.dmg`。
-- **Intel Mac**（x86 芯片）：下载 `SpotAsk-x86_64.dmg`。
-
-官方发布包已通过 Apple Developer ID 签名并公证。
 
 ## 场景痛点：多工具割裂时代的心流耗损
 
@@ -124,14 +124,9 @@ flowchart TD
 
 ## 立即下载 SpotAsk
 
-让每一个闪现的提问都精准流转至最佳执行环境：
+让每一个闪现的提问都精准流转至最佳执行环境。
 
-```sh
-brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
-brew install --cask shiquda/spotask/spotask
-```
-
-安装包可直接前往 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) 下载。
+从 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) 下载 `arm64` 或 `x86_64` 安装包，或使用[上方 Homebrew 命令](#安装-spotask)安装。
 
 ### 继续探索
 

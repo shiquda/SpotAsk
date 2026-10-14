@@ -26,19 +26,19 @@ Routing can be performed with one click, a direct keyboard shortcut, or automati
 
 ## Install SpotAsk
 
-Install in seconds using Homebrew:
+Download the latest DMG directly from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest):
+
+- **Apple Silicon** (`arm64`): Download the `arm64` DMG for M-series Macs.
+- **Intel Mac** (`x86_64`): Download the `x86_64` DMG for Intel Macs.
+
+Official binaries are signed with an Apple Developer ID certificate and notarized by Apple (`macOS 15+ · Apple Silicon / Intel · Native Swift`).
+
+Or install using Homebrew:
 
 ```sh
 brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
 brew install --cask shiquda/spotask/spotask
 ```
-
-Or download the universal installer directly from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest):
-
-- **Apple Silicon** (`arm64`): Download `SpotAsk-arm64.dmg`.
-- **Intel Mac** (`x86_64`): Download `SpotAsk-x86_64.dmg`.
-
-Signed with an Apple Developer ID certificate and notarized by Apple.
 
 ## The Problem: The Mental Overhead of Multi-Tool AI Workflows
 
@@ -124,14 +124,9 @@ Press <kbd>⌘ + ,</kbd> in SpotAsk and navigate to **External Ask** (or run `op
 
 ## Download SpotAsk
 
-Upgrade your Mac workflow with intelligent multi-platform routing:
+Upgrade your Mac workflow with intelligent multi-platform routing.
 
-```sh
-brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
-brew install --cask shiquda/spotask/spotask
-```
-
-Direct installer packages are available on [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest).
+Download the `arm64` or `x86_64` DMG from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest), or install with the [Homebrew commands above](#install-spotask).
 
 ### Explore Next
 

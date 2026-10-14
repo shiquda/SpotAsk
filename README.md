@@ -1,11 +1,11 @@
-<p align="center">
-  <img src="images/spotask-hero.png" width="100%" alt="SpotAsk — one prompt routed to an in-app answer, a web AI, or a local CLI agent">
-</p>
-
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
   A native macOS menu-bar AI assistant & query router. Summon with a hotkey, then answer in-app (BYOK) or route to web AI and local CLI agents — automatically with a decision model, or in one keystroke.
+</p>
+
+<p align="center">
+  macOS 15+ · Apple Silicon / Intel · Native Swift
 </p>
 
 <p align="center">
@@ -15,8 +15,29 @@
 </p>
 
 <p align="center">
-  <a href="#download">Download</a> · <a href="#highlights">Highlights</a> · <a href="https://shiquda.github.io/SpotAsk/">Documentation</a> · <a href="#quick-start">Quick start</a> · <a href="#build-from-source">Build from source</a> · <a href="README.zh-CN.md">简体中文</a>
+  <a href="https://github.com/shiquda/SpotAsk/releases/latest">Download for macOS</a> · <a href="https://shiquda.github.io/SpotAsk/">Documentation</a> · <a href="#quick-start">Quick start</a> · <a href="#build-from-source">Build from source</a> · <a href="README.zh-CN.md">简体中文</a>
 </p>
+
+<p align="center">
+  <img src="images/spotask-hero.png" width="100%" alt="SpotAsk — one prompt routed to an in-app answer, a web AI, or a local CLI agent">
+</p>
+
+## Download
+
+Download the `arm64` DMG for Apple Silicon or the `x86_64` DMG for Intel from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest).
+
+Or install with Homebrew:
+
+```sh
+brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
+brew install --cask shiquda/spotask/spotask
+```
+
+## Core capabilities
+
+- **Quick ask** — Press `⌥ + Space` to summon a focused window anywhere, stream an answer with your own API key, and press `Esc` to dismiss.
+- **Selection actions** — Highlight text in any macOS app to translate, explain, summarize, or polish it in place, or bring it into chat.
+- **External Ask** — Route a question to web AI, desktop apps, or local CLI agents in one keystroke, or let a decision model choose the destination.
 
 ## Highlights
 
@@ -28,7 +49,8 @@
 - **Global selection assistant** — Highlight text in Safari, Xcode, or Notes to trigger an inline action bar; send text directly into chat for follow-up, or translate, explain, summarize, and polish in place.
 - **Multimodal & attachments** — Paste screenshots or drop in images, text, and code files; multi-turn conversations seamlessly retain context.
 - **Prompt presets** — Built-in templates for daily workflows, with custom prompt creation and dedicated shortcuts.
-- **Pure native & lightweight** — Built entirely with Swift and AppKit; ~10 MB installer, zero Electron runtime, instant cold-starts, and minimal memory footprint.
+- **Pure native & lightweight** — Built entirely with Swift and AppKit; zero Electron runtime, instant cold-starts, and minimal memory footprint.
+
 ## Workflows in action
 
 SpotAsk is built around two simple ideas: **"Ask first. Decide where it goes after."** and **"Summon anytime. Dismiss instantly."** — keeping everyday AI interactions fast, keyboard-first, and zero-friction.
@@ -63,22 +85,6 @@ Turn on automatic routing and SpotAsk asks a System One decision model before se
 <p align="center">
   <img src="docs/site/public/images/spotask-decision-routing.png" width="720" alt="SpotAsk recommendation card naming the destination and its confidence, next to the decision model choosing between In SpotAsk, Web Chat, and Local Agent">
 </p>
-
-## Download
-
-Install with Homebrew:
-
-```sh
-brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
-brew install --cask shiquda/spotask/spotask
-```
-
-Or download the matching package from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases):
-
-- **Apple silicon** — choose the `arm64` DMG for M-series Macs.
-- **Intel** — choose the `x86_64` DMG for Intel Macs.
-
-The packages are signed with a Developer ID and notarized by Apple for a seamless first launch.
 
 ## Quick start
 
