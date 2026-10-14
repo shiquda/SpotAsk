@@ -87,9 +87,13 @@ Turn on automatic routing and SpotAsk asks a System One decision model before se
 </p>
 
 <p align="center">
-  <video src="https://github.com/shiquda/SpotAsk/releases/download/v0.3.0/SpotAsk-smart-routing-v5.mp4" controls muted playsinline width="720"></video>
+  <a href="https://github.com/shiquda/SpotAsk/releases/download/v0.3.0/SpotAsk-smart-routing-v5.mp4">
+    <img src="docs/site/public/images/spotask-smart-routing-preview.gif" width="720" alt="SpotAsk smart routing demo preview">
+  </a>
 </p>
-<p align="center"><em>Demo: one question, three destinations — decision routing on real app footage (28s).</em></p>
+<p align="center">
+  ▶️ <a href="https://github.com/shiquda/SpotAsk/releases/download/v0.3.0/SpotAsk-smart-routing-v5.mp4"><strong>Watch demo video (28s · 1080p 60fps MP4)</strong></a> — <em>one question, three destinations: decision routing on real app footage.</em>
+</p>
 
 ## Quick start
 

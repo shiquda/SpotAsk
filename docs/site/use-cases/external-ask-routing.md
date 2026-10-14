@@ -99,9 +99,9 @@ Press <kbd>⌘ + ,</kbd> in SpotAsk and navigate to **External Ask** (or run `op
 
 ## Visual Proof
 
-<video src="/videos/SpotAsk-smart-routing-v5.mp4" controls muted playsinline width="720"></video>
+<video poster="/images/spotask-smart-routing-preview.gif" src="/videos/SpotAsk-smart-routing-v5.mp4" controls muted playsinline width="720"></video>
 
-*Video: one question, three destinations — decision routing on real app footage (28s).*
+*Video: one question, three destinations — decision routing on real app footage (28s). [Download / Watch HD Video (1080p MP4)](/videos/SpotAsk-smart-routing-v5.mp4)*
 
 ![Decision routing workflow routing prompts to In SpotAsk, Web Chat, or Local Agent](/images/spotask-decision-routing.png)
 *Figure 1: Decision routing evaluates prompt intent and presents an inline confirmation card with one-click dispatch and Tab-to-switch capability.*
