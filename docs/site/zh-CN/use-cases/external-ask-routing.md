@@ -99,6 +99,10 @@ flowchart TD
 
 ## 视觉演示
 
+<video src="/videos/SpotAsk-smart-routing-v5.mp4" controls muted playsinline width="720"></video>
+
+*视频：一个问题，三种去向——智能路由实机演示（28 秒）。*
+
 ![智能路由内联确认与 Tab 快速切换渠道](/images/spotask-decision-routing.png)
 *图 1：智能路由即时研判提问意图，在提问框上方展示内联确认卡片，支持回车一键放行与 Tab 极速切换渠道。*
 

@@ -86,6 +86,11 @@ SpotAsk 围绕 **“先提问再分流（Ask first. Decide where it goes after.�
   <img src="docs/site/public/images/spotask-decision-routing-zh.png" width="720" alt="SpotAsk 推荐卡片写明去处与置信度，右侧是决策模型在「在 SpotAsk 内 / Web Chat / Local Agent」之间做选择">
 </p>
 
+<p align="center">
+  <video src="https://github.com/shiquda/SpotAsk/releases/download/v0.3.0/SpotAsk-smart-routing-v5.mp4" controls muted playsinline width="720"></video>
+</p>
+<p align="center"><em>实机演示：一个问题，三种去向——决策模型自动选路（28 秒）。</em></p>
+
 ## 快速上手
 
 1. **配置服务**：打开设置（`⌘ + ,`）进入服务页，选择或添加你的服务商（OpenAI 兼容、Anthropic 或 Gemini），填写 API 地址、模型 ID 与访问密钥。
