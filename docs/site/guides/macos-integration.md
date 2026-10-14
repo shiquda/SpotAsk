@@ -9,6 +9,47 @@ The official SpotAsk release registers app actions that macOS can expose to Spot
 
 <SpotAskSettingsLink section="shortcuts" />
 
+## Quick Summary
+
+SpotAsk integrates deeply with native macOS system entrypoints by registering App Intents for Spotlight, Siri, and Apple Shortcuts, alongside an authenticated `spotask://` URL scheme. This enables friction-free AI invocation from Alfred, Raycast, terminal scripts, keyboard macros, and automated macOS workflows without keeping the main chat window open.
+
+## Applicable Scenarios
+
+- **Launcher Automation (Raycast & Alfred)**: Summon SpotAsk with a pre-filled query directly from Raycast, Alfred, or custom hotkeys via `spotask://ask?q={query}`.
+- **Hands-Free Voice Control with Siri**: Speak "Ask SpotAsk a question" or "Ask SpotAsk to translate [text]" on macOS to trigger instant voice-to-text queries.
+- **Multi-Step Shortcuts Automation**: Build Apple Shortcuts workflows that capture selected files, clipboard clippings, or webpage text and pass them into SpotAsk prompts like **Translate**, **Summarize**, or **Ask AI**.
+
+## Prerequisites & Compatibility
+
+| Requirement | Specification | Notes |
+| :--- | :--- | :--- |
+| **Operating System** | macOS 15.0 (Sequoia) or later | App Intents and Spotlight deep integration require macOS 15+ |
+| **Application Version** | SpotAsk `v0.1.0+` official signed release | Universal binary (`arm64` Apple Silicon & `x86_64` Intel) |
+| **Code Signing** | Apple Developer ID signed application | Required for macOS system daemons to recognize and index App Intents |
+| **Installation Path** | `/Applications/SpotAsk.app` | Launch at least once after installation to register URL schemes and intents |
+| **Supported Launchers** | Apple Spotlight, Siri, Shortcuts, Raycast, Alfred | Any tool capable of opening `spotask://` URLs or running macOS Shortcuts |
+
+## Step-by-Step Instructions
+
+1. **Install and Register**: Place `SpotAsk.app` in `/Applications` and launch it once to register the `spotask://` URL handler and App Intents with macOS.
+2. **Summon via Global Hotkey**: Press `⌥ + Space` (default) to summon the floating question window from any application.
+3. **Trigger from Spotlight**: Press `⌘ + Space`, type `SpotAsk`, and choose an action such as **Ask SpotAsk a question** or **Translate**.
+4. **Trigger via Terminal or URL**: Run `open "spotask://ask?q=What%20is%20Swift%20concurrency"` from Terminal or a script to launch and query SpotAsk immediately.
+5. **Automate in Shortcuts**: Open the macOS **Shortcuts** app, search for **SpotAsk**, and add actions like **Ask AI**, **Summarize**, or **Translate** to your automations.
+6. **Navigate to Settings Directly**: Use stable deep-links like `open "spotask://settings/shortcuts"` or `open "spotask://settings/provider"` to jump straight to specific settings panels.
+
+## Visual Proof
+
+![SpotAsk instant hotkey summoning and question window popup on macOS](/images/spotask-hotkey.gif)
+*Figure 1: SpotAsk responds instantly to global macOS summoning hotkeys and system-level URL triggers, displaying a lightweight floating interface.*
+
+## Known Limitations & Boundaries
+
+- **URL Parameter Percent-Encoding**: Queries passed via `spotask://ask?q=...` must be RFC 3986 percent-encoded; raw spaces, ampersands, or non-ASCII characters without encoding may be truncated by macOS URL dispatchers.
+- **Self-Built / Ad-Hoc Build Limitations**: If building SpotAsk locally from source without an Apple Developer ID certificate (using a free Personal Team), macOS Shortcuts and Spotlight will not index App Intents until the app is run from Xcode.
+- **Cold Launch Behavior**: If SpotAsk is not running when a `spotask://` link is invoked, macOS launches the app first; the action executes immediately once initialization completes.
+- **Background Persistence**: SpotAsk runs as an accessory menu bar application without a dock icon by default; closing the chat window hides the UI while keeping shortcuts and URL listeners active.
+
 ## Available actions
 
 - **Open SpotAsk** opens the question window.

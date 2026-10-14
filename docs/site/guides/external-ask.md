@@ -7,6 +7,54 @@ description: "Capture queries instantly in SpotAsk, then route them to ChatGPT, 
 
 External Ask lets you capture thoughts while they are fresh, then hand them off to specialized platforms. SpotAsk handles global summoning and rapid input; your chosen tool handles the heavy lifting.
 
+## Quick Summary
+
+SpotAsk External Ask captures queries through a single global summon window and routes them to web AI services (ChatGPT, Perplexity, Grok), native macOS apps, or local CLI agents in 1 click or via automated decision models. This decouples instant thought capture from heavy execution, eliminating manual copy-pasting across browser tabs and terminal windows.
+
+## Applicable Scenarios
+
+- **Live Web Research & Search**: Route real-time market queries, current news, or comparative analysis directly to Perplexity, Grok, or ChatGPT when local LLM context lacks live web grounding.
+- **Local Developer Agent Dispatch**: Hand off complex multi-step terminal tasks (such as code generation, git workflows, or data processing) directly to local CLI agents like `omp {query}` or `claude {query}`.
+- **Intelligent Intent-Based Auto-Routing**: Let a lightweight System One decision model (`jev-1.13.0`) evaluate your prompt intent automatically and dispatch between in-app answers, browser AI, or terminal agents.
+
+## Prerequisites & Compatibility
+
+| Requirement | Specification | Notes |
+| :--- | :--- | :--- |
+| **Operating System** | macOS 15.0 (Sequoia) or later | Apple Silicon (`arm64`) and Intel (`x86_64`) |
+| **Application Version** | SpotAsk `v0.3.0` or later | Decision Routing introduced in `v0.3.0` |
+| **Required Permissions** | Automation / Terminal execution | Required only when dispatching to Terminal CLI agents |
+| **Default Browser** | Any macOS default browser | Used for web questions with active session state |
+| **Optional API Key** | TypeSafe or OpenRouter API key | Required only if enabling automated Decision Routing |
+
+## Step-by-Step Instructions
+
+1. **Open Settings**: Press `⌘ + ,` to open Settings, navigate to **External Ask**, or use the URL deep-link `spotask://settings/external-ask`.
+2. **Add or Select an Action**: Click **New** in the External Ask catalog. Choose an action type:
+   - **Web question**: e.g., `https://chatgpt.com/?q={query}` or `https://www.perplexity.ai/search?q={query}`.
+   - **Open an app**: e.g., `quicknote://new?text={query}`.
+   - **Terminal command**: e.g., `omp {query}`.
+3. **Trigger from Question Window**: Summon SpotAsk using `⌥ + Space`. Type your question, then:
+   - Click the target button (e.g., **Ask ChatGPT**) or press its assigned shortcut (`⌘ + 5`, `⌘ + 6`).
+   - Or select the target from the `@` command palette or preset menu.
+4. **Use Decision Routing (Optional)**: In **Settings > External Ask**, enable **Decision Routing**. When you press `↩`, SpotAsk evaluates intent and displays an inline confirmation card—press `↩` to confirm, `Tab` to switch channels, or `Esc` to cancel.
+
+## Visual Proof
+
+![Decision routing workflow routing prompts to In SpotAsk, Web Chat, or Local Agent](/images/spotask-decision-routing.png)
+*Figure 1: Decision routing evaluates prompt intent and presents an inline confirmation card with one-click dispatch and Tab-to-switch capability.*
+
+![SpotAsk routing a question to a local CLI agent in Terminal](/images/spotask-external.gif)
+*Figure 2: SpotAsk dispatching a question directly into a local CLI agent in Terminal.*
+
+## Known Limitations & Boundaries
+
+- **Browser Authentication State**: Web questions open URLs in your default browser; automatic generation requires an active login session on the target website (e.g., ChatGPT, Perplexity, Grok).
+- **Shell PATH Resolution**: Terminal commands run in your default user shell; CLI binaries (such as `omp`, `ollama`, or `claude`) must exist in your shell `$PATH`.
+- **Pre-Fill vs Auto-Submit**: Web question links pre-fill the query in the target's web composer; automatic submission in ChatGPT requires a client-side userscript (see [tip below](#auto-submitting-in-chatgpt-with-a-userscript)).
+- **Decision Service Security Boundary**: Remote decision services strictly require HTTPS (HTTP is allowed only for loopback `localhost`/`127.0.0.1` debugging); cross-origin and HTTPS-to-HTTP redirects are rejected prior to sending question text.
+- **Attachment Exclusion**: Attaching images or files automatically bypasses External Ask and Decision Routing, keeping the conversation inside SpotAsk.
+
 ## Ask another AI
 
 External Ask buttons appear below the prompt presets in a new question window, and can also be triggered via the `@` command palette or the preset popover menu:
