@@ -10,14 +10,17 @@ hero:
   tagline: "Ask first, decide where it goes after. A fast, native macOS menu-bar AI assistant & query router."
   actions:
     - theme: brand
-      text: Download for macOS
+      text: Download (Apple Silicon)
+      link: https://github.com/shiquda/SpotAsk/releases/latest
+    - theme: alt
+      text: Download (Intel)
       link: https://github.com/shiquda/SpotAsk/releases/latest
     - theme: alt
       text: Get Started
       link: /getting-started
 
-# Rendered by SpotAskHeroCompat (above the hero actions) and
-# SpotAskHeroInstall (below them) — see docs/site/.vitepress/theme/Layout.vue.
+# Left info rendered by SpotAskHeroCompat; right terminal card rendered by
+# SpotAskHeroInstall in #home-hero-image (see docs/site/.vitepress/theme/Layout.vue).
 heroInstall:
   compat: "macOS 15+ · Apple Silicon / Intel · Native Swift"
 

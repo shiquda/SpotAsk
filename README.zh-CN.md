@@ -18,7 +18,13 @@
   <a href="https://github.com/shiquda/SpotAsk/releases/latest">下载 macOS 版</a> · <a href="https://shiquda.github.io/SpotAsk/zh-CN/">在线文档</a> · <a href="#快速上手">快速上手</a> · <a href="#从源码构建">从源码构建</a> · <a href="README.md">English</a>
 </p>
 
-从 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) 下载最新 DMG：Apple Silicon 选 `arm64`，Intel 选 `x86_64`。两个安装包均使用 Developer ID 签名并经 Apple 公证。
+<p align="center">
+  <img src="images/spotask-hero-zh.png" width="100%" alt="SpotAsk — 一次提问，分流至应用内回答、网页 AI 或本地 Agent">
+</p>
+
+## 下载安装
+
+从 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) 下载最新 DMG：Apple Silicon 选 `arm64`，Intel 选 `x86_64`。
 
 也可以使用 Homebrew 安装：
 
@@ -26,10 +32,6 @@
 brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
 brew install --cask shiquda/spotask/spotask
 ```
-
-<p align="center">
-  <img src="images/spotask-hero-zh.png" width="100%" alt="SpotAsk — 一次提问，分流至应用内回答、网页 AI 或本地 Agent">
-</p>
 
 ## 核心能力
 

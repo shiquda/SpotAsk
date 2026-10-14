@@ -18,7 +18,13 @@
   <a href="https://github.com/shiquda/SpotAsk/releases/latest">Download for macOS</a> · <a href="https://shiquda.github.io/SpotAsk/">Documentation</a> · <a href="#quick-start">Quick start</a> · <a href="#build-from-source">Build from source</a> · <a href="README.zh-CN.md">简体中文</a>
 </p>
 
-Download the `arm64` DMG for Apple Silicon or the `x86_64` DMG for Intel from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest). Both packages are signed with a Developer ID and notarized by Apple.
+<p align="center">
+  <img src="images/spotask-hero.png" width="100%" alt="SpotAsk — one prompt routed to an in-app answer, a web AI, or a local CLI agent">
+</p>
+
+## Download
+
+Download the `arm64` DMG for Apple Silicon or the `x86_64` DMG for Intel from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest).
 
 Or install with Homebrew:
 
@@ -26,10 +32,6 @@ Or install with Homebrew:
 brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
 brew install --cask shiquda/spotask/spotask
 ```
-
-<p align="center">
-  <img src="images/spotask-hero.png" width="100%" alt="SpotAsk — one prompt routed to an in-app answer, a web AI, or a local CLI agent">
-</p>
 
 ## Core capabilities
 

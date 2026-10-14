@@ -11,14 +11,17 @@ hero:
   tagline: '<span class="nowrap">一次提问，三个去向。</span><br class="hidden sm:inline"><span class="nowrap">随时唤起，随问随走。</span>'
   actions:
     - theme: brand
-      text: 下载 macOS 版
+      text: 下载 Apple Silicon 版
+      link: https://github.com/shiquda/SpotAsk/releases/latest
+    - theme: alt
+      text: 下载 Intel 版
       link: https://github.com/shiquda/SpotAsk/releases/latest
     - theme: alt
       text: 快速开始
       link: /zh-CN/getting-started
 
-# Rendered by SpotAskHeroCompat (above the hero actions) and
-# SpotAskHeroInstall (below them) — see docs/site/.vitepress/theme/Layout.vue.
+# Left info rendered by SpotAskHeroCompat; right terminal card rendered by
+# SpotAskHeroInstall in #home-hero-image (see docs/site/.vitepress/theme/Layout.vue).
 heroInstall:
   compat: "macOS 15+ · Apple Silicon / Intel · Native Swift"
 
