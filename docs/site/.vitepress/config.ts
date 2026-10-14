@@ -7,6 +7,7 @@ const docsUrl = 'https://shiquda.github.io/SpotAsk/'
 const repositoryUrl = 'https://github.com/shiquda/SpotAsk'
 const socialImageUrl = `${docsUrl}images/spotask-hero.png`
 const socialImageUrlZh = `${docsUrl}images/spotask-hero-zh.png`
+const cloudflareAnalyticsToken = 'fafa994034644f97a61bd5516eb85fd3'
 
 const runGit = promisify(execFile)
 
@@ -282,7 +283,15 @@ export default defineConfig({
   head: [
     ['meta', { name: 'google-site-verification', content: 'Ql8N_lmVtP3E7_UWahGD9Z98qn52SCfpR53f8tIXW3E' }],
     ['link', { rel: 'icon', href: '/SpotAsk/spotask-icon.png' }],
-    ['link', { rel: 'sitemap', type: 'application/xml', href: `${docsUrl}sitemap.xml` }]
+    ['link', { rel: 'sitemap', type: 'application/xml', href: `${docsUrl}sitemap.xml` }],
+    [
+      'script',
+      {
+        defer: '',
+        src: 'https://static.cloudflareinsights.com/beacon.min.js',
+        'data-cf-beacon': JSON.stringify({ token: cloudflareAnalyticsToken })
+      }
+    ]
   ],
   locales: {
     root: {
