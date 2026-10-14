@@ -115,6 +115,16 @@ const englishSidebar = [
     ]
   },
   {
+    text: 'Use Cases',
+    items: [
+      { text: 'macOS AI Launcher', link: '/use-cases/mac-ai-launcher' },
+      { text: 'BYOK Native AI Client', link: '/use-cases/byok-macos-ai' },
+      { text: 'External Ask & Routing', link: '/use-cases/external-ask-routing' },
+      { text: 'Selection Assistant', link: '/use-cases/selection-assistant' },
+      { text: 'Zero-Telemetry Privacy', link: '/use-cases/privacy-architecture' }
+    ]
+  },
+  {
     text: 'Guides',
     items: [
       { text: 'Connect an OpenAI-Compatible Service', link: '/guides/connect-openai-compatible' },
@@ -148,6 +158,16 @@ const chineseSidebar = [
       { text: '探索 SpotAsk', link: '/zh-CN/explore' },
       { text: '设计理念', link: '/zh-CN/philosophy' },
       { text: '隐私与本地数据', link: '/zh-CN/privacy' }
+    ]
+  },
+  {
+    text: '场景专题',
+    items: [
+      { text: 'macOS 全局 AI 启动器', link: '/zh-CN/use-cases/mac-ai-launcher' },
+      { text: 'BYOK 原生 macOS AI 客户端', link: '/zh-CN/use-cases/byok-macos-ai' },
+      { text: 'External Ask 智能路由', link: '/zh-CN/use-cases/external-ask-routing' },
+      { text: '全局划词 AI 助手', link: '/zh-CN/use-cases/selection-assistant' },
+      { text: '本地优先与零遥测隐私架构', link: '/zh-CN/use-cases/privacy-architecture' }
     ]
   },
   {
@@ -302,6 +322,16 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: 'Getting Started', link: '/getting-started' },
+          {
+            text: 'Use Cases',
+            items: [
+              { text: 'macOS AI Launcher', link: '/use-cases/mac-ai-launcher' },
+              { text: 'BYOK Native AI Client', link: '/use-cases/byok-macos-ai' },
+              { text: 'External Ask & Routing', link: '/use-cases/external-ask-routing' },
+              { text: 'Selection Assistant', link: '/use-cases/selection-assistant' },
+              { text: 'Zero-Telemetry Privacy', link: '/use-cases/privacy-architecture' }
+            ]
+          },
           { text: 'Explore', link: '/explore' },
           { text: 'Philosophy', link: '/philosophy' },
           { text: 'Guides', link: '/guides/connect-openai-compatible' },
@@ -333,6 +363,16 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: '快速开始', link: '/zh-CN/getting-started' },
+          {
+            text: '场景专题',
+            items: [
+              { text: 'macOS 全局 AI 启动器', link: '/zh-CN/use-cases/mac-ai-launcher' },
+              { text: 'BYOK 原生 macOS AI 客户端', link: '/zh-CN/use-cases/byok-macos-ai' },
+              { text: 'External Ask 智能路由', link: '/zh-CN/use-cases/external-ask-routing' },
+              { text: '全局划词 AI 助手', link: '/zh-CN/use-cases/selection-assistant' },
+              { text: '本地优先与零遥测隐私架构', link: '/zh-CN/use-cases/privacy-architecture' }
+            ]
+          },
           { text: '能力地图', link: '/zh-CN/explore' },
           { text: '设计理念', link: '/zh-CN/philosophy' },
           { text: '指南', link: '/zh-CN/guides/connect-openai-compatible' },
