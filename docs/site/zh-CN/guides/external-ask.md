@@ -63,8 +63,6 @@ omp {query}
 
 <SpotAskSettingsLink section="external-ask" />
 
-![智能路由内联确认与 Tab 快速切换渠道](/images/spotask-decision-routing-zh.png)
-
 SpotAsk 用 System One 决策服务判断问题该去哪个已启用渠道，不会改动负责写回答的对话服务。填写**服务地址**、**决策模型**和**访问密钥**。密钥只发给你填写的地址。
 
 <video poster="/images/spotask-smart-routing-preview.gif" src="/videos/SpotAsk-smart-routing-v5.mp4" controls muted playsinline width="720"></video>
