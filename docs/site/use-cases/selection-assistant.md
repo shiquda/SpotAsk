@@ -1,129 +1,49 @@
 ---
 title: Global Selection Assistant
-description: "SpotAsk Selection Assistant enables instant inline translation, explanation, summarization, and polishing for highlighted text across any macOS application."
+description: "SpotAsk Selection Assistant enables in-place translation, explanation, summarization, and polishing for highlighted text across macOS applications."
 ---
 
-# Global Selection Assistant: In-Place AI Actions Across Any macOS App
+# Global Selection Assistant: Process Selected Text Across macOS Apps
 
-SpotAsk Selection Assistant brings AI-powered text processing directly to where you work. Instead of copying text, switching windows, and pasting into a chat interface, you simply highlight text in any native macOS application—Safari, Xcode, Notes, Mail, Slack, or Terminal—and a lightweight floating action bar appears immediately beside your selection.
+SpotAsk Selection Assistant brings AI-powered text processing directly to the window where you read or write.
 
-With a single click or keyboard shortcut, you can **Translate**, **Explain**, **Summarize**, **Polish**, or send the text to **Ask in Chat** for deep multi-turn follow-up.
+Highlight text in any application, and a lightweight action bar appears next to your selection. Without switching windows or repetitive copy-pasting, you can translate, explain, summarize, polish, or ask follow-up questions immediately.
 
-## Quick Summary
+## Core Capabilities
 
-- **In-place text actions**: Highlight text anywhere to immediately trigger floating quick actions next to your cursor.
-- **Built-in prompt templates**: Instant one-click presets for **Translate**, **Explain**, **Summarize**, and **Polish**, plus full support for custom prompts.
-- **In-place replacement**: In editable fields (such as Mail composers, Slack, or text editors), SpotAsk can replace your original draft with polished text in one keystroke.
-- **Deep macOS Accessibility integration**: Works seamlessly across Safari, Xcode, Notes, Pages, Chrome, VS Code, and native macOS AppKit views.
-- **Private & in-memory**: Selected text is processed strictly in-memory and sent directly to your configured LLM endpoint over TLS 1.3. Nothing is logged or retained.
+- **Common Actions & Custom Prompts**: Built-in actions for Translate, Explain, Summarize, and Polish, with full support for custom templates in Settings > Prompts.
+- **In-Place Replacement**: In editable areas (such as Mail composers, Notes, or text fields), generated results can replace your selected draft in one click; in read-only views (webpages or PDFs), results are copied to the clipboard or displayed in a popover.
+- **Context-Aware Follow-Up**: Clicking "Ask in Chat" opens the main conversation window with your selected text automatically pre-filled as context.
 
-## Install SpotAsk
+## 3-Step Quick Start
 
-Download the latest DMG directly from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest):
+1. **Enable & Grant Permission**: Launch SpotAsk, check "Enable Selection Assistant" in **Settings > Selection**, and grant permission in **System Settings > Privacy & Security > Accessibility**.
+2. **Highlight Text in Any App**: Select text in Safari, Xcode, Notes, Mail, or Terminal using your mouse or keyboard.
+3. **Trigger Action**: Click a button on the floating bar or press its assigned shortcut to stream results.
 
-- **Apple Silicon** (`arm64`): Download the `arm64` DMG for M-series Macs.
-- **Intel Mac** (`x86_64`): Download the `x86_64` DMG for Intel Macs.
+## Visual Demo
 
-Official binaries are signed with an Apple Developer ID certificate and notarized by Apple (`macOS 15+ · Apple Silicon / Intel · Native Swift`).
+![SpotAsk Selection Assistant displaying inline quick actions next to highlighted text](/images/spotask-selection.gif)
+*Figure 1: The Selection Assistant displays quick actions adjacent to highlighted text.*
 
-Or install using Homebrew:
+## Verified Boundaries & Data Handling
+
+- **Model Endpoints & Data Handling**: When processing text, requests are dispatched to the API endpoint configured in your Services settings. For remote providers, data handling follows their respective published policies; when paired with local models via Ollama, processing remains on-device.
+- **Accessibility Authorization**: macOS requires Accessibility permission to compute the screen coordinates of highlighted text. If revoked, selection tracking cannot locate text.
+- **Custom Canvas & Password Fields**: Views using custom-drawn canvas elements without accessible text nodes may not report coordinates; system password fields are protected by macOS and the assistant does not intervene.
+
+## Download SpotAsk
+
+Download the latest DMG from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) (Apple Silicon and Intel supported), or install via Homebrew:
 
 ```sh
 brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
 brew install --cask shiquda/spotask/spotask
 ```
 
-## The Problem: The 7-Step Friction of Copy-Paste Text Processing
+### Related Guides
 
-When reading technical documentation, reviewing code pull requests, or drafting correspondence, interacting with text in another language or complex syntax is a constant requirement. Traditional workflows suffer from high friction:
-
-1. **The 7-step shuffle**:
-   - Highlight text.
-   - Press <kbd>⌘ + C</kbd>.
-   - Switch application spaces to a browser tab or desktop AI app.
-   - Paste the text into an input box (<kbd>⌘ + V</kbd>).
-   - Type prompt instructions (e.g., *"Translate this into English"* or *"Explain this error"*).
-   - Wait and copy the generated output (<kbd>⌘ + C</kbd>).
-   - Switch back to your original app and paste the result (<kbd>⌘ + V</kbd>).
-2. **Cognitive flow disruption**: Repeated context switching shatters focus. Returning to an editor after navigating away requires re-reading surrounding lines to regain context.
-3. **Clipboard pollution**: Copying fragments continuously pollutes system clipboard history and clipboard manager utilities.
-
-## How SpotAsk Solves It: Native Accessibility Integration & In-Place Processing
-
-SpotAsk eliminates the window-switching cycle by overlaying an intelligent action bar directly onto the macOS screen coordinates of your selection.
-
-```mermaid Selection Assistant Flow
-flowchart TD
-  A[Highlight Text in Any App: Safari / Xcode / Mail] --> B[macOS Accessibility API: AXUIElement]
-  B --> C[SpotAsk Resolves Selection & Screen Coordinates]
-  C --> D[Floating Action Bar Appears Adjacent to Selection]
-  D --> E{User Selects Action}
-  E -->|Translate / Explain / Summarize / Polish| F[Apply Prompt Template]
-  E -->|Ask in Chat| G[Open SpotAsk Chat with Highlighted Context Pre-filled]
-  F --> H[Direct HTTPS Request to User-Configured LLM]
-  H --> I{Is Host Element Editable?}
-  I -->|Yes: Text Field / Composer| J[In-Place Replace via Accessibility AXValue]
-  I -->|No: Webpage / PDF / Log| K[Copy Result to Clipboard & Show Floating HUD]
-```
-
-### Architectural Principles
-
-- **Zero-Injection Accessibility (`AXUIElement`)**: SpotAsk does not inject dynamic libraries (`DYLD_INSERT_LIBRARIES`) or modify target application runtimes. It uses the official macOS Accessibility API to inspect focused UI elements and retrieve selected text attributes.
-- **Accurate Screen Coordinate Positioning**: Reads the bounding rectangle of selected glyphs to position the floating HUD precisely below or above the highlighted line, avoiding obscuring the text being read.
-- **Smart Replacement vs. Clipboard Routing**:
-  - In editable text views (such as Mail, Notes, or Slack), actions like **Polish** or **Translate** can automatically replace the selected draft text in place.
-  - In read-only views (such as Safari web pages, PDF readers, or Xcode compile logs), SpotAsk copies the result to your clipboard or displays it in an expandable floating popover.
-- **Context Retention in Chat**: Selecting **Ask in Chat** opens the main SpotAsk window with the highlighted text automatically injected as context, allowing you to ask follow-up questions without manual copy-pasting.
-
-## 3-Step Quick Start
-
-### Step 1: Enable Selection Assistant & Grant Permission
-
-1. Launch SpotAsk, open Settings (<kbd>⌘ + ,</kbd>), and select the **Selection** tab (or run `open "spotask://settings/selection"`).
-2. Check **Enable Selection Assistant**.
-3. When prompted, grant Accessibility permission in **System Settings > Privacy & Security > Accessibility**.
-
-### Step 2: Highlight Text in Any Application
-
-Open Safari, Xcode, Mail, or Notes, and select any word, phrase, or paragraph with your mouse or keyboard.
-
-The SpotAsk floating action bar appears immediately beside your highlighted text.
-
-### Step 3: Click an Action or Use a Shortcut
-
-Click **Translate**, **Explain**, **Summarize**, or **Polish** (or press their assigned shortcuts). SpotAsk streams the result in real time.
-
-## Visual Proof
-
-![SpotAsk Selection Assistant displaying inline quick actions next to highlighted text](/images/spotask-selection.gif)
-*Figure 1: The Selection Assistant presents floating inline quick actions (Translate, Explain, Summarize, Polish, Ask in Chat) immediately beside highlighted text across macOS apps.*
-
-## Technical Specifications & Verified Boundaries
-
-| Parameter | Specification | Verification Evidence |
-| :--- | :--- | :--- |
-| **System API** | macOS Accessibility (`ApplicationServices.AXUIElement`) | Non-intrusive public API; zero process code injection |
-| **Compatible Apps** | Safari, Xcode, Apple Notes, Mail, Slack, Pages, VS Code, Terminal | Verified across standard AppKit, WebKit, and Electron text inputs |
-| **Action Modes** | Translate, Explain, Summarize, Polish, Custom Prompts, Ask in Chat | Fully customizable prompt templates in Settings > Prompts |
-| **Output Behavior** | In-place text replacement (editable fields) / Clipboard copy (read-only) | Automatic detection via `kAXValueAttribute` writability check |
-| **Memory Footprint** | < 25&nbsp;MB RSS during active selection tracking | Native Swift lightweight event loop |
-| **Operating System** | macOS 15.0 or later | Universal binary (`arm64` & `x86_64`) |
-
-### Known Limitations & Boundaries
-
-- **Accessibility Authorization Required**: macOS requires explicit user permission in System Settings > Privacy & Security > Accessibility. SpotAsk cannot read selections if this permission is revoked.
-- **Non-Standard Canvas Elements**: Web applications using custom HTML5 canvas rendering (such as Google Docs canvas mode or WebGL terminals) may not expose standard macOS Accessibility selection bounds.
-- **Secure Password Fields**: Selection tracking is automatically disabled inside secure password fields (`NSSecureTextField`) by the macOS window server.
-
-## Download SpotAsk
-
-Streamline your text workflows across macOS today.
-
-Download the `arm64` or `x86_64` DMG from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest), or install with the [Homebrew commands above](#install-spotask).
-
-### Explore Next
-
-- [Selection Assistant In-Depth Guide](/guides/selection-assistant) — Trigger methods, custom prompts, and shortcut setup.
-- [Prompts Configuration Guide](/guides/prompts) — Create custom templates for your daily tasks.
-- [macOS AI Launcher](/use-cases/mac-ai-launcher) — Instant global hotkey summoning.
-- [Zero-Telemetry Privacy Architecture](/use-cases/privacy-architecture) — How your data stays strictly local.
+- [Selection Assistant Guide](/guides/selection-assistant) — Trigger modes and shortcut setup.
+- [Prompts Configuration Guide](/guides/prompts) — Build custom prompt templates.
+- [macOS AI Launcher](/use-cases/mac-ai-launcher) — Hotkey summoning for quick questions.
+- [Zero-Telemetry Privacy Architecture](/use-cases/privacy-architecture) — Data destinations and storage design.
