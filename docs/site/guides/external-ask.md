@@ -41,8 +41,8 @@ SpotAsk External Ask captures queries through a single global summon window and 
 
 ## Visual Proof
 
-![Decision routing workflow routing prompts to In SpotAsk, Web Chat, or Local Agent](/images/spotask-decision-routing.png)
-*Figure 1: Decision routing evaluates prompt intent and presents an inline confirmation card with one-click dispatch and Tab-to-switch capability.*
+<video poster="/images/spotask-smart-routing-preview.gif" src="/videos/SpotAsk-smart-routing-v5.mp4" controls muted playsinline width="720"></video>
+*Video 1: Decision routing demonstrated on real app footage (28s) — evaluates prompt intent and presents an inline confirmation card with one-click dispatch and Tab-to-switch capability. [Download / Watch HD Video (1080p MP4)](/videos/SpotAsk-smart-routing-v5.mp4)*
 
 ![SpotAsk routing a question to a local CLI agent in Terminal](/images/spotask-external.gif)
 *Figure 2: SpotAsk dispatching a question directly into a local CLI agent in Terminal.*
@@ -110,8 +110,6 @@ Entries can be reordered, disabled, edited, or deleted from the same settings pa
 When you want SpotAsk to recommend a destination before sending, turn on **Enable automatic routing** in the **Decision Routing** section after the External Ask catalog.
 
 <SpotAskSettingsLink section="external-ask" />
-
-![Decision routing inline confirmation and Tab channel switcher](/images/spotask-decision-routing.png)
 
 SpotAsk asks a System One decision service which enabled channel fits the question. It does not change the chat service that writes answers. Fill **Service address**, **Decision model**, and **Access key**. The key is sent only to the address you enter.
 

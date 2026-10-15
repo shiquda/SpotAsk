@@ -83,10 +83,6 @@ SpotAsk 围绕 **“先提问再分流（Ask first. Decide where it goes after.�
 
 开启自动路由后，SpotAsk 会先问一次 System One 决策模型，给出推荐去处与置信度。按 `↩` 继续、按 `Tab` 换渠道、按 `Esc` 取消；标题栏开关（`⌘ + ⇧ + R`）可临时关掉本次对话的自动路由。
 <p align="center">
-  <img src="docs/site/public/images/spotask-decision-routing-zh.png" width="720" alt="SpotAsk 推荐卡片写明去处与置信度，右侧是决策模型在「在 SpotAsk 内 / Web Chat / Local Agent」之间做选择">
-</p>
-
-<p align="center">
   <a href="https://github.com/shiquda/SpotAsk/releases/download/v0.3.0/SpotAsk-smart-routing-v5.mp4">
     <img src="docs/site/public/images/spotask-smart-routing-preview.gif" width="720" alt="SpotAsk 智能路由实机演示动图预览">
   </a>
