@@ -248,6 +248,12 @@
 "settings.namePlaceholder" = "Par exemple : réécrire un e-mail";
 "settings.promptContent" = "Contenu";
 "settings.promptCatalogDescription" = "Utilisez les boutons haut et bas pour modifier l'ordre. Les modes désactivés sont indisponibles dans la fenêtre de questions, les raccourcis et les raccourcis système.";
+"settings.restoreDefaultPrompts" = "Rétablir les préréglages par défaut";
+"settings.restoreDefaultPromptsTitle" = "Rétablir les préréglages par défaut ?";
+"settings.restoreDefaultPromptsMessage" = "Tous les préréglages intégrés seront réinitialisés et les préréglages par défaut supprimés seront restaurés. Les préréglages personnalisés seront conservés.";
+"settings.promptPresetsRestored" = "Préréglages par défaut rétablis.";
+"settings.deletePromptTitle" = "Supprimer le préréglage ?";
+"settings.deletePromptMessage" = "« %@ » sera supprimé. Cette opération est irréversible.";
 "settings.promptEnabled" = "Activé";
 "settings.promptPosition" = "%d sur %d";
 "settings.prompts" = "Modes";

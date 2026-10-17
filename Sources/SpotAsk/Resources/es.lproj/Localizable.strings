@@ -248,6 +248,12 @@
 "settings.namePlaceholder" = "Por ejemplo: reescribir un correo";
 "settings.promptContent" = "Contenido";
 "settings.promptCatalogDescription" = "Usa los botones arriba y abajo para cambiar el orden. Los modos desactivados no estarán disponibles en la ventana de preguntas, atajos ni atajos del sistema.";
+"settings.restoreDefaultPrompts" = "Restaurar predeterminados";
+"settings.restoreDefaultPromptsTitle" = "¿Restaurar ajustes preestablecidos predeterminados?";
+"settings.restoreDefaultPromptsMessage" = "Se restablecerán todas las indicaciones integradas a sus valores predeterminados y se recuperarán los valores eliminados. Se conservarán los ajustes personalizados.";
+"settings.promptPresetsRestored" = "Ajustes predeterminados restaurados.";
+"settings.deletePromptTitle" = "¿Eliminar ajuste preestablecido?";
+"settings.deletePromptMessage" = "Se eliminará «%@». Esta acción no se puede deshacer.";
 "settings.promptEnabled" = "Activado";
 "settings.promptPosition" = "%d de %d";
 "settings.prompts" = "Modos";

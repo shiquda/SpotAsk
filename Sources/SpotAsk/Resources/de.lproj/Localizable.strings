@@ -248,6 +248,12 @@
 "settings.namePlaceholder" = "Zum Beispiel: E-Mail umschreiben";
 "settings.promptContent" = "Inhalt";
 "settings.promptCatalogDescription" = "Verwende die Auf- und Ab-Pfeile, um die Reihenfolge zu ändern. Deaktivierte Modi sind im Fragenfenster, bei Tastenkürzeln und Systemkürzeln nicht verfügbar.";
+"settings.restoreDefaultPrompts" = "Standard-Vorgaben wiederherstellen";
+"settings.restoreDefaultPromptsTitle" = "Standard-Vorgaben wiederherstellen?";
+"settings.restoreDefaultPromptsMessage" = "Dadurch werden alle integrierten Vorgaben zurückgesetzt und gelöschte Standard-Vorgaben wiederhergestellt. Eigene Vorgaben bleiben erhalten.";
+"settings.promptPresetsRestored" = "Standard-Vorgaben wiederhergestellt.";
+"settings.deletePromptTitle" = "Modus löschen?";
+"settings.deletePromptMessage" = "„%@“ wird gelöscht. Dies kann nicht rückgängig gemacht werden.";
 "settings.promptEnabled" = "Aktiviert";
 "settings.promptPosition" = "%d von %d";
 "settings.prompts" = "Modi";

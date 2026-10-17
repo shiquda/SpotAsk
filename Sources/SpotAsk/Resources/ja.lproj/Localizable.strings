@@ -248,6 +248,12 @@
 "settings.namePlaceholder" = "例: メールを書き直す";
 "settings.promptContent" = "内容";
 "settings.promptCatalogDescription" = "上下のボタンで順序を変更します。オフにしたプロンプトは質問ウィンドウ、ショートカット、システムショートカットで使用できません。";
+"settings.restoreDefaultPrompts" = "デフォルトプリセットを復元";
+"settings.restoreDefaultPromptsTitle" = "デフォルトプリセットを復元しますか？";
+"settings.restoreDefaultPromptsMessage" = "すべての組み込みプロンプトをデフォルトにリセットし、削除されたデフォルトプリセットを復元します。カスタムプリセットは保持されます。";
+"settings.promptPresetsRestored" = "デフォルトプリセットを復元しました。";
+"settings.deletePromptTitle" = "プロンプトを削除しますか？";
+"settings.deletePromptMessage" = "「%@」を削除します。この操作は取り消せません。";
 "settings.promptEnabled" = "有効";
 "settings.promptPosition" = "%d / %d";
 "settings.prompts" = "プロンプト";
