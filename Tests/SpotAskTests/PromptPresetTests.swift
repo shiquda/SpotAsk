@@ -183,12 +183,82 @@ struct PromptPresetTests {
         #expect(decoded.symbolName == "sparkles")
     }
 
-    @Test("Built-in presets ignore customSymbolName and keep fixed symbol")
-    func builtInPresetIgnoresCustomSymbolName() {
+    @Test("Built-in presets support customSymbolName while defaulting to fixed symbol")
+    func builtInPresetSupportsCustomSymbolName() {
         let builtInID = PromptPreset.builtIn[0].id
-        let preset = PromptPreset(id: builtInID, title: "Translate", instruction: "Translate", customSymbolName: "globe", isBuiltIn: true)
-        #expect(preset.customSymbolName == nil)
-        #expect(preset.symbolName == "character.bubble")
+        let presetWithCustomSymbol = PromptPreset(id: builtInID, title: "Translate", instruction: "Translate", customSymbolName: "globe", isBuiltIn: true)
+        #expect(presetWithCustomSymbol.customSymbolName == "globe")
+        #expect(presetWithCustomSymbol.symbolName == "globe")
+
+        let presetWithDefaultSymbol = PromptPreset(id: builtInID, title: "Translate", instruction: "Translate", customSymbolName: nil, isBuiltIn: true)
+        #expect(presetWithDefaultSymbol.customSymbolName == nil)
+        #expect(presetWithDefaultSymbol.symbolName == "character.bubble")
+    }
+
+    @Test("Built-in presets can be edited and persist across app reloads")
+    func builtInPresetsCanBeEditedAndPersisted() {
+        let suiteName = "PromptPresetTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let settings = AppSettings(defaults: defaults)
+        let builtIn = PromptPreset.builtIn[0]
+        let edited = PromptPreset(
+            id: builtIn.id,
+            title: "专业翻译",
+            instruction: "请将以下内容翻译为地道流利的英文，保持专业术语准确。",
+            customSymbolName: "globe",
+            isBuiltIn: true,
+            isEnabled: true
+        )
+        #expect(settings.savePromptPreset(edited))
+
+        let reloaded = AppSettings(defaults: defaults)
+        let saved = reloaded.promptPresets.first(where: { $0.id == builtIn.id })
+        #expect(saved?.title == "专业翻译")
+        #expect(saved?.instruction == "请将以下内容翻译为地道流利的英文，保持专业术语准确。")
+        #expect(saved?.customSymbolName == "globe")
+        #expect(saved?.symbolName == "globe")
+        #expect(saved?.isBuiltIn == true)
+    }
+
+    @Test("Built-in presets can be deleted and restored to defaults while keeping custom presets")
+    func builtInPresetsCanBeDeletedAndRestored() {
+        let suiteName = "PromptPresetTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let settings = AppSettings(defaults: defaults)
+        let customPreset = PromptPreset(title: "自定义指令", instruction: "自定义内容", customSymbolName: "bolt")
+        #expect(settings.savePromptPreset(customPreset))
+
+        let builtInToDelete = PromptPreset.builtIn[0]
+        settings.deletePromptPreset(id: builtInToDelete.id)
+
+        #expect(!settings.promptPresets.contains(where: { $0.id == builtInToDelete.id }))
+        #expect(settings.promptPresets.contains(where: { $0.id == customPreset.id }))
+
+        // Remains deleted across reloads
+        let reloaded = AppSettings(defaults: defaults)
+        #expect(!reloaded.promptPresets.contains(where: { $0.id == builtInToDelete.id }))
+        #expect(reloaded.promptPresets.contains(where: { $0.id == customPreset.id }))
+
+        // Restoring defaults brings back the deleted built-in preset and keeps custom presets
+        reloaded.restoreDefaultPromptPresets()
+        #expect(reloaded.promptPresets.contains(where: { $0.id == builtInToDelete.id }))
+        #expect(reloaded.promptPresets.contains(where: { $0.id == customPreset.id }))
+
+        // Check that restored built-in has default properties
+        let restored = reloaded.promptPresets.first(where: { $0.id == builtInToDelete.id })
+        #expect(restored?.title == builtInToDelete.title)
+        #expect(restored?.instruction == builtInToDelete.instruction)
+        #expect(restored?.customSymbolName == nil)
+        #expect(restored?.symbolName == "character.bubble")
+
+        // Persists after restore
+        let reloadedAfterRestore = AppSettings(defaults: defaults)
+        #expect(reloadedAfterRestore.promptPresets.contains(where: { $0.id == builtInToDelete.id }))
+        #expect(reloadedAfterRestore.promptPresets.contains(where: { $0.id == customPreset.id }))
     }
 
     @Test("saveCustomPromptPreset persists custom symbol name and rejects invalid symbols")
