@@ -146,6 +146,7 @@
 "settings.accessKeyOnlyOnMac" = "访问密钥仅保存在这台 Mac 上。";
 "settings.accessKeyPlaceholder" = "输入密钥以保存或更新";
 "settings.appearance" = "外观";
+"settings.theme" = "主题";
 "settings.about" = "关于";
 "settings.aboutDescription" = "查看应用版本、项目来源和可用更新。";
 "settings.version" = "版本";
@@ -174,6 +175,14 @@
 "settings.behavior" = "行为";
 "settings.clearAccessKey" = "清除密钥";
 "settings.clearAllLocalData" = "清除所有本地数据";
+"settings.dangerZone" = "危险区域";
+"settings.dangerZoneWarning" = "这会永久删除您的本地数据、已保存的会话记录和 API 密钥。此操作无法撤销。";
+"settings.clearAllLocalDataConfirmTitle" = "清空所有本地数据？";
+"settings.clearAllLocalDataConfirmMessage" = "您确定要清空所有本地数据吗？所有自定义配置、已存储的 API 密钥和历史会话将被永久删除。";
+"settings.dangerZoneContinue" = "继续...";
+"settings.dangerZoneSecondConfirmTitle" = "最终确认：此操作不可逆";
+"settings.dangerZoneSecondConfirmMessage" = "⚠️ 确认后，您的设置、会话与凭据将无法恢复。您确定要执行吗？";
+"settings.dangerZoneFinalClear" = "永久清空所有数据";
 "settings.clearInputOnClose" = "关闭窗口时清空输入框";
 "settings.confirmBeforeStartingNewConversation" = "开始新对话前确认";
 "settings.escapeStartsNewConversation" = "按 Esc 开始新对话";

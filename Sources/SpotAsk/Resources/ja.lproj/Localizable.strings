@@ -146,6 +146,7 @@
 "settings.accessKeyOnlyOnMac" = "アクセスキーはこの Mac のみに保存されます。";
 "settings.accessKeyPlaceholder" = "保存または更新するアクセスキーを入力";
 "settings.appearance" = "外観";
+"settings.theme" = "テーマ";
 "settings.about" = "情報";
 "settings.aboutDescription" = "アプリのバージョン、プロジェクトのソース、利用可能なアップデートを確認します。";
 "settings.version" = "バージョン";
@@ -174,6 +175,14 @@
 "settings.behavior" = "動作";
 "settings.clearAccessKey" = "アクセスキーを消去";
 "settings.clearAllLocalData" = "すべてのローカルデータを消去";
+"settings.dangerZone" = "危険ゾーン";
+"settings.dangerZoneWarning" = "ローカルデータ、保存された会話、API キーが完全に削除されます。この操作は取り消せません。";
+"settings.clearAllLocalDataConfirmTitle" = "すべてのローカルデータを消去しますか？";
+"settings.clearAllLocalDataConfirmMessage" = "すべてのローカルデータを消去してもよろしいですか？すべてのカスタム設定、保存された API キー、会話履歴が完全に削除されます。";
+"settings.dangerZoneContinue" = "続ける...";
+"settings.dangerZoneSecondConfirmTitle" = "最終確認：この操作は元に戻せません";
+"settings.dangerZoneSecondConfirmMessage" = "⚠️ 確認すると、設定、セッション、認証情報は復元できなくなります。本当に実行しますか？";
+"settings.dangerZoneFinalClear" = "すべてを完全に削除";
 "settings.clearInputOnClose" = "ウィンドウを閉じる時に入力を消去";
 "settings.confirmBeforeStartingNewConversation" = "新しい会話を始める前に確認";
 "settings.escapeStartsNewConversation" = "Esc で新しい会話を開始";
