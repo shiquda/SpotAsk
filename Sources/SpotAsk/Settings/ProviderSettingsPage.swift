@@ -792,45 +792,51 @@ struct NewProviderCard: View {
 
                 // Credentials (Access Key)
                 VStack(alignment: .leading, spacing: 8) {
-                    Label(L10n.string("settings.accessKey"), systemImage: "key.fill")
-                        .font(.system(size: 13, weight: .semibold))
+                    HStack {
+                        Label(L10n.string("settings.accessKey"), systemImage: "key.fill")
+                            .font(.system(size: 13, weight: .semibold))
+
+                        Spacer()
+
+                        if let pasteboardString = NSPasteboard.general.string(forType: .string),
+                           !pasteboardString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            Button {
+                                state.apiKeyDraft = pasteboardString.trimmingCharacters(in: .whitespacesAndNewlines)
+                            } label: {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "doc.on.clipboard")
+                                        .font(.system(size: 9))
+                                    Text(L10n.string("settings.paste"))
+                                        .font(.system(size: 10, weight: .medium))
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.mini)
+                            .help(L10n.string("settings.pasteFromClipboard"))
+                        }
+                    }
 
                     SettingsFieldRow(label: L10n.string("settings.accessKey")) {
-                        HStack(spacing: 8) {
-                            ZStack(alignment: .trailing) {
-                                if isKeyVisible {
-                                    TextField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
-                                        .textFieldStyle(.roundedBorder)
-                                        .textContentType(.none)
-                                } else {
-                                    SecureField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
-                                        .textFieldStyle(.roundedBorder)
-                                        .textContentType(.password)
-                                }
-
-                                Button {
-                                    isKeyVisible.toggle()
-                                } label: {
-                                    Image(systemName: isKeyVisible ? "eye.slash" : "eye")
-                                        .frame(width: 20, height: 20)
-                                }
-                                .buttonStyle(.borderless)
-                                .padding(.trailing, 6)
-                                .help(L10n.string(isKeyVisible ? "settings.hideAccessKey" : "settings.showAccessKey"))
+                        ZStack(alignment: .trailing) {
+                            if isKeyVisible {
+                                TextField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
+                                    .textFieldStyle(.roundedBorder)
+                                    .textContentType(.none)
+                            } else {
+                                SecureField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
+                                    .textFieldStyle(.roundedBorder)
+                                    .textContentType(.password)
                             }
 
-                            if let pasteboardString = NSPasteboard.general.string(forType: .string),
-                               !pasteboardString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                Button {
-                                    state.apiKeyDraft = pasteboardString.trimmingCharacters(in: .whitespacesAndNewlines)
-                                } label: {
-                                    Label(L10n.string("settings.paste"), systemImage: "doc.on.clipboard")
-                                        .font(.system(size: 11))
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
-                                .help(L10n.string("settings.pasteFromClipboard"))
+                            Button {
+                                isKeyVisible.toggle()
+                            } label: {
+                                Image(systemName: isKeyVisible ? "eye.slash" : "eye")
+                                    .frame(width: 20, height: 20)
                             }
+                            .buttonStyle(.borderless)
+                            .padding(.trailing, 6)
+                            .help(L10n.string(isKeyVisible ? "settings.hideAccessKey" : "settings.showAccessKey"))
                         }
                     }
 
@@ -841,7 +847,6 @@ struct NewProviderCard: View {
                 }
                 .padding(12)
                 .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-
                 // Service & Endpoint
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
@@ -1016,6 +1021,24 @@ private struct ProviderCard: View {
 
                 Spacer()
 
+                if let pasteboardString = NSPasteboard.general.string(forType: .string),
+                   !pasteboardString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Button {
+                        state.apiKeyDraft = pasteboardString.trimmingCharacters(in: .whitespacesAndNewlines)
+                        state.persistAPIKeyDraft()
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "doc.on.clipboard")
+                                .font(.system(size: 9))
+                            Text(L10n.string("settings.paste"))
+                                .font(.system(size: 10, weight: .medium))
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                    .help(L10n.string("settings.pasteFromClipboard"))
+                }
+
                 if state.hasAPIKey(for: provider.id) {
                     HStack(spacing: 3) {
                         Image(systemName: "checkmark")
@@ -1042,46 +1065,30 @@ private struct ProviderCard: View {
             }
 
             SettingsFieldRow(label: L10n.string("settings.accessKey")) {
-                HStack(spacing: 8) {
-                    ZStack(alignment: .trailing) {
-                        if isKeyVisible {
-                            TextField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
-                                .textFieldStyle(.roundedBorder)
-                                .textContentType(.none)
-                        } else {
-                            SecureField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
-                                .textFieldStyle(.roundedBorder)
-                                .textContentType(.password)
-                        }
-
-                        Button {
-                            isKeyVisible.toggle()
-                        } label: {
-                            Image(systemName: isKeyVisible ? "eye.slash" : "eye")
-                                .frame(width: 20, height: 20)
-                        }
-                        .buttonStyle(.borderless)
-                        .padding(.trailing, 6)
-                        .help(L10n.string(isKeyVisible ? "settings.hideAccessKey" : "settings.showAccessKey"))
-                        .accessibilityLabel(L10n.string(isKeyVisible ? "settings.hideAccessKey" : "settings.showAccessKey"))
-                    }
-                    .onChange(of: state.apiKeyDraft) { _, _ in
-                        state.persistAPIKeyDraft()
+                ZStack(alignment: .trailing) {
+                    if isKeyVisible {
+                        TextField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
+                            .textFieldStyle(.roundedBorder)
+                            .textContentType(.none)
+                    } else {
+                        SecureField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
+                            .textFieldStyle(.roundedBorder)
+                            .textContentType(.password)
                     }
 
-                    if let pasteboardString = NSPasteboard.general.string(forType: .string),
-                       !pasteboardString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Button {
-                            state.apiKeyDraft = pasteboardString.trimmingCharacters(in: .whitespacesAndNewlines)
-                            state.persistAPIKeyDraft()
-                        } label: {
-                            Label(L10n.string("settings.paste"), systemImage: "doc.on.clipboard")
-                                .font(.system(size: 11))
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .help(L10n.string("settings.pasteFromClipboard"))
+                    Button {
+                        isKeyVisible.toggle()
+                    } label: {
+                        Image(systemName: isKeyVisible ? "eye.slash" : "eye")
+                            .frame(width: 20, height: 20)
                     }
+                    .buttonStyle(.borderless)
+                    .padding(.trailing, 6)
+                    .help(L10n.string(isKeyVisible ? "settings.hideAccessKey" : "settings.showAccessKey"))
+                    .accessibilityLabel(L10n.string(isKeyVisible ? "settings.hideAccessKey" : "settings.showAccessKey"))
+                }
+                .onChange(of: state.apiKeyDraft) { _, _ in
+                    state.persistAPIKeyDraft()
                 }
             }
 
