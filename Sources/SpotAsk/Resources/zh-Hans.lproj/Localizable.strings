@@ -248,6 +248,12 @@
 "settings.newPrompt" = "新建提示词";
 "settings.promptContent" = "内容";
 "settings.promptCatalogDescription" = "使用上移和下移按钮调整顺序。关闭后不会在提问窗口显示，也不会响应快捷键或系统快捷指令。";
+"settings.restoreDefaultPrompts" = "恢复默认预设";
+"settings.restoreDefaultPromptsTitle" = "恢复默认预设？";
+"settings.restoreDefaultPromptsMessage" = "将重置所有内置提示词并找回已删除的默认预设。自定义提示词将保留。";
+"settings.promptPresetsRestored" = "已恢复默认预设。";
+"settings.deletePromptTitle" = "删除提示词？";
+"settings.deletePromptMessage" = "将删除「%@」。此操作无法撤销。";
 "settings.promptEnabled" = "启用";
 "settings.promptPosition" = "第 %d 项，共 %d 项";
 "settings.prompts" = "提示词";

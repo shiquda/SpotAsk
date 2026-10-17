@@ -6,6 +6,8 @@ import SwiftUI
 struct PromptPresetsSettingsPage: View {
     @Bindable var settings: AppSettings
     @State private var editorPreset: PromptPreset?
+    @State private var deletingPreset: PromptPreset?
+    @State private var isRestoringDefaultsPresented = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
@@ -21,6 +23,12 @@ struct PromptPresetsSettingsPage: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
+                    Button {
+                        isRestoringDefaultsPresented = true
+                    } label: {
+                        Label(L10n.string("settings.restoreDefaultPrompts"), systemImage: "arrow.counterclockwise")
+                    }
+                    .buttonStyle(.bordered)
                     Button {
                         editorPreset = PromptPreset(title: "", instruction: "")
                     } label: {
@@ -39,8 +47,8 @@ struct PromptPresetsSettingsPage: View {
                                 totalCount: settings.promptPresets.count,
                                 onMoveUp: index > 0 ? { movePromptPreset(id: preset.id, by: -1) } : nil,
                                 onMoveDown: index + 1 < settings.promptPresets.count ? { movePromptPreset(id: preset.id, by: 1) } : nil,
-                                onEdit: preset.isBuiltIn ? nil : { editorPreset = preset },
-                                onDelete: preset.isBuiltIn ? nil : { settings.deleteCustomPromptPreset(id: preset.id) }
+                                onEdit: { editorPreset = preset },
+                                onDelete: { deletingPreset = preset }
                             )
                         }
                     }
@@ -59,9 +67,40 @@ struct PromptPresetsSettingsPage: View {
         }
         .sheet(item: $editorPreset) { preset in
             PromptPresetEditor(preset: preset) { savedPreset in
-                guard settings.saveCustomPromptPreset(savedPreset) else { return }
+                guard settings.savePromptPreset(savedPreset) else { return }
                 editorPreset = nil
             }
+        }
+        .alert(
+            L10n.string("settings.deletePromptTitle"),
+            isPresented: Binding(
+                get: { deletingPreset != nil },
+                set: { if !$0 { deletingPreset = nil } }
+            )
+        ) {
+            Button(L10n.string("settings.cancel"), role: .cancel) {
+                deletingPreset = nil
+            }
+            Button(L10n.string("settings.delete"), role: .destructive) {
+                if let deletingPreset {
+                    settings.deletePromptPreset(id: deletingPreset.id)
+                }
+                deletingPreset = nil
+            }
+        } message: {
+            Text(L10n.string("settings.deletePromptMessage", deletingPreset?.title ?? ""))
+        }
+        .alert(
+            L10n.string("settings.restoreDefaultPromptsTitle"),
+            isPresented: $isRestoringDefaultsPresented
+        ) {
+            Button(L10n.string("settings.cancel"), role: .cancel) {}
+            Button(L10n.string("settings.restoreDefaultPrompts"), role: .destructive) {
+                settings.restoreDefaultPromptPresets()
+                StatusToastCenter.shared.show(L10n.string("settings.promptPresetsRestored"))
+            }
+        } message: {
+            Text(L10n.string("settings.restoreDefaultPromptsMessage"))
         }
     }
 
@@ -213,7 +252,7 @@ private struct PromptPresetEditor: View {
         self.preset = preset
         self.onSave = onSave
         _title = State(initialValue: preset.title)
-        _symbolName = State(initialValue: PromptPreset.isValidSymbol(preset.customSymbolName) ? (preset.customSymbolName ?? PromptPreset.defaultSymbolName) : PromptPreset.defaultSymbolName)
+        _symbolName = State(initialValue: PromptPreset.isValidSymbol(preset.symbolName) ? preset.symbolName : PromptPreset.defaultSymbolName)
         _instruction = State(initialValue: preset.instruction)
     }
     var body: some View {
@@ -254,7 +293,7 @@ private struct PromptPresetEditor: View {
                 Button(L10n.string("settings.cancel")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Button(L10n.string("settings.save")) {
-                    onSave(PromptPreset(id: preset.id, title: title, instruction: instruction, customSymbolName: symbolName))
+                    onSave(PromptPreset(id: preset.id, title: title, instruction: instruction, customSymbolName: symbolName, isBuiltIn: preset.isBuiltIn, isEnabled: preset.isEnabled))
                 }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)

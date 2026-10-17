@@ -248,6 +248,12 @@
 "settings.namePlaceholder" = "Например: переписать письмо";
 "settings.promptContent" = "Содержимое";
 "settings.promptCatalogDescription" = "Используйте кнопки вверх и вниз для изменения порядка. Отключённые режимы недоступны в окне вопросов, сочетаниях клавиш и системных сочетаниях.";
+"settings.restoreDefaultPrompts" = "Восстановить по умолчанию";
+"settings.restoreDefaultPromptsTitle" = "Восстановить пресеты по умолчанию?";
+"settings.restoreDefaultPromptsMessage" = "Это сбросит встроенные подсказки к значениям по умолчанию и восстановит удаленные пресеты. Пользовательские пресеты сохранятся.";
+"settings.promptPresetsRestored" = "Пресеты по умолчанию восстановлены.";
+"settings.deletePromptTitle" = "Удалить пресет?";
+"settings.deletePromptMessage" = "«%@» будет удалено. Это действие нельзя отменить.";
 "settings.promptEnabled" = "Включено";
 "settings.promptPosition" = "%d из %d";
 "settings.prompts" = "Режимы";

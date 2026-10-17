@@ -248,6 +248,12 @@
 "settings.namePlaceholder" = "Por exemplo: reescrever um e-mail";
 "settings.promptContent" = "Conteúdo";
 "settings.promptCatalogDescription" = "Use os botões para cima e para baixo para mudar a ordem. Modos desativados não ficam disponíveis na janela de perguntas, atalhos ou atalhos do sistema.";
+"settings.restoreDefaultPrompts" = "Restaurar predefinições padrão";
+"settings.restoreDefaultPromptsTitle" = "Restaurar predefinições padrão?";
+"settings.restoreDefaultPromptsMessage" = "Isso redefinirá todos os comandos integrados para os padrões e recuperará as predefinições padrão excluídas. As predefinições personalizadas serão mantidas.";
+"settings.promptPresetsRestored" = "Predefinições padrão restauradas.";
+"settings.deletePromptTitle" = "Excluir predefinição?";
+"settings.deletePromptMessage" = "“%@” será excluído. Esta ação não pode ser desfeita.";
 "settings.promptEnabled" = "Ativado";
 "settings.promptPosition" = "%d de %d";
 "settings.prompts" = "Modos";
