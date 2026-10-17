@@ -1248,6 +1248,220 @@ final class ProviderSettingsStateTests: XCTestCase {
         )
     }
 
+    // MARK: - Provider Templates and Hero Card Features
+
+    func testProviderTemplatesHaveValidConfigurationAndIconMatching() {
+        let templates = ProviderTemplate.allTemplates
+        XCTAssertEqual(templates.count, 8)
+
+        let expectedIDs = ["openai", "anthropic", "gemini", "deepseek", "ollama", "openrouter", "siliconflow", "kimi"]
+        XCTAssertEqual(templates.map(\.id), expectedIDs)
+
+        for template in templates {
+            XCTAssertFalse(template.name.isEmpty)
+            XCTAssertFalse(template.address.isEmpty)
+            XCTAssertNoThrow(
+                try URLNormalizer.endpoint(
+                    from: template.address,
+                    useFullEndpoint: template.addressMode.usesFullEndpoint,
+                    format: template.format
+                ),
+                "Template \(template.id) must specify a valid endpoint"
+            )
+            let matchedSlug = ProviderBrandIconMatcher.match(template.name)
+                ?? ProviderBrandIconMatcher.match(template.address)
+            XCTAssertNotNil(
+                matchedSlug,
+                "Template \(template.id) with name '\(template.name)' should match a brand icon slug"
+            )
+        }
+    }
+
+    func testApplyProviderTemplatePopulatesDraftFieldsAndEnablesSaving() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(),
+            providerFactory: NoopProviderFactory()
+        )
+
+        state.startNewProvider()
+        XCTAssertTrue(state.isCreatingProvider)
+
+        let deepseek = try XCTUnwrap(ProviderTemplate.allTemplates.first { $0.id == "deepseek" })
+        state.applyProviderTemplate(deepseek)
+
+        XCTAssertEqual(state.draftProviderName, "DeepSeek")
+        XCTAssertEqual(state.draftProviderFormat, .openAICompatible)
+        XCTAssertEqual(state.draftProviderAddress, "https://api.deepseek.com")
+        XCTAssertEqual(state.draftProviderAddressMode, .baseURL)
+        XCTAssertNil(state.providerFieldError)
+        XCTAssertTrue(state.canSaveProvider)
+
+        state.saveProvider()
+        XCTAssertFalse(state.isCreatingProvider)
+        XCTAssertNotNil(state.selectedProviderID)
+
+        let saved = try XCTUnwrap(settings.providerRegistry.catalog?.providers.first { $0.name == "DeepSeek" })
+        XCTAssertEqual(saved.address, "https://api.deepseek.com")
+        XCTAssertEqual(saved.format, .openAICompatible)
+    }
+
+    func testActiveModelAndActiveProviderPropertiesReflectSelection() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let catalog = try XCTUnwrap(settings.providerRegistry.catalog)
+        let provider = try XCTUnwrap(catalog.providers.first)
+        let model = try XCTUnwrap(catalog.models.first)
+
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(),
+            providerFactory: NoopProviderFactory()
+        )
+
+        XCTAssertEqual(state.activeModelID, model.id)
+        XCTAssertEqual(state.activeModel?.id, model.id)
+        XCTAssertEqual(state.activeModelProvider?.id, provider.id)
+        XCTAssertEqual(state.allConfiguredModels.count, catalog.models.count)
+
+        // Adding a second model and switching active model
+        let secondModel = try settings.providerRegistry.saveModel(
+            ModelConfiguration(
+                displayName: "Alternate Model",
+                upstreamModelID: "alt-model",
+                providerID: provider.id,
+                isStreamingEnabled: false
+            )
+        )
+
+        state.useModelForChat(secondModel.id)
+        XCTAssertEqual(state.activeModelID, secondModel.id)
+        XCTAssertEqual(state.activeModel?.id, secondModel.id)
+        XCTAssertEqual(state.activeModel?.displayName, "Alternate Model")
+        XCTAssertEqual(state.activeModelProvider?.id, provider.id)
+        XCTAssertEqual(state.allConfiguredModels.count, catalog.models.count + 1)
+    }
+
+    func testHasAPIKeyReflectsStoredKeysAndDraftKeys() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let catalog = try XCTUnwrap(settings.providerRegistry.catalog)
+        let provider = try XCTUnwrap(catalog.providers.first)
+
+        let emptyKeyStore = RecordingKeyStore(apiKey: nil)
+        let stateWithNoKey = ProviderSettingsState(
+            settings: settings,
+            keyStore: emptyKeyStore,
+            providerFactory: NoopProviderFactory()
+        )
+
+        // Initially no key in keyStore
+        stateWithNoKey.apiKeyDraft = ""
+        stateWithNoKey.selectedProviderID = nil
+        XCTAssertFalse(stateWithNoKey.hasAPIKey(for: provider.id))
+
+        // Having a key in keyStore makes hasAPIKey return true
+        let populatedKeyStore = RecordingKeyStore(apiKey: "valid-key")
+        let stateWithKey = ProviderSettingsState(
+            settings: settings,
+            keyStore: populatedKeyStore,
+            providerFactory: NoopProviderFactory()
+        )
+        XCTAssertTrue(stateWithKey.hasAPIKey(for: provider.id))
+
+        // When a provider has no key in keyStore, but user typed draft key for selected provider
+        let newProviderID = UUID()
+        stateWithNoKey.selectedProviderID = newProviderID
+        stateWithNoKey.apiKeyDraft = "typed-key"
+        XCTAssertTrue(stateWithNoKey.hasAPIKey(for: newProviderID))
+    }
+
+    func testEndToEndProviderSetupAndModelActivationFlow() async throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let recordingFactory = RecordingProviderFactory()
+        let keyStore = RecordingKeyStore(apiKey: "initial-key")
+
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: keyStore,
+            providerFactory: recordingFactory
+        )
+
+        // 1. Initial State: active model is the default gpt-5-mini
+        let initialModel = try XCTUnwrap(state.activeModel)
+        XCTAssertEqual(initialModel.id, state.activeModelID)
+        let initialProvider = try XCTUnwrap(state.activeModelProvider)
+        XCTAssertEqual(initialModel.providerID, initialProvider.id)
+        XCTAssertTrue(state.hasAPIKey(for: initialProvider.id))
+
+        // 2. User clicks "Add Provider"
+        state.startNewProvider()
+        XCTAssertTrue(state.isCreatingProvider)
+        XCTAssertNil(state.selectedProviderID)
+
+        // 3. User chooses the "Anthropic" Quick Template
+        let template = try XCTUnwrap(ProviderTemplate.allTemplates.first { $0.id == "anthropic" })
+        state.applyProviderTemplate(template)
+        XCTAssertEqual(state.draftProviderName, "Anthropic")
+        XCTAssertEqual(state.draftProviderFormat, .anthropic)
+        XCTAssertEqual(state.draftProviderAddress, "https://api.anthropic.com/v1")
+        XCTAssertEqual(state.draftProviderAddressMode, .baseURL)
+        XCTAssertTrue(state.canSaveProvider)
+
+        // 4. Save new provider
+        state.saveProvider()
+        XCTAssertFalse(state.isCreatingProvider)
+        let newProviderID = try XCTUnwrap(state.selectedProviderID)
+        let newProvider = try XCTUnwrap(settings.providerRegistry.catalog?.providers.first { $0.id == newProviderID })
+        XCTAssertEqual(newProvider.name, "Anthropic")
+
+        // 5. User adds a model under the new Anthropic provider
+        state.startNewModel(for: newProviderID)
+        XCTAssertTrue(state.isCreatingModel)
+        state.draftModelDisplayName = "Claude 3.7 Sonnet"
+        state.draftModelUpstreamID = "claude-3-7-sonnet-20250219"
+        state.draftModelStreaming = true
+        state.draftModelThinkingMode = .high
+        XCTAssertTrue(state.canSaveModel)
+
+        state.saveModel()
+        XCTAssertFalse(state.isCreatingModel)
+        let newModel = try XCTUnwrap(settings.providerRegistry.catalog?.models.first { $0.displayName == "Claude 3.7 Sonnet" })
+        XCTAssertEqual(newModel.providerID, newProviderID)
+
+        // 6. User switches Active Chat Model to the new model
+        state.useModelForChat(newModel.id)
+        XCTAssertEqual(state.activeModelID, newModel.id)
+
+        // 7. ActiveModelHeroCard properties update dynamically
+        let active = try XCTUnwrap(state.activeModel)
+        XCTAssertEqual(active.id, newModel.id)
+        XCTAssertEqual(active.displayName, "Claude 3.7 Sonnet")
+        XCTAssertEqual(active.upstreamModelID, "claude-3-7-sonnet-20250219")
+        XCTAssertEqual(active.thinkingMode, .high)
+        XCTAssertTrue(active.isStreamingEnabled)
+
+        let activeProv = try XCTUnwrap(state.activeModelProvider)
+        XCTAssertEqual(activeProv.id, newProviderID)
+        XCTAssertEqual(activeProv.name, "Anthropic")
+
+        // 8. User triggers Connection Test on the new active model
+        state.testConnection(modelID: newModel.id)
+        await waitUntil(!state.isTesting, "Timed out waiting for connection test")
+
+        XCTAssertEqual(recordingFactory.capturedTarget?.modelID, newModel.id)
+        XCTAssertEqual(recordingFactory.capturedTarget?.providerID, newProviderID)
+        XCTAssertEqual(recordingFactory.capturedTarget?.upstreamModelID, "claude-3-7-sonnet-20250219")
+        XCTAssertEqual(recordingFactory.capturedTarget?.format, .anthropic)
+    }
+
     // MARK: - Helpers
 
     private func makeState(
