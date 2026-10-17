@@ -648,3 +648,14 @@
 "decisionRouting.timeoutManual" = "Timed out. Choose where to send this question.";
 "decisionRouting.enterTarget" = "↩";
 "decisionRouting.attachmentsStayInApp" = "Questions with attachments stay in SpotAsk.";
+"settings.activeChatModel" = "有効なチャットモデル";
+"settings.activeChatModelDescription" = "SpotAskが回答や対話タスクに使用するメインモデルです。";
+"settings.switchActiveModel" = "モデルを切り替え";
+"settings.noActiveModelHint" = "現在モデルが選択されていません。下のリストからモデルを選択してください。";
+"settings.modelCount" = "%d個のモデル";
+"settings.singleModelCount" = "1個のモデル";
+"settings.keyConfigured" = "キー設定済み";
+"settings.keyMissing" = "キー未設定";
+"settings.providerTemplates" = "クイックテンプレート";
+"settings.streamingBadge" = "ストリーム";
+"settings.thinkingBadge" = "思考: %@";

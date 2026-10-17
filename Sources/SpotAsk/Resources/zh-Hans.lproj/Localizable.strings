@@ -648,3 +648,14 @@
 "decisionRouting.timeoutManual" = "判断超时，请选择发送去向。";
 "decisionRouting.enterTarget" = "↩";
 "decisionRouting.attachmentsStayInApp" = "包含附件的问题将在 SpotAsk 内发送。";
+"settings.activeChatModel" = "当前生效对话模型";
+"settings.activeChatModelDescription" = "SpotAsk 主对话与核心提问所采用的默认语言模型。";
+"settings.switchActiveModel" = "切换模型";
+"settings.noActiveModelHint" = "当前未选择生效模型，请在下方列表中点击选择。";
+"settings.modelCount" = "%d 个模型";
+"settings.singleModelCount" = "1 个模型";
+"settings.keyConfigured" = "已配置密钥";
+"settings.keyMissing" = "未配置密钥";
+"settings.providerTemplates" = "快捷模版";
+"settings.streamingBadge" = "流式";
+"settings.thinkingBadge" = "思考: %@";

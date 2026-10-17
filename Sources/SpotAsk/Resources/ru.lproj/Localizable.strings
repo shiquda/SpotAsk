@@ -648,3 +648,14 @@
 "decisionRouting.timeoutManual" = "Timed out. Choose where to send this question.";
 "decisionRouting.enterTarget" = "↩";
 "decisionRouting.attachmentsStayInApp" = "Questions with attachments stay in SpotAsk.";
+"settings.activeChatModel" = "Активная модель чата";
+"settings.activeChatModelDescription" = "Основная модель, которую SpotAsk использует для ответов и диалогов.";
+"settings.switchActiveModel" = "Сменить модель";
+"settings.noActiveModelHint" = "Модель не выбрана. Выберите модель из списка ниже для использования в чате.";
+"settings.modelCount" = "%d моделей";
+"settings.singleModelCount" = "1 модель";
+"settings.keyConfigured" = "Ключ настроен";
+"settings.keyMissing" = "Нет ключа";
+"settings.providerTemplates" = "Быстрые шаблоны";
+"settings.streamingBadge" = "Стрим";
+"settings.thinkingBadge" = "Размышление: %@";

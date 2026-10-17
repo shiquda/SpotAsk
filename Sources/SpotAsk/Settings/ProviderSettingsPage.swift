@@ -584,6 +584,193 @@ private extension RequestCompatibilityProfile {
         }
     }
 }
+private struct ActiveModelHeroCard: View {
+    @Bindable var state: ProviderSettingsState
+
+    private var activeModel: ModelConfiguration? {
+        state.activeModel
+    }
+
+    private var activeProvider: ProviderConfiguration? {
+        state.activeModelProvider
+    }
+
+    private var allModels: [ModelConfiguration] {
+        state.allConfiguredModels
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 10) {
+                Label(L10n.string("settings.activeChatModel"), systemImage: "sparkles")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                if allModels.count > 1 {
+                    modelSwitchMenu
+                }
+            }
+
+            if let model = activeModel {
+                HStack(spacing: 12) {
+                    ProviderBrandIconView(
+                        slug: ProviderBrandIconMatcher.match(
+                            providerName: activeProvider?.name,
+                            address: activeProvider?.address,
+                            modelName: model.displayName,
+                            upstreamModelID: model.upstreamModelID
+                        ),
+                        size: 26,
+                        fallbackSymbol: "sparkles",
+                        fallbackColor: .cyan
+                    )
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 8) {
+                            Text(model.displayName)
+                                .font(.system(size: 15, weight: .bold))
+                                .lineLimit(1)
+
+                            HStack(spacing: 3) {
+                                Circle()
+                                    .fill(Color.cyan)
+                                    .frame(width: 6, height: 6)
+                                Text(L10n.string("settings.active"))
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(Color.cyan)
+                            }
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.cyan.opacity(0.12), in: Capsule())
+                        }
+
+                        HStack(spacing: 8) {
+                            if let providerName = activeProvider?.name {
+                                Text(providerName)
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(.secondary)
+                                Text("•")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.secondary.opacity(0.5))
+                            }
+
+                            Text(model.upstreamModelID)
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Spacer(minLength: 0)
+
+                    // Capability Badges & Quick Test
+                    HStack(spacing: 6) {
+                        if model.isStreamingEnabled {
+                            HStack(spacing: 3) {
+                                Image(systemName: "bolt.horizontal.fill")
+                                    .font(.system(size: 9))
+                                Text(L10n.string("settings.streamingBadge"))
+                                    .font(.system(size: 10, weight: .medium))
+                            }
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2.5)
+                            .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+                        }
+
+                        if model.thinkingMode != .disabled && model.thinkingMode != .providerDefault {
+                            HStack(spacing: 3) {
+                                Image(systemName: "brain")
+                                    .font(.system(size: 9))
+                                Text(L10n.string("settings.thinkingBadge", model.thinkingMode.settingsTitle))
+                                    .font(.system(size: 10, weight: .medium))
+                            }
+                            .foregroundStyle(.purple)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2.5)
+                            .background(Color.purple.opacity(0.1), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+                        }
+
+                        Button {
+                            state.testConnection(modelID: model.id)
+                        } label: {
+                            HStack(spacing: 4) {
+                                if state.testingModelID == model.id {
+                                    ProgressView()
+                                        .controlSize(.mini)
+                                } else {
+                                    Image(systemName: "bolt.fill")
+                                        .font(.system(size: 10))
+                                }
+                                Text(L10n.string("settings.testModel"))
+                                    .font(.system(size: 11, weight: .medium))
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(state.isTesting)
+                        .help(L10n.string("settings.testModel") + " " + model.displayName)
+                    }
+                }
+            } else {
+                HStack {
+                    Text(L10n.string("settings.noActiveModelHint"))
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+            }
+        }
+        .padding(14)
+        .background(
+            Color.primary.opacity(0.035),
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        )
+    }
+    @ViewBuilder
+    private var modelSwitchMenu: some View {
+        Menu {
+            ForEach(state.providers) { provider in
+                let providerModels = state.modelsForProvider(provider.id)
+                if !providerModels.isEmpty {
+                    Section(provider.name) {
+                        ForEach(providerModels) { model in
+                            Button {
+                                state.useModelForChat(model.id)
+                            } label: {
+                                if model.id == state.activeModelID {
+                                    Label(model.displayName, systemImage: "checkmark")
+                                } else {
+                                    Text(model.displayName)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(L10n.string("settings.switchActiveModel"))
+                    .font(.system(size: 11, weight: .medium))
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 9))
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
+        .menuStyle(.borderlessButton)
+        .help(L10n.string("settings.switchActiveModel"))
+    }
+}
+
 
 private struct ProviderSettingsList: View {
     @Bindable var state: ProviderSettingsState
@@ -594,6 +781,10 @@ private struct ProviderSettingsList: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
+                    if !state.isCreatingProvider && !state.providers.isEmpty {
+                        ActiveModelHeroCard(state: state)
+                    }
+
                     if state.isCreatingProvider {
                         NewProviderCard(state: state)
                     }
@@ -639,7 +830,7 @@ private struct ProviderSettingsList: View {
     }
 }
 
-private struct NewProviderCard: View {
+struct NewProviderCard: View {
     @Bindable var state: ProviderSettingsState
 
     var body: some View {
@@ -653,6 +844,54 @@ private struct NewProviderCard: View {
             .padding(.vertical, 12)
 
             Divider()
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L10n.string("settings.providerTemplates"))
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 120, maximum: 160), spacing: 8)], spacing: 8) {
+                    ForEach(ProviderTemplate.allTemplates) { template in
+                        Button {
+                            state.applyProviderTemplate(template)
+                        } label: {
+                            HStack(spacing: 6) {
+                                ProviderBrandIconView(
+                                    slug: template.iconSlug,
+                                    size: 14,
+                                    fallbackSymbol: "server.rack",
+                                    fallbackColor: .secondary
+                                )
+                                Text(template.name)
+                                    .font(.system(size: 12))
+                                    .lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
+                            .background(
+                                state.draftProviderName == template.name
+                                    ? Brand.accent.opacity(0.12)
+                                    : Color.primary.opacity(0.04),
+                                in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                    .stroke(
+                                        state.draftProviderName == template.name
+                                            ? Brand.accent.opacity(0.4)
+                                            : Color.primary.opacity(0.08),
+                                        lineWidth: 1
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
+            .padding(.bottom, 6)
+
 
             ProviderDetailForm(state: state, isNew: true, showsHeader: false)
                 .padding(16)
@@ -774,7 +1013,7 @@ private struct ProviderCard: View {
                         fallbackColor: .secondary
                     )
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 6) {
                             Text(provider.name)
                                 .font(.system(size: 14, weight: .semibold))
@@ -786,6 +1025,39 @@ private struct ProviderCard: View {
                                     .padding(.horizontal, 4)
                                     .padding(.vertical, 1)
                                     .background(Color.cyan.opacity(0.12), in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+                            }
+
+                            // Model count badge
+                            Text(models.count == 1 ? L10n.string("settings.singleModelCount") : L10n.string("settings.modelCount", models.count))
+                                .font(.system(size: 10))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1)
+                                .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+
+                            // Key status pill
+                            if state.hasAPIKey(for: provider.id) {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 8, weight: .bold))
+                                    Text(L10n.string("settings.keyConfigured"))
+                                        .font(.system(size: 10, weight: .medium))
+                                }
+                                .foregroundStyle(.green)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1)
+                                .background(Color.green.opacity(0.1), in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+                            } else {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "exclamationmark.triangle")
+                                        .font(.system(size: 8, weight: .medium))
+                                    Text(L10n.string("settings.keyMissing"))
+                                        .font(.system(size: 10, weight: .medium))
+                                }
+                                .foregroundStyle(.orange)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1)
+                                .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 3, style: .continuous))
                             }
                         }
 
@@ -893,7 +1165,7 @@ private struct ProviderModelRow: View {
                         fallbackSymbol: "sparkles",
                         fallbackColor: .secondary
                     )
-                    VStack(alignment: .leading, spacing: 1) {
+                    VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 5) {
                             Text(model.displayName)
                                 .font(.system(size: 13, weight: .medium))
@@ -905,22 +1177,41 @@ private struct ProviderModelRow: View {
                                     .help(L10n.string("settings.discoveredModel"))
                                     .accessibilityLabel(L10n.string("settings.discoveredModel"))
                             }
+                            if isActive {
+                                Text(L10n.string("settings.active"))
+                                    .font(.system(size: 9, weight: .medium))
+                                    .foregroundStyle(.cyan)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 1)
+                                    .background(Color.cyan.opacity(0.12), in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+                            }
                         }
 
-                        Text(model.upstreamModelID)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    }
+                        HStack(spacing: 6) {
+                            Text(model.upstreamModelID)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
 
-                    if isActive {
-                        Text(L10n.string("settings.active"))
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(.cyan)
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 1)
-                            .background(Color.cyan.opacity(0.12), in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+                            if model.isStreamingEnabled {
+                                Text(L10n.string("settings.streamingBadge"))
+                                    .font(.system(size: 9, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 0.5)
+                                    .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+                            }
+
+                            if model.thinkingMode != .disabled && model.thinkingMode != .providerDefault {
+                                Text(L10n.string("settings.thinkingBadge", model.thinkingMode.settingsTitle))
+                                    .font(.system(size: 9, weight: .medium))
+                                    .foregroundStyle(.purple)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 0.5)
+                                    .background(Color.purple.opacity(0.1), in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+                            }
+                        }
                     }
 
                     Spacer(minLength: 0)

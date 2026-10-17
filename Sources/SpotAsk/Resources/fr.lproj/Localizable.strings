@@ -648,3 +648,14 @@
 "decisionRouting.timeoutManual" = "Timed out. Choose where to send this question.";
 "decisionRouting.enterTarget" = "↩";
 "decisionRouting.attachmentsStayInApp" = "Questions with attachments stay in SpotAsk.";
+"settings.activeChatModel" = "Modèle de discussion actif";
+"settings.activeChatModelDescription" = "Le modèle principal utilisé par SpotAsk pour les réponses et les discussions.";
+"settings.switchActiveModel" = "Changer de modèle";
+"settings.noActiveModelHint" = "Aucun modèle n'est actuellement sélectionné. Cliquez sur un modèle ci-dessous pour l'utiliser.";
+"settings.modelCount" = "%d modèles";
+"settings.singleModelCount" = "1 modèle";
+"settings.keyConfigured" = "Clé configurée";
+"settings.keyMissing" = "Aucune clé";
+"settings.providerTemplates" = "Modèles rapides";
+"settings.streamingBadge" = "Stream";
+"settings.thinkingBadge" = "Réflexion : %@";
