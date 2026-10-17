@@ -4,6 +4,82 @@ import Observation
 
 // MARK: - Provider Settings State
 
+struct ProviderTemplate: Identifiable, Hashable, Sendable {
+    let id: String
+    let name: String
+    let format: ProviderFormat
+    let address: String
+    let addressMode: ProviderAddressMode
+    let iconSlug: String
+
+    static let allTemplates: [ProviderTemplate] = [
+        ProviderTemplate(
+            id: "openai",
+            name: "OpenAI",
+            format: .openAICompatible,
+            address: "https://api.openai.com/v1",
+            addressMode: .baseURL,
+            iconSlug: "openai"
+        ),
+        ProviderTemplate(
+            id: "anthropic",
+            name: "Anthropic",
+            format: .anthropic,
+            address: "https://api.anthropic.com/v1",
+            addressMode: .baseURL,
+            iconSlug: "claude-color"
+        ),
+        ProviderTemplate(
+            id: "gemini",
+            name: "Google Gemini",
+            format: .gemini,
+            address: "https://generativelanguage.googleapis.com/v1beta",
+            addressMode: .baseURL,
+            iconSlug: "gemini-color"
+        ),
+        ProviderTemplate(
+            id: "deepseek",
+            name: "DeepSeek",
+            format: .openAICompatible,
+            address: "https://api.deepseek.com",
+            addressMode: .baseURL,
+            iconSlug: "deepseek-color"
+        ),
+        ProviderTemplate(
+            id: "ollama",
+            name: "Ollama (Local)",
+            format: .openAICompatible,
+            address: "http://localhost:11434/v1",
+            addressMode: .baseURL,
+            iconSlug: "ollama"
+        ),
+        ProviderTemplate(
+            id: "openrouter",
+            name: "OpenRouter",
+            format: .openAICompatible,
+            address: "https://openrouter.ai/api/v1",
+            addressMode: .baseURL,
+            iconSlug: "openrouter-color"
+        ),
+        ProviderTemplate(
+            id: "siliconflow",
+            name: "SiliconFlow",
+            format: .openAICompatible,
+            address: "https://api.siliconflow.cn/v1",
+            addressMode: .baseURL,
+            iconSlug: "siliconcloud-color"
+        ),
+        ProviderTemplate(
+            id: "kimi",
+            name: "Kimi",
+            format: .openAICompatible,
+            address: "https://api.moonshot.cn/v1",
+            addressMode: .baseURL,
+            iconSlug: "kimi-color"
+        )
+    ]
+}
+
 @MainActor
 @Observable
 final class ProviderSettingsState {
@@ -91,6 +167,39 @@ final class ProviderSettingsState {
     func modelsForProvider(_ providerID: UUID) -> [ModelConfiguration] {
         settings.providerRegistry.catalog?.models.filter { $0.providerID == providerID } ?? []
     }
+    var activeModel: ModelConfiguration? {
+        guard let id = activeModelID,
+              let catalog = settings.providerRegistry.catalog else { return nil }
+        return catalog.models.first(where: { $0.id == id })
+    }
+
+    var activeModelProvider: ProviderConfiguration? {
+        guard let model = activeModel,
+              let catalog = settings.providerRegistry.catalog else { return nil }
+        return catalog.providers.first(where: { $0.id == model.providerID })
+    }
+
+    var allConfiguredModels: [ModelConfiguration] {
+        settings.providerRegistry.catalog?.models ?? []
+    }
+
+    func hasAPIKey(for providerID: UUID) -> Bool {
+        if selectedProviderID == providerID && !apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return true
+        }
+        guard let key = try? keyStore.readAPIKey(for: providerID) else { return false }
+        return !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    func applyProviderTemplate(_ template: ProviderTemplate) {
+        draftProviderName = template.name
+        draftProviderFormat = template.format
+        draftProviderAddress = template.address
+        draftProviderAddressMode = template.addressMode
+        validateProviderURL(draftProviderAddress)
+        clearStatus()
+    }
+
 
     var canSaveProvider: Bool {
         let name = draftProviderName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -452,6 +561,10 @@ final class ProviderSettingsState {
                 format: draftProviderFormat
             )
             let saved = try settings.providerRegistry.saveProvider(provider)
+            let trimmedKey = apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedKey.isEmpty {
+                try? keyStore.saveAPIKey(trimmedKey, for: saved.id)
+            }
             isCreatingProvider = false
             selectProvider(saved.id)
             setStatus(L10n.string("settings.providerSaved"), isError: false)
