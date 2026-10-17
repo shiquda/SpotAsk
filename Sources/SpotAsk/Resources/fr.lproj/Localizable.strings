@@ -146,6 +146,7 @@
 "settings.accessKeyOnlyOnMac" = "Votre clé d'accès est enregistrée uniquement sur ce Mac.";
 "settings.accessKeyPlaceholder" = "Saisissez une clé d'accès à enregistrer ou à mettre à jour";
 "settings.appearance" = "Apparence";
+"settings.theme" = "Thème";
 "settings.about" = "À propos";
 "settings.aboutDescription" = "Consultez la version de l'app, le code source du projet et les mises à jour disponibles.";
 "settings.version" = "Version";
@@ -174,6 +175,14 @@
 "settings.behavior" = "Comportement";
 "settings.clearAccessKey" = "Effacer la clé d'accès";
 "settings.clearAllLocalData" = "Effacer toutes les données locales";
+"settings.dangerZone" = "Zone de danger";
+"settings.dangerZoneWarning" = "Cette action supprimera définitivement vos données locales, conversations enregistrées et clés API. Cette opération est irréversible.";
+"settings.clearAllLocalDataConfirmTitle" = "Effacer toutes les données locales ?";
+"settings.clearAllLocalDataConfirmMessage" = "Voulez-vous vraiment effacer toutes les données locales ? Toutes les configurations personnalisées, clés API enregistrées et l'historique des conversations seront définitivement supprimés.";
+"settings.dangerZoneContinue" = "Continuer...";
+"settings.dangerZoneSecondConfirmTitle" = "Confirmation finale : cette action est irréversible";
+"settings.dangerZoneSecondConfirmMessage" = "⚠️ Une fois confirmé, vos paramètres, sessions et identifiants ne pourront pas être récupérés. Êtes-vous absolument certain de vouloir continuer ?";
+"settings.dangerZoneFinalClear" = "Tout supprimer définitivement";
 "settings.clearInputOnClose" = "Effacer la saisie à la fermeture de la fenêtre";
 "settings.confirmBeforeStartingNewConversation" = "Demander confirmation avant une nouvelle conversation";
 "settings.escapeStartsNewConversation" = "Appuyer sur Échap démarre une nouvelle conversation";

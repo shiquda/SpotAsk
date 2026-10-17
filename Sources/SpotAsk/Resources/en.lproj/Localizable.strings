@@ -146,6 +146,7 @@
 "settings.accessKeyOnlyOnMac" = "Your access key is stored only on this Mac.";
 "settings.accessKeyPlaceholder" = "Enter an access key to save or update";
 "settings.appearance" = "Appearance";
+"settings.theme" = "Theme";
 "settings.about" = "About";
 "settings.aboutDescription" = "View the app version, project source, and available updates.";
 "settings.version" = "Version";
@@ -174,6 +175,14 @@
 "settings.behavior" = "Behavior";
 "settings.clearAccessKey" = "Clear Access Key";
 "settings.clearAllLocalData" = "Clear All Local Data";
+"settings.dangerZone" = "Danger Zone";
+"settings.dangerZoneWarning" = "This will permanently delete your local data, saved conversations, and API keys. This cannot be undone.";
+"settings.clearAllLocalDataConfirmTitle" = "Clear All Local Data?";
+"settings.clearAllLocalDataConfirmMessage" = "Are you sure you want to clear all local data? All custom configurations, stored API keys, and conversation history will be permanently deleted.";
+"settings.dangerZoneContinue" = "Continue...";
+"settings.dangerZoneSecondConfirmTitle" = "Final Confirmation: This Action Cannot Be Undone";
+"settings.dangerZoneSecondConfirmMessage" = "⚠️ Once confirmed, your settings, sessions, and credentials cannot be recovered. Are you absolutely certain you want to proceed?";
+"settings.dangerZoneFinalClear" = "Permanently Delete Everything";
 "settings.clearInputOnClose" = "Clear input when closing the window";
 "settings.confirmBeforeStartingNewConversation" = "Confirm before starting a new conversation";
 "settings.escapeStartsNewConversation" = "Press Esc to start a new conversation";

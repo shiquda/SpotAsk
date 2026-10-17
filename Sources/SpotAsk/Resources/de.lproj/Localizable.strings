@@ -146,6 +146,7 @@
 "settings.accessKeyOnlyOnMac" = "Dein Zugriffsschlüssel wird nur auf diesem Mac gespeichert.";
 "settings.accessKeyPlaceholder" = "Zugriffsschlüssel eingeben, um zu speichern oder zu aktualisieren";
 "settings.appearance" = "Darstellung";
+"settings.theme" = "Design";
 "settings.about" = "Über";
 "settings.aboutDescription" = "App-Version, Projektquellcode und verfügbare Updates ansehen.";
 "settings.version" = "Version";
@@ -174,6 +175,14 @@
 "settings.behavior" = "Verhalten";
 "settings.clearAccessKey" = "Zugriffsschlüssel löschen";
 "settings.clearAllLocalData" = "Alle lokalen Daten löschen";
+"settings.dangerZone" = "Gefahrenbereich";
+"settings.dangerZoneWarning" = "Dadurch werden Ihre lokalen Daten, gespeicherten Unterhaltungen und API-Schlüssel dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.";
+"settings.clearAllLocalDataConfirmTitle" = "Alle lokalen Daten löschen?";
+"settings.clearAllLocalDataConfirmMessage" = "Möchten Sie wirklich alle lokalen Daten löschen? Alle benutzerdefinierten Konfigurationen, gespeicherten API-Schlüssel und der Unterhaltungsverlauf werden dauerhaft gelöscht.";
+"settings.dangerZoneContinue" = "Fortfahren...";
+"settings.dangerZoneSecondConfirmTitle" = "Letzte Bestätigung: Diese Aktion kann nicht rückgängig gemacht werden";
+"settings.dangerZoneSecondConfirmMessage" = "⚠️ Nach der Bestätigung können Ihre Einstellungen, Sitzungen und Anmeldeinformationen nicht wiederhergestellt werden. Sind Sie ganz sicher, dass Sie fortfahren möchten?";
+"settings.dangerZoneFinalClear" = "Alles dauerhaft löschen";
 "settings.clearInputOnClose" = "Eingabe beim Schließen des Fensters löschen";
 "settings.confirmBeforeStartingNewConversation" = "Vor neuer Unterhaltung nachfragen";
 "settings.escapeStartsNewConversation" = "Esc startet eine neue Unterhaltung";
