@@ -24,12 +24,26 @@ final class OverlayButtonTarget: NSObject {
     }
 }
 
+final class MenuItemTarget: NSObject {
+    private let handler: () -> Void
+
+    init(handler: @escaping () -> Void) {
+        self.handler = handler
+    }
+
+    @objc func invoke() {
+        handler()
+    }
+}
+
 /// Renders a `SelectionActionBarLayout` as the bar's translucent container and
 /// its buttons. The live overlay panel and the Settings preview share this one
 /// implementation, so the bar's look cannot diverge between them.
 @MainActor
 final class SelectionActionBarContentView: NSVisualEffectView {
     private var buttonTargets: [OverlayButtonTarget] = []
+    private var menuTargets: [MenuItemTarget] = []
+    private weak var moreButton: NSButton?
 
     init(layout: SelectionActionBarLayout, actions: SelectionActionBarActions?) {
         super.init(frame: NSRect(origin: .zero, size: layout.size))
@@ -114,6 +128,25 @@ final class SelectionActionBarContentView: NSVisualEffectView {
                     accessibilityLabel: L10n.string("selection.actionBar.externalAskAccessibility", action.displayName),
                     target: target
                 ))
+            case let .more(frame):
+                let target = actions.map { wired in
+                    OverlayButtonTarget { [weak self] in
+                        self?.showOverflowMenu(layout: layout, actions: wired)
+                    }
+                }
+                if let target { buttonTargets.append(target) }
+                let btn = makeActionButton(
+                    frame: frame,
+                    title: "",
+                    symbolName: "ellipsis",
+                    brandSlug: nil,
+                    showsLabels: false,
+                    toolTip: L10n.string("selection.actionBar.more"),
+                    accessibilityLabel: L10n.string("selection.actionBar.moreAccessibility"),
+                    target: target
+                )
+                moreButton = btn
+                addSubview(btn)
             }
         }
     }
@@ -160,6 +193,63 @@ final class SelectionActionBarContentView: NSVisualEffectView {
         }
         button.setAccessibilityLabel(accessibilityLabel)
         return button
+    }
+
+    private func showOverflowMenu(layout: SelectionActionBarLayout, actions: SelectionActionBarActions) {
+        guard let button = moreButton else { return }
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        menuTargets.removeAll()
+
+        for preset in layout.overflowPresets {
+            let item = NSMenuItem(
+                title: preset.title,
+                action: #selector(MenuItemTarget.invoke),
+                keyEquivalent: ""
+            )
+            if let symbol = NSImage(systemSymbolName: preset.symbolName, accessibilityDescription: preset.title) {
+                item.image = symbol.withSymbolConfiguration(.init(pointSize: 13, weight: .regular))
+            }
+            if let shortcut = actions.shortcutForPreset?(preset) {
+                let labels = InAppShortcutDisplay.labels(for: shortcut).joined()
+                item.toolTip = "\(preset.title)\t\(labels)"
+            }
+            let target = MenuItemTarget {
+                actions.onSelectPreset(preset)
+            }
+            menuTargets.append(target)
+            item.target = target
+            menu.addItem(item)
+        }
+
+        if !layout.overflowPresets.isEmpty && !layout.overflowExternalAsks.isEmpty {
+            menu.addItem(NSMenuItem.separator())
+        }
+
+        for action in layout.overflowExternalAsks {
+            let item = NSMenuItem(
+                title: action.displayName,
+                action: #selector(MenuItemTarget.invoke),
+                keyEquivalent: ""
+            )
+            if let brand = brandImage(for: action.brandIconSlug, pointSize: 14) {
+                item.image = brand
+            } else if let symbol = NSImage(systemSymbolName: action.symbolName, accessibilityDescription: action.displayName) {
+                item.image = symbol.withSymbolConfiguration(.init(pointSize: 13, weight: .regular))
+            }
+            if let shortcut = actions.shortcutForExternalAsk?(action) {
+                let labels = InAppShortcutDisplay.labels(for: shortcut).joined()
+                item.toolTip = "\(action.displayName)\t\(labels)"
+            }
+            let target = MenuItemTarget {
+                actions.onSelectExternalAsk(action)
+            }
+            menuTargets.append(target)
+            item.target = target
+            menu.addItem(item)
+        }
+
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: 0), in: button)
     }
 }
 

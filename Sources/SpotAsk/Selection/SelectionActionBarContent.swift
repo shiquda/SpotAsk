@@ -9,6 +9,21 @@ struct SelectionActionBarContent: Equatable {
     let showsLabels: Bool
     let presets: [PromptPreset]
     let externalAsks: [QuickAction]
+    let collapsesOverflow: Bool
+
+    init(
+        showsChat: Bool,
+        showsLabels: Bool,
+        presets: [PromptPreset],
+        externalAsks: [QuickAction],
+        collapsesOverflow: Bool = true
+    ) {
+        self.showsChat = showsChat
+        self.showsLabels = showsLabels
+        self.presets = presets
+        self.externalAsks = externalAsks
+        self.collapsesOverflow = collapsesOverflow
+    }
 
     /// A bar with no action to offer never appears, so callers showing it must
     /// handle this case instead of rendering an empty shell.
@@ -21,7 +36,8 @@ struct SelectionActionBarContent: Equatable {
             showsChat: showsChat,
             presets: presets,
             externalAsks: externalAsks,
-            showsLabels: showsLabels
+            showsLabels: showsLabels,
+            collapsesOverflow: collapsesOverflow
         )
     }
 
@@ -39,7 +55,8 @@ struct SelectionActionBarContent: Equatable {
             showsChat: settings.selectionActionBarShowsChatAction,
             showsLabels: settings.selectionActionBarShowsLabels,
             presets: presets,
-            externalAsks: externalAsks
+            externalAsks: externalAsks,
+            collapsesOverflow: settings.selectionActionBarCollapseOverflow
         )
     }
 }

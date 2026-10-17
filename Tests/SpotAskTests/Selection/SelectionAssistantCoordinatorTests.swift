@@ -905,6 +905,7 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
     private(set) var quickActions: [QuickAction] = []
     private(set) var shownPresets: [PromptPreset] = []
     private(set) var showsChat = false
+    private(set) var collapsesOverflow = false
     private var chatHandler: (() -> Void)?
     private var actionHandler: ((PromptPreset) -> Void)?
     private var quickActionHandler: ((QuickAction) -> Void)?
@@ -918,6 +919,7 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
         presets: [PromptPreset],
         externalAsks: [QuickAction],
         showsLabels: Bool,
+        collapsesOverflow: Bool,
         shortcutForChat: InAppShortcut?,
         shortcutForPreset: ((PromptPreset) -> InAppShortcut?)?,
         shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?,
@@ -926,6 +928,7 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
         onSelectExternalAsk: @escaping (QuickAction) -> Void
     ) {
         self.showsChat = showsChat
+        self.collapsesOverflow = collapsesOverflow
         shownPresets = presets
         self.quickActions = externalAsks
         chatHandler = onSelectChat

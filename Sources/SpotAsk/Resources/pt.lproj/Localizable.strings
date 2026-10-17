@@ -409,6 +409,11 @@
 "settings.selectionAssistantActionBarCrowdingHint" = "Com muitas ações, a barra pode ficar longa demais. Remova as pouco usadas ou desative «Mostrar rótulos ao lado dos ícones» para ver só os ícones.";
 "settings.selectionAssistantActionBarPreview" = "Pré-visualização da barra de ações";
 "settings.selectionAssistantActionBarPreviewEmpty" = "Nenhuma ação para mostrar — com a configuração atual, a barra de ações não aparecerá.";
+"settings.selectionAssistantCollapseOverflow" = "Recolher ações excedentes em submenu";
+"settings.selectionAssistantCollapseOverflowDescription" = "Quando mais de 4 ações estiverem ativadas, agrupa automaticamente as excedentes em um menu «···» para manter a barra compacta.";
+"settings.selectionAssistantActionBarLivePreview" = "Pré-visualização em tempo real da barra";
+"settings.selectionAssistantActionBarLiveBadge" = "Em tempo real";
+"settings.selectionAssistantActionBarOverflowNote" = "%d ações agrupadas no menu «···»";
 "settings.selectionAssistantShowsExternalAsk" = "Mostrar External Ask na barra de seleção";
 "settings.selectionAssistantShowsExternalAskDescription" = "As ações e a ordem seguem as definições de External Ask";
 "selection.actionBar.more" = "Mais";

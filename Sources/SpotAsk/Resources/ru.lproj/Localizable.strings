@@ -409,6 +409,11 @@
 "settings.selectionAssistantActionBarCrowdingHint" = "При большом числе действий панель может стать слишком длинной. Уберите редко используемые действия или отключите «Показывать подписи рядом со значками», чтобы оставить только значки.";
 "settings.selectionAssistantActionBarPreview" = "Предпросмотр панели действий";
 "settings.selectionAssistantActionBarPreviewEmpty" = "Нет действий для показа — при текущих настройках панель действий не появится.";
+"settings.selectionAssistantCollapseOverflow" = "Сворачивать лишние действия во вложенное меню";
+"settings.selectionAssistantCollapseOverflowDescription" = "Если включено более 4 действий, лишние автоматически убираются в меню «···», чтобы панель оставалась компактной.";
+"settings.selectionAssistantActionBarLivePreview" = "Предпросмотр панели действий в реальном времени";
+"settings.selectionAssistantActionBarLiveBadge" = "В реальном времени";
+"settings.selectionAssistantActionBarOverflowNote" = "%d действий свёрнуто в меню «···»";
 "settings.selectionAssistantShowsExternalAsk" = "Показывать External Ask на панели выделения";
 "settings.selectionAssistantShowsExternalAskDescription" = "Состав и порядок действий берутся из настроек External Ask";
 "selection.actionBar.more" = "Ещё";

@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import SwiftUI
 import Testing
 @testable import SpotAsk
 
@@ -95,6 +96,81 @@ struct SelectionActionBarContentTests {
         #expect(previewButtons.allSatisfy { ($0.toolTip ?? "").isEmpty == false })
         previewButtons.forEach { $0.performClick(nil) }
         #expect(chatClicks == 1, "preview buttons must not run a live action")
+    }
+
+    @Test("Resolve passes collapseOverflow setting and reflects in layout")
+    func resolveReflectsCollapseOverflowSetting() {
+        let settings = makeSettings()
+        disableEveryPreset(settings)
+        addEnabledPresets(count: 6, to: settings)
+
+        settings.selectionActionBarCollapseOverflow = true
+        var content = SelectionActionBarContent.resolve(from: settings)
+        #expect(content.collapsesOverflow == true)
+        #expect(content.layout.showsMoreButton == true)
+        #expect(content.layout.showsChat == true)
+        // 1 chat + 3 presets = 4 primary actions
+        #expect(content.layout.visiblePresets.count == 3)
+        #expect(content.layout.overflowPresets.count == 3)
+
+        settings.selectionActionBarCollapseOverflow = false
+        content = SelectionActionBarContent.resolve(from: settings)
+        #expect(content.collapsesOverflow == false)
+        #expect(content.layout.showsMoreButton == false)
+        #expect(content.layout.visiblePresets.count == 6)
+        #expect(content.layout.overflowPresets.isEmpty)
+    }
+
+    @Test("Preview bar with overflow renders more button inertly")
+    func previewBarWithOverflowRendersMoreButtonInertly() {
+        let presets = (1...6).map { PromptPreset(title: "P\($0)", instruction: "I\($0)") }
+        let layout = SelectionActionBarLayout.make(
+            showsChat: false,
+            presets: presets,
+            externalAsks: [],
+            showsLabels: false,
+            collapsesOverflow: true
+        )
+        #expect(layout.showsMoreButton)
+
+        let preview = SelectionActionBarContentView(layout: layout, actions: nil)
+        let previewButtons = preview.subviews.compactMap { $0 as? NSButton }
+        // 4 visible presets + 1 more button = 5 buttons
+        #expect(previewButtons.count == 5)
+        #expect(previewButtons.allSatisfy { $0.target == nil })
+    }
+
+    @Test("Render SelectionAssistantSettingsPage to image for visual verification")
+    func renderSettingsPageToImage() throws {
+        let settings = makeSettings()
+        settings.selectionAssistantEnabled = true
+        settings.selectionAssistantMode = .actionBar
+        settings.selectionActionBarCollapseOverflow = true
+        UserDefaults.standard.set("zh-Hans", forKey: AppLanguage.defaultsKey)
+        defer { UserDefaults.standard.removeObject(forKey: AppLanguage.defaultsKey) }
+        for isDark in [false, true] {
+            let view = SelectionAssistantSettingsPage(
+                settings: settings,
+                permissionCoordinator: AccessibilityPermissionCoordinator(),
+                settingsOpener: MacOSAccessibilityPermissionSettingsOpener(),
+                onOpenShortcuts: {}
+            )
+            .environment(\.colorScheme, isDark ? .dark : .light)
+            .frame(width: 580)
+            .padding(20)
+            .background(isDark ? Color(nsColor: .windowBackgroundColor) : Color.white)
+
+            let hosting = NSHostingView(rootView: view)
+            hosting.appearance = NSAppearance(named: isDark ? .darkAqua : .aqua)
+            hosting.frame = NSRect(x: 0, y: 0, width: 620, height: 780)
+            hosting.layoutSubtreeIfNeeded()
+
+            guard let rep = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else { continue }
+            hosting.cacheDisplay(in: hosting.bounds, to: rep)
+            guard let data = rep.representation(using: .png, properties: [:]) else { continue }
+            let path = isDark ? "/tmp/selection_assistant_page_dark.png" : "/tmp/selection_assistant_page_light.png"
+            try data.write(to: URL(fileURLWithPath: path))
+        }
     }
 
     private func makeSettings() -> AppSettings {

@@ -409,6 +409,11 @@
 "settings.selectionAssistantActionBarCrowdingHint" = "動作が多いとアクションバーが長くなりすぎることがあります。使わない動作を削除するか、「アイコンの横にラベルを表示」をオフにしてアイコンのみにしてください。";
 "settings.selectionAssistantActionBarPreview" = "アクションバーのプレビュー";
 "settings.selectionAssistantActionBarPreviewEmpty" = "表示できる動作がありません。現在の設定ではアクションバーは表示されません。";
+"settings.selectionAssistantCollapseOverflow" = "4項目を超える操作をサブメニューに折りたたむ";
+"settings.selectionAssistantCollapseOverflowDescription" = "有効な操作が4項目を超える場合、超過分を「···」メニューに自動でまとめてバーをコンパクトに保ちます。";
+"settings.selectionAssistantActionBarLivePreview" = "アクションバーのライブプレビュー";
+"settings.selectionAssistantActionBarLiveBadge" = "リアルタイム";
+"settings.selectionAssistantActionBarOverflowNote" = "%d 件の操作を「···」メニューに収納中";
 "settings.selectionAssistantShowsExternalAsk" = "選択アクションバーに External Ask を表示";
 "settings.selectionAssistantShowsExternalAskDescription" = "表示する操作と順序は External Ask の設定に従います";
 "selection.actionBar.more" = "その他";

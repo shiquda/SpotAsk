@@ -267,6 +267,90 @@ struct SelectionActionBarLayoutTests {
         expectButtonsStayInsidePanel(layout)
     }
 
+    @Test("Overflow folding under 4 actions keeps all items visible without a more button")
+    func overflowFoldingUnderThresholdKeepsAllVisibleWithoutMoreButton() {
+        let layout = SelectionActionBarLayout.make(
+            showsChat: true,
+            presets: [preset("Translate"), preset("Explain")],
+            externalAsks: [action("ChatGPT")],
+            showsLabels: true,
+            collapsesOverflow: true
+        )
+        #expect(layout.showsChat)
+        #expect(layout.visiblePresets.count == 2)
+        #expect(layout.visibleExternalAsks.count == 1)
+        #expect(!layout.showsMoreButton)
+        #expect(layout.overflowPresets.isEmpty)
+        #expect(layout.overflowExternalAsks.isEmpty)
+        expectButtonsStayInsidePanel(layout)
+    }
+
+    @Test("Overflow folding over 4 actions caps primary bar to 4 items and creates overflow lists")
+    func overflowFoldingOverThresholdSeparatesPrimaryAndOverflowItems() {
+        let presets = (1...5).map { preset("Preset \($0)") }
+        let actions = (1...2).map { action("Action \($0)") }
+        let layout = SelectionActionBarLayout.make(
+            showsChat: true,
+            presets: presets,
+            externalAsks: actions,
+            showsLabels: true,
+            collapsesOverflow: true
+        )
+        #expect(layout.showsChat)
+        // 1 chat + 3 presets = 4 primary actions
+        #expect(layout.visiblePresets.count == 3)
+        #expect(layout.visibleExternalAsks.isEmpty)
+        #expect(layout.overflowPresets.count == 2)
+        #expect(layout.overflowExternalAsks.count == 2)
+        #expect(layout.showsMoreButton)
+        if case .more = layout.placedItems.last {
+            // More button placed at the end
+        } else {
+            Issue.record("Expected more button at the end of placed items")
+        }
+        expectButtonsStayInsidePanel(layout)
+    }
+
+    @Test("Overflow folding without chat fills primary slots across presets then external asks")
+    func overflowFoldingWithoutChatDistributesAcrossPresetsAndExternalAsks() {
+        let presets = (1...3).map { preset("Preset \($0)") }
+        let actions = (1...3).map { action("Action \($0)") }
+        let layout = SelectionActionBarLayout.make(
+            showsChat: false,
+            presets: presets,
+            externalAsks: actions,
+            showsLabels: false,
+            collapsesOverflow: true
+        )
+        #expect(!layout.showsChat)
+        #expect(layout.visiblePresets.count == 3)
+        #expect(layout.visibleExternalAsks.count == 1)
+        #expect(layout.overflowPresets.isEmpty)
+        #expect(layout.overflowExternalAsks.count == 2)
+        #expect(layout.showsDivider)
+        #expect(layout.showsMoreButton)
+        expectButtonsStayInsidePanel(layout)
+    }
+
+    @Test("Disabled overflow folding presents all actions up to cap in the horizontal bar")
+    func overflowFoldingDisabledPresentsAllActionsWithoutMoreButton() {
+        let presets = (1...6).map { preset("Preset \($0)") }
+        let actions = (1...2).map { action("Action \($0)") }
+        let layout = SelectionActionBarLayout.make(
+            showsChat: false,
+            presets: presets,
+            externalAsks: actions,
+            showsLabels: false,
+            collapsesOverflow: false
+        )
+        #expect(layout.visiblePresets.count == 6)
+        #expect(layout.visibleExternalAsks.count == 2)
+        #expect(!layout.showsMoreButton)
+        #expect(layout.overflowPresets.isEmpty)
+        #expect(layout.overflowExternalAsks.isEmpty)
+        expectButtonsStayInsidePanel(layout)
+    }
+
     private func preset(_ title: String) -> PromptPreset {
         PromptPreset(title: title, instruction: "Do it")
     }
@@ -289,7 +373,7 @@ struct SelectionActionBarLayoutTests {
             #expect(frame.minY >= 0)
             #expect(frame.maxY <= panel.maxY + 0.001)
             switch item {
-            case .chat, .preset, .externalAsk:
+            case .chat, .preset, .externalAsk, .more:
                 #expect(frame.minX >= inset - 0.001)
                 #expect(frame.maxX <= panel.maxX - inset + 0.001)
             case .divider:
