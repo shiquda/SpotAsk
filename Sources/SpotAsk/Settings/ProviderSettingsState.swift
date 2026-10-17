@@ -561,6 +561,10 @@ final class ProviderSettingsState {
                 format: draftProviderFormat
             )
             let saved = try settings.providerRegistry.saveProvider(provider)
+            let trimmedKey = apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedKey.isEmpty {
+                try? keyStore.saveAPIKey(trimmedKey, for: saved.id)
+            }
             isCreatingProvider = false
             selectProvider(saved.id)
             setStatus(L10n.string("settings.providerSaved"), isError: false)

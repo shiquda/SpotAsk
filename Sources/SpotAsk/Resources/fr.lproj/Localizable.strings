@@ -659,3 +659,10 @@
 "settings.providerTemplates" = "Modèles rapides";
 "settings.streamingBadge" = "Stream";
 "settings.thinkingBadge" = "Réflexion : %@";
+"settings.saveProvider" = "Enregistrer le fournisseur";
+"settings.advancedConnection" = "Options de connexion avancées";
+"settings.configuredModels" = "Modèles configurés";
+"settings.modelEditorSubtitle" = "Configurez les paramètres du modèle, les modes de raisonnement et la compatibilité du protocole.";
+"settings.paste" = "Coller";
+"settings.pasteFromClipboard" = "Coller depuis le presse-papiers";
+"settings.noModelsUnderProvider" = "Aucun modèle configuré pour ce fournisseur pour l'instant.";

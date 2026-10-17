@@ -3,6 +3,20 @@ import Foundation
 import SwiftUI
 
 
+// MARK: - Model Editor Target
+
+enum ModelEditorTarget: Identifiable, Equatable {
+    case new(providerID: UUID)
+    case edit(modelID: UUID)
+
+    var id: String {
+        switch self {
+        case .new(let providerID): "new-\(providerID.uuidString)"
+        case .edit(let modelID): "edit-\(modelID.uuidString)"
+        }
+    }
+}
+
 // MARK: - Provider Settings Page
 
 struct ProviderSettingsPage: View {
@@ -10,6 +24,7 @@ struct ProviderSettingsPage: View {
     @Bindable var state: ProviderSettingsState
     let searchTarget: SettingsGroupTarget?
     let onSearchTargetConsumed: () -> Void
+    @State private var modelEditorTarget: ModelEditorTarget?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
@@ -20,7 +35,19 @@ struct ProviderSettingsPage: View {
             SettingsPageHeader(section: .provider, settings: settings)
             SettingsCallout(L10n.string("settings.providerDescription"))
 
-            ProviderSettingsList(state: state, searchTarget: searchTarget, onSearchTargetConsumed: onSearchTargetConsumed)
+            ProviderSettingsList(
+                state: state,
+                searchTarget: searchTarget,
+                onSearchTargetConsumed: onSearchTargetConsumed,
+                onEditModel: { modelID in
+                    state.selectModel(modelID)
+                    modelEditorTarget = .edit(modelID: modelID)
+                },
+                onAddModel: { providerID in
+                    state.startNewModel(for: providerID)
+                    modelEditorTarget = .new(providerID: providerID)
+                }
+            )
         }
         .alert(L10n.string("settings.deleteProviderTitle"), isPresented: Binding(
             get: { state.pendingDeleteProviderID != nil },
@@ -48,8 +75,21 @@ struct ProviderSettingsPage: View {
         } message: {
             Text(L10n.string("settings.deleteModelMessage"))
         }
+        .sheet(item: $modelEditorTarget) { target in
+            ModelEditorSheet(state: state, target: target)
+        }
         .sheet(isPresented: $state.isModelSelectionPresented) {
             DiscoveredModelSelectionSheet(state: state)
+        }
+        .onChange(of: state.isCreatingModel) { _, isCreating in
+            if isCreating, let pid = state.newModelParentProviderID, modelEditorTarget == nil {
+                modelEditorTarget = .new(providerID: pid)
+            }
+        }
+        .onChange(of: state.selectedModelID) { _, modelID in
+            if let modelID, modelEditorTarget == nil, !state.isModelSelectionPresented {
+                modelEditorTarget = .edit(modelID: modelID)
+            }
         }
     }
 }
@@ -209,343 +249,195 @@ private struct CatalogErrorBanner: View {
     }
 }
 
-// MARK: - Provider Detail Form
+// MARK: - Model Editor Sheet
 
-private struct ProviderDetailForm: View {
+struct ModelEditorSheet: View {
     @Bindable var state: ProviderSettingsState
-    let isNew: Bool
-    var showsHeader = true
-    @State private var isKeyVisible = false
+    let target: ModelEditorTarget
+    @Environment(\.dismiss) private var dismiss
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            if showsHeader {
-                HStack {
-                    Text(isNew ? L10n.string("settings.newProvider") : L10n.string("settings.editProvider"))
-                        .font(.system(size: 17, weight: .semibold))
-                    Spacer()
-                    if !isNew {
-                        Button(role: .destructive) {
-                            if let id = state.selectedProviderID {
-                                state.requestDeleteProvider(id)
-                            }
-                        } label: {
-                            Label(L10n.string("settings.delete"), systemImage: "trash")
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-            }
-
-            SettingsGroup(
-                title: L10n.string("settings.providerInfo"),
-                documentation: DocumentationLinks.url(for: .serviceAddresses, language: state.settings.language)
-            ) {
-                SettingsFieldRow(label: L10n.string("settings.providerName")) {
-                    TextField(L10n.string("settings.providerNamePlaceholder"), text: $state.draftProviderName)
-                        .textFieldStyle(.roundedBorder)
-                        .onChange(of: state.draftProviderName) { _, _ in state.clearStatus() }
-                }
-                SettingsFieldRow(label: L10n.string("settings.providerFormat")) {
-                    HStack(spacing: 0) {
-                        Picker(L10n.string("settings.providerFormat"), selection: $state.draftProviderFormat) {
-                            Text(L10n.string("settings.providerFormatOpenAI")).tag(ProviderFormat.openAICompatible)
-                            Text(L10n.string("settings.providerFormatAnthropic")).tag(ProviderFormat.anthropic)
-                            Text(L10n.string("settings.providerFormatGemini")).tag(ProviderFormat.gemini)
-                        }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                        Spacer(minLength: 0)
-                    }
-                    .onChange(of: state.draftProviderFormat) { _, _ in
-                        state.prefillOfficialAddress()
-                        state.validateProviderURL(state.draftProviderAddress)
-                        state.clearStatus()
-                    }
-                }
-                SettingsFieldRow(label: L10n.string("settings.serviceAddress")) {
-                    TextField("https://api.example.com/v1", text: $state.draftProviderAddress)
-                        .textFieldStyle(.roundedBorder)
-                        .onChange(of: state.draftProviderAddress) { _, value in state.validateProviderURL(value) }
-                }
-                if let error = state.providerFieldError {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
-                SettingsFieldRow(label: L10n.string("settings.addressMode")) {
-                    HStack(spacing: 0) {
-                        Picker(L10n.string("settings.addressMode"), selection: $state.draftProviderAddressMode) {
-                            Text(L10n.string("settings.addressModeBaseURL")).tag(ProviderAddressMode.baseURL)
-                            Text(L10n.string("settings.addressModeFullEndpoint")).tag(ProviderAddressMode.fullEndpoint)
-                        }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                        Spacer(minLength: 0)
-                    }
-                    .onChange(of: state.draftProviderAddressMode) { _, _ in
-                        state.prefillOfficialAddress()
-                        state.validateProviderURL(state.draftProviderAddress)
-                    }
-                }
-                SettingsFieldRow(label: L10n.string("settings.responseTimeout")) {
-                    HStack(spacing: 8) {
-                        Stepper(L10n.string("settings.seconds", Int(state.draftProviderTimeout)), value: $state.draftProviderTimeout, in: 10...300, step: 10)
-                            .labelsHidden()
-                        Text(L10n.string("settings.seconds", Int(state.draftProviderTimeout)))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
-            if !isNew {
-                SettingsGroup(title: L10n.string("settings.accessKey")) {
-                    SettingsFieldRow(label: L10n.string("settings.accessKey")) {
-                        ZStack(alignment: .trailing) {
-                            Group {
-                                if isKeyVisible {
-                                    TextField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
-                                        .textFieldStyle(.roundedBorder)
-                                        .textContentType(.none)
-                                } else {
-                                    SecureField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
-                                        .textFieldStyle(.roundedBorder)
-                                        .textContentType(.password)
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
-
-                            Button {
-                                isKeyVisible.toggle()
-                            } label: {
-                                Image(systemName: isKeyVisible ? "eye.slash" : "eye")
-                                    .frame(width: 20, height: 20)
-                            }
-                            .buttonStyle(.borderless)
-                            .padding(.trailing, 6)
-                            .help(L10n.string(isKeyVisible ? "settings.hideAccessKey" : "settings.showAccessKey"))
-                            .accessibilityLabel(L10n.string(isKeyVisible ? "settings.hideAccessKey" : "settings.showAccessKey"))
-                        }
-                        .onChange(of: state.apiKeyDraft) { _, _ in
-                            state.persistAPIKeyDraft()
-                        }
-                    }
-                    Text(L10n.string("settings.accessKeyOnlyOnMac"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            if !isNew, state.selectedProviderSupportsModelRefresh {
-                SettingsGroup(
-                    title: L10n.string("settings.availableModels"),
-                    documentation: DocumentationLinks.url(for: .providersAndModels, language: state.settings.language)
-                ) {
-                    Text(L10n.string("settings.modelRefreshDescription"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    HStack(spacing: 10) {
-                        Button {
-                            state.refreshModels()
-                        } label: {
-                            Label(L10n.string("settings.refreshModels"), systemImage: "arrow.clockwise")
-                        }
-                        .disabled(!state.canRefreshModels || state.isRefreshingModels)
-
-                        if state.isRefreshingModels {
-                            ProgressView().controlSize(.small)
-                            Button(L10n.string("settings.stopRefresh")) {
-                                state.cancelModelRefresh()
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Save / Cancel buttons
-            HStack {
-                Spacer()
-                if isNew {
-                    Button(L10n.string("settings.cancel")) {
-                        state.cancelEditing()
-                    }
-                    .keyboardShortcut(.cancelAction)
-                }
-                Button(isNew ? L10n.string("settings.create") : L10n.string("settings.save")) {
-                    state.saveProvider()
-                }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.defaultAction)
-                .disabled(!state.canSaveProvider)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+    private var isNew: Bool {
+        if case .new = target { return true }
+        return false
     }
-}
-
-// MARK: - Model Detail Form
-
-private struct ModelDetailForm: View {
-    @Bindable var state: ProviderSettingsState
-    let isNew: Bool
-    var showsHeader = true
 
     private var parentProvider: ProviderConfiguration? {
-        guard let catalog = state.settings.providerRegistry.catalog,
-              let pid = state.newModelParentProviderID ?? state.selectedModel?.providerID,
-              let provider = catalog.providers.first(where: { $0.id == pid }) else { return nil }
-        return provider
-    }
-
-    private var parentProviderName: String {
-        parentProvider?.name ?? ""
+        guard let catalog = state.settings.providerRegistry.catalog else { return nil }
+        switch target {
+        case .new(let pid):
+            return catalog.providers.first(where: { $0.id == pid })
+        case .edit(let mid):
+            guard let model = catalog.models.first(where: { $0.id == mid }) else { return nil }
+            return catalog.providers.first(where: { $0.id == model.providerID })
+        }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            if showsHeader {
-                HStack {
-                    Text(isNew ? L10n.string("settings.newModel") : L10n.string("settings.editModel"))
-                        .font(.system(size: 17, weight: .semibold))
-                    Spacer()
-                    if !isNew {
-                        Button(role: .destructive) {
-                            if let id = state.selectedModelID {
-                                state.requestDeleteModel(id)
-                            }
-                        } label: {
-                            Label(L10n.string("settings.delete"), systemImage: "trash")
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-            }
-
-            SettingsGroup(title: L10n.string("settings.modelInfo")) {
-                SettingsFieldRow(label: L10n.string("settings.displayName")) {
-                    TextField(L10n.string("settings.displayNamePlaceholder"), text: $state.draftModelDisplayName)
-                        .textFieldStyle(.roundedBorder)
-                        .onChange(of: state.draftModelDisplayName) { _, _ in
-                            state.updateDraftModelCompatibilityProfileIfNeeded()
-                            state.clearStatus()
-                        }
-                }
-                SettingsFieldRow(label: L10n.string("settings.upstreamModelID")) {
-                    TextField("gpt-5-mini", text: $state.draftModelUpstreamID)
-                        .textFieldStyle(.roundedBorder)
-                        .onChange(of: state.draftModelUpstreamID) { _, _ in
-                            state.updateDraftModelCompatibilityProfileIfNeeded()
-                            state.clearStatus()
-                        }
-                }
-                SettingsFieldRow(label: L10n.string("settings.service")) {
-                    HStack(spacing: 8) {
-                        ProviderBrandIconView(
-                            slug: parentProvider.flatMap { provider in
-                                ProviderBrandIconMatcher.match(
-                                    providerName: provider.name,
-                                    address: provider.address
-                                )
-                            },
-                            size: 13,
-                            fallbackSymbol: "server.rack",
-                            fallbackColor: .secondary
+        VStack(alignment: .leading, spacing: 16) {
+            // Header
+            HStack(spacing: 12) {
+                ProviderBrandIconView(
+                    slug: parentProvider.flatMap { provider in
+                        ProviderBrandIconMatcher.match(
+                            providerName: provider.name,
+                            address: provider.address,
+                            modelName: state.draftModelDisplayName,
+                            upstreamModelID: state.draftModelUpstreamID
                         )
-                        Text(parentProviderName)
-                            .font(.system(size: 13))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                if state.selectedModel?.source == .discovered {
-                    Text(L10n.string("settings.discoveredModelHint"))
+                    },
+                    size: 24,
+                    fallbackSymbol: "cpu",
+                    fallbackColor: .cyan
+                )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(isNew ? L10n.string("settings.newModel") : L10n.string("settings.editModel"))
+                        .font(.system(size: 16, weight: .bold))
+                    Text(L10n.string("settings.modelEditorSubtitle"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                SettingsToggleRow(label: L10n.string("settings.streaming"), isOn: $state.draftModelStreaming)
-                SettingsFieldRow(label: L10n.string("settings.requestCompatibilityProfile")) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Picker(
-                            L10n.string("settings.requestCompatibilityProfile"),
-                            selection: Binding(
-                                get: { state.draftModelCompatibilityProfile },
-                                set: { state.setDraftModelCompatibilityProfile($0) }
-                            )
-                        ) {
-                            ForEach(RequestCompatibilityProfile.allCases, id: \.self) { profile in
-                                Text(profile.settingsTitle).tag(profile)
+
+                Spacer()
+            }
+
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    SettingsGroup(title: L10n.string("settings.modelInfo")) {
+                        SettingsFieldRow(label: L10n.string("settings.displayName")) {
+                            TextField(L10n.string("settings.displayNamePlaceholder"), text: $state.draftModelDisplayName)
+                                .textFieldStyle(.roundedBorder)
+                                .onChange(of: state.draftModelDisplayName) { _, _ in
+                                    state.updateDraftModelCompatibilityProfileIfNeeded()
+                                    state.clearStatus()
+                                }
+                        }
+
+                        SettingsFieldRow(label: L10n.string("settings.upstreamModelID")) {
+                            TextField("gpt-5-mini", text: $state.draftModelUpstreamID)
+                                .textFieldStyle(.roundedBorder)
+                                .onChange(of: state.draftModelUpstreamID) { _, _ in
+                                    state.updateDraftModelCompatibilityProfileIfNeeded()
+                                    state.clearStatus()
+                                }
+                        }
+
+                        if let parentProvider {
+                            SettingsFieldRow(label: L10n.string("settings.service")) {
+                                HStack(spacing: 6) {
+                                    Text(parentProvider.name)
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-                        Text(L10n.string("settings.requestCompatibilityProfileDescription"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                SettingsFieldRow(label: L10n.string("settings.thinkingMode")) {
-                    Picker(L10n.string("settings.thinkingMode"), selection: $state.draftModelThinkingMode) {
-                        ForEach(ModelThinkingMode.allCases, id: \.self) { mode in
-                            Text(mode.settingsTitle).tag(mode)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .onChange(of: state.draftModelThinkingMode) { _, _ in state.clearStatus() }
-                }
-                SettingsFieldRow(label: L10n.string("settings.customRequestParameters")) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        TextField(
-                            L10n.string("settings.customRequestParametersPlaceholder"),
-                            text: $state.draftModelExtraRequestParametersText,
-                            axis: .vertical
-                        )
-                        .font(.system(size: 12, design: .monospaced))
-                        .lineLimit(2...6)
-                        .onChange(of: state.draftModelExtraRequestParametersText) { _, _ in state.clearStatus() }
-                        if let error = state.draftExtraRequestParametersJSONError {
-                            Text(error)
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                        }
-                        Text(L10n.string("settings.customRequestParametersDescription"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
 
-            // Show active indicator or "Use for Chat" button
-            if let activeID = state.activeModelID {
-                if activeID == state.selectedModelID {
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.cyan)
-                            .font(.system(size: 12))
-                        Text(L10n.string("settings.currentlyActiveModel"))
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
+                        if state.selectedModel?.source == .discovered {
+                            Text(L10n.string("settings.discoveredModelHint"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        SettingsToggleRow(label: L10n.string("settings.streaming"), isOn: $state.draftModelStreaming)
+
+                        SettingsFieldRow(label: L10n.string("settings.thinkingMode")) {
+                            Picker(L10n.string("settings.thinkingMode"), selection: $state.draftModelThinkingMode) {
+                                ForEach(ModelThinkingMode.allCases, id: \.self) { mode in
+                                    Text(mode.settingsTitle).tag(mode)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.menu)
+                            .onChange(of: state.draftModelThinkingMode) { _, _ in state.clearStatus() }
+                        }
+                    }
+
+                    SettingsGroup(title: L10n.string("settings.customInstruction")) {
+                        SettingsFieldRow(label: L10n.string("settings.requestCompatibilityProfile")) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Picker(
+                                    L10n.string("settings.requestCompatibilityProfile"),
+                                    selection: Binding(
+                                        get: { state.draftModelCompatibilityProfile },
+                                        set: { state.setDraftModelCompatibilityProfile($0) }
+                                    )
+                                ) {
+                                    ForEach(RequestCompatibilityProfile.allCases, id: \.self) { profile in
+                                        Text(profile.settingsTitle).tag(profile)
+                                    }
+                                }
+                                .labelsHidden()
+                                .pickerStyle(.menu)
+
+                                Text(L10n.string("settings.requestCompatibilityProfileDescription"))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        SettingsFieldRow(label: L10n.string("settings.customRequestParameters")) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                TextField(
+                                    L10n.string("settings.customRequestParametersPlaceholder"),
+                                    text: $state.draftModelExtraRequestParametersText,
+                                    axis: .vertical
+                                )
+                                .font(.system(size: 12, design: .monospaced))
+                                .lineLimit(2...5)
+                                .onChange(of: state.draftModelExtraRequestParametersText) { _, _ in state.clearStatus() }
+
+                                if let error = state.draftExtraRequestParametersJSONError {
+                                    Text(error)
+                                        .font(.caption)
+                                        .foregroundStyle(.red)
+                                }
+
+                                Text(L10n.string("settings.customRequestParametersDescription"))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 }
+                .padding(.horizontal, 2)
             }
+            .frame(maxHeight: 340)
+
+            Divider()
 
             HStack {
-                Spacer()
-                if isNew {
-                    Button(L10n.string("settings.cancel")) {
-                        state.cancelEditing()
+                if !isNew, case .edit(let mid) = target {
+                    Button(role: .destructive) {
+                        dismiss()
+                        state.requestDeleteModel(mid)
+                    } label: {
+                        Label(L10n.string("settings.delete"), systemImage: "trash")
                     }
-                    .keyboardShortcut(.cancelAction)
+                    .buttonStyle(.borderless)
                 }
+
+                Spacer()
+
+                Button(L10n.string("settings.cancel")) {
+                    state.cancelEditing()
+                    dismiss()
+                }
+                .keyboardShortcut(.cancelAction)
+
                 Button(isNew ? L10n.string("settings.create") : L10n.string("settings.save")) {
                     state.saveModel()
+                    state.cancelEditing()
+                    dismiss()
                 }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
                 .disabled(!state.canSaveModel)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .frame(width: 480, height: 460)
     }
 }
 
@@ -776,6 +668,8 @@ private struct ProviderSettingsList: View {
     @Bindable var state: ProviderSettingsState
     let searchTarget: SettingsGroupTarget?
     let onSearchTargetConsumed: () -> Void
+    let onEditModel: (UUID) -> Void
+    let onAddModel: (UUID) -> Void
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -800,7 +694,9 @@ private struct ProviderSettingsList: View {
                             ProviderCard(
                                 state: state,
                                 provider: provider,
-                                models: state.modelsForProvider(provider.id)
+                                models: state.modelsForProvider(provider.id),
+                                onEditModel: onEditModel,
+                                onAddModel: onAddModel
                             )
                         }
                     }
@@ -832,6 +728,8 @@ private struct ProviderSettingsList: View {
 
 struct NewProviderCard: View {
     @Bindable var state: ProviderSettingsState
+    @State private var isAdvancedExpanded = false
+    @State private var isKeyVisible = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -844,57 +742,221 @@ struct NewProviderCard: View {
             .padding(.vertical, 12)
 
             Divider()
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.string("settings.providerTemplates"))
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary)
 
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 120, maximum: 160), spacing: 8)], spacing: 8) {
-                    ForEach(ProviderTemplate.allTemplates) { template in
-                        Button {
-                            state.applyProviderTemplate(template)
-                        } label: {
-                            HStack(spacing: 6) {
-                                ProviderBrandIconView(
-                                    slug: template.iconSlug,
-                                    size: 14,
-                                    fallbackSymbol: "server.rack",
-                                    fallbackColor: .secondary
-                                )
-                                Text(template.name)
-                                    .font(.system(size: 12))
-                                    .lineLimit(1)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 6)
-                            .background(
-                                state.draftProviderName == template.name
-                                    ? Brand.accent.opacity(0.12)
-                                    : Color.primary.opacity(0.04),
-                                in: RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                    .stroke(
-                                        state.draftProviderName == template.name
-                                            ? Brand.accent.opacity(0.4)
-                                            : Color.primary.opacity(0.08),
-                                        lineWidth: 1
+            VStack(alignment: .leading, spacing: 14) {
+                // Quick Templates
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(L10n.string("settings.providerTemplates"))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 120, maximum: 160), spacing: 8)], spacing: 8) {
+                        ForEach(ProviderTemplate.allTemplates) { template in
+                            Button {
+                                state.applyProviderTemplate(template)
+                            } label: {
+                                HStack(spacing: 6) {
+                                    ProviderBrandIconView(
+                                        slug: template.iconSlug,
+                                        size: 14,
+                                        fallbackSymbol: "server.rack",
+                                        fallbackColor: .secondary
                                     )
-                            )
+                                    Text(template.name)
+                                        .font(.system(size: 12))
+                                        .lineLimit(1)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 6)
+                                .background(
+                                    state.draftProviderName == template.name
+                                        ? Brand.accent.opacity(0.12)
+                                        : Color.primary.opacity(0.04),
+                                    in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .stroke(
+                                            state.draftProviderName == template.name
+                                                ? Brand.accent.opacity(0.4)
+                                                : Color.primary.opacity(0.08),
+                                            lineWidth: 1
+                                        )
+                                )
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
+
+                // Credentials (Access Key)
+                VStack(alignment: .leading, spacing: 8) {
+                    Label(L10n.string("settings.accessKey"), systemImage: "key.fill")
+                        .font(.system(size: 13, weight: .semibold))
+
+                    SettingsFieldRow(label: L10n.string("settings.accessKey")) {
+                        HStack(spacing: 8) {
+                            ZStack(alignment: .trailing) {
+                                if isKeyVisible {
+                                    TextField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
+                                        .textFieldStyle(.roundedBorder)
+                                        .textContentType(.none)
+                                } else {
+                                    SecureField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
+                                        .textFieldStyle(.roundedBorder)
+                                        .textContentType(.password)
+                                }
+
+                                Button {
+                                    isKeyVisible.toggle()
+                                } label: {
+                                    Image(systemName: isKeyVisible ? "eye.slash" : "eye")
+                                        .frame(width: 20, height: 20)
+                                }
+                                .buttonStyle(.borderless)
+                                .padding(.trailing, 6)
+                                .help(L10n.string(isKeyVisible ? "settings.hideAccessKey" : "settings.showAccessKey"))
+                            }
+
+                            if let pasteboardString = NSPasteboard.general.string(forType: .string),
+                               !pasteboardString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                Button {
+                                    state.apiKeyDraft = pasteboardString.trimmingCharacters(in: .whitespacesAndNewlines)
+                                } label: {
+                                    Label(L10n.string("settings.paste"), systemImage: "doc.on.clipboard")
+                                        .font(.system(size: 11))
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                                .help(L10n.string("settings.pasteFromClipboard"))
+                            }
+                        }
+                    }
+
+                    Text(L10n.string("settings.accessKeyOnlyOnMac"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 148)
+                }
+                .padding(12)
+                .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                // Service & Endpoint
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Label(L10n.string("settings.providerInfo"), systemImage: "network")
+                            .font(.system(size: 13, weight: .semibold))
+                        Spacer()
+                        SettingsDocumentationLink(
+                            url: DocumentationLinks.url(for: .serviceAddresses, language: state.settings.language),
+                            groupTitle: L10n.string("settings.providerInfo")
+                        )
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        SettingsFieldRow(label: L10n.string("settings.providerName")) {
+                            TextField(L10n.string("settings.providerNamePlaceholder"), text: $state.draftProviderName)
+                                .textFieldStyle(.roundedBorder)
+                                .onChange(of: state.draftProviderName) { _, _ in state.clearStatus() }
+                        }
+
+                        SettingsFieldRow(label: L10n.string("settings.providerFormat")) {
+                            HStack(spacing: 0) {
+                                Picker(L10n.string("settings.providerFormat"), selection: $state.draftProviderFormat) {
+                                    Text(L10n.string("settings.providerFormatOpenAI")).tag(ProviderFormat.openAICompatible)
+                                    Text(L10n.string("settings.providerFormatAnthropic")).tag(ProviderFormat.anthropic)
+                                    Text(L10n.string("settings.providerFormatGemini")).tag(ProviderFormat.gemini)
+                                }
+                                .pickerStyle(.segmented)
+                                .labelsHidden()
+                                Spacer(minLength: 0)
+                            }
+                            .onChange(of: state.draftProviderFormat) { _, _ in
+                                state.prefillOfficialAddress()
+                                state.validateProviderURL(state.draftProviderAddress)
+                                state.clearStatus()
+                            }
+                        }
+
+                        SettingsFieldRow(label: L10n.string("settings.serviceAddress")) {
+                            TextField("https://api.example.com/v1", text: $state.draftProviderAddress)
+                                .textFieldStyle(.roundedBorder)
+                                .onChange(of: state.draftProviderAddress) { _, value in state.validateProviderURL(value) }
+                        }
+
+                        if let error = state.providerFieldError {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                                .padding(.leading, 148)
+                        }
+
+                        // Collapsible advanced
+                        DisclosureGroup(
+                            isExpanded: $isAdvancedExpanded,
+                            content: {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    SettingsFieldRow(label: L10n.string("settings.addressMode")) {
+                                        HStack(spacing: 0) {
+                                            Picker(L10n.string("settings.addressMode"), selection: $state.draftProviderAddressMode) {
+                                                Text(L10n.string("settings.addressModeBaseURL")).tag(ProviderAddressMode.baseURL)
+                                                Text(L10n.string("settings.addressModeFullEndpoint")).tag(ProviderAddressMode.fullEndpoint)
+                                            }
+                                            .pickerStyle(.segmented)
+                                            .labelsHidden()
+                                            Spacer(minLength: 0)
+                                        }
+                                        .onChange(of: state.draftProviderAddressMode) { _, _ in
+                                            state.prefillOfficialAddress()
+                                            state.validateProviderURL(state.draftProviderAddress)
+                                        }
+                                    }
+
+                                    SettingsFieldRow(label: L10n.string("settings.responseTimeout")) {
+                                        HStack(spacing: 8) {
+                                            Stepper(L10n.string("settings.seconds", Int(state.draftProviderTimeout)), value: $state.draftProviderTimeout, in: 10...300, step: 10)
+                                                .labelsHidden()
+                                            Text(L10n.string("settings.seconds", Int(state.draftProviderTimeout)))
+                                                .foregroundStyle(.secondary)
+                                                .font(.system(size: 12))
+                                        }
+                                    }
+                                }
+                                .padding(.top, 6)
+                            },
+                            label: {
+                                HStack(spacing: 4) {
+                                    Text(L10n.string("settings.advancedConnection"))
+                                        .font(.caption.weight(.medium))
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        )
+                    }
+                }
+                .padding(12)
+                .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                // Footer
+                Divider()
+                HStack {
+                    Spacer()
+                    Button(L10n.string("settings.cancel")) {
+                        state.cancelEditing()
+                    }
+                    .keyboardShortcut(.cancelAction)
+
+                    Button(L10n.string("settings.create")) {
+                        state.saveProvider()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!state.canSaveProvider)
+                }
+                .padding(.top, 4)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 6)
-
-
-            ProviderDetailForm(state: state, isNew: true, showsHeader: false)
-                .padding(16)
+            .padding(16)
         }
         .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
@@ -908,19 +970,14 @@ private struct ProviderCard: View {
     @Bindable var state: ProviderSettingsState
     let provider: ProviderConfiguration
     let models: [ModelConfiguration]
+    let onEditModel: (UUID) -> Void
+    let onAddModel: (UUID) -> Void
 
-    private var isEditingProvider: Bool {
-        state.selectedProviderID == provider.id
-    }
-
-    private var isEditingModel: Bool {
-        if state.isCreatingModel, state.newModelParentProviderID == provider.id { return true }
-        if let model = state.selectedModel, model.providerID == provider.id { return true }
-        return false
-    }
+    @State private var isAdvancedExpanded = false
+    @State private var isKeyVisible = false
 
     private var isExpanded: Bool {
-        state.expandedProviderIDs.contains(provider.id) || isEditingProvider || isEditingModel
+        state.expandedProviderIDs.contains(provider.id) || state.selectedProviderID == provider.id
     }
 
     private var activeModel: ModelConfiguration? {
@@ -934,16 +991,11 @@ private struct ProviderCard: View {
             if isExpanded {
                 Divider()
 
-                VStack(alignment: .leading, spacing: 18) {
-                    if isEditingProvider {
-                        ProviderDetailForm(state: state, isNew: false, showsHeader: false)
-                    }
-
+                VStack(alignment: .leading, spacing: 14) {
+                    credentialsSection
+                    serviceSection
                     modelsSection
-
-                    if isEditingModel {
-                        ModelDetailForm(state: state, isNew: state.isCreatingModel, showsHeader: false)
-                    }
+                    cardFooter
                 }
                 .padding(16)
             }
@@ -956,25 +1008,292 @@ private struct ProviderCard: View {
     }
 
     @ViewBuilder
+    private var credentialsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label(L10n.string("settings.accessKey"), systemImage: "key.fill")
+                    .font(.system(size: 13, weight: .semibold))
+
+                Spacer()
+
+                if state.hasAPIKey(for: provider.id) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 8, weight: .bold))
+                        Text(L10n.string("settings.keyConfigured"))
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                    .foregroundStyle(.green)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.green.opacity(0.1), in: Capsule())
+                } else {
+                    HStack(spacing: 3) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 8, weight: .medium))
+                        Text(L10n.string("settings.keyMissing"))
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.orange.opacity(0.1), in: Capsule())
+                }
+            }
+
+            SettingsFieldRow(label: L10n.string("settings.accessKey")) {
+                HStack(spacing: 8) {
+                    ZStack(alignment: .trailing) {
+                        if isKeyVisible {
+                            TextField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
+                                .textFieldStyle(.roundedBorder)
+                                .textContentType(.none)
+                        } else {
+                            SecureField(L10n.string("settings.accessKeyPlaceholder"), text: $state.apiKeyDraft)
+                                .textFieldStyle(.roundedBorder)
+                                .textContentType(.password)
+                        }
+
+                        Button {
+                            isKeyVisible.toggle()
+                        } label: {
+                            Image(systemName: isKeyVisible ? "eye.slash" : "eye")
+                                .frame(width: 20, height: 20)
+                        }
+                        .buttonStyle(.borderless)
+                        .padding(.trailing, 6)
+                        .help(L10n.string(isKeyVisible ? "settings.hideAccessKey" : "settings.showAccessKey"))
+                        .accessibilityLabel(L10n.string(isKeyVisible ? "settings.hideAccessKey" : "settings.showAccessKey"))
+                    }
+                    .onChange(of: state.apiKeyDraft) { _, _ in
+                        state.persistAPIKeyDraft()
+                    }
+
+                    if let pasteboardString = NSPasteboard.general.string(forType: .string),
+                       !pasteboardString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Button {
+                            state.apiKeyDraft = pasteboardString.trimmingCharacters(in: .whitespacesAndNewlines)
+                            state.persistAPIKeyDraft()
+                        } label: {
+                            Label(L10n.string("settings.paste"), systemImage: "doc.on.clipboard")
+                                .font(.system(size: 11))
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .help(L10n.string("settings.pasteFromClipboard"))
+                    }
+                }
+            }
+
+            Text(L10n.string("settings.accessKeyOnlyOnMac"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.leading, 148)
+        }
+        .padding(12)
+        .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var serviceSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label(L10n.string("settings.providerInfo"), systemImage: "network")
+                    .font(.system(size: 13, weight: .semibold))
+                Spacer()
+                SettingsDocumentationLink(
+                    url: DocumentationLinks.url(for: .serviceAddresses, language: state.settings.language),
+                    groupTitle: L10n.string("settings.providerInfo")
+                )
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                SettingsFieldRow(label: L10n.string("settings.providerName")) {
+                    TextField(L10n.string("settings.providerNamePlaceholder"), text: $state.draftProviderName)
+                        .textFieldStyle(.roundedBorder)
+                        .onChange(of: state.draftProviderName) { _, _ in state.clearStatus() }
+                }
+
+                SettingsFieldRow(label: L10n.string("settings.providerFormat")) {
+                    HStack(spacing: 0) {
+                        Picker(L10n.string("settings.providerFormat"), selection: $state.draftProviderFormat) {
+                            Text(L10n.string("settings.providerFormatOpenAI")).tag(ProviderFormat.openAICompatible)
+                            Text(L10n.string("settings.providerFormatAnthropic")).tag(ProviderFormat.anthropic)
+                            Text(L10n.string("settings.providerFormatGemini")).tag(ProviderFormat.gemini)
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        Spacer(minLength: 0)
+                    }
+                    .onChange(of: state.draftProviderFormat) { _, _ in
+                        state.prefillOfficialAddress()
+                        state.validateProviderURL(state.draftProviderAddress)
+                        state.clearStatus()
+                    }
+                }
+
+                SettingsFieldRow(label: L10n.string("settings.serviceAddress")) {
+                    TextField("https://api.example.com/v1", text: $state.draftProviderAddress)
+                        .textFieldStyle(.roundedBorder)
+                        .onChange(of: state.draftProviderAddress) { _, value in state.validateProviderURL(value) }
+                }
+
+                if let error = state.providerFieldError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .padding(.leading, 148)
+                }
+
+                DisclosureGroup(
+                    isExpanded: $isAdvancedExpanded,
+                    content: {
+                        VStack(alignment: .leading, spacing: 8) {
+                            SettingsFieldRow(label: L10n.string("settings.addressMode")) {
+                                HStack(spacing: 0) {
+                                    Picker(L10n.string("settings.addressMode"), selection: $state.draftProviderAddressMode) {
+                                        Text(L10n.string("settings.addressModeBaseURL")).tag(ProviderAddressMode.baseURL)
+                                        Text(L10n.string("settings.addressModeFullEndpoint")).tag(ProviderAddressMode.fullEndpoint)
+                                    }
+                                    .pickerStyle(.segmented)
+                                    .labelsHidden()
+                                    Spacer(minLength: 0)
+                                }
+                                .onChange(of: state.draftProviderAddressMode) { _, _ in
+                                    state.prefillOfficialAddress()
+                                    state.validateProviderURL(state.draftProviderAddress)
+                                }
+                            }
+
+                            SettingsFieldRow(label: L10n.string("settings.responseTimeout")) {
+                                HStack(spacing: 8) {
+                                    Stepper(L10n.string("settings.seconds", Int(state.draftProviderTimeout)), value: $state.draftProviderTimeout, in: 10...300, step: 10)
+                                        .labelsHidden()
+                                    Text(L10n.string("settings.seconds", Int(state.draftProviderTimeout)))
+                                        .foregroundStyle(.secondary)
+                                        .font(.system(size: 12))
+                                }
+                            }
+                        }
+                        .padding(.top, 6)
+                    },
+                    label: {
+                        HStack(spacing: 4) {
+                            Text(L10n.string("settings.advancedConnection"))
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                )
+            }
+        }
+        .padding(12)
+        .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    @ViewBuilder
     private var modelsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(L10n.string("settings.model"))
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.secondary)
+            HStack {
+                Label(L10n.string("settings.configuredModels") + " (\(models.count))", systemImage: "cpu")
+                    .font(.system(size: 13, weight: .semibold))
 
-            ForEach(models) { model in
-                ProviderModelRow(state: state, model: model)
+                Spacer()
+
+                if state.selectedProviderSupportsModelRefresh {
+                    Button {
+                        state.refreshModels()
+                    } label: {
+                        HStack(spacing: 4) {
+                            if state.isRefreshingModels {
+                                ProgressView().controlSize(.mini)
+                            } else {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 10))
+                            }
+                            Text(L10n.string("settings.refreshModels"))
+                                .font(.system(size: 11))
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(!state.canRefreshModels || state.isRefreshingModels)
+                    .help(L10n.string("settings.modelRefreshDescription"))
+                }
+
+                Button {
+                    onAddModel(provider.id)
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 10, weight: .bold))
+                        Text(L10n.string("settings.addModel"))
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
 
-            Button {
-                state.startNewModel(for: provider.id)
-            } label: {
-                Label(L10n.string("settings.addModel"), systemImage: "plus")
-                    .font(.system(size: 12, weight: .medium))
+            if models.isEmpty {
+                Text(L10n.string("settings.noModelsUnderProvider"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 8)
+            } else {
+                VStack(spacing: 4) {
+                    ForEach(models) { model in
+                        ProviderModelRow(state: state, model: model, onEdit: {
+                            onEditModel(model.id)
+                        })
+                    }
+                }
             }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.secondary)
         }
+        .padding(12)
+        .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var cardFooter: some View {
+        Divider()
+
+        HStack(spacing: 12) {
+            Button {
+                state.testConnection(modelID: activeModel?.id ?? models.first?.id)
+            } label: {
+                HStack(spacing: 5) {
+                    if state.isTesting {
+                        ProgressView().controlSize(.mini)
+                    } else {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 11))
+                    }
+                    Text(L10n.string("settings.testConnection"))
+                        .font(.system(size: 12, weight: .medium))
+                }
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+            .disabled(state.isTesting)
+            .help(L10n.string("settings.testConnection"))
+
+            Spacer()
+
+            Button(L10n.string("settings.cancel")) {
+                state.cancelEditing()
+                state.collapseProvider(provider.id)
+            }
+            .keyboardShortcut(.cancelAction)
+
+            Button(L10n.string("settings.saveProvider")) {
+                state.saveProvider()
+            }
+            .buttonStyle(.borderedProminent)
+            .keyboardShortcut(.defaultAction)
+            .disabled(!state.canSaveProvider)
+        }
+        .padding(.top, 4)
     }
 
     private var header: some View {
@@ -1000,7 +1319,7 @@ private struct ProviderCard: View {
                 : L10n.string("settings.expandProvider", provider.name))
 
             Button {
-                state.selectProvider(provider.id)
+                state.toggleProviderExpansion(provider.id)
             } label: {
                 HStack(spacing: 8) {
                     ProviderBrandIconView(
@@ -1076,12 +1395,14 @@ private struct ProviderCard: View {
 
             Menu {
                 Button {
-                    state.selectProvider(provider.id)
+                    if !isExpanded {
+                        state.toggleProviderExpansion(provider.id)
+                    }
                 } label: {
                     Label(L10n.string("settings.editProvider"), systemImage: "pencil")
                 }
                 Button {
-                    state.startNewModel(for: provider.id)
+                    onAddModel(provider.id)
                 } label: {
                     Label(L10n.string("settings.addModel"), systemImage: "plus")
                 }
@@ -1110,6 +1431,7 @@ private struct ProviderCard: View {
 private struct ProviderModelRow: View {
     @Bindable var state: ProviderSettingsState
     let model: ModelConfiguration
+    let onEdit: () -> Void
 
     private var provider: ProviderConfiguration? {
         guard let catalog = state.settings.providerRegistry.catalog else { return nil }
@@ -1151,7 +1473,7 @@ private struct ProviderModelRow: View {
             .frame(width: 22, height: 22)
 
             Button {
-                state.selectModel(model.id)
+                onEdit()
             } label: {
                 HStack(spacing: 8) {
                     ProviderBrandIconView(
@@ -1239,7 +1561,7 @@ private struct ProviderModelRow: View {
             .accessibilityLabel(L10n.string("settings.testModel") + " " + model.displayName)
 
             Button {
-                state.selectModel(model.id)
+                onEdit()
             } label: {
                 Image(systemName: "pencil")
                     .frame(width: 22, height: 22)

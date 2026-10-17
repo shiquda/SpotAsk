@@ -659,3 +659,10 @@
 "settings.providerTemplates" = "Schnellvorlagen";
 "settings.streamingBadge" = "Stream";
 "settings.thinkingBadge" = "Nachdenken: %@";
+"settings.saveProvider" = "Anbieter speichern";
+"settings.advancedConnection" = "Erweiterte Verbindungsoptionen";
+"settings.configuredModels" = "Konfigurierte Modelle";
+"settings.modelEditorSubtitle" = "Konfigurieren Sie Modellparameter, Denkmodi und Protokollkompatibilität.";
+"settings.paste" = "Einsetzen";
+"settings.pasteFromClipboard" = "Aus Zwischenablage einfügen";
+"settings.noModelsUnderProvider" = "Für diesen Anbieter sind noch keine Modelle konfiguriert.";

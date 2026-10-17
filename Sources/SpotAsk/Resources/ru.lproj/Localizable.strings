@@ -659,3 +659,10 @@
 "settings.providerTemplates" = "Быстрые шаблоны";
 "settings.streamingBadge" = "Стрим";
 "settings.thinkingBadge" = "Размышление: %@";
+"settings.saveProvider" = "Сохранить провайдера";
+"settings.advancedConnection" = "Расширенные параметры подключения";
+"settings.configuredModels" = "Настроенные модели";
+"settings.modelEditorSubtitle" = "Настройте параметры модели, режимы рассуждения и совместимость протоколов.";
+"settings.paste" = "Вставить";
+"settings.pasteFromClipboard" = "Вставить из буфера обмена";
+"settings.noModelsUnderProvider" = "Для этого провайдера пока не настроено ни одной модели.";

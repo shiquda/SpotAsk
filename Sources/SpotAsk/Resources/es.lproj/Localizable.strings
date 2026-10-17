@@ -659,3 +659,10 @@
 "settings.providerTemplates" = "Plantillas rápidas";
 "settings.streamingBadge" = "Stream";
 "settings.thinkingBadge" = "Razonamiento: %@";
+"settings.saveProvider" = "Guardar proveedor";
+"settings.advancedConnection" = "Opciones avanzadas de conexión";
+"settings.configuredModels" = "Modelos configurados";
+"settings.modelEditorSubtitle" = "Configura los parámetros del modelo, modos de razonamiento y compatibilidad de protocolo.";
+"settings.paste" = "Pegar";
+"settings.pasteFromClipboard" = "Pegar del portapapeles";
+"settings.noModelsUnderProvider" = "Aún no hay modelos configurados para este proveedor.";

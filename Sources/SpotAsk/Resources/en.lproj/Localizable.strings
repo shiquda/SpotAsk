@@ -659,3 +659,10 @@
 "settings.providerTemplates" = "Quick Templates";
 "settings.streamingBadge" = "Stream";
 "settings.thinkingBadge" = "Thinking: %@";
+"settings.saveProvider" = "Save Provider";
+"settings.advancedConnection" = "Advanced Connection Options";
+"settings.configuredModels" = "Configured Models";
+"settings.modelEditorSubtitle" = "Configure model parameters, reasoning modes, and protocol compatibility.";
+"settings.paste" = "Paste";
+"settings.pasteFromClipboard" = "Paste from Clipboard";
+"settings.noModelsUnderProvider" = "No models configured for this provider yet.";
