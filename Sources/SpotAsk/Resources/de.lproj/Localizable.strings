@@ -415,6 +415,11 @@
 "settings.selectionAssistantActionBarCrowdingHint" = "Bei vielen Aktionen kann die Leiste zu lang werden. Entfernen Sie selten genutzte Aktionen, oder deaktivieren Sie „Beschriftungen neben Symbolen anzeigen“, um nur Symbole zu zeigen.";
 "settings.selectionAssistantActionBarPreview" = "Vorschau der Aktionsleiste";
 "settings.selectionAssistantActionBarPreviewEmpty" = "Keine Aktionen anzuzeigen – mit der aktuellen Konfiguration erscheint die Aktionsleiste nicht.";
+"settings.selectionAssistantCollapseOverflow" = "Überzählige Aktionen in Untermenü einklappen";
+"settings.selectionAssistantCollapseOverflowDescription" = "Bei mehr als 4 Aktionen werden weitere Aktionen automatisch in einem „···“-Menü zusammengefasst, um die Leiste kompakt zu halten.";
+"settings.selectionAssistantActionBarLivePreview" = "Live-Vorschau der Aktionsleiste";
+"settings.selectionAssistantActionBarLiveBadge" = "Live-Vorschau";
+"settings.selectionAssistantActionBarOverflowNote" = "%d Aktionen im „···“-Menü zusammengefasst";
 "settings.selectionAssistantShowsExternalAsk" = "External Ask in der Auswahlleiste anzeigen";
 "settings.selectionAssistantShowsExternalAskDescription" = "Angezeigte Aktionen und Reihenfolge folgen den External-Ask-Einstellungen";
 "selection.actionBar.more" = "Mehr";

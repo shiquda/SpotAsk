@@ -66,14 +66,14 @@ struct SelectionAssistantSettingsPage: View {
                             label: L10n.string("settings.selectionAssistantActionExternalAsk"),
                             isOn: Bindable(settings).selectionActionBarShowsExternalAsk
                         )
-                        SettingsFieldRow(label: L10n.string("settings.selectionAssistantActionBarPreview")) {
-                            actionBarPreview
-                        }
-                        if showsActionBarCrowdingHint {
-                            Text(L10n.string("settings.selectionAssistantActionBarCrowdingHint"))
-                                .font(.system(size: 12))
-                                .foregroundStyle(.secondary)
-                        }
+                        SettingsToggleRow(
+                            label: L10n.string("settings.selectionAssistantCollapseOverflow"),
+                            isOn: Bindable(settings).selectionActionBarCollapseOverflow
+                        )
+                        Text(L10n.string("settings.selectionAssistantCollapseOverflowDescription"))
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                        livePreviewStageCard
                         if settings.selectionAutoInvokeEnabled {
                             SettingsFieldRow(label: L10n.string("settings.selectionAssistantAutoShowScope")) {
                                 Picker(L10n.string("settings.selectionAssistantAutoShowScope"), selection: Bindable(settings).selectionAutoInvokeScope) {
@@ -169,24 +169,93 @@ struct SelectionAssistantSettingsPage: View {
     }
 
     private var showsActionBarCrowdingHint: Bool {
-        (settings.selectionActionBarShowsChatAction ? 1 : 0) + settings.enabledPromptPresets.count + settings.enabledQuickActions.count > 4
+        !settings.selectionActionBarCollapseOverflow && (settings.selectionActionBarShowsChatAction ? 1 : 0) + settings.enabledPromptPresets.count + settings.enabledQuickActions.count > 4
     }
 
-    /// A 1:1 render of the action bar the four switches above produce. The
-    /// content and its layout come from the same types the live overlay uses,
-    /// so the preview cannot drift from what a real selection presents.
-    @ViewBuilder
-    private var actionBarPreview: some View {
+    /// A dedicated Live Preview stage card with centered immersive canvas.
+    /// The Action Bar is dynamically rendered 1:1 using the actual AppKit HUD view,
+    /// immediately reflecting toggle switches and ordering changes.
+    private var livePreviewStageCard: some View {
         let content = SelectionActionBarContent.resolve(from: settings)
-        if content.isEmpty {
-            Text(L10n.string("settings.selectionAssistantActionBarPreviewEmpty"))
-                .font(.system(size: 13))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        } else {
-            SelectionActionBarPreview(layout: content.layout)
-                .frame(width: content.layout.size.width, height: content.layout.size.height)
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center) {
+                Label(L10n.string("settings.selectionAssistantActionBarLivePreview"), systemImage: "sparkles")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(Color.accentColor)
+                        .frame(width: 6, height: 6)
+                    Text(L10n.string("settings.selectionAssistantActionBarLiveBadge"))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 7)
+                .padding(.vertical, 2.5)
+                .background(Color.primary.opacity(0.04), in: Capsule())
+            }
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color(nsColor: .textBackgroundColor).opacity(0.45))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                    )
+
+                if content.isEmpty {
+                    VStack(spacing: 6) {
+                        Image(systemName: "cursorarrow.and.square.on.square.dashed")
+                            .font(.system(size: 20))
+                            .foregroundStyle(.tertiary)
+                        Text(L10n.string("settings.selectionAssistantActionBarPreviewEmpty"))
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 26)
+                } else {
+                    SelectionActionBarPreview(layout: content.layout)
+                        .frame(width: content.layout.size.width, height: content.layout.size.height)
+                        .shadow(color: Color.black.opacity(0.12), radius: 8, x: 0, y: 3)
+                        .padding(.vertical, 22)
+                        .padding(.horizontal, 16)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 88)
+
+            if content.layout.showsMoreButton {
+                let overflowCount = content.layout.overflowPresets.count + content.layout.overflowExternalAsks.count
+                HStack(spacing: 5) {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    Text(L10n.string("settings.selectionAssistantActionBarOverflowNote", overflowCount))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            } else if showsActionBarCrowdingHint {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.orange)
+                    Text(L10n.string("settings.selectionAssistantActionBarCrowdingHint"))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
+        .padding(14)
+        .background(Color.primary.opacity(0.025), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        )
     }
 
     private var autoInvokeSelectedIdentifiers: [String] {

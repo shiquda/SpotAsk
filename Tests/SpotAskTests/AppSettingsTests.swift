@@ -114,6 +114,18 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertFalse(AppSettings(defaults: defaults).selectionActionBarShowsChatAction)
     }
 
+    func testSelectionActionBarCollapseOverflowDefaultsOnAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        XCTAssertTrue(AppSettings(defaults: defaults).selectionActionBarCollapseOverflow)
+
+        let settings = AppSettings(defaults: defaults)
+        settings.selectionActionBarCollapseOverflow = false
+        XCTAssertFalse(AppSettings(defaults: defaults).selectionActionBarCollapseOverflow)
+    }
+
     func testProxyDefaultsToOffAndPersists() {
         let suite = "AppSettingsTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!

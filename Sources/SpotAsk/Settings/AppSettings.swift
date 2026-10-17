@@ -382,6 +382,7 @@ final class AppSettings {
         static let selectionActionBarShowsLabels = "selectionActionBarShowsLabels"
         static let selectionActionBarShowsPrompts = "selectionActionBarShowsPrompts"
         static let selectionActionBarShowsExternalAsk = "selectionActionBarShowsExternalAsk"
+        static let selectionActionBarCollapseOverflow = "selectionActionBarCollapseOverflow"
         static let automaticUpdateCheckEnabled = "automaticUpdateCheckEnabled"
         static let updateDownloadSource = "updateDownloadSource"
         static let quickActionCatalog = "webQuickAskProviderCatalog"
@@ -460,6 +461,7 @@ final class AppSettings {
     var selectionActionBarShowsLabels: Bool = true { didSet { saveSetting("selectionActionBarShowsLabels") } }
     var selectionActionBarShowsPrompts: Bool = true { didSet { saveSetting("selectionActionBarShowsPrompts") } }
     var selectionActionBarShowsExternalAsk: Bool = true { didSet { saveSetting("selectionActionBarShowsExternalAsk") } }
+    var selectionActionBarCollapseOverflow: Bool = true { didSet { saveSetting("selectionActionBarCollapseOverflow") } }
     var automaticUpdateCheckEnabled: Bool = true { didSet { saveSetting("automaticUpdateCheckEnabled") } }
     var updateDownloadSource: UpdateDownloadSource = .automatic { didSet { saveSetting("updateDownloadSource") } }
     var selectionAutoInvokeEnabled: Bool = false { didSet { saveSetting("selectionAutoInvokeEnabled") } }
