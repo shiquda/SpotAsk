@@ -133,6 +133,26 @@ enum HotKeyPreset: String, CaseIterable, Identifiable {
     }
 }
 
+enum ShortcutConflictKind: Equatable, Sendable {
+    case globalHotKey(String)
+    case selectionAssistantToggle(String)
+    case inAppTarget(InAppShortcutTarget, title: String)
+
+    var title: String {
+        switch self {
+        case let .globalHotKey(name): name
+        case let .selectionAssistantToggle(name): name
+        case let .inAppTarget(_, title): title
+        }
+    }
+}
+
+struct ShortcutConflictInfo: Equatable, Sendable {
+    let conflictingShortcut: InAppShortcut
+    let conflictSource: ShortcutConflictKind
+    let message: String
+}
+
 enum SelectionAssistantMode: String, CaseIterable, Identifiable, Codable, Sendable {
     case direct
     case actionBar
@@ -933,6 +953,74 @@ final class AppSettings {
     func resetAllShortcuts() {
         inAppShortcutConfiguration.resetAll()
         saveInAppShortcutConfiguration()
+    }
+
+    func targetTitle(for target: InAppShortcutTarget) -> String {
+        switch target {
+        case let .operation(operation):
+            operation.title
+        case let .promptPreset(id):
+            promptPresets.first(where: { $0.id == id })?.title ?? L10n.string("settings.shortcuts")
+        case let .quickAction(id):
+            quickActions.first(where: { $0.id == id })?.displayName ?? L10n.string("settings.externalAsk")
+        }
+    }
+
+    func shortcutConflict(
+        for shortcut: InAppShortcut,
+        excluding target: InAppShortcutTarget? = nil,
+        excludingGlobal: Bool = false,
+        excludingSelectionToggle: Bool = false
+    ) -> ShortcutConflictInfo? {
+        if !excludingGlobal {
+            let global = globalShortcut ?? hotKeyPreset.shortcut
+            if shortcut == global {
+                let name = L10n.string("settings.globalShortcut")
+                return ShortcutConflictInfo(
+                    conflictingShortcut: shortcut,
+                    conflictSource: .globalHotKey(name),
+                    message: L10n.string("settings.shortcutConflictGlobal", name)
+                )
+            }
+        }
+
+        if !excludingSelectionToggle, let toggle = selectionAssistantToggleShortcut {
+            if shortcut == toggle {
+                let name = L10n.string("settings.selectionAssistantToggleShortcut")
+                return ShortcutConflictInfo(
+                    conflictingShortcut: shortcut,
+                    conflictSource: .selectionAssistantToggle(name),
+                    message: L10n.string("settings.shortcutConflictGlobal", name)
+                )
+            }
+        }
+
+        let assignments = shortcutAssignments
+        if let conflict = assignments.first(where: { $0.shortcut == shortcut && $0.target != target }) {
+            let title = targetTitle(for: conflict.target)
+            return ShortcutConflictInfo(
+                conflictingShortcut: shortcut,
+                conflictSource: .inAppTarget(conflict.target, title: title),
+                message: L10n.string("settings.shortcutConflictInApp", title)
+            )
+        }
+
+        return nil
+    }
+
+    func shortcutConflict(for target: InAppShortcutTarget) -> ShortcutConflictInfo? {
+        guard let current = shortcut(for: target) else { return nil }
+        return shortcutConflict(for: current, excluding: target)
+    }
+
+    func globalShortcutConflict() -> ShortcutConflictInfo? {
+        let global = globalShortcut ?? hotKeyPreset.shortcut
+        return shortcutConflict(for: global, excludingGlobal: true)
+    }
+
+    func selectionAssistantToggleShortcutConflict() -> ShortcutConflictInfo? {
+        guard let toggle = selectionAssistantToggleShortcut else { return nil }
+        return shortcutConflict(for: toggle, excludingSelectionToggle: true)
     }
 
     func makeConfigurationBackup(
