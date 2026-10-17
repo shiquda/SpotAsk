@@ -817,6 +817,13 @@ final class AppSettings {
         return saveQuickAction(action)
     }
 
+    @discardableResult
+    func addQuickAction(from template: QuickActionTemplate) -> QuickAction? {
+        let action = template.makeQuickAction()
+        guard saveQuickAction(action) else { return nil }
+        return action
+    }
+
     func deleteQuickAction(id: UUID) {
         if QuickAction.builtIn.contains(where: { $0.id == id }) {
             removedBuiltInQuickActionIDs.insert(id)

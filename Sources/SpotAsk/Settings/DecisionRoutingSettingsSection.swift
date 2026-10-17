@@ -13,6 +13,7 @@ struct DecisionRoutingSettingsSection: View {
     @State private var testElapsedMs: Int?
     @State private var isTesting = false
 
+    @State private var editingHintsAction: QuickAction?
     var body: some View {
         SettingsGroup(
             title: L10n.string("decisionRouting.sectionTitle"),
@@ -43,21 +44,25 @@ struct DecisionRoutingSettingsSection: View {
 
             if settings.decisionRoutingEnabled {
                 Divider()
-                SettingsToggleRow(
-                    label: L10n.string("decisionRouting.showToolbarToggle"),
-                    description: L10n.string("decisionRouting.showToolbarToggleDescription"),
-                    isOn: Bindable(settings).decisionRoutingShowsToolbarToggle
-                )
+                routingLogicSyntaxSection
                 Divider()
-                endpointFields
-                Divider()
-                confirmationFields
-                inAppFields
+                engineConfigurationSection
                 Divider()
                 testFields
             }
         }
         .onAppear(perform: loadKeys)
+        .sheet(item: $editingHintsAction) { action in
+            RoutingHintsEditorSheet(action: action) { purpose, scenario, forceConfirm in
+                settings.updateQuickActionRouting(
+                    id: action.id,
+                    purpose: purpose,
+                    scenario: scenario,
+                    requiresConfirmation: forceConfirm
+                )
+                editingHintsAction = nil
+            }
+        }
     }
 
     private var endpointFields: some View {
@@ -153,23 +158,256 @@ struct DecisionRoutingSettingsSection: View {
                         .frame(minWidth: 48, alignment: .trailing)
                 }
             }
-            SettingsFieldRow(label: L10n.string("decisionRouting.timeoutAction")) {
-                HStack(spacing: 0) {
-                    Spacer(minLength: 0)
-                    Picker(L10n.string("decisionRouting.timeoutAction"), selection: Bindable(settings).decisionRoutingTimeoutAction) {
-                        Text(L10n.string("decisionRouting.timeoutManualAction")).tag(DecisionTimeoutAction.manualSelection)
-                        Text(L10n.string("decisionRouting.timeoutInAppAction")).tag(DecisionTimeoutAction.inApp)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
+        }
+    }
+
+    private var routingLogicSyntaxSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(L10n.string("decisionRouting.routingLogicTitle"))
+                    .font(.system(size: 13, weight: .semibold))
+                Text(L10n.string("decisionRouting.routingLogicDescription"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if settings.enabledQuickActions.isEmpty {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                    Text(L10n.string("decisionRouting.noChannelsHint"))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
                 }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(Array(settings.enabledQuickActions.enumerated()), id: \.element.id) { index, action in
+                        sequentialRouteCard(action: action, index: index, totalCount: settings.enabledQuickActions.count)
+                    }
+                }
+            }
+
+            fallbackRouteCard
+        }
+    }
+
+    private func sequentialRouteCard(action: QuickAction, index: Int, totalCount: Int) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text("\(index + 1)")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 18, height: 18)
+                    .background(Color.accentColor.opacity(0.12), in: Circle())
+
+                Text(L10n.string("decisionRouting.if"))
+                    .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.secondary)
+
+                Text(conditionDisplayText(for: action))
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                Text(L10n.string("decisionRouting.thenGoTo"))
+                    .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 10) {
+                Rectangle()
+                    .fill(Color.accentColor)
+                    .frame(width: 3, height: 32)
+                    .clipShape(Capsule())
+
+                ProviderBrandIconView(
+                    slug: action.brandIconSlug,
+                    size: 16,
+                    fallbackSymbol: action.symbolName
+                )
+                .frame(width: 22, height: 22)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(action.displayName)
+                            .font(.system(size: 13, weight: .semibold))
+
+                        Text(action.kind.localizedLabel)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1.5)
+                            .background(Color.primary.opacity(0.06), in: Capsule())
+
+                        if action.requiresConfirmationOnAutoRoute {
+                            Label(L10n.string("decisionRouting.requiresConfirmBadge"), systemImage: "hand.raised.fill")
+                                .font(.system(size: 9.5, weight: .medium))
+                                .foregroundStyle(.orange)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1.5)
+                                .background(Color.orange.opacity(0.1), in: Capsule())
+                        } else {
+                            Label(L10n.string("decisionRouting.autoRouteBadge"), systemImage: "bolt.fill")
+                                .font(.system(size: 9.5, weight: .medium))
+                                .foregroundStyle(Color.accentColor)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1.5)
+                                .background(Color.accentColor.opacity(0.1), in: Capsule())
+                        }
+                    }
+
+                    if !action.routingPurpose.isEmpty {
+                        Text(action.routingPurpose)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer(minLength: 8)
+
+                Button {
+                    editingHintsAction = action
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                        .frame(width: 20, height: 20)
+                }
+                .buttonStyle(.borderless)
+                .help(L10n.string("decisionRouting.editHints"))
+
+                routeReorderControls(for: action, index: index, totalCount: totalCount)
+            }
+            .padding(10)
+            .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
             }
         }
     }
 
-    private var inAppFields: some View {
-        SettingsFieldRow(label: L10n.string("decisionRouting.inAppDescription")) {
-            styledInputField(L10n.string("decisionRouting.defaultInApp"), text: Bindable(settings).decisionRoutingInAppDescription)
+    private func conditionDisplayText(for action: QuickAction) -> String {
+        let scenario = action.routingScenario.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !scenario.isEmpty {
+            return "“\(scenario)”"
+        }
+        let purpose = action.routingPurpose.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !purpose.isEmpty {
+            return "“\(purpose)”"
+        }
+        return L10n.string("decisionRouting.defaultConditionForChannel", action.displayName)
+    }
+
+    private func routeReorderControls(for action: QuickAction, index: Int, totalCount: Int) -> some View {
+        HStack(spacing: 2) {
+            Button {
+                settings.moveQuickAction(id: action.id, by: -1)
+            } label: {
+                Image(systemName: "chevron.up")
+                    .frame(width: 20, height: 20)
+            }
+            .buttonStyle(.borderless)
+            .disabled(index == 0)
+            .help(L10n.string("settings.moveUp"))
+
+            Button {
+                settings.moveQuickAction(id: action.id, by: 1)
+            } label: {
+                Image(systemName: "chevron.down")
+                    .frame(width: 20, height: 20)
+            }
+            .buttonStyle(.borderless)
+            .disabled(index + 1 >= totalCount)
+            .help(L10n.string("settings.moveDown"))
+        }
+    }
+
+    private var fallbackRouteCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(L10n.string("decisionRouting.fallbackTitle"))
+                .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.5))
+                        .frame(width: 3, height: 32)
+                        .clipShape(Capsule())
+
+                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Color.accentColor)
+                        .frame(width: 22, height: 22)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text(L10n.string("decisionRouting.inAppTitle"))
+                                .font(.system(size: 13, weight: .semibold))
+
+                            Text(L10n.string("decisionRouting.defaultFallbackBadge"))
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1.5)
+                                .background(Color.primary.opacity(0.06), in: Capsule())
+                        }
+
+                        Text(L10n.string("decisionRouting.fallbackDescription"))
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer()
+                }
+
+                Divider()
+
+                SettingsFieldRow(label: L10n.string("decisionRouting.inAppDescription")) {
+                    styledInputField(
+                        L10n.string("decisionRouting.defaultInApp"),
+                        text: Bindable(settings).decisionRoutingInAppDescription
+                    )
+                }
+
+                SettingsFieldRow(label: L10n.string("decisionRouting.timeoutAction")) {
+                    HStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        Picker(L10n.string("decisionRouting.timeoutAction"), selection: Bindable(settings).decisionRoutingTimeoutAction) {
+                            Text(L10n.string("decisionRouting.timeoutManualAction")).tag(DecisionTimeoutAction.manualSelection)
+                            Text(L10n.string("decisionRouting.timeoutInAppAction")).tag(DecisionTimeoutAction.inApp)
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                    }
+                }
+            }
+            .padding(12)
+            .background(Color.primary.opacity(0.025), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+            }
+        }
+    }
+
+    private var engineConfigurationSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(L10n.string("decisionRouting.engineSettingsTitle"))
+                .font(.system(size: 13, weight: .semibold))
+
+            SettingsToggleRow(
+                label: L10n.string("decisionRouting.showToolbarToggle"),
+                description: L10n.string("decisionRouting.showToolbarToggleDescription"),
+                isOn: Bindable(settings).decisionRoutingShowsToolbarToggle
+            )
+
+            endpointFields
+            confirmationFields
         }
     }
 
@@ -381,6 +619,77 @@ struct DecisionRoutingSettingsSection: View {
         case let .failed(failure):
             return failure.localizedText
         }
+    }
+}
+
+// MARK: - Routing Hints Editor Sheet
+
+private struct RoutingHintsEditorSheet: View {
+    let action: QuickAction
+    let onSave: (String, String, Bool) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var purpose: String
+    @State private var scenario: String
+    @State private var forceConfirm: Bool
+
+    init(action: QuickAction, onSave: @escaping (String, String, Bool) -> Void) {
+        self.action = action
+        self.onSave = onSave
+        _purpose = State(initialValue: action.routingPurpose)
+        _scenario = State(initialValue: action.routingScenario)
+        _forceConfirm = State(initialValue: action.requiresConfirmationOnAutoRoute)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 14) {
+                Text(L10n.string("decisionRouting.editChannelTitle", action.displayName))
+                    .font(.title3.weight(.semibold))
+
+                Text(L10n.string("decisionRouting.editChannelNote"))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                SettingsFieldRow(label: L10n.string("decisionRouting.purpose")) {
+                    TextField(L10n.string("decisionRouting.purposePlaceholder"), text: $purpose)
+                        .textFieldStyle(.roundedBorder)
+                }
+
+                SettingsFieldRow(label: L10n.string("decisionRouting.scenario")) {
+                    TextField(L10n.string("decisionRouting.scenarioPlaceholder"), text: $scenario)
+                        .textFieldStyle(.roundedBorder)
+                }
+
+                Divider()
+
+                SettingsToggleRow(
+                    label: L10n.string("decisionRouting.forceConfirm"),
+                    description: L10n.string("decisionRouting.forceConfirmDescription"),
+                    isOn: $forceConfirm
+                )
+            }
+            .padding(20)
+
+            Divider()
+
+            HStack {
+                Spacer()
+                Button(L10n.string("settings.cancel")) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Button(L10n.string("settings.save")) {
+                    onSave(purpose, scenario, forceConfirm)
+                    dismiss()
+                }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+        }
+        .background(Color(nsColor: .windowBackgroundColor))
+        .frame(width: 480)
     }
 }
 
