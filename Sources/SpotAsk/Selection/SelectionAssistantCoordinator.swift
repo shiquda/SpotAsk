@@ -135,6 +135,7 @@ final class SelectionAssistantCoordinator {
                         presets: content.presets,
                         externalAsks: content.externalAsks,
                         showsLabels: content.showsLabels,
+                        collapsesOverflow: content.collapsesOverflow,
                         shortcutForChat: nil,
                         shortcutForPreset: { [settings] preset in
                             settings.shortcut(for: .promptPreset(preset.id))
@@ -286,6 +287,7 @@ protocol SelectionOverlayControlling: AnyObject {
         presets: [PromptPreset],
         externalAsks: [QuickAction],
         showsLabels: Bool,
+        collapsesOverflow: Bool,
         shortcutForChat: InAppShortcut?,
         shortcutForPreset: ((PromptPreset) -> InAppShortcut?)?,
         shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?,
@@ -299,6 +301,35 @@ protocol SelectionOverlayControlling: AnyObject {
 }
 
 extension SelectionOverlayControlling {
+
+    func showActions(
+        snapshot: SelectedTextSnapshot,
+        showsChat: Bool,
+        presets: [PromptPreset],
+        externalAsks: [QuickAction],
+        showsLabels: Bool,
+        shortcutForChat: InAppShortcut?,
+        shortcutForPreset: ((PromptPreset) -> InAppShortcut?)?,
+        shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?,
+        onSelectChat: @escaping () -> Void,
+        onSelectPreset: @escaping (PromptPreset) -> Void,
+        onSelectExternalAsk: @escaping (QuickAction) -> Void
+    ) {
+        showActions(
+            snapshot: snapshot,
+            showsChat: showsChat,
+            presets: presets,
+            externalAsks: externalAsks,
+            showsLabels: showsLabels,
+            collapsesOverflow: false,
+            shortcutForChat: shortcutForChat,
+            shortcutForPreset: shortcutForPreset,
+            shortcutForExternalAsk: shortcutForExternalAsk,
+            onSelectChat: onSelectChat,
+            onSelectPreset: onSelectPreset,
+            onSelectExternalAsk: onSelectExternalAsk
+        )
+    }
 
     func showActions(
         snapshot: SelectedTextSnapshot,

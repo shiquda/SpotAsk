@@ -24,12 +24,26 @@ final class OverlayButtonTarget: NSObject {
     }
 }
 
+final class MenuItemTarget: NSObject {
+    private let handler: () -> Void
+
+    init(handler: @escaping () -> Void) {
+        self.handler = handler
+    }
+
+    @objc func invoke() {
+        handler()
+    }
+}
+
 /// Renders a `SelectionActionBarLayout` as the bar's translucent container and
 /// its buttons. The live overlay panel and the Settings preview share this one
 /// implementation, so the bar's look cannot diverge between them.
 @MainActor
 final class SelectionActionBarContentView: NSVisualEffectView {
     private var buttonTargets: [OverlayButtonTarget] = []
+    private var menuTargets: [MenuItemTarget] = []
+    private weak var moreButton: NSButton?
 
     init(layout: SelectionActionBarLayout, actions: SelectionActionBarActions?) {
         super.init(frame: NSRect(origin: .zero, size: layout.size))
@@ -58,6 +72,57 @@ final class SelectionActionBarContentView: NSVisualEffectView {
 
         for item in layout.placedItems {
             switch item {
+            case let .item(actionItem, frame):
+                switch actionItem.kind {
+                case .chat:
+                    let target = actions.map { wired in OverlayButtonTarget { wired.onSelectChat() } }
+                    if let target { buttonTargets.append(target) }
+                    addSubview(makeActionButton(
+                        frame: frame,
+                        title: "",
+                        symbolName: "quote.bubble",
+                        brandSlug: nil,
+                        showsLabels: false,
+                        toolTip: SelectionActionBarLayout.tooltip(
+                            name: actionItem.name,
+                            shortcut: actions?.shortcutForChat
+                        ),
+                        accessibilityLabel: actionItem.name,
+                        target: target
+                    ))
+                case let .promptPreset(preset):
+                    let target = actions.map { wired in OverlayButtonTarget { wired.onSelectPreset(preset) } }
+                    if let target { buttonTargets.append(target) }
+                    addSubview(makeActionButton(
+                        frame: frame,
+                        title: preset.title,
+                        symbolName: preset.symbolName,
+                        brandSlug: nil,
+                        showsLabels: layout.showsLabels,
+                        toolTip: SelectionActionBarLayout.tooltip(
+                            name: preset.title,
+                            shortcut: actions?.shortcutForPreset?(preset)
+                        ),
+                        accessibilityLabel: preset.title,
+                        target: target
+                    ))
+                case let .externalAsk(action):
+                    let target = actions.map { wired in OverlayButtonTarget { wired.onSelectExternalAsk(action) } }
+                    if let target { buttonTargets.append(target) }
+                    addSubview(makeActionButton(
+                        frame: frame,
+                        title: action.displayName,
+                        symbolName: action.symbolName,
+                        brandSlug: action.brandIconSlug,
+                        showsLabels: layout.showsLabels,
+                        toolTip: SelectionActionBarLayout.tooltip(
+                            name: action.displayName,
+                            shortcut: actions?.shortcutForExternalAsk?(action)
+                        ),
+                        accessibilityLabel: L10n.string("selection.actionBar.externalAskAccessibility", action.displayName),
+                        target: target
+                    ))
+                }
             case let .chat(frame):
                 let target = actions.map { wired in OverlayButtonTarget { wired.onSelectChat() } }
                 if let target { buttonTargets.append(target) }
@@ -114,6 +179,25 @@ final class SelectionActionBarContentView: NSVisualEffectView {
                     accessibilityLabel: L10n.string("selection.actionBar.externalAskAccessibility", action.displayName),
                     target: target
                 ))
+            case let .more(frame):
+                let target = actions.map { wired in
+                    OverlayButtonTarget { [weak self] in
+                        self?.showOverflowMenu(layout: layout, actions: wired)
+                    }
+                }
+                if let target { buttonTargets.append(target) }
+                let btn = makeActionButton(
+                    frame: frame,
+                    title: "",
+                    symbolName: "ellipsis",
+                    brandSlug: nil,
+                    showsLabels: false,
+                    toolTip: L10n.string("selection.actionBar.more"),
+                    accessibilityLabel: L10n.string("selection.actionBar.moreAccessibility"),
+                    target: target
+                )
+                moreButton = btn
+                addSubview(btn)
             }
         }
     }
@@ -160,6 +244,93 @@ final class SelectionActionBarContentView: NSVisualEffectView {
         }
         button.setAccessibilityLabel(accessibilityLabel)
         return button
+    }
+
+    private func showOverflowMenu(layout: SelectionActionBarLayout, actions: SelectionActionBarActions) {
+        guard let button = moreButton else { return }
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        menuTargets.removeAll()
+
+        if !layout.secondaryItems.isEmpty {
+            for item in layout.secondaryItems {
+                let menuItem = NSMenuItem(
+                    title: item.name,
+                    action: #selector(MenuItemTarget.invoke),
+                    keyEquivalent: ""
+                )
+                if let brand = brandImage(for: item.brandSlug, pointSize: 14) {
+                    menuItem.image = brand
+                } else if let symbol = NSImage(systemSymbolName: item.symbolName, accessibilityDescription: item.name) {
+                    menuItem.image = symbol.withSymbolConfiguration(.init(pointSize: 13, weight: .regular))
+                }
+                let target = MenuItemTarget {
+                    switch item.kind {
+                    case .chat:
+                        actions.onSelectChat()
+                    case let .promptPreset(preset):
+                        actions.onSelectPreset(preset)
+                    case let .externalAsk(action):
+                        actions.onSelectExternalAsk(action)
+                    }
+                }
+                menuTargets.append(target)
+                menuItem.target = target
+                menu.addItem(menuItem)
+            }
+            menu.popUp(positioning: nil, at: NSPoint(x: 0, y: 0), in: button)
+            return
+        }
+
+        for preset in layout.overflowPresets {
+            let item = NSMenuItem(
+                title: preset.title,
+                action: #selector(MenuItemTarget.invoke),
+                keyEquivalent: ""
+            )
+            if let symbol = NSImage(systemSymbolName: preset.symbolName, accessibilityDescription: preset.title) {
+                item.image = symbol.withSymbolConfiguration(.init(pointSize: 13, weight: .regular))
+            }
+            if let shortcut = actions.shortcutForPreset?(preset) {
+                let labels = InAppShortcutDisplay.labels(for: shortcut).joined()
+                item.toolTip = "\(preset.title)\t\(labels)"
+            }
+            let target = MenuItemTarget {
+                actions.onSelectPreset(preset)
+            }
+            menuTargets.append(target)
+            item.target = target
+            menu.addItem(item)
+        }
+
+        if !layout.overflowPresets.isEmpty && !layout.overflowExternalAsks.isEmpty {
+            menu.addItem(NSMenuItem.separator())
+        }
+
+        for action in layout.overflowExternalAsks {
+            let item = NSMenuItem(
+                title: action.displayName,
+                action: #selector(MenuItemTarget.invoke),
+                keyEquivalent: ""
+            )
+            if let brand = brandImage(for: action.brandIconSlug, pointSize: 14) {
+                item.image = brand
+            } else if let symbol = NSImage(systemSymbolName: action.symbolName, accessibilityDescription: action.displayName) {
+                item.image = symbol.withSymbolConfiguration(.init(pointSize: 13, weight: .regular))
+            }
+            if let shortcut = actions.shortcutForExternalAsk?(action) {
+                let labels = InAppShortcutDisplay.labels(for: shortcut).joined()
+                item.toolTip = "\(action.displayName)\t\(labels)"
+            }
+            let target = MenuItemTarget {
+                actions.onSelectExternalAsk(action)
+            }
+            menuTargets.append(target)
+            item.target = target
+            menu.addItem(item)
+        }
+
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: 0), in: button)
     }
 }
 

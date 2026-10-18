@@ -1502,6 +1502,63 @@ final class ProviderSettingsStateTests: XCTestCase {
         await waitUntil(!state.isRefreshingModels, "Timed out waiting for model refresh")
     }
 
+
+    func testActiveModelHeroCardAdaptiveLayoutWithLongNames() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(),
+            providerFactory: NoopProviderFactory()
+        )
+
+        state.startNewProvider()
+        state.draftProviderName = "Gemini (new-api 网关)"
+        state.draftProviderAddress = "https://new.shiquda.link/v1beta/models"
+        state.draftProviderAddressMode = .baseURL
+        state.draftProviderTimeout = 45
+        state.saveProvider()
+        let providerID = try XCTUnwrap(state.selectedProviderID)
+
+        state.startNewModel(for: providerID)
+        state.draftModelDisplayName = "gemini-3.7-flash-high"
+        state.draftModelUpstreamID = "gemini-3.7-flash-preview-very-long-upstream-model-identifier-123456789"
+        state.draftModelStreaming = true
+        state.draftModelThinkingMode = .high
+        state.saveModel()
+        let model = try XCTUnwrap(settings.providerRegistry.catalog?.models.first { $0.displayName == "gemini-3.7-flash-high" })
+
+        state.useModelForChat(model.id)
+        XCTAssertEqual(state.activeModelID, model.id)
+
+        let view = ProviderSettingsPage(
+            settings: settings,
+            state: state,
+            searchTarget: nil,
+            onSearchTargetConsumed: {}
+        )
+        .environment(\.colorScheme, .light)
+        .background(Color(NSColor.windowBackgroundColor))
+        .frame(width: 500)
+
+        let hosting = NSHostingView(rootView: view)
+        hosting.frame = NSRect(x: 0, y: 0, width: 500, height: 600)
+        hosting.layoutSubtreeIfNeeded()
+
+        guard let rep = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else {
+            XCTFail("Failed to create bitmap rep")
+            return
+        }
+        hosting.cacheDisplay(in: hosting.bounds, to: rep)
+        guard let data = rep.representation(using: .png, properties: [:]) else {
+            XCTFail("Failed to render PNG")
+            return
+        }
+        let outPath = "/tmp/hero_card_adaptive_500.png"
+        try data.write(to: URL(fileURLWithPath: outPath))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: outPath))
+    }
     private func makeDefaults() -> (UserDefaults, String) {
         let suiteName = "ProviderSettingsStateTests.\(UUID().uuidString)"
         return (UserDefaults(suiteName: suiteName)!, suiteName)

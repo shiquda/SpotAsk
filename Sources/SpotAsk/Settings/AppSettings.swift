@@ -402,6 +402,9 @@ final class AppSettings {
         static let selectionActionBarShowsLabels = "selectionActionBarShowsLabels"
         static let selectionActionBarShowsPrompts = "selectionActionBarShowsPrompts"
         static let selectionActionBarShowsExternalAsk = "selectionActionBarShowsExternalAsk"
+        static let selectionActionBarCollapseOverflow = "selectionActionBarCollapseOverflow"
+        static let selectionActionBarItemOrder = "selectionActionBarItemOrder"
+        static let selectionActionBarSecondaryItemIDs = "selectionActionBarSecondaryItemIDs"
         static let automaticUpdateCheckEnabled = "automaticUpdateCheckEnabled"
         static let updateDownloadSource = "updateDownloadSource"
         static let quickActionCatalog = "webQuickAskProviderCatalog"
@@ -480,6 +483,57 @@ final class AppSettings {
     var selectionActionBarShowsLabels: Bool = true { didSet { saveSetting("selectionActionBarShowsLabels") } }
     var selectionActionBarShowsPrompts: Bool = true { didSet { saveSetting("selectionActionBarShowsPrompts") } }
     var selectionActionBarShowsExternalAsk: Bool = true { didSet { saveSetting("selectionActionBarShowsExternalAsk") } }
+    var selectionActionBarCollapseOverflow: Bool = true { didSet { saveSetting("selectionActionBarCollapseOverflow") } }
+    var selectionActionBarItemOrder: [String] = [] { didSet { saveSetting("selectionActionBarItemOrder") } }
+    var selectionActionBarSecondaryItemIDs: [String] = [] { didSet { saveSetting("selectionActionBarSecondaryItemIDs") } }
+    var selectionActionBarCustomized: Bool = false { didSet { saveSetting("selectionActionBarCustomized") } }
+
+    func reorderActionBarItem(id: String, toIndex: Int) {
+        let content = SelectionActionBarContent.resolve(from: self)
+        var primaryIDs = content.primaryItems.map(\.id)
+        guard let currentIndex = primaryIDs.firstIndex(of: id) else { return }
+        primaryIDs.remove(at: currentIndex)
+        let safeIndex = min(max(0, toIndex), primaryIDs.count)
+        primaryIDs.insert(id, at: safeIndex)
+        let secondaryIDs = content.secondaryItems.map(\.id)
+        selectionActionBarItemOrder = primaryIDs + secondaryIDs
+        selectionActionBarCustomized = true
+    }
+
+    func moveActionBarItemToSecondary(id: String) {
+        var secondary = Set(selectionActionBarSecondaryItemIDs)
+        if secondary.isEmpty {
+            let content = SelectionActionBarContent.resolve(from: self)
+            secondary = Set(content.secondaryItems.map(\.id))
+        }
+        secondary.insert(id)
+        selectionActionBarSecondaryItemIDs = Array(secondary)
+        selectionActionBarCustomized = true
+    }
+
+    func moveActionBarItemToPrimary(id: String, atIndex: Int? = nil) {
+        let content = SelectionActionBarContent.resolve(from: self)
+        var secondary = content.secondaryItems.map(\.id)
+        secondary.removeAll { $0 == id }
+        selectionActionBarSecondaryItemIDs = secondary
+
+        var primaryIDs = content.primaryItems.map(\.id)
+        primaryIDs.removeAll { $0 == id }
+        if let atIndex {
+            let safeIndex = min(max(0, atIndex), primaryIDs.count)
+            primaryIDs.insert(id, at: safeIndex)
+        } else {
+            primaryIDs.append(id)
+        }
+        selectionActionBarItemOrder = primaryIDs + secondary
+        selectionActionBarCustomized = true
+    }
+
+    func resetActionBarCustomization() {
+        selectionActionBarItemOrder = []
+        selectionActionBarSecondaryItemIDs = []
+        selectionActionBarCustomized = false
+    }
     var automaticUpdateCheckEnabled: Bool = true { didSet { saveSetting("automaticUpdateCheckEnabled") } }
     var updateDownloadSource: UpdateDownloadSource = .automatic { didSet { saveSetting("updateDownloadSource") } }
     var selectionAutoInvokeEnabled: Bool = false { didSet { saveSetting("selectionAutoInvokeEnabled") } }
