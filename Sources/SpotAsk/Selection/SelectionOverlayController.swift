@@ -63,6 +63,8 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
         externalAsks: [QuickAction],
         showsLabels: Bool,
         collapsesOverflow: Bool = false,
+        primaryItems: [SelectionActionBarItem] = [],
+        secondaryItems: [SelectionActionBarItem] = [],
         shortcutForChat: InAppShortcut?,
         shortcutForPreset: ((PromptPreset) -> InAppShortcut?)?,
         shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?,
@@ -75,7 +77,9 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
             presets: presets,
             externalAsks: externalAsks,
             showsLabels: showsLabels,
-            collapsesOverflow: collapsesOverflow
+            collapsesOverflow: collapsesOverflow,
+            primaryItems: primaryItems,
+            secondaryItems: secondaryItems
         )
         let content = SelectionActionBarContentView(
             layout: layout,
