@@ -7,6 +7,11 @@ struct ShortcutSettingsPage: View {
     @Bindable var settings: AppSettings
     @State private var searchText = ""
 
+    init(settings: AppSettings, initialSearchText: String = "") {
+        self.settings = settings
+        self._searchText = State(initialValue: initialSearchText)
+    }
+
     private let operations = InAppShortcutOperation.allCases
 
     private var query: String {
