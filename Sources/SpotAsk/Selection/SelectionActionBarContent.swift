@@ -161,32 +161,26 @@ struct SelectionActionBarContent: Equatable {
         if !settings.selectionActionBarCollapseOverflow {
             primaryItems = allItems
             secondaryItems = []
-        } else {
+        } else if settings.selectionActionBarCustomized {
             let customSecondaryIDs = Set(settings.selectionActionBarSecondaryItemIDs)
-            if !customSecondaryIDs.isEmpty {
-                var prim: [SelectionActionBarItem] = []
-                var sec: [SelectionActionBarItem] = []
-                for item in allItems {
-                    if customSecondaryIDs.contains(item.id) {
-                        sec.append(item)
-                    } else {
-                        prim.append(item)
-                    }
-                }
-                if prim.isEmpty, let first = sec.first {
-                    prim.append(first)
-                    sec.removeFirst()
-                }
-                primaryItems = prim
-                secondaryItems = sec
-            } else {
-                if allItems.count > SelectionActionBarLayout.primaryActionLimit {
-                    primaryItems = Array(allItems.prefix(SelectionActionBarLayout.primaryActionLimit))
-                    secondaryItems = Array(allItems.dropFirst(SelectionActionBarLayout.primaryActionLimit))
+            var prim: [SelectionActionBarItem] = []
+            var sec: [SelectionActionBarItem] = []
+            for item in allItems {
+                if customSecondaryIDs.contains(item.id) {
+                    sec.append(item)
                 } else {
-                    primaryItems = allItems
-                    secondaryItems = []
+                    prim.append(item)
                 }
+            }
+            primaryItems = prim
+            secondaryItems = sec
+        } else {
+            if allItems.count > SelectionActionBarLayout.primaryActionLimit {
+                primaryItems = Array(allItems.prefix(SelectionActionBarLayout.primaryActionLimit))
+                secondaryItems = Array(allItems.dropFirst(SelectionActionBarLayout.primaryActionLimit))
+            } else {
+                primaryItems = allItems
+                secondaryItems = []
             }
         }
 

@@ -417,6 +417,7 @@
 "settings.selectionAssistantActionBarDragHintWithOverflow" = "ドラッグで順序変更や「···」への格納が可能。「···」クリックで展開し戻せます";
 "settings.selectionAssistantActionBarDragHintNoOverflow" = "ドラッグで順序変更が可能。「サブメニュー」を有効化すると格納できます";
 "settings.selectionAssistantSecondaryMenuTitle" = "サブメニュー格納項目";
+"settings.selectionAssistantSecondaryMenuEmpty" = "サブメニューは空です。アクションをここにドラッグして収納できます。";
 "settings.selectionAssistantMoveToActionBar" = "アクションバーに移動";
 "settings.selectionAssistantMoveToSecondaryMenu" = "サブメニューに移動";
 "settings.selectionAssistantResetOrder" = "順序をリセット";

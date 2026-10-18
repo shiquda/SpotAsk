@@ -461,6 +461,7 @@ final class AppSettings {
     var selectionActionBarCollapseOverflow: Bool = true { didSet { saveSetting("selectionActionBarCollapseOverflow") } }
     var selectionActionBarItemOrder: [String] = [] { didSet { saveSetting("selectionActionBarItemOrder") } }
     var selectionActionBarSecondaryItemIDs: [String] = [] { didSet { saveSetting("selectionActionBarSecondaryItemIDs") } }
+    var selectionActionBarCustomized: Bool = false { didSet { saveSetting("selectionActionBarCustomized") } }
 
     func reorderActionBarItem(id: String, toIndex: Int) {
         let content = SelectionActionBarContent.resolve(from: self)
@@ -471,6 +472,7 @@ final class AppSettings {
         primaryIDs.insert(id, at: safeIndex)
         let secondaryIDs = content.secondaryItems.map(\.id)
         selectionActionBarItemOrder = primaryIDs + secondaryIDs
+        selectionActionBarCustomized = true
     }
 
     func moveActionBarItemToSecondary(id: String) {
@@ -481,6 +483,7 @@ final class AppSettings {
         }
         secondary.insert(id)
         selectionActionBarSecondaryItemIDs = Array(secondary)
+        selectionActionBarCustomized = true
     }
 
     func moveActionBarItemToPrimary(id: String, atIndex: Int? = nil) {
@@ -498,11 +501,13 @@ final class AppSettings {
             primaryIDs.append(id)
         }
         selectionActionBarItemOrder = primaryIDs + secondary
+        selectionActionBarCustomized = true
     }
 
     func resetActionBarCustomization() {
         selectionActionBarItemOrder = []
         selectionActionBarSecondaryItemIDs = []
+        selectionActionBarCustomized = false
     }
     var automaticUpdateCheckEnabled: Bool = true { didSet { saveSetting("automaticUpdateCheckEnabled") } }
     var updateDownloadSource: UpdateDownloadSource = .automatic { didSet { saveSetting("updateDownloadSource") } }

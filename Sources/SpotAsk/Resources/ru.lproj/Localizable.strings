@@ -417,6 +417,7 @@
 "settings.selectionAssistantActionBarDragHintWithOverflow" = "Перетаскивайте для сортировки или в «···»; нажмите «···», чтобы вернуть обратно";
 "settings.selectionAssistantActionBarDragHintNoOverflow" = "Перетаскивайте для сортировки действий; включите «Вложенное меню», чтобы свернуть";
 "settings.selectionAssistantSecondaryMenuTitle" = "Элементы вложенного меню";
+"settings.selectionAssistantSecondaryMenuEmpty" = "Вложенное меню пусто. Перетащите действия сюда, чтобы свернуть их.";
 "settings.selectionAssistantMoveToActionBar" = "Переместить в панель";
 "settings.selectionAssistantMoveToSecondaryMenu" = "Переместить во вложенное меню";
 "settings.selectionAssistantResetOrder" = "Сбросить порядок";

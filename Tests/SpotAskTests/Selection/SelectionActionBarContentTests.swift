@@ -152,13 +152,13 @@ struct SelectionActionBarContentTests {
         for p in presets { _ = settings.saveCustomPromptPreset(p) }
 
         let p1ID = "preset:\(presets[0].id.uuidString)"
+        settings.selectionActionBarCustomized = true
         settings.selectionActionBarSecondaryItemIDs = [p1ID]
         settings.selectionActionBarItemOrder = [
             "preset:\(presets[1].id.uuidString)",
             "chat",
             p1ID
         ]
-
         let content = SelectionActionBarContent.resolve(from: settings)
         #expect(content.secondaryItems.contains { $0.id == p1ID })
         #expect(content.primaryItems.first?.id == "preset:\(presets[1].id.uuidString)")

@@ -417,6 +417,7 @@
 "settings.selectionAssistantActionBarDragHintWithOverflow" = "Arraste para reordenar ou solte em «···»; clique em «···» para arrastá-los de volta";
 "settings.selectionAssistantActionBarDragHintNoOverflow" = "Arraste para reordenar ações; ative «Submenu» para recolher ações";
 "settings.selectionAssistantSecondaryMenuTitle" = "Itens do submenu";
+"settings.selectionAssistantSecondaryMenuEmpty" = "O submenu está vazio. Arraste ações para cá para guardá-las.";
 "settings.selectionAssistantMoveToActionBar" = "Mover para barra de ações";
 "settings.selectionAssistantMoveToSecondaryMenu" = "Mover para submenu";
 "settings.selectionAssistantResetOrder" = "Redefinir ordem";

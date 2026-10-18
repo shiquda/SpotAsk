@@ -417,6 +417,7 @@
 "settings.selectionAssistantActionBarDragHintWithOverflow" = "Glissez pour réorganiser ou déposez sur « ··· » ; cliquez sur « ··· » pour les replacer";
 "settings.selectionAssistantActionBarDragHintNoOverflow" = "Glissez pour réorganiser ; activez « Sous-menu » pour replier les actions";
 "settings.selectionAssistantSecondaryMenuTitle" = "Éléments du sous-menu";
+"settings.selectionAssistantSecondaryMenuEmpty" = "Le sous-menu est vide. Glissez des actions ici pour les ranger.";
 "settings.selectionAssistantMoveToActionBar" = "Déplacer vers la barre d’actions";
 "settings.selectionAssistantMoveToSecondaryMenu" = "Déplacer vers le sous-menu";
 "settings.selectionAssistantResetOrder" = "Réinitialiser l’ordre";

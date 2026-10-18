@@ -417,6 +417,7 @@
 "settings.selectionAssistantActionBarDragHintWithOverflow" = "Drag items to reorder or drop onto “···” to fold; click “···” to drag items back to action bar";
 "settings.selectionAssistantActionBarDragHintNoOverflow" = "Drag items to reorder actions; enable “Secondary Menu” to fold actions";
 "settings.selectionAssistantSecondaryMenuTitle" = "Secondary Menu Items";
+"settings.selectionAssistantSecondaryMenuEmpty" = "Secondary menu is empty. Drag actions here to store them.";
 "settings.selectionAssistantMoveToActionBar" = "Move to Action Bar";
 "settings.selectionAssistantMoveToSecondaryMenu" = "Move to Secondary Menu";
 "settings.selectionAssistantResetOrder" = "Reset Order";

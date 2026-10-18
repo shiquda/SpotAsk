@@ -134,20 +134,25 @@ final class AppSettingsTests: XCTestCase {
         let settings = AppSettings(defaults: defaults)
         XCTAssertTrue(settings.selectionActionBarItemOrder.isEmpty)
         XCTAssertTrue(settings.selectionActionBarSecondaryItemIDs.isEmpty)
+        XCTAssertFalse(settings.selectionActionBarCustomized)
 
         settings.reorderActionBarItem(id: "chat", toIndex: 2)
         XCTAssertFalse(settings.selectionActionBarItemOrder.isEmpty)
+        XCTAssertTrue(settings.selectionActionBarCustomized)
 
         settings.moveActionBarItemToSecondary(id: "chat")
         XCTAssertTrue(settings.selectionActionBarSecondaryItemIDs.contains("chat"))
+        XCTAssertTrue(settings.selectionActionBarCustomized)
 
         settings.moveActionBarItemToPrimary(id: "chat", atIndex: 0)
         XCTAssertFalse(settings.selectionActionBarSecondaryItemIDs.contains("chat"))
         XCTAssertEqual(settings.selectionActionBarItemOrder.first, "chat")
+        XCTAssertTrue(settings.selectionActionBarCustomized)
 
         settings.resetActionBarCustomization()
         XCTAssertTrue(settings.selectionActionBarItemOrder.isEmpty)
         XCTAssertTrue(settings.selectionActionBarSecondaryItemIDs.isEmpty)
+        XCTAssertFalse(settings.selectionActionBarCustomized)
     }
 
     func testProxyDefaultsToOffAndPersists() {

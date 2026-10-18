@@ -734,6 +734,14 @@ final class SettingRegistry: Sendable {
             }
         ))
         register(SettingDescriptors.bool(
+            key: "selectionActionBarCustomized",
+            defaultValue: false,
+            keyPath: \.selectionActionBarCustomized,
+            onChanged: { _, _ in
+                NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+            }
+        ))
+        register(SettingDescriptors.bool(
             key: "automaticUpdateCheckEnabled",
             defaultValue: true,
             keyPath: \.automaticUpdateCheckEnabled

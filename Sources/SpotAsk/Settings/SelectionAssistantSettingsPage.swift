@@ -464,7 +464,7 @@ struct SelectionActionBarLivePreviewCard: View {
     }
 
     private var isCustomized: Bool {
-        !settings.selectionActionBarItemOrder.isEmpty || !settings.selectionActionBarSecondaryItemIDs.isEmpty
+        settings.selectionActionBarCustomized
     }
 
     private var showsActionBarCrowdingHint: Bool {
@@ -547,10 +547,10 @@ struct SelectionActionBarLivePreviewCard: View {
                 VStack(spacing: 8) {
                     actionBarPill
                         .padding(.top, 20)
-                        .padding(.bottom, isSecondaryMenuExpanded && !content.secondaryItems.isEmpty ? 4 : 20)
+                        .padding(.bottom, isSecondaryMenuExpanded ? 4 : 20)
                         .padding(.horizontal, 16)
 
-                    if isSecondaryMenuExpanded && !content.secondaryItems.isEmpty {
+                    if isSecondaryMenuExpanded {
                         secondaryMenuDropdown
                             .padding(.bottom, 16)
                             .transition(.asymmetric(
@@ -574,7 +574,7 @@ struct SelectionActionBarLivePreviewCard: View {
                 primaryItemView(item: item, index: index)
             }
 
-            if content.layout.showsMoreButton || (settings.selectionActionBarCollapseOverflow && !content.secondaryItems.isEmpty) {
+            if content.layout.showsMoreButton || settings.selectionActionBarCollapseOverflow {
                 moreButtonView
             }
         }
@@ -744,13 +744,27 @@ struct SelectionActionBarLivePreviewCard: View {
             Divider()
                 .padding(.horizontal, 8)
 
-            VStack(spacing: 3) {
-                ForEach(content.secondaryItems) { item in
-                    secondaryItemRow(item: item)
+            if content.secondaryItems.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "tray")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.tertiary)
+                    Text(L10n.string("settings.selectionAssistantSecondaryMenuEmpty"))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
                 }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+            } else {
+                VStack(spacing: 3) {
+                    ForEach(content.secondaryItems) { item in
+                        secondaryItemRow(item: item)
+                    }
+                }
+                .padding(.horizontal, 6)
+                .padding(.bottom, 8)
             }
-            .padding(.horizontal, 6)
-            .padding(.bottom, 8)
         }
         .frame(maxWidth: 320)
         .background(
