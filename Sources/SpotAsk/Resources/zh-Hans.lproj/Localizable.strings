@@ -573,6 +573,8 @@
 "externalAsk.presetTemplatesDescription" = "一键快速添加主流外部 AI 与搜索渠道，免去手动配置 URL 与变量。";
 "externalAsk.configuredChannelsGroup" = "已配置渠道";
 "externalAsk.configuredChannelsDescription" = "管理已配置的提问渠道，支持快捷键调用、划词助手与智能决策路由分流。";
+"externalAsk.addChannel" = "添加渠道";
+"externalAsk.customChannel" = "自定义渠道…";
 "externalAsk.addTemplate" = "添加";
 "externalAsk.templateAdded" = "已添加";
 "externalAsk.templateAddedToast" = "已成功添加渠道「%@」";

@@ -15,8 +15,6 @@ struct ExternalAskSettingsPage: View {
             SettingsCallout(L10n.string("settings.externalAskDescription"))
 
             externalAskToggle
-            presetTemplatesSection
-
             configuredChannelsSection
 
             DecisionRoutingSettingsSection(settings: settings, keyStore: keyStore)
@@ -77,33 +75,6 @@ struct ExternalAskSettingsPage: View {
         .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
-    private var presetTemplatesSection: some View {
-        SettingsGroup(
-            title: L10n.string("externalAsk.presetTemplatesGroup")
-        ) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(L10n.string("externalAsk.presetTemplatesDescription"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 220, maximum: 280), spacing: 10)], spacing: 10) {
-                    ForEach(QuickActionTemplate.allTemplates) { template in
-                        QuickActionTemplateCard(
-                            template: template,
-                            isAdded: template.isConfigured(in: settings.quickActions),
-                            onAdd: {
-                                if let added = settings.addQuickAction(from: template) {
-                                    StatusToastCenter.shared.show(
-                                        L10n.string("externalAsk.templateAddedToast", added.displayName)
-                                    )
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
 
     private var configuredChannelsSection: some View {
         SettingsGroup(
@@ -115,18 +86,7 @@ struct ExternalAskSettingsPage: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Button {
-                    editorAction = QuickAction(
-                        name: "",
-                        kind: .web(urlTemplate: ""),
-                        symbolName: QuickAction.defaultSymbolName,
-                        isBuiltIn: false,
-                        isEnabled: true
-                    )
-                } label: {
-                    Label(L10n.string("settings.new"), systemImage: "plus")
-                }
-                .buttonStyle(.bordered)
+                addChannelMenu
             }
 
             VStack(spacing: 6) {
@@ -146,6 +106,54 @@ struct ExternalAskSettingsPage: View {
                 }
             }
         }
+    }
+
+    private var addChannelMenu: some View {
+        Menu {
+            Button {
+                editorAction = QuickAction(
+                    name: "",
+                    kind: .web(urlTemplate: ""),
+                    symbolName: QuickAction.defaultSymbolName,
+                    isBuiltIn: false,
+                    isEnabled: true
+                )
+            } label: {
+                Label(L10n.string("externalAsk.customChannel"), systemImage: "square.and.pencil")
+            }
+
+            Menu {
+                ForEach(QuickActionTemplate.allTemplates) { template in
+                    let isAdded = template.isConfigured(in: settings.quickActions)
+                    Button {
+                        if let added = settings.addQuickAction(from: template) {
+                            StatusToastCenter.shared.show(
+                                L10n.string("externalAsk.templateAddedToast", added.displayName)
+                            )
+                        }
+                    } label: {
+                        if isAdded {
+                            Label(
+                                "\(template.name) (\(template.category) · \(L10n.string("externalAsk.templateAdded")))",
+                                systemImage: "checkmark"
+                            )
+                        } else {
+                            Label(
+                                "\(template.name) (\(template.category))",
+                                systemImage: template.symbolName
+                            )
+                        }
+                    }
+                    .disabled(isAdded)
+                    .help(template.description)
+                }
+            } label: {
+                Label(L10n.string("externalAsk.presetTemplatesGroup"), systemImage: "square.grid.2x2")
+            }
+        } label: {
+            Label(L10n.string("externalAsk.addChannel"), systemImage: "plus")
+        }
+        .buttonStyle(.bordered)
     }
 }
 
@@ -216,74 +224,6 @@ private struct QuickActionRow: View {
     }
 }
 
-@MainActor
-private struct QuickActionTemplateCard: View {
-    let template: QuickActionTemplate
-    let isAdded: Bool
-    let onAdd: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                ProviderBrandIconView(
-                    slug: template.iconSlug,
-                    size: 16,
-                    fallbackSymbol: template.symbolName
-                )
-                .frame(width: 22, height: 22)
-
-                Text(template.name)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.primary)
-
-                Spacer(minLength: 4)
-
-                Text(template.category)
-                    .font(.system(size: 9.5, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 2)
-                    .background(Color.primary.opacity(0.06), in: Capsule())
-            }
-
-            Text(template.description)
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-                .frame(minHeight: 28, alignment: .topLeading)
-
-            HStack {
-                Spacer()
-                if isAdded {
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.green)
-                        Text(L10n.string("externalAsk.templateAdded"))
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 3)
-                    .padding(.horizontal, 6)
-                } else {
-                    Button(action: onAdd) {
-                        Label(L10n.string("externalAsk.addTemplate"), systemImage: "plus")
-                            .font(.system(size: 11, weight: .medium))
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                }
-            }
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(isAdded ? Color.green.opacity(0.3) : Color.primary.opacity(0.08), lineWidth: 1)
-        }
-    }
-}
 
 private struct QuickActionReorderControls: View {
     let title: String
