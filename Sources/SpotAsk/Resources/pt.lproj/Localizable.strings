@@ -573,6 +573,8 @@
 "externalAsk.presetTemplatesDescription" = "Quickly add popular external AI and search channels with verified URL templates and routing hints.";
 "externalAsk.configuredChannelsGroup" = "Configured Channels";
 "externalAsk.configuredChannelsDescription" = "Manage enabled channels for shortcuts, selection assistant, and smart decision routing.";
+"externalAsk.addChannel" = "Adicionar canal";
+"externalAsk.customChannel" = "Canal personalizado…";
 "externalAsk.addTemplate" = "Add";
 "externalAsk.templateAdded" = "Added";
 "externalAsk.templateAddedToast" = "Channel “%@” has been added.";

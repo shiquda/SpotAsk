@@ -1,7 +1,8 @@
+import AppKit
 import Foundation
+import SwiftUI
 import Testing
 @testable import SpotAsk
-
 @MainActor
 struct QuickActionTemplateTests {
     @Test("All preset templates are valid and contain query placeholder")
@@ -91,4 +92,60 @@ struct QuickActionTemplateTests {
         #expect(savedDeepseek?.routingPurpose == deepseek.defaultRoutingPurpose)
         #expect(savedDeepseek?.routingScenario == deepseek.defaultRoutingScenario)
     }
+
+    @Test("Add channel localization strings exist across supported languages")
+    func addChannelLocalizationStringsExist() {
+        for lang in AppLanguage.allCases {
+            let addChannel = L10n.string("externalAsk.addChannel", language: lang)
+            let customChannel = L10n.string("externalAsk.customChannel", language: lang)
+            #expect(!addChannel.isEmpty)
+            #expect(!addChannel.hasPrefix("externalAsk."))
+            #expect(!customChannel.isEmpty)
+            #expect(!customChannel.hasPrefix("externalAsk."))
+        }
+    }
+
+    @Test("Capture ExternalAskSettingsPage screenshot for visual verification")
+    func captureExternalAskSettingsScreenshot() throws {
+        let suiteName = "QuickActionTemplateTests.Screenshots.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let previousLang = UserDefaults.standard.string(forKey: AppLanguage.defaultsKey)
+        UserDefaults.standard.set(AppLanguage.simplifiedChinese.rawValue, forKey: AppLanguage.defaultsKey)
+        defer {
+            if let previousLang {
+                UserDefaults.standard.set(previousLang, forKey: AppLanguage.defaultsKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: AppLanguage.defaultsKey)
+            }
+        }
+        settings.language = .simplifiedChinese
+        let externalAskView = ExternalAskSettingsPage(
+            settings: settings,
+            keyStore: MockTestKeyStore()
+        )
+        .frame(width: 580)
+        .padding(20)
+        .background(Color(nsColor: .windowBackgroundColor))
+
+        let hosting = NSHostingView(rootView: externalAskView)
+        hosting.frame = NSRect(x: 0, y: 0, width: 620, height: 700)
+        hosting.layoutSubtreeIfNeeded()
+
+        if let bitmap = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) {
+            hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
+            if let pngData = bitmap.representation(using: .png, properties: [:]) {
+                let outURL = URL(fileURLWithPath: "../attachments/external_ask_settings_preview.png")
+                try? pngData.write(to: outURL)
+            }
+        }
+    }
+}
+
+private final class MockTestKeyStore: APIKeyStoring, @unchecked Sendable {
+    func readAPIKey(for providerID: UUID) throws -> String? { nil }
+    func saveAPIKey(_ key: String, for providerID: UUID) throws {}
+    func deleteAPIKey(for providerID: UUID) throws {}
+    func deleteAllAPIKeys() throws {}
 }
