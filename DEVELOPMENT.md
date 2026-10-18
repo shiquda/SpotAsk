@@ -20,7 +20,7 @@ npm run docs:verify
 npm run docs:preview
 ```
 
-The GitHub Pages workflow in `.github/workflows/docs.yml` builds `docs/site`, runs `npm run docs:verify` to validate sitemap URLs, canonicals, `hreflang` reciprocity, JSON-LD structured data, and internal links, and deploys the artifact to `https://shiquda.github.io/SpotAsk/`.
+The GitHub Pages workflow in `.github/workflows/docs.yml` builds `docs/site`, runs `npm run docs:verify` to validate `sitemap.xml`, plain text `sitemap.txt`, canonicals, `hreflang` reciprocity, JSON-LD structured data, and internal links, and deploys the artifact to `https://shiquda.github.io/SpotAsk/`.
 
 ## Build and test
 

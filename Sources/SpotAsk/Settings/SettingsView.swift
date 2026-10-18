@@ -60,8 +60,8 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         case .externalAsk: ["external ask", "quick action", "web", "app", "terminal", "decision", "routing", "route", "confidence", "jev", "system one", "外部提问", "网页", "应用", "终端", "决策", "路由", "置信度"]
         case .selectionAssistant: ["selection", "selected text", "accessibility", "application", "划词", "选中文字", "辅助功能", "应用"]
         case .shortcuts: ["shortcut", "keyboard", "command", "快捷键", "键盘"]
-        case .general: ["behavior", "proxy", "diagnostics", "language", "launch", "window", "local data", "configuration", "行为", "代理", "诊断", "语言", "启动", "窗口", "数据", "配置"]
-        case .appearance: ["appearance", "reading", "color", "font", "math", "style", "外观", "阅读", "颜色", "字体"]
+        case .general: ["behavior", "proxy", "diagnostics", "language", "launch", "window", "local data", "danger zone", "configuration", "行为", "代理", "诊断", "语言", "启动", "窗口", "数据", "危险区域", "配置"]
+        case .appearance: ["appearance", "theme", "reading", "color", "font", "math", "style", "外观", "主题", "阅读", "颜色", "字体"]
         case .about: ["about", "version", "update", "documentation", "关于", "版本", "更新", "文档"]
         }
     }
@@ -181,16 +181,18 @@ enum SettingsSearchIndex {
         Entry(section: .prompts, titleKey: "settings.customInstruction", labelKeys: ["settings.customInstruction"]),
         Entry(section: .externalAsk, titleKey: "settings.externalAsk", labelKeys: ["settings.externalAskEnabled", "settings.promptCatalogDescription", "decisionRouting.sectionTitle", "decisionRouting.enabled", "decisionRouting.showToolbarToggle", "decisionRouting.showToolbarToggleDescription", "decisionRouting.serviceURL", "decisionRouting.model", "decisionRouting.credential", "decisionRouting.confirmationMode", "decisionRouting.threshold", "decisionRouting.timeout", "decisionRouting.timeoutAction", "decisionRouting.inAppDescription", "decisionRouting.testAsk"]),
         Entry(section: .selectionAssistant, titleKey: "settings.selectionAssistant", labelKeys: ["settings.selectionAssistantEnabled", "settings.selectionAssistantPermissionStatus", "settings.selectionAssistantMode", "settings.selectionAssistantAutoShow", "settings.selectionAssistantActionLabels", "settings.selectionAssistantActionPrompts", "settings.selectionAssistantActionExternalAsk", "settings.selectionAssistantCollapseOverflow", "settings.selectionAssistantActionBarPreview", "settings.selectionAssistantAutoShowScope", "settings.selectionAssistantAutoShowDelay", "settings.selectionAssistantDefaultAction", "settings.selectionAssistantAutoShowApps"]),
-        Entry(section: .shortcuts, titleKey: "settings.shortcutActions", labelKeys: ["settings.selectionAssistantToggleShortcut"]),
+        Entry(section: .shortcuts, titleKey: "settings.shortcutGroupGlobal", labelKeys: ["settings.globalShortcut", "settings.selectionAssistantToggleShortcut"]),
+        Entry(section: .shortcuts, titleKey: "settings.shortcutGroupInWindow", labelKeys: ["shortcut.focusInput", "shortcut.newConversation", "shortcut.sendOrCancel", "shortcut.regenerateOrRetry", "shortcut.copyAnswer", "shortcut.toggleWindowOnTop", "shortcut.toggleSessionRouting", "shortcut.showSettings", "shortcut.zoomIn", "shortcut.zoomOut"]),
         Entry(section: .shortcuts, titleKey: "settings.shortcutPrompts", labelKeys: ["settings.promptCatalogDescription"]),
-        Entry(section: .shortcuts, titleKey: "settings.externalAsk", labelKeys: ["settings.externalAsk"]),
+        Entry(section: .shortcuts, titleKey: "settings.shortcutGroupExternal", labelKeys: ["settings.externalAsk"]),
         Entry(section: .general, titleKey: "settings.language", labelKeys: ["settings.language"]),
         Entry(section: .general, titleKey: "settings.behavior", labelKeys: ["settings.globalShortcut", "settings.launchAtLogin", "settings.silentLaunch", "settings.showMenuBarIcon", "settings.restoreSession", "settings.clearInputOnClose", "settings.confirmBeforeStartingNewConversation", "settings.escapeStartsNewConversation", "settings.defaultExpandReasoning", "settings.windowOnTop", "settings.contextLimit"]),
         Entry(section: .general, titleKey: "settings.proxy", labelKeys: ["settings.proxyEnabled", "settings.proxyType", "settings.proxyHost", "settings.proxyPort", "settings.proxyUsername", "settings.proxyPassword"]),
         Entry(section: .general, titleKey: "settings.diagnostics", labelKeys: ["settings.diagnosticsEnabled"]),
-        Entry(section: .general, titleKey: "settings.localData", labelKeys: ["settings.localDataDescription"]),
         Entry(section: .general, titleKey: "settings.configuration", labelKeys: ["settings.configurationDescription"]),
-        Entry(section: .appearance, titleKey: "settings.reading", labelKeys: ["settings.appearance", "settings.chatMessageStyle", "settings.renderMath", "settings.fontSize"]),
+        Entry(section: .general, titleKey: "settings.dangerZone", labelKeys: ["settings.dangerZone", "settings.localData", "settings.localDataDescription", "settings.clearAllLocalData"]),
+        Entry(section: .appearance, titleKey: "settings.appearance", labelKeys: ["settings.appearance", "settings.theme", "appearance.system", "appearance.light", "appearance.dark"]),
+        Entry(section: .appearance, titleKey: "settings.reading", labelKeys: ["settings.chatMessageStyle", "settings.renderMath", "settings.fontSize"]),
         Entry(section: .about, titleKey: "SpotAsk", labelKeys: ["settings.version", "settings.source", "settings.userGuide"]),
         Entry(section: .about, titleKey: "settings.updates", labelKeys: ["settings.autoCheckForUpdates", "settings.checkForUpdates", "update.restoreReminder", "settings.openGitHubRelease"])
     ]

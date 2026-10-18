@@ -59,6 +59,36 @@ enum InAppShortcutOperation: String, CaseIterable, Codable, Hashable, Identifiab
     case zoomOut
 
     var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .focusInput: L10n.string("shortcut.focusInput")
+        case .regenerateOrRetry: L10n.string("shortcut.regenerateOrRetry")
+        case .copyAnswer: L10n.string("shortcut.copyAnswer")
+        case .toggleWindowOnTop: L10n.string("shortcut.toggleWindowOnTop")
+        case .toggleSessionRouting: L10n.string("shortcut.toggleSessionRouting")
+        case .showSettings: L10n.string("shortcut.showSettings")
+        case .newConversation: L10n.string("shortcut.newConversation")
+        case .sendOrCancel: L10n.string("shortcut.sendOrCancel")
+        case .zoomIn: L10n.string("shortcut.zoomIn")
+        case .zoomOut: L10n.string("shortcut.zoomOut")
+        }
+    }
+
+    var actionDescription: String {
+        switch self {
+        case .focusInput: L10n.string("shortcut.focusInputDescription")
+        case .regenerateOrRetry: L10n.string("shortcut.regenerateOrRetryDescription")
+        case .copyAnswer: L10n.string("shortcut.copyAnswerDescription")
+        case .toggleWindowOnTop: L10n.string("shortcut.toggleWindowOnTopDescription")
+        case .toggleSessionRouting: L10n.string("shortcut.toggleSessionRoutingDescription")
+        case .showSettings: L10n.string("shortcut.showSettingsDescription")
+        case .newConversation: L10n.string("shortcut.newConversationDescription")
+        case .sendOrCancel: L10n.string("shortcut.sendOrCancelDescription")
+        case .zoomIn: L10n.string("shortcut.zoomInDescription")
+        case .zoomOut: L10n.string("shortcut.zoomOutDescription")
+        }
+    }
 }
 
 /// A shortcut target is either an application operation, a prompt preset, or a Quick Action.
