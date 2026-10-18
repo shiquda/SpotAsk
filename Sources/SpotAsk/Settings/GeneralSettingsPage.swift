@@ -7,7 +7,8 @@ import SwiftUI
 struct GeneralSettingsPage: View {
     let settings: AppSettings
     @Bindable var generalState: GeneralSettingsState
-
+    @State private var isPresentingFirstConfirmation = false
+    @State private var isPresentingSecondConfirmation = false
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             SettingsPageHeader(section: .general, settings: settings)
@@ -173,18 +174,6 @@ struct GeneralSettingsPage: View {
                 }
             }
 
-            SettingsGroup(
-                title: L10n.string("settings.localData"),
-                documentation: DocumentationLinks.url(for: .privacy, language: settings.language)
-            ) {
-                Text(L10n.string("settings.localDataDescription"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Button(L10n.string("settings.clearAllLocalData"), role: .destructive) {
-                    generalState.clearAllLocalData()
-                }
-            }
-
             SettingsGroup(title: L10n.string("settings.configuration")) {
                 Text(L10n.string("settings.configurationDescription"))
                     .font(.caption)
@@ -200,6 +189,67 @@ struct GeneralSettingsPage: View {
                     .buttonStyle(.bordered)
                 }
             }
+
+            SettingsDangerGroup(
+                title: L10n.string("settings.dangerZone"),
+                documentation: DocumentationLinks.url(for: .privacy, language: settings.language)
+            ) {
+                SettingsDangerBanner(L10n.string("settings.dangerZoneWarning"))
+
+                HStack(alignment: .center, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(L10n.string("settings.clearAllLocalData"))
+                            .font(.system(size: 13, weight: .semibold))
+                        Text(L10n.string("settings.localDataDescription"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 16)
+                    Button(role: .destructive) {
+                        isPresentingFirstConfirmation = true
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "trash")
+                            Text(L10n.string("settings.clearAllLocalData"))
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.red)
+                }
+            }
+        }
+        .alert(
+            L10n.string("settings.clearAllLocalDataConfirmTitle"),
+            isPresented: $isPresentingFirstConfirmation
+        ) {
+            Button(L10n.string("settings.cancel"), role: .cancel) {
+                isPresentingFirstConfirmation = false
+            }
+            .keyboardShortcut(.defaultAction)
+            Button(L10n.string("settings.dangerZoneContinue"), role: .destructive) {
+                isPresentingFirstConfirmation = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    isPresentingSecondConfirmation = true
+                }
+            }
+        } message: {
+            Text(L10n.string("settings.clearAllLocalDataConfirmMessage"))
+        }
+        .alert(
+            L10n.string("settings.dangerZoneSecondConfirmTitle"),
+            isPresented: $isPresentingSecondConfirmation
+        ) {
+            Button(L10n.string("settings.cancel"), role: .cancel) {
+                isPresentingSecondConfirmation = false
+            }
+            .keyboardShortcut(.defaultAction)
+            Button(L10n.string("settings.dangerZoneFinalClear"), role: .destructive) {
+                isPresentingSecondConfirmation = false
+                generalState.clearAllLocalData()
+            }
+        } message: {
+            Text(L10n.string("settings.dangerZoneSecondConfirmMessage"))
         }
     }
 

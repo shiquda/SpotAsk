@@ -39,7 +39,7 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
         self.id = id
         self.title = title
         self.instruction = instruction
-        self.customSymbolName = isBuiltIn ? nil : (Self.isValidSymbol(customSymbolName) ? customSymbolName?.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
+        self.customSymbolName = Self.isValidSymbol(customSymbolName) ? customSymbolName?.trimmingCharacters(in: .whitespacesAndNewlines) : nil
         self.isBuiltIn = isBuiltIn
         self.isEnabled = isEnabled
     }
@@ -51,7 +51,7 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
         instruction = try container.decode(String.self, forKey: .instruction)
         isBuiltIn = try container.decode(Bool.self, forKey: .isBuiltIn)
         let rawSymbol = try container.decodeIfPresent(String.self, forKey: .customSymbolName)
-        customSymbolName = isBuiltIn ? nil : (Self.isValidSymbol(rawSymbol) ? rawSymbol?.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
+        customSymbolName = Self.isValidSymbol(rawSymbol) ? rawSymbol?.trimmingCharacters(in: .whitespacesAndNewlines) : nil
         // Prompt presets saved before the catalog always remain enabled.
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
     }
@@ -89,16 +89,20 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
     /// their fixed symbols, while custom prompts use customSymbolName if valid,
     /// falling back to the default "sparkles" symbol.
     var symbolName: String {
+        if let customSymbolName, Self.isValidSymbol(customSymbolName) {
+            return customSymbolName
+        }
+        return Self.defaultSymbolName(for: id)
+    }
+
+    static func defaultSymbolName(for id: UUID) -> String {
         switch id.uuidString.uppercased() {
         case "EF8CF35C-386A-4389-A137-C207E4DB11FD": return "character.bubble"
         case "1C85A324-65B3-4EBD-B2C4-0C6B072E284A": return "pencil.and.scribble"
         case "5D03D444-EC3D-4F5D-9FB1-91EA5BD4E5B2": return "list.bullet.rectangle"
         case "BF43F694-E4AE-4B5B-9AE9-B4D6D4A4F248": return "doc.text.magnifyingglass"
         default:
-            if let customSymbolName, Self.isValidSymbol(customSymbolName) {
-                return customSymbolName
-            }
-            return Self.defaultSymbolName
+            return defaultSymbolName
         }
     }
 
@@ -380,6 +384,7 @@ final class AppSettings {
         static let showsMenuBarIcon = "showsMenuBarIcon"
         static let customPromptPresets = "customPromptPresets"
         static let promptPresetCatalog = "promptPresetCatalog"
+        static let removedBuiltInPromptPresetIDs = "removedBuiltInPromptPresetIDs"
         static let inAppShortcutConfiguration = "inAppShortcutConfiguration"
         static let selectionAssistantEnabled = "selectionAssistantEnabled"
         static let selectionAssistantMode = "selectionAssistantMode"
@@ -559,6 +564,7 @@ final class AppSettings {
     var customPromptPresets: [PromptPreset] {
         promptPresetCatalog.filter { !$0.isBuiltIn }
     }
+    private var removedBuiltInPromptPresetIDs: Set<UUID>
 
     private var quickActionCatalog: [QuickAction] {
         didSet {
@@ -675,6 +681,7 @@ final class AppSettings {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        removedBuiltInPromptPresetIDs = Self.loadRemovedBuiltInPromptPresetIDs(from: defaults)
         promptPresetCatalog = Self.loadPromptPresetCatalog(from: defaults)
         removedBuiltInQuickActionIDs = Self.loadRemovedBuiltInQuickActionIDs(from: defaults)
         quickActionCatalog = Self.loadQuickActionCatalog(from: defaults)
@@ -742,32 +749,62 @@ final class AppSettings {
     }
 
     @discardableResult
-    func saveCustomPromptPreset(_ preset: PromptPreset) -> Bool {
-        guard !preset.isBuiltIn else { return false }
+    func savePromptPreset(_ preset: PromptPreset) -> Bool {
         let title = preset.title.trimmingCharacters(in: .whitespacesAndNewlines)
         let instruction = preset.instruction.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty, !instruction.isEmpty else { return false }
 
-        let customSymbolName = (preset.customSymbolName.flatMap { PromptPreset.isValidSymbol($0) ? $0.trimmingCharacters(in: .whitespacesAndNewlines) : nil })
+        let isKnownBuiltIn = PromptPreset.builtIn.contains { $0.id == preset.id }
+        let customSymbolName = preset.customSymbolName.flatMap {
+            PromptPreset.isValidSymbol($0) ? $0.trimmingCharacters(in: .whitespacesAndNewlines) : nil
+        }
+        let existing = promptPresetCatalog.first { $0.id == preset.id }
         let savedPreset = PromptPreset(
             id: preset.id,
             title: title,
             instruction: instruction,
             customSymbolName: customSymbolName,
-            isEnabled: promptPresetCatalog.first(where: { $0.id == preset.id })?.isEnabled ?? preset.isEnabled
+            isBuiltIn: isKnownBuiltIn,
+            isEnabled: existing?.isEnabled ?? preset.isEnabled
         )
-        if let index = promptPresetCatalog.firstIndex(where: { $0.id == preset.id && !$0.isBuiltIn }) {
+
+        if let index = promptPresetCatalog.firstIndex(where: { $0.id == preset.id }) {
             promptPresetCatalog[index] = savedPreset
+        } else if isKnownBuiltIn {
+            return false
         } else {
             promptPresetCatalog.append(savedPreset)
+        }
+        if isKnownBuiltIn {
+            removedBuiltInPromptPresetIDs.remove(preset.id)
+            saveRemovedBuiltInPromptPresetIDs()
         }
         return true
     }
 
-    func deleteCustomPromptPreset(id: UUID) {
-        promptPresetCatalog.removeAll { $0.id == id && !$0.isBuiltIn }
+    @discardableResult
+    func saveCustomPromptPreset(_ preset: PromptPreset) -> Bool {
+        savePromptPreset(preset)
     }
 
+    func deletePromptPreset(id: UUID) {
+        if PromptPreset.builtIn.contains(where: { $0.id == id }) {
+            removedBuiltInPromptPresetIDs.insert(id)
+            saveRemovedBuiltInPromptPresetIDs()
+        }
+        promptPresetCatalog.removeAll { $0.id == id }
+    }
+
+    func deleteCustomPromptPreset(id: UUID) {
+        deletePromptPreset(id: id)
+    }
+
+    func restoreDefaultPromptPresets() {
+        removedBuiltInPromptPresetIDs.removeAll()
+        saveRemovedBuiltInPromptPresetIDs()
+        let custom = promptPresetCatalog.filter { !$0.isBuiltIn }
+        promptPresetCatalog = PromptPreset.builtIn + custom
+    }
     func setPromptPresetEnabled(id: UUID, isEnabled: Bool) {
         guard let index = promptPresetCatalog.firstIndex(where: { $0.id == id }) else { return }
         promptPresetCatalog[index].isEnabled = isEnabled
@@ -835,6 +872,13 @@ final class AppSettings {
         guard !action.isBuiltIn else { return false }
         guard !QuickAction.builtIn.contains(where: { $0.id == action.id }) else { return false }
         return saveQuickAction(action)
+    }
+
+    @discardableResult
+    func addQuickAction(from template: QuickActionTemplate) -> QuickAction? {
+        let action = template.makeQuickAction()
+        guard saveQuickAction(action) else { return nil }
+        return action
     }
 
     func deleteQuickAction(id: UUID) {
@@ -1037,6 +1081,9 @@ final class AppSettings {
         var backup = SpotAskConfigBackup(
             general: general,
             promptPresetCatalog: promptPresetCatalog,
+            removedBuiltInPromptPresetIDs: removedBuiltInPromptPresetIDs.isEmpty
+                ? nil
+                : removedBuiltInPromptPresetIDs.sorted { $0.uuidString < $1.uuidString },
             quickActionCatalog: quickActionCatalog,
             removedBuiltInQuickActionIDs: removedBuiltInQuickActionIDs.isEmpty
                 ? nil
@@ -1087,7 +1134,10 @@ final class AppSettings {
             for descriptor in SettingRegistry.shared.descriptors {
                 descriptor.importValue(into: self, from: backup.general)
             }
-            promptPresetCatalog = Self.normalizedPromptPresetCatalog(backup.promptPresetCatalog)
+            replacePromptPresetCatalog(
+                backup.promptPresetCatalog,
+                removedBuiltInPromptPresetIDs: backup.removedBuiltInPromptPresetIDs
+            )
             if let quickActionCatalog = backup.quickActionCatalog {
                 replaceQuickActionCatalog(
                     quickActionCatalog,
@@ -1139,7 +1189,10 @@ final class AppSettings {
         for descriptor in SettingRegistry.shared.descriptors {
             descriptor.importValue(into: self, from: snapshot.general)
         }
-        promptPresetCatalog = Self.normalizedPromptPresetCatalog(snapshot.promptPresetCatalog)
+        replacePromptPresetCatalog(
+            snapshot.promptPresetCatalog,
+            removedBuiltInPromptPresetIDs: snapshot.removedBuiltInPromptPresetIDs
+        )
         if let quickActionCatalog = snapshot.quickActionCatalog {
             replaceQuickActionCatalog(
                 quickActionCatalog,
@@ -1178,6 +1231,10 @@ final class AppSettings {
         }
         defaults.removeObject(forKey: ProviderModelRegistry.defaultsKey)
         defaults.removeObject(forKey: ProviderModelRegistry.pendingLegacyAPIKeyMigrationProviderIDDefaultsKey)
+        defaults.removeObject(forKey: Key.removedBuiltInPromptPresetIDs)
+        removedBuiltInPromptPresetIDs.removeAll()
+        defaults.removeObject(forKey: Key.removedBuiltInQuickActionIDs)
+        removedBuiltInQuickActionIDs.removeAll()
         promptPresetCatalog = PromptPreset.builtIn
         quickActionCatalog = Self.loadQuickActionCatalog(from: defaults)
         inAppShortcutConfiguration = InAppShortcutConfiguration()
@@ -1197,6 +1254,8 @@ final class AppSettings {
         try? providerRegistry.replaceCatalog(with: defaultCatalog)
 
         savePromptPresetCatalog()
+        saveRemovedBuiltInPromptPresetIDs()
+        saveRemovedBuiltInQuickActionIDs()
         saveQuickActionCatalog()
         saveCustomPromptPresets()
         saveInAppShortcutConfiguration()
@@ -1213,17 +1272,47 @@ final class AppSettings {
         defaults.set(data, forKey: Key.promptPresetCatalog)
     }
 
+    private func replacePromptPresetCatalog(
+        _ catalog: [PromptPreset],
+        removedBuiltInPromptPresetIDs removed: [UUID]?
+    ) {
+        let removedIDs = Set(removed ?? [])
+        removedBuiltInPromptPresetIDs = removedIDs
+        saveRemovedBuiltInPromptPresetIDs()
+        promptPresetCatalog = Self.normalizedPromptPresetCatalog(catalog, removedBuiltInIDs: removedIDs)
+    }
+
+    private func saveRemovedBuiltInPromptPresetIDs() {
+        let values = removedBuiltInPromptPresetIDs.map(\.uuidString).sorted()
+        defaults.set(values, forKey: Key.removedBuiltInPromptPresetIDs)
+    }
+
+    private static func loadRemovedBuiltInPromptPresetIDs(from defaults: UserDefaults) -> Set<UUID> {
+        let raw = defaults.stringArray(forKey: Key.removedBuiltInPromptPresetIDs) ?? []
+        return Set(raw.compactMap(UUID.init(uuidString:)))
+    }
+
     private static func loadPromptPresetCatalog(from defaults: UserDefaults) -> [PromptPreset] {
+        let removed = loadRemovedBuiltInPromptPresetIDs(from: defaults)
         let legacyCustomPresets = loadCustomPromptPresets(from: defaults)
         guard let data = defaults.data(forKey: Key.promptPresetCatalog),
               let catalog = try? JSONDecoder().decode([PromptPreset].self, from: data) else {
-            return normalizedPromptPresetCatalog(PromptPreset.builtIn + legacyCustomPresets)
+            return normalizedPromptPresetCatalog(
+                PromptPreset.builtIn + legacyCustomPresets,
+                removedBuiltInIDs: removed,
+                legacyCustomPresets: legacyCustomPresets
+            )
         }
-        return normalizedPromptPresetCatalog(catalog, legacyCustomPresets: legacyCustomPresets)
+        return normalizedPromptPresetCatalog(
+            catalog,
+            removedBuiltInIDs: removed,
+            legacyCustomPresets: legacyCustomPresets
+        )
     }
 
     private static func normalizedPromptPresetCatalog(
         _ catalog: [PromptPreset],
+        removedBuiltInIDs: Set<UUID> = [],
         legacyCustomPresets: [PromptPreset] = []
     ) -> [PromptPreset] {
         let builtIns = Dictionary(uniqueKeysWithValues: PromptPreset.builtIn.map { ($0.id, $0) })
@@ -1232,19 +1321,38 @@ final class AppSettings {
 
         for preset in catalog where seenIDs.insert(preset.id).inserted {
             if let builtIn = builtIns[preset.id] {
+                if removedBuiltInIDs.contains(builtIn.id) {
+                    continue
+                }
+                let title = preset.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                let instruction = preset.instruction.trimmingCharacters(in: .whitespacesAndNewlines)
+                let customSymbol = preset.customSymbolName.flatMap {
+                    PromptPreset.isValidSymbol($0) ? $0.trimmingCharacters(in: .whitespacesAndNewlines) : nil
+                }
                 normalized.append(PromptPreset(
                     id: builtIn.id,
-                    title: builtIn.title,
-                    instruction: builtIn.instruction,
+                    title: title.isEmpty ? builtIn.title : title,
+                    instruction: instruction.isEmpty ? builtIn.instruction : instruction,
+                    customSymbolName: customSymbol,
                     isBuiltIn: true,
                     isEnabled: preset.isEnabled
                 ))
             } else if !preset.isBuiltIn {
-                normalized.append(preset)
+                let customSymbol = preset.customSymbolName.flatMap {
+                    PromptPreset.isValidSymbol($0) ? $0.trimmingCharacters(in: .whitespacesAndNewlines) : nil
+                }
+                normalized.append(PromptPreset(
+                    id: preset.id,
+                    title: preset.title,
+                    instruction: preset.instruction,
+                    customSymbolName: customSymbol,
+                    isBuiltIn: false,
+                    isEnabled: preset.isEnabled
+                ))
             }
         }
 
-        for builtIn in PromptPreset.builtIn where seenIDs.insert(builtIn.id).inserted {
+        for builtIn in PromptPreset.builtIn where !removedBuiltInIDs.contains(builtIn.id) && seenIDs.insert(builtIn.id).inserted {
             normalized.append(builtIn)
         }
         for preset in legacyCustomPresets where seenIDs.insert(preset.id).inserted {
