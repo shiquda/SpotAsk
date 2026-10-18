@@ -28,7 +28,9 @@ struct GeneralSettingsPage: View {
             }
 
             SettingsGroup(title: L10n.string("settings.behavior")) {
-                SettingsFieldRow(label: L10n.string("settings.globalShortcut")) {
+                HStack(alignment: .center, spacing: 14) {
+                    Text(L10n.string("settings.globalShortcut"))
+                        .frame(width: 134, alignment: .leading)
                     HStack(spacing: 8) {
                         ShortcutRecorder(
                             shortcut: settings.globalShortcut,
@@ -64,6 +66,7 @@ struct GeneralSettingsPage: View {
                         .help(L10n.string("settings.resetShortcut"))
                         .accessibilityLabel(L10n.string("settings.resetShortcut"))
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 SettingsToggleRow(label: L10n.string("settings.launchAtLogin"), isOn: Bindable(settings).launchAtLogin)
                     .onChange(of: settings.launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
