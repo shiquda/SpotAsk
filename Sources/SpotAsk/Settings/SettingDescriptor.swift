@@ -710,6 +710,38 @@ final class SettingRegistry: Sendable {
             keyPath: \.selectionActionBarShowsExternalAsk
         ))
         register(SettingDescriptors.bool(
+            key: "selectionActionBarCollapseOverflow",
+            defaultValue: true,
+            keyPath: \.selectionActionBarCollapseOverflow,
+            onChanged: { _, _ in
+                NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+            }
+        ))
+        register(SettingDescriptors.stringArray(
+            key: "selectionActionBarItemOrder",
+            defaultValue: [],
+            keyPath: \.selectionActionBarItemOrder,
+            onChanged: { _, _ in
+                NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+            }
+        ))
+        register(SettingDescriptors.stringArray(
+            key: "selectionActionBarSecondaryItemIDs",
+            defaultValue: [],
+            keyPath: \.selectionActionBarSecondaryItemIDs,
+            onChanged: { _, _ in
+                NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+            }
+        ))
+        register(SettingDescriptors.bool(
+            key: "selectionActionBarCustomized",
+            defaultValue: false,
+            keyPath: \.selectionActionBarCustomized,
+            onChanged: { _, _ in
+                NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+            }
+        ))
+        register(SettingDescriptors.bool(
             key: "automaticUpdateCheckEnabled",
             defaultValue: true,
             keyPath: \.automaticUpdateCheckEnabled

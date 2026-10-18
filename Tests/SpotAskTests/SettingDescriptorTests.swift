@@ -117,6 +117,7 @@ final class SettingDescriptorTests: XCTestCase {
         source.selectionActionBarShowsLabels = false
         source.selectionActionBarShowsPrompts = false
         source.selectionActionBarShowsExternalAsk = false
+        source.selectionActionBarCollapseOverflow = false
         source.automaticUpdateCheckEnabled = false
         source.updateDownloadSource = .accelerated
         source.externalAskEnabled = false
@@ -211,6 +212,7 @@ final class SettingDescriptorTests: XCTestCase {
         XCTAssertEqual(destination.selectionActionBarShowsLabels, false)
         XCTAssertEqual(destination.selectionActionBarShowsPrompts, false)
         XCTAssertEqual(destination.selectionActionBarShowsExternalAsk, false)
+        XCTAssertEqual(destination.selectionActionBarCollapseOverflow, false)
         XCTAssertEqual(destination.automaticUpdateCheckEnabled, false)
         XCTAssertEqual(destination.updateDownloadSource, .accelerated)
         XCTAssertEqual(destination.externalAskEnabled, false)

@@ -506,107 +506,7 @@ private struct ActiveModelHeroCard: View {
             }
 
             if let model = activeModel {
-                HStack(spacing: 12) {
-                    ProviderBrandIconView(
-                        slug: ProviderBrandIconMatcher.match(
-                            providerName: activeProvider?.name,
-                            address: activeProvider?.address,
-                            modelName: model.displayName,
-                            upstreamModelID: model.upstreamModelID
-                        ),
-                        size: 26,
-                        fallbackSymbol: "sparkles",
-                        fallbackColor: .cyan
-                    )
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 8) {
-                            Text(model.displayName)
-                                .font(.system(size: 15, weight: .bold))
-                                .lineLimit(1)
-
-                            HStack(spacing: 3) {
-                                Circle()
-                                    .fill(Color.cyan)
-                                    .frame(width: 6, height: 6)
-                                Text(L10n.string("settings.active"))
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundStyle(Color.cyan)
-                            }
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.cyan.opacity(0.12), in: Capsule())
-                        }
-
-                        HStack(spacing: 8) {
-                            if let providerName = activeProvider?.name {
-                                Text(providerName)
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(.secondary)
-                                Text("•")
-                                    .font(.system(size: 10))
-                                    .foregroundStyle(.secondary.opacity(0.5))
-                            }
-
-                            Text(model.upstreamModelID)
-                                .font(.system(size: 12, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    Spacer(minLength: 0)
-
-                    // Capability Badges & Quick Test
-                    HStack(spacing: 6) {
-                        if model.isStreamingEnabled {
-                            HStack(spacing: 3) {
-                                Image(systemName: "bolt.horizontal.fill")
-                                    .font(.system(size: 9))
-                                Text(L10n.string("settings.streamingBadge"))
-                                    .font(.system(size: 10, weight: .medium))
-                            }
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2.5)
-                            .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
-                        }
-
-                        if model.thinkingMode != .disabled && model.thinkingMode != .providerDefault {
-                            HStack(spacing: 3) {
-                                Image(systemName: "brain")
-                                    .font(.system(size: 9))
-                                Text(L10n.string("settings.thinkingBadge", model.thinkingMode.settingsTitle))
-                                    .font(.system(size: 10, weight: .medium))
-                            }
-                            .foregroundStyle(.purple)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2.5)
-                            .background(Color.purple.opacity(0.1), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
-                        }
-
-                        Button {
-                            state.testConnection(modelID: model.id)
-                        } label: {
-                            HStack(spacing: 4) {
-                                if state.testingModelID == model.id {
-                                    ProgressView()
-                                        .controlSize(.mini)
-                                } else {
-                                    Image(systemName: "bolt.fill")
-                                        .font(.system(size: 10))
-                                }
-                                Text(L10n.string("settings.testModel"))
-                                    .font(.system(size: 11, weight: .medium))
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .disabled(state.isTesting)
-                        .help(L10n.string("settings.testModel") + " " + model.displayName)
-                    }
-                }
+                activeModelHeroContent(model: model)
             } else {
                 HStack {
                     Text(L10n.string("settings.noActiveModelHint"))
@@ -625,6 +525,178 @@ private struct ActiveModelHeroCard: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(Color.primary.opacity(0.08), lineWidth: 1)
         )
+    }
+
+    @ViewBuilder
+    private func activeModelHeroContent(model: ModelConfiguration) -> some View {
+        let brandIcon = ProviderBrandIconView(
+            slug: ProviderBrandIconMatcher.match(
+                providerName: activeProvider?.name,
+                address: activeProvider?.address,
+                modelName: model.displayName,
+                upstreamModelID: model.upstreamModelID
+            ),
+            size: 26,
+            fallbackSymbol: "sparkles",
+            fallbackColor: .cyan
+        )
+
+        ViewThatFits(in: .horizontal) {
+            // Tier 1 (Wide): Single horizontal line with icon, info, badges, and button
+            HStack(alignment: .center, spacing: 12) {
+                brandIcon
+
+                modelInfoView(model: model)
+
+                Spacer(minLength: 12)
+
+                HStack(spacing: 6) {
+                    capabilityBadges(model: model)
+                    testButton(model: model)
+                }
+                .fixedSize(horizontal: true, vertical: false)
+            }
+
+            // Tier 2 (Standard/Adaptive): Top row has icon + info + test button; Badges wrap neatly underneath
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .center, spacing: 12) {
+                    brandIcon
+
+                    modelInfoView(model: model)
+
+                    Spacer(minLength: 8)
+
+                    testButton(model: model)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+
+                if hasCapabilityBadges(model: model) {
+                    capabilityBadges(model: model)
+                        .padding(.leading, 38)
+                }
+            }
+
+            // Tier 3 (Compact): Icon + info on top; Badges and test button on bottom row
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .center, spacing: 12) {
+                    brandIcon
+
+                    modelInfoView(model: model)
+                }
+
+                HStack(spacing: 8) {
+                    if hasCapabilityBadges(model: model) {
+                        capabilityBadges(model: model)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    testButton(model: model)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+                .padding(.leading, 38)
+            }
+        }
+    }
+
+    private func modelInfoView(model: ModelConfiguration) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 8) {
+                Text(model.displayName)
+                    .font(.system(size: 15, weight: .bold))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+
+                HStack(spacing: 3) {
+                    Circle()
+                        .fill(Color.cyan)
+                        .frame(width: 6, height: 6)
+                    Text(L10n.string("settings.active"))
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Color.cyan)
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.cyan.opacity(0.12), in: Capsule())
+            }
+
+            HStack(spacing: 8) {
+                if let providerName = activeProvider?.name {
+                    Text(providerName)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Text("•")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary.opacity(0.5))
+                }
+
+                Text(model.upstreamModelID)
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+        }
+    }
+
+    private func capabilityBadges(model: ModelConfiguration) -> some View {
+        HStack(spacing: 6) {
+            if model.isStreamingEnabled {
+                HStack(spacing: 3) {
+                    Image(systemName: "bolt.horizontal.fill")
+                        .font(.system(size: 9))
+                    Text(L10n.string("settings.streamingBadge"))
+                        .font(.system(size: 10, weight: .medium))
+                }
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2.5)
+                .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+            }
+
+            if model.thinkingMode != .disabled && model.thinkingMode != .providerDefault {
+                HStack(spacing: 3) {
+                    Image(systemName: "brain")
+                        .font(.system(size: 9))
+                    Text(L10n.string("settings.thinkingBadge", model.thinkingMode.settingsTitle))
+                        .font(.system(size: 10, weight: .medium))
+                }
+                .foregroundStyle(.purple)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2.5)
+                .background(Color.purple.opacity(0.1), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+            }
+        }
+    }
+
+    private func hasCapabilityBadges(model: ModelConfiguration) -> Bool {
+        model.isStreamingEnabled || (model.thinkingMode != .disabled && model.thinkingMode != .providerDefault)
+    }
+
+    private func testButton(model: ModelConfiguration) -> some View {
+        Button {
+            state.testConnection(modelID: model.id)
+        } label: {
+            HStack(spacing: 4) {
+                if state.testingModelID == model.id {
+                    ProgressView()
+                        .controlSize(.mini)
+                } else {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 10))
+                }
+                Text(L10n.string("settings.testModel"))
+                    .font(.system(size: 11, weight: .medium))
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .disabled(state.isTesting)
+        .help(L10n.string("settings.testModel") + " " + model.displayName)
     }
     @ViewBuilder
     private var modelSwitchMenu: some View {

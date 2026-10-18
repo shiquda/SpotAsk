@@ -62,6 +62,7 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
         presets: [PromptPreset],
         externalAsks: [QuickAction],
         showsLabels: Bool,
+        collapsesOverflow: Bool = false,
         shortcutForChat: InAppShortcut?,
         shortcutForPreset: ((PromptPreset) -> InAppShortcut?)?,
         shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?,
@@ -73,7 +74,8 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
             showsChat: showsChat,
             presets: presets,
             externalAsks: externalAsks,
-            showsLabels: showsLabels
+            showsLabels: showsLabels,
+            collapsesOverflow: collapsesOverflow
         )
         let content = SelectionActionBarContentView(
             layout: layout,
@@ -233,10 +235,12 @@ enum SelectionActionBarPlacedItem: Equatable {
     case preset(index: Int, frame: NSRect)
     case divider(frame: NSRect)
     case externalAsk(index: Int, frame: NSRect)
+    case more(frame: NSRect)
+    case item(item: SelectionActionBarItem, frame: NSRect)
 
     var frame: NSRect {
         switch self {
-        case let .chat(frame), let .preset(_, frame), let .divider(frame), let .externalAsk(_, frame):
+        case let .chat(frame), let .preset(_, frame), let .divider(frame), let .externalAsk(_, frame), let .more(frame), let .item(_, frame):
             return frame
         }
     }
@@ -259,6 +263,7 @@ struct SelectionActionBarLayout: Equatable {
     static let labeledIconSize: CGFloat = 13
     static let actionBarDismissDelay: TimeInterval = 8
     static let minimumSize = NSSize(width: 44, height: 36)
+    static let primaryActionLimit = 4
 
     var showsChat: Bool
     var showsLabels: Bool
@@ -268,9 +273,43 @@ struct SelectionActionBarLayout: Equatable {
     var visibleExternalAsks: [QuickAction]
     var visibleExternalAskWidths: [CGFloat]
     var showsDivider: Bool
+    var overflowPresets: [PromptPreset] = []
+    var overflowExternalAsks: [QuickAction] = []
     var size: NSSize
+    var primaryItems: [SelectionActionBarItem] = []
+    var secondaryItems: [SelectionActionBarItem] = []
+
+    var showsMoreButton: Bool {
+        !secondaryItems.isEmpty || !overflowPresets.isEmpty || !overflowExternalAsks.isEmpty
+    }
 
     var placedItems: [SelectionActionBarPlacedItem] {
+        if !primaryItems.isEmpty {
+            var x = Self.contentInset
+            var items: [SelectionActionBarPlacedItem] = []
+            let buttonY = Self.contentInset
+            let buttonHeight = Self.controlSize.height
+
+            for (index, item) in primaryItems.enumerated() {
+                if index > 0 { x += Self.controlSpacing }
+                let itemWidth: CGFloat
+                if !showsLabels || item.isChat {
+                    itemWidth = Self.controlSize.width
+                } else {
+                    itemWidth = Self.buttonWidth(for: item.name)
+                }
+                items.append(.item(item: item, frame: NSRect(x: x, y: buttonY, width: itemWidth, height: buttonHeight)))
+                x += itemWidth
+            }
+
+            if showsMoreButton {
+                if !primaryItems.isEmpty { x += Self.controlSpacing }
+                items.append(.more(frame: NSRect(x: x, y: buttonY, width: Self.controlSize.width, height: buttonHeight)))
+                x += Self.controlSize.width
+            }
+            return items
+        }
+
         var x = Self.contentInset
         var items: [SelectionActionBarPlacedItem] = []
         let buttonY = Self.contentInset
@@ -301,9 +340,15 @@ struct SelectionActionBarLayout: Equatable {
             items.append(.externalAsk(index: index, frame: NSRect(x: x, y: buttonY, width: width, height: buttonHeight)))
             x += width
         }
+        if showsMoreButton {
+            if showsChat || !visiblePresetWidths.isEmpty || !visibleExternalAskWidths.isEmpty {
+                x += Self.controlSpacing
+            }
+            items.append(.more(frame: NSRect(x: x, y: buttonY, width: Self.controlSize.width, height: buttonHeight)))
+            x += Self.controlSize.width
+        }
         return items
     }
-
 
     static func buttonWidth(for title: String) -> CGFloat {
         let textWidth = (title as NSString).size(
@@ -323,30 +368,92 @@ struct SelectionActionBarLayout: Equatable {
         chatTitle: String = L10n.string("selection.actionBar.chat"),
         presets: [PromptPreset],
         externalAsks: [QuickAction],
-        showsLabels: Bool
+        showsLabels: Bool,
+        collapsesOverflow: Bool = false,
+        primaryItems: [SelectionActionBarItem] = [],
+        secondaryItems: [SelectionActionBarItem] = []
     ) -> SelectionActionBarLayout {
-        let availableForPresets = showsChat ? max(0, maxTotalActions - 1) : maxTotalActions
-        let cappedPresets = Array(presets.prefix(availableForPresets))
-        let remainingSlots = max(0, maxTotalActions - (showsChat ? 1 : 0) - cappedPresets.count)
-        let cappedExternalAsks = Array(externalAsks.prefix(remainingSlots))
+        let totalActionCount = (showsChat ? 1 : 0) + presets.count + externalAsks.count
+        let shouldCollapse = collapsesOverflow && totalActionCount > primaryActionLimit
+
+        let cappedPresets: [PromptPreset]
+        let overflowPresets: [PromptPreset]
+        let cappedExternalAsks: [QuickAction]
+        let overflowExternalAsks: [QuickAction]
+
+        if shouldCollapse {
+            let primaryRemaining = showsChat ? max(0, primaryActionLimit - 1) : primaryActionLimit
+            let presetTake = min(primaryRemaining, presets.count)
+            cappedPresets = Array(presets.prefix(presetTake))
+            overflowPresets = Array(presets.dropFirst(presetTake))
+
+            let externalRemaining = max(0, primaryRemaining - cappedPresets.count)
+            let eaTake = min(externalRemaining, externalAsks.count)
+            cappedExternalAsks = Array(externalAsks.prefix(eaTake))
+            overflowExternalAsks = Array(externalAsks.dropFirst(eaTake))
+        } else {
+            let availableForPresets = showsChat ? max(0, maxTotalActions - 1) : maxTotalActions
+            cappedPresets = Array(presets.prefix(availableForPresets))
+            let remainingSlots = max(0, maxTotalActions - (showsChat ? 1 : 0) - cappedPresets.count)
+            cappedExternalAsks = Array(externalAsks.prefix(remainingSlots))
+            overflowPresets = []
+            overflowExternalAsks = []
+        }
+
+        if !primaryItems.isEmpty || !secondaryItems.isEmpty {
+            let showsMore = !secondaryItems.isEmpty
+            let totalWidth: CGFloat
+            if !showsLabels {
+                let count = primaryItems.count
+                let itemsW = CGFloat(count) * controlSize.width + CGFloat(max(0, count - 1)) * controlSpacing
+                let moreW = showsMore ? (controlSpacing + controlSize.width) : 0
+                totalWidth = contentInset * 2 + itemsW + moreW
+            } else {
+                let widths = primaryItems.map { $0.isChat ? controlSize.width : buttonWidth(for: $0.name) }
+                let itemsW = widths.reduce(0, +) + CGFloat(max(0, widths.count - 1)) * controlSpacing
+                let moreW = showsMore ? (controlSpacing + controlSize.width) : 0
+                totalWidth = contentInset * 2 + itemsW + moreW
+            }
+
+            return SelectionActionBarLayout(
+                showsChat: showsChat,
+                showsLabels: showsLabels,
+                chatWidth: showsChat ? controlSize.width : 0,
+                visiblePresets: cappedPresets,
+                visiblePresetWidths: cappedPresets.map { showsLabels ? buttonWidth(for: $0.title) : controlSize.width },
+                visibleExternalAsks: cappedExternalAsks,
+                visibleExternalAskWidths: cappedExternalAsks.map { showsLabels ? buttonWidth(for: $0.displayName) : controlSize.width },
+                showsDivider: false,
+                overflowPresets: overflowPresets,
+                overflowExternalAsks: overflowExternalAsks,
+                size: NSSize(width: max(minimumSize.width, totalWidth), height: minimumSize.height),
+                primaryItems: primaryItems,
+                secondaryItems: secondaryItems
+            )
+        }
+
+        let showsMore = !overflowPresets.isEmpty || !overflowExternalAsks.isEmpty
 
         if !showsLabels {
             var chosenExternalAsks = cappedExternalAsks
-            func compactWidth(hasChat: Bool, pCount: Int, eCount: Int) -> CGFloat {
+            func compactWidth(hasChat: Bool, pCount: Int, eCount: Int, hasMore: Bool) -> CGFloat {
                 let cWidth = hasChat ? controlSize.width : 0
                 let pWidth = pCount > 0 ? CGFloat(pCount) * controlSize.width + CGFloat(pCount - 1) * controlSpacing : 0
                 let spacingAfterChat = (hasChat && pCount > 0) ? controlSpacing : 0
                 let div = ((hasChat || pCount > 0) && eCount > 0) ? dividerOccupiedWidth : 0
                 let eWidth = eCount > 0 ? CGFloat(eCount) * controlSize.width + CGFloat(eCount - 1) * controlSpacing : 0
-                return contentInset * 2 + cWidth + spacingAfterChat + pWidth + div + eWidth
+                let spacingBeforeMore = (hasMore && (hasChat || pCount > 0 || eCount > 0)) ? controlSpacing : 0
+                let moreWidth = hasMore ? controlSize.width : 0
+                return contentInset * 2 + cWidth + spacingAfterChat + pWidth + div + eWidth + spacingBeforeMore + moreWidth
             }
 
-            while !chosenExternalAsks.isEmpty && compactWidth(hasChat: showsChat, pCount: cappedPresets.count, eCount: chosenExternalAsks.count) > maxTotalWidth {
+            var showsDivider = (showsChat || !cappedPresets.isEmpty) && !chosenExternalAsks.isEmpty
+            while !chosenExternalAsks.isEmpty && compactWidth(hasChat: showsChat, pCount: cappedPresets.count, eCount: chosenExternalAsks.count, hasMore: showsMore) > maxTotalWidth {
                 chosenExternalAsks.removeLast()
+                showsDivider = (showsChat || !cappedPresets.isEmpty) && !chosenExternalAsks.isEmpty
             }
 
-            let showsDivider = (showsChat || !cappedPresets.isEmpty) && !chosenExternalAsks.isEmpty
-            let totalWidth = compactWidth(hasChat: showsChat, pCount: cappedPresets.count, eCount: chosenExternalAsks.count)
+            let totalWidth = compactWidth(hasChat: showsChat, pCount: cappedPresets.count, eCount: chosenExternalAsks.count, hasMore: showsMore)
             return SelectionActionBarLayout(
                 showsChat: showsChat,
                 showsLabels: false,
@@ -356,6 +463,8 @@ struct SelectionActionBarLayout: Equatable {
                 visibleExternalAsks: chosenExternalAsks,
                 visibleExternalAskWidths: Array(repeating: controlSize.width, count: chosenExternalAsks.count),
                 showsDivider: showsDivider,
+                overflowPresets: overflowPresets,
+                overflowExternalAsks: overflowExternalAsks,
                 size: NSSize(width: max(minimumSize.width, totalWidth), height: minimumSize.height)
             )
         }
@@ -363,6 +472,7 @@ struct SelectionActionBarLayout: Equatable {
         let chatWidth: CGFloat = showsChat ? controlSize.width : 0
         let presetNaturalWidths = cappedPresets.map { buttonWidth(for: $0.title) }
         var chosenExternalAsks = cappedExternalAsks
+        let moreOccupiedWidth: CGFloat = showsMore ? (controlSpacing + controlSize.width) : 0
 
         func groupWidth(_ widths: [CGFloat]) -> CGFloat {
             guard !widths.isEmpty else { return 0 }
@@ -383,7 +493,9 @@ struct SelectionActionBarLayout: Equatable {
         func labeledWidth(presetWidths: [CGFloat], eaWidths: [CGFloat]) -> CGFloat {
             let saWidth = spotAskGroupWidth(presetWidths: presetWidths)
             let div = (saWidth > 0 && !eaWidths.isEmpty) ? dividerOccupiedWidth : 0
-            return contentInset * 2 + saWidth + div + groupWidth(eaWidths)
+            let moreSpacing = (showsMore && (saWidth > 0 || !eaWidths.isEmpty)) ? controlSpacing : 0
+            let moreW = showsMore ? controlSize.width : 0
+            return contentInset * 2 + saWidth + div + groupWidth(eaWidths) + moreSpacing + moreW
         }
 
         while !chosenExternalAsks.isEmpty {
@@ -402,7 +514,7 @@ struct SelectionActionBarLayout: Equatable {
         if chosenExternalAsks.isEmpty {
             let presetSpacing = cappedPresets.count > 1 ? CGFloat(cappedPresets.count - 1) * controlSpacing : 0
             let spacingAfterChat = (showsChat && !cappedPresets.isEmpty) ? controlSpacing : 0
-            let availableForPresets = max(0, maxTotalWidth - contentInset * 2 - chatWidth - spacingAfterChat - presetSpacing)
+            let availableForPresets = max(0, maxTotalWidth - contentInset * 2 - chatWidth - spacingAfterChat - presetSpacing - moreOccupiedWidth)
             presetWidths = compressedWidths(presetNaturalWidths, into: availableForPresets)
             eaWidths = []
         } else {
@@ -410,7 +522,7 @@ struct SelectionActionBarLayout: Equatable {
             let saWidth = spotAskGroupWidth(presetWidths: presetNaturalWidths)
             let availableEA = max(
                 0,
-                maxTotalWidth - contentInset * 2 - saWidth - dividerOccupiedWidth - eaSpacing
+                maxTotalWidth - contentInset * 2 - saWidth - dividerOccupiedWidth - eaSpacing - moreOccupiedWidth
             )
             eaWidths = compressedWidths(
                 chosenExternalAsks.map { buttonWidth(for: $0.displayName) },
@@ -429,6 +541,8 @@ struct SelectionActionBarLayout: Equatable {
             visibleExternalAsks: chosenExternalAsks,
             visibleExternalAskWidths: eaWidths,
             showsDivider: showsDivider,
+            overflowPresets: overflowPresets,
+            overflowExternalAsks: overflowExternalAsks,
             size: NSSize(
                 width: max(minimumSize.width, totalWidth),
                 height: max(minimumSize.height, controlSize.height + contentInset * 2)
