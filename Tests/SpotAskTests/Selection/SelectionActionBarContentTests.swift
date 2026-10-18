@@ -165,6 +165,41 @@ struct SelectionActionBarContentTests {
         #expect(content.primaryItems[1].id == "chat")
     }
 
+    @Test("Interactive move and reorder transitions between primary and secondary")
+    func interactiveMoveAndReorder() {
+        let settings = makeSettings()
+        settings.selectionActionBarShowsChatAction = true
+        settings.selectionActionBarShowsPrompts = true
+        settings.selectionActionBarShowsExternalAsk = false
+        settings.selectionActionBarCollapseOverflow = true
+
+        var content = SelectionActionBarContent.resolve(from: settings)
+        #expect(content.primaryItems.count == 4)
+        #expect(content.secondaryItems.count == 1)
+
+        settings.moveActionBarItemToSecondary(id: "chat")
+        content = SelectionActionBarContent.resolve(from: settings)
+        #expect(!content.primaryItems.contains { $0.id == "chat" })
+        #expect(content.secondaryItems.contains { $0.id == "chat" })
+        #expect(content.primaryItems.count == 3)
+        #expect(content.secondaryItems.count == 2)
+
+        settings.moveActionBarItemToPrimary(id: "chat", atIndex: 0)
+        content = SelectionActionBarContent.resolve(from: settings)
+        #expect(content.primaryItems.first?.id == "chat")
+        #expect(!content.secondaryItems.contains { $0.id == "chat" })
+
+        let secondItemID = content.primaryItems[1].id
+        settings.reorderActionBarItem(id: secondItemID, toIndex: 0)
+        content = SelectionActionBarContent.resolve(from: settings)
+        #expect(content.primaryItems.first?.id == secondItemID)
+
+        settings.resetActionBarCustomization()
+        content = SelectionActionBarContent.resolve(from: settings)
+        #expect(settings.selectionActionBarCustomized == false)
+        #expect(content.primaryItems.first?.id == "chat")
+    }
+
     @Test("Render SelectionAssistantSettingsPage to image for visual verification")
     func renderSettingsPageToImage() throws {
         let settings = makeSettings()

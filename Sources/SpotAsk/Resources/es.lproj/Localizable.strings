@@ -418,6 +418,7 @@
 "settings.selectionAssistantActionBarDragHintNoOverflow" = "Arrastra elementos para reordenar; activa «Menú secundario» para plegar acciones";
 "settings.selectionAssistantSecondaryMenuTitle" = "Elementos del menú secundario";
 "settings.selectionAssistantSecondaryMenuEmpty" = "El menú secundario está vacío. Arrastra acciones aquí para guardarlas.";
+"settings.selectionAssistantDropToSecondaryHint" = "Suelta para guardar en el menú secundario";
 "settings.selectionAssistantMoveToActionBar" = "Mover a la barra de acciones";
 "settings.selectionAssistantMoveToSecondaryMenu" = "Mover al menú secundario";
 "settings.selectionAssistantResetOrder" = "Restablecer orden";

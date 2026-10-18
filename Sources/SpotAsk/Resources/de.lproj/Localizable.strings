@@ -418,6 +418,7 @@
 "settings.selectionAssistantActionBarDragHintNoOverflow" = "Ziehen Sie Elemente, um Aktionen zu sortieren; aktivieren Sie „Untermenü“ zum Reduzieren";
 "settings.selectionAssistantSecondaryMenuTitle" = "Untermenü-Elemente";
 "settings.selectionAssistantSecondaryMenuEmpty" = "Untermenü ist leer. Ziehen Sie Aktionen hierher, um sie abzulegen.";
+"settings.selectionAssistantDropToSecondaryHint" = "Loslassen, um im Untermenü abzulegen";
 "settings.selectionAssistantMoveToActionBar" = "In Aktionsleiste verschieben";
 "settings.selectionAssistantMoveToSecondaryMenu" = "In Untermenü verschieben";
 "settings.selectionAssistantResetOrder" = "Reihenfolge zurücksetzen";

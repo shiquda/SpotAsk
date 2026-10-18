@@ -418,6 +418,7 @@
 "settings.selectionAssistantActionBarDragHintNoOverflow" = "支持按住拖拽调整动作顺序；开启「二级菜单」后可收纳动作";
 "settings.selectionAssistantSecondaryMenuTitle" = "二级菜单收纳项";
 "settings.selectionAssistantSecondaryMenuEmpty" = "二级菜单暂无动作，可将上方动作拖拽至此处收纳";
+"settings.selectionAssistantDropToSecondaryHint" = "松开以收纳进二级菜单";
 "settings.selectionAssistantMoveToActionBar" = "移至动作栏";
 "settings.selectionAssistantMoveToSecondaryMenu" = "移至二级菜单";
 "settings.selectionAssistantResetOrder" = "恢复默认顺序";

@@ -454,10 +454,17 @@ struct SelectionActionBarLivePreviewCard: View {
     @Bindable var settings: AppSettings
     @State private var isSecondaryMenuExpanded = false
     @State private var draggingItemID: String? = nil
+    @State private var dragCurrentTranslation: CGSize = .zero
+    @State private var dragStartIndex: Int? = nil
+    @State private var currentDropTargetIndex: Int? = nil
+    @State private var isDraggingToSecondary = false
     @State private var isOverMoreButton = false
     @State private var hoveredItemID: String? = nil
     @State private var hoveredSecondaryID: String? = nil
-    @State private var dragCurrentTranslation: CGFloat = 0
+
+    @State private var draggingSecondaryItemID: String? = nil
+    @State private var secondaryDragTranslation: CGSize = .zero
+    @State private var isDraggingToPrimary = false
 
     private var content: SelectionActionBarContent {
         SelectionActionBarContent.resolve(from: settings)
@@ -495,7 +502,7 @@ struct SelectionActionBarLivePreviewCard: View {
 
             if isCustomized {
                 Button {
-                    withAnimation {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                         settings.resetActionBarCustomization()
                         isSecondaryMenuExpanded = false
                     }
@@ -581,18 +588,41 @@ struct SelectionActionBarLivePreviewCard: View {
         .padding(4)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color(nsColor: .windowBackgroundColor).opacity(0.92))
+                .fill(isDraggingToPrimary ? Color.accentColor.opacity(0.12) : Color(nsColor: .windowBackgroundColor).opacity(0.92))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.primary.opacity(0.12), lineWidth: 0.5)
+                .stroke(isDraggingToPrimary ? Color.accentColor : Color.primary.opacity(0.12), lineWidth: isDraggingToPrimary ? 1.5 : 0.5)
         )
         .shadow(color: Color.black.opacity(0.12), radius: 8, x: 0, y: 3)
+    }
+
+    private func siblingShiftOffset(for index: Int) -> CGFloat {
+        guard let draggingID = draggingItemID,
+              let startIndex = dragStartIndex,
+              let targetIndex = currentDropTargetIndex,
+              !isDraggingToSecondary,
+              index < content.primaryItems.count,
+              draggingID != content.primaryItems[index].id else {
+            return 0
+        }
+        let itemWidth: CGFloat = (content.showsLabels) ? 60 : 32
+        if startIndex < targetIndex {
+            if index > startIndex && index <= targetIndex {
+                return -itemWidth
+            }
+        } else if startIndex > targetIndex {
+            if index >= targetIndex && index < startIndex {
+                return itemWidth
+            }
+        }
+        return 0
     }
 
     private func primaryItemView(item: SelectionActionBarItem, index: Int) -> some View {
         let isDragging = draggingItemID == item.id
         let isHovered = hoveredItemID == item.id
+        let horizontalShift = siblingShiftOffset(for: index)
 
         return HStack(spacing: 5) {
             ProviderBrandIconView(
@@ -606,20 +636,31 @@ struct SelectionActionBarLivePreviewCard: View {
                     .font(.system(size: 12))
                     .lineLimit(1)
             }
+
+            if isDragging && isDraggingToSecondary {
+                Image(systemName: "arrow.down")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(Color.accentColor)
+            }
         }
         .padding(.horizontal, (content.showsLabels && !item.isChat) ? 8 : 6)
         .frame(height: 28)
         .background(
             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(isDragging ? Color.accentColor.opacity(0.2) : (isHovered ? Color.primary.opacity(0.08) : Color.clear))
+                .fill(isDragging ? (isDraggingToSecondary ? Color.accentColor.opacity(0.25) : Color.accentColor.opacity(0.18)) : (isHovered ? Color.primary.opacity(0.08) : Color.clear))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .stroke(isDragging ? Color.accentColor : Color.clear, lineWidth: 1)
         )
-        .offset(x: isDragging ? dragCurrentTranslation : 0)
-        .scaleEffect(isDragging ? 1.05 : 1.0)
-        .zIndex(isDragging ? 10 : 1)
+        .offset(
+            x: isDragging ? dragCurrentTranslation.width : horizontalShift,
+            y: isDragging ? dragCurrentTranslation.height : 0
+        )
+        .animation(.spring(response: 0.24, dampingFraction: 0.8), value: horizontalShift)
+        .scaleEffect(isDragging ? 1.08 : 1.0)
+        .shadow(color: isDragging ? Color.black.opacity(0.2) : Color.clear, radius: 6, x: 0, y: 3)
+        .zIndex(isDragging ? 100 : 1)
         .contentShape(Rectangle())
         .onHover { isHovered in
             hoveredItemID = isHovered ? item.id : nil
@@ -627,35 +668,70 @@ struct SelectionActionBarLivePreviewCard: View {
         .gesture(
             DragGesture(minimumDistance: 4)
                 .onChanged { value in
-                    draggingItemID = item.id
-                    dragCurrentTranslation = value.translation.width
-
-                    if content.layout.showsMoreButton || settings.selectionActionBarCollapseOverflow {
-                        let thresholdX: CGFloat = 80
-                        if value.translation.width > thresholdX {
-                            isOverMoreButton = true
-                        } else {
-                            isOverMoreButton = false
-                        }
+                    if dragStartIndex == nil {
+                        dragStartIndex = index
+                        currentDropTargetIndex = index
                     }
+                    draggingItemID = item.id
+                    dragCurrentTranslation = value.translation
 
                     let itemWidth: CGFloat = (content.showsLabels && !item.isChat) ? 60 : 32
-                    let indexOffset = Int(round(value.translation.width / itemWidth))
-                    let newIndex = min(max(0, index + indexOffset), content.primaryItems.count - 1)
-                    if newIndex != index && !isOverMoreButton {
-                        settings.reorderActionBarItem(id: item.id, toIndex: newIndex)
+                    let remainingItemsToRight = max(0, (content.primaryItems.count - 1) - index)
+                    let distanceToMoreButton = CGFloat(remainingItemsToRight) * itemWidth + 28
+
+                    let isDownward = value.translation.height > 24
+                    let isRightwardToMore = (content.layout.showsMoreButton || settings.selectionActionBarCollapseOverflow)
+                        && value.translation.width > distanceToMoreButton && abs(value.translation.height) < 24
+
+                    if settings.selectionActionBarCollapseOverflow && (isDownward || isRightwardToMore) {
+                        isDraggingToSecondary = true
+                        isOverMoreButton = isRightwardToMore
+                        currentDropTargetIndex = nil
+                        if !isSecondaryMenuExpanded && value.translation.height > 20 {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                isSecondaryMenuExpanded = true
+                            }
+                        }
+                    } else {
+                        isDraggingToSecondary = false
+                        isOverMoreButton = false
+
+                        guard let startIndex = dragStartIndex else { return }
+                        let threshold = itemWidth * 0.45
+                        let dragX = value.translation.width
+                        let shift: Int
+                        if dragX > threshold {
+                            shift = Int((dragX - threshold) / itemWidth) + 1
+                        } else if dragX < -threshold {
+                            shift = -Int((-dragX - threshold) / itemWidth) - 1
+                        } else {
+                            shift = 0
+                        }
+                        let target = min(max(0, startIndex + shift), content.primaryItems.count - 1)
+                        if target != currentDropTargetIndex {
+                            withAnimation(.spring(response: 0.22, dampingFraction: 0.82)) {
+                                currentDropTargetIndex = target
+                            }
+                        }
                     }
                 }
                 .onEnded { value in
-                    if isOverMoreButton {
+                    if isDraggingToSecondary {
                         settings.moveActionBarItemToSecondary(id: item.id)
-                        withAnimation {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                             isSecondaryMenuExpanded = true
                         }
+                    } else if let target = currentDropTargetIndex, let start = dragStartIndex, target != start {
+                        settings.reorderActionBarItem(id: item.id, toIndex: target)
                     }
-                    draggingItemID = nil
-                    dragCurrentTranslation = 0
-                    isOverMoreButton = false
+                    withAnimation(.spring(response: 0.22, dampingFraction: 0.82)) {
+                        draggingItemID = nil
+                        dragCurrentTranslation = .zero
+                        dragStartIndex = nil
+                        currentDropTargetIndex = nil
+                        isDraggingToSecondary = false
+                        isOverMoreButton = false
+                    }
                 }
         )
         .contextMenu {
@@ -744,6 +820,21 @@ struct SelectionActionBarLivePreviewCard: View {
             Divider()
                 .padding(.horizontal, 8)
 
+            if isDraggingToSecondary {
+                HStack(spacing: 5) {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.accentColor)
+                    Text(L10n.string("settings.selectionAssistantDropToSecondaryHint"))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color.accentColor)
+                }
+                .padding(.vertical, 6)
+                .frame(maxWidth: .infinity)
+                .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+                .padding(.horizontal, 8)
+            }
+
             if content.secondaryItems.isEmpty {
                 HStack(spacing: 6) {
                     Image(systemName: "tray")
@@ -769,17 +860,18 @@ struct SelectionActionBarLivePreviewCard: View {
         .frame(maxWidth: 320)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color(nsColor: .windowBackgroundColor).opacity(0.96))
+                .fill(isDraggingToSecondary ? Color.accentColor.opacity(0.06) : Color(nsColor: .windowBackgroundColor).opacity(0.96))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color.primary.opacity(0.12), lineWidth: 0.5)
+                .stroke(isDraggingToSecondary ? Color.accentColor : Color.primary.opacity(0.12), lineWidth: isDraggingToSecondary ? 1.5 : 0.5)
         )
         .shadow(color: Color.black.opacity(0.16), radius: 10, x: 0, y: 4)
     }
 
     private func secondaryItemRow(item: SelectionActionBarItem) -> some View {
         let isHovered = hoveredSecondaryID == item.id
+        let isDraggingThis = draggingSecondaryItemID == item.id
 
         return HStack(spacing: 8) {
             Image(systemName: "line.3.horizontal")
@@ -819,11 +911,41 @@ struct SelectionActionBarLivePreviewCard: View {
         .padding(.vertical, 5)
         .background(
             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(isHovered ? Color.primary.opacity(0.06) : Color.clear)
+                .fill(isDraggingThis ? Color.accentColor.opacity(0.18) : (isHovered ? Color.primary.opacity(0.06) : Color.clear))
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .stroke(isDraggingThis ? Color.accentColor : Color.clear, lineWidth: 1)
+        )
+        .offset(isDraggingThis ? secondaryDragTranslation : .zero)
+        .scaleEffect(isDraggingThis ? 1.05 : 1.0)
+        .zIndex(isDraggingThis ? 100 : 1)
+        .contentShape(Rectangle())
         .onHover { isHovered in
             hoveredSecondaryID = isHovered ? item.id : nil
         }
+        .gesture(
+            DragGesture(minimumDistance: 4)
+                .onChanged { value in
+                    draggingSecondaryItemID = item.id
+                    secondaryDragTranslation = value.translation
+                    if value.translation.height < -24 {
+                        isDraggingToPrimary = true
+                    } else {
+                        isDraggingToPrimary = false
+                    }
+                }
+                .onEnded { value in
+                    if isDraggingToPrimary || value.translation.height < -24 {
+                        settings.moveActionBarItemToPrimary(id: item.id)
+                    }
+                    withAnimation(.spring(response: 0.22, dampingFraction: 0.82)) {
+                        draggingSecondaryItemID = nil
+                        secondaryDragTranslation = .zero
+                        isDraggingToPrimary = false
+                    }
+                }
+        )
         .contextMenu {
             Button {
                 settings.moveActionBarItemToPrimary(id: item.id)
@@ -832,7 +954,6 @@ struct SelectionActionBarLivePreviewCard: View {
             }
         }
     }
-
     private var footerHints: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
