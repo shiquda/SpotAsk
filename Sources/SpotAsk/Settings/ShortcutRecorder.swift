@@ -200,6 +200,9 @@ final class ShortcutRecorderField: NSView {
     }
 
     func update(shortcut: InAppShortcut?, hasConflict: Bool = false) {
+        if displayedShortcut == shortcut && self.hasConflict == hasConflict {
+            return
+        }
         displayedShortcut = shortcut
         self.hasConflict = hasConflict
         updateHostingView()
