@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import SwiftUI
 import Testing
 @testable import SpotAsk
 
@@ -265,6 +266,31 @@ struct InAppShortcutTests {
             keyCode: 53
         ))
         #expect(ShortcutRecorderEventParser.isCancelKey(escape))
+    }
+
+    @Test("Recorder field skips redundant update calls when shortcut and conflict state are unchanged")
+    @MainActor
+    func recorderFieldSkipsRedundantUpdates() throws {
+        let field = ShortcutRecorderField()
+        let host = try #require(field.subviews.compactMap { $0 as? NSHostingView<ShortcutKeycapRecordingView> }.first)
+
+        let shortcut = InAppShortcut(key: "k", modifiers: [.command, .shift])
+        field.update(shortcut: shortcut, hasConflict: false)
+        #expect(host.rootView.shortcut == shortcut)
+        #expect(host.rootView.hasConflict == false)
+
+        // Mutate hosting view's rootView to a sentinel value to detect whether updateHostingView is skipped
+        host.rootView = ShortcutKeycapRecordingView(shortcut: nil, isCapturing: false, hasConflict: false)
+        #expect(host.rootView.shortcut == nil)
+
+        // Redundant update with identical values must early-return and NOT touch host.rootView
+        field.update(shortcut: shortcut, hasConflict: false)
+        #expect(host.rootView.shortcut == nil)
+
+        // State change in conflict must trigger updateHostingView and restore the active shortcut
+        field.update(shortcut: shortcut, hasConflict: true)
+        #expect(host.rootView.shortcut == shortcut)
+        #expect(host.rootView.hasConflict == true)
     }
 
     @Test("Quick Actions receive derived defaults sequential to enabled presets")
