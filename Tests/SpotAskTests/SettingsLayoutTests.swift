@@ -11,6 +11,34 @@ struct SettingsLayoutTests {
         #expect(ModalSheetPresenter.resolveWindow(preferred: dummy) === dummy)
         #expect(ModalSheetPresenter.resolveWindow(preferred: nil, provider: { dummy }) === dummy)
     }
+    @Test func settingsLabeledLayoutSizingAndSinglePassInstantiation() {
+        final class Counter: @unchecked Sendable {
+            var count = 0
+        }
+        let counter = Counter()
+
+        struct CountingContentView: View {
+            let counter: Counter
+            var body: some View {
+                let _ = { counter.count += 1 }()
+                Text("Content")
+            }
+        }
+
+        let wideRow = SettingsLabeledLayout {
+            Text("Label")
+            CountingContentView(counter: counter)
+        }
+
+        let wideHost = NSHostingView(rootView: wideRow)
+        wideHost.frame = NSRect(x: 0, y: 0, width: 500, height: 40)
+        wideHost.layoutSubtreeIfNeeded()
+
+        #expect(counter.count == 1)
+        let size = wideHost.fittingSize
+        #expect(size.width >= 400)
+    }
+
 
     @Test func settingsSidebarNavigationMovesOnlyBetweenExistingSections() {
         #expect(SettingsSection.provider.moving(.down) == .prompts)
