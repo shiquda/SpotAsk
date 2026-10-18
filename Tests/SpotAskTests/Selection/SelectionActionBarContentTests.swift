@@ -140,6 +140,31 @@ struct SelectionActionBarContentTests {
         #expect(previewButtons.allSatisfy { $0.target == nil })
     }
 
+    @Test("Custom order and secondary item IDs are respected in resolve")
+    func customOrderAndSecondaryPartition() {
+        let settings = makeSettings()
+        settings.selectionActionBarShowsChatAction = true
+        settings.selectionActionBarShowsPrompts = true
+        settings.selectionActionBarShowsExternalAsk = false
+        settings.selectionActionBarCollapseOverflow = true
+
+        let presets = (1...6).map { PromptPreset(title: "P\($0)", instruction: "I\($0)") }
+        for p in presets { _ = settings.saveCustomPromptPreset(p) }
+
+        let p1ID = "preset:\(presets[0].id.uuidString)"
+        settings.selectionActionBarSecondaryItemIDs = [p1ID]
+        settings.selectionActionBarItemOrder = [
+            "preset:\(presets[1].id.uuidString)",
+            "chat",
+            p1ID
+        ]
+
+        let content = SelectionActionBarContent.resolve(from: settings)
+        #expect(content.secondaryItems.contains { $0.id == p1ID })
+        #expect(content.primaryItems.first?.id == "preset:\(presets[1].id.uuidString)")
+        #expect(content.primaryItems[1].id == "chat")
+    }
+
     @Test("Render SelectionAssistantSettingsPage to image for visual verification")
     func renderSettingsPageToImage() throws {
         let settings = makeSettings()

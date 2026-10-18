@@ -373,7 +373,7 @@ struct SelectionActionBarLayoutTests {
             #expect(frame.minY >= 0)
             #expect(frame.maxY <= panel.maxY + 0.001)
             switch item {
-            case .chat, .preset, .externalAsk, .more:
+            case .chat, .preset, .externalAsk, .more, .item:
                 #expect(frame.minX >= inset - 0.001)
                 #expect(frame.maxX <= panel.maxX - inset + 0.001)
             case .divider:

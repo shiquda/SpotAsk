@@ -126,6 +126,30 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertFalse(AppSettings(defaults: defaults).selectionActionBarCollapseOverflow)
     }
 
+    func testSelectionActionBarCustomizationAndReordering() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let settings = AppSettings(defaults: defaults)
+        XCTAssertTrue(settings.selectionActionBarItemOrder.isEmpty)
+        XCTAssertTrue(settings.selectionActionBarSecondaryItemIDs.isEmpty)
+
+        settings.reorderActionBarItem(id: "chat", toIndex: 2)
+        XCTAssertFalse(settings.selectionActionBarItemOrder.isEmpty)
+
+        settings.moveActionBarItemToSecondary(id: "chat")
+        XCTAssertTrue(settings.selectionActionBarSecondaryItemIDs.contains("chat"))
+
+        settings.moveActionBarItemToPrimary(id: "chat", atIndex: 0)
+        XCTAssertFalse(settings.selectionActionBarSecondaryItemIDs.contains("chat"))
+        XCTAssertEqual(settings.selectionActionBarItemOrder.first, "chat")
+
+        settings.resetActionBarCustomization()
+        XCTAssertTrue(settings.selectionActionBarItemOrder.isEmpty)
+        XCTAssertTrue(settings.selectionActionBarSecondaryItemIDs.isEmpty)
+    }
+
     func testProxyDefaultsToOffAndPersists() {
         let suite = "AppSettingsTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
