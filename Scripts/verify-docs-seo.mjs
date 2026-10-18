@@ -40,6 +40,15 @@ function parseAttributes(attrText) {
   }
   return attrs
 }
+function unescapeXml(text) {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+}
+
 
 const errors = []
 const htmlFiles = await collectHtmlFiles(distRoot)
@@ -76,7 +85,9 @@ if (!(await fileExists(sitemapPath))) {
   errors.push('Missing sitemap.xml in build output')
 } else {
   const sitemapXml = await readFile(sitemapPath, 'utf8')
-  const locMatches = [...sitemapXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim())
+  const locMatches = [...sitemapXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) =>
+    unescapeXml(m[1].trim())
+  )
   const sitemapLocSet = new Set(locMatches)
 
   if (locMatches.length === 0) {
@@ -101,7 +112,83 @@ if (!(await fileExists(sitemapPath))) {
   }
 }
 
-// 2. Verify every HTML file
+// 2. Verify sitemap.txt
+const sitemapTxtPath = path.join(distRoot, 'sitemap.txt')
+if (!(await fileExists(sitemapTxtPath))) {
+  errors.push('Missing sitemap.txt in build output')
+} else {
+  const sitemapTxtRaw = await readFile(sitemapTxtPath)
+  if (
+    sitemapTxtRaw.length >= 3 &&
+    sitemapTxtRaw[0] === 0xef &&
+    sitemapTxtRaw[1] === 0xbb &&
+    sitemapTxtRaw[2] === 0xbf
+  ) {
+    errors.push('sitemap.txt must be UTF-8 without BOM')
+  }
+
+  const sitemapTxt = sitemapTxtRaw.toString('utf8')
+  if (!sitemapTxt.endsWith('\n')) {
+    errors.push('sitemap.txt must end with a newline')
+  }
+
+  const rawLines = sitemapTxt.split('\n')
+  if (rawLines.length > 0 && rawLines[rawLines.length - 1] === '') {
+    rawLines.pop()
+  }
+
+  if (rawLines.length === 0) {
+    errors.push('sitemap.txt contains zero URL entries')
+  }
+
+  const txtUrls = []
+  const txtUrlSet = new Set()
+  for (let i = 0; i < rawLines.length; i++) {
+    const line = rawLines[i]
+    if (line.trim() === '') {
+      errors.push(`sitemap.txt line ${i + 1} is blank; text sitemaps must not contain empty lines`)
+      continue
+    }
+    if (line !== line.trim()) {
+      errors.push(`sitemap.txt line ${i + 1} has unexpected whitespace: "${line}"`)
+    }
+    if (txtUrlSet.has(line)) {
+      errors.push(`sitemap.txt contains duplicate URL: ${line}`)
+    }
+    txtUrlSet.add(line)
+    txtUrls.push(line)
+
+    if (!servedFullUrls.has(line)) {
+      errors.push(`sitemap.txt URL does not resolve to an exact 200 HTML page: ${line}`)
+    }
+  }
+
+  if (await fileExists(sitemapPath)) {
+    const sitemapXml = await readFile(sitemapPath, 'utf8')
+    const xmlLocs = [...sitemapXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) =>
+      unescapeXml(m[1].trim())
+    )
+    const xmlLocSet = new Set(xmlLocs)
+
+    for (const url of xmlLocs) {
+      if (!txtUrlSet.has(url)) {
+        errors.push(`sitemap.txt is missing URL present in sitemap.xml: ${url}`)
+      }
+    }
+    for (const url of txtUrlSet) {
+      if (!xmlLocSet.has(url)) {
+        errors.push(`sitemap.txt contains URL missing from sitemap.xml: ${url}`)
+      }
+    }
+    if (txtUrls.length !== xmlLocs.length) {
+      errors.push(
+        `sitemap.txt URL count (${txtUrls.length}) does not match sitemap.xml <loc> count (${xmlLocs.length})`
+      )
+    }
+  }
+}
+
+// 3. Verify every HTML file
 for (const rel of htmlFiles) {
   const html = await readFile(path.join(distRoot, rel), 'utf8')
   const linkTags = [...html.matchAll(/<link\s+([^>]+?)\/?>/gi)].map((m) => parseAttributes(m[1]))
@@ -260,5 +347,5 @@ if (errors.length > 0) {
 }
 
 console.log(
-  `Verified ${servedFullUrls.size} indexed HTML pages, sitemap.xml, hreflang reciprocity, Markdown mirrors, JSON-LD, and internal links with 0 SEO issues.`
+  `Verified ${servedFullUrls.size} indexed HTML pages, sitemap.xml, sitemap.txt, hreflang reciprocity, Markdown mirrors, JSON-LD, and internal links with 0 SEO issues.`
 )

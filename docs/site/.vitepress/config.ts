@@ -1,5 +1,7 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { readFile, writeFile } from 'node:fs/promises'
+import path from 'node:path'
 import { defineConfig, type HeadConfig, type PageData } from 'vitepress'
 import { mermaidFence } from './mermaidFence'
 
@@ -195,6 +197,55 @@ const chineseSidebar = [
     ]
   }
 ]
+function unescapeXml(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+}
+
+async function waitForCompleteSitemapXml(sitemapPath: string, timeoutMs = 5000): Promise<string> {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const content = await readFile(sitemapPath, 'utf8')
+      if (content.includes('</urlset>')) {
+        return content
+      }
+    } catch {}
+    const { promise, resolve } = Promise.withResolvers<void>()
+    setTimeout(resolve, 50)
+    await promise
+  }
+  throw new Error(`Timed out waiting for complete ${sitemapPath} after ${timeoutMs}ms`)
+}
+
+async function generateSitemapTxt(outDir: string): Promise<void> {
+  const sitemapXmlPath = path.join(outDir, 'sitemap.xml')
+  const xmlContent = await waitForCompleteSitemapXml(sitemapXmlPath)
+  const locMatches = [...xmlContent.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) =>
+    unescapeXml(m[1].trim())
+  )
+
+  if (locMatches.length === 0) {
+    throw new Error('No <loc> entries found in sitemap.xml while generating sitemap.txt')
+  }
+
+  const uniqueUrls: string[] = []
+  const seen = new Set<string>()
+  for (const url of locMatches) {
+    if (!seen.has(url)) {
+      seen.add(url)
+      uniqueUrls.push(url)
+    }
+  }
+
+  const sitemapTxtPath = path.join(outDir, 'sitemap.txt')
+  await writeFile(sitemapTxtPath, `${uniqueUrls.join('\n')}\n`, 'utf8')
+}
+
 
 export default defineConfig({
   lang: 'en-US',
@@ -209,6 +260,9 @@ export default defineConfig({
   },
   sitemap: {
     hostname: docsUrl
+  },
+  async buildEnd(siteConfig) {
+    await generateSitemapTxt(siteConfig.outDir)
   },
   async transformPageData(page: PageData) {
     const source = typeof page.frontmatter.source === 'string'
