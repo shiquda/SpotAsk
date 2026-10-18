@@ -146,6 +146,7 @@
 "settings.accessKeyOnlyOnMac" = "Tu clave de acceso se guarda solo en este Mac.";
 "settings.accessKeyPlaceholder" = "Introduce una clave de acceso para guardar o actualizar";
 "settings.appearance" = "Apariencia";
+"settings.theme" = "Tema";
 "settings.about" = "Acerca de";
 "settings.aboutDescription" = "Consulta la versión, el código fuente y las actualizaciones disponibles.";
 "settings.version" = "Versión";
@@ -174,6 +175,14 @@
 "settings.behavior" = "Comportamiento";
 "settings.clearAccessKey" = "Borrar clave de acceso";
 "settings.clearAllLocalData" = "Borrar todos los datos locales";
+"settings.dangerZone" = "Zona de peligro";
+"settings.dangerZoneWarning" = "Esto eliminará permanentemente tus datos locales, conversaciones guardadas y claves de API. Esta acción no se puede deshacer.";
+"settings.clearAllLocalDataConfirmTitle" = "¿Borrar todos los datos locales?";
+"settings.clearAllLocalDataConfirmMessage" = "¿Estás seguro de que deseas borrar todos los datos locales? Todas las configuraciones personalizadas, claves de API almacenadas y el historial de conversaciones se eliminarán permanentemente.";
+"settings.dangerZoneContinue" = "Continuar...";
+"settings.dangerZoneSecondConfirmTitle" = "Confirmación final: Esta acción no se puede deshacer";
+"settings.dangerZoneSecondConfirmMessage" = "⚠️ Una vez confirmado, tus configuraciones, sesiones y credenciales no se podrán recuperar. ¿Estás absolutamente seguro de continuar?";
+"settings.dangerZoneFinalClear" = "Eliminar todo permanentemente";
 "settings.clearInputOnClose" = "Borrar la entrada al cerrar la ventana";
 "settings.confirmBeforeStartingNewConversation" = "Preguntar antes de iniciar una nueva conversación";
 "settings.escapeStartsNewConversation" = "Presionar Esc inicia una nueva conversación";

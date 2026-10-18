@@ -146,6 +146,7 @@
 "settings.accessKeyOnlyOnMac" = "Ключ доступа сохраняется только на этом Mac.";
 "settings.accessKeyPlaceholder" = "Введите ключ доступа для сохранения или обновления";
 "settings.appearance" = "Оформление";
+"settings.theme" = "Тема";
 "settings.about" = "О программе";
 "settings.aboutDescription" = "Просмотр версии приложения, исходного кода проекта и доступных обновлений.";
 "settings.version" = "Версия";
@@ -174,6 +175,14 @@
 "settings.behavior" = "Поведение";
 "settings.clearAccessKey" = "Очистить ключ доступа";
 "settings.clearAllLocalData" = "Очистить все локальные данные";
+"settings.dangerZone" = "Опасная зона";
+"settings.dangerZoneWarning" = "Это приведет к безвозвратному удалению ваших локальных данных, сохраненных диалогов и ключей API. Это действие нельзя отменить.";
+"settings.clearAllLocalDataConfirmTitle" = "Очистить все локальные данные?";
+"settings.clearAllLocalDataConfirmMessage" = "Вы действительно хотите удалить все локальные данные? Все пользовательские настройки, сохраненные ключи API и история диалогов будут безвозвратно удалены.";
+"settings.dangerZoneContinue" = "Продолжить...";
+"settings.dangerZoneSecondConfirmTitle" = "Окончательное подтверждение: это действие нельзя отменить";
+"settings.dangerZoneSecondConfirmMessage" = "⚠️ После подтверждения ваши настройки, сеансы и учетные данные восстановить будет невозможно. Вы абсолютно уверены, что хотите продолжить?";
+"settings.dangerZoneFinalClear" = "Удалить все навсегда";
 "settings.clearInputOnClose" = "Очищать ввод при закрытии окна";
 "settings.confirmBeforeStartingNewConversation" = "Подтверждать перед началом нового разговора";
 "settings.escapeStartsNewConversation" = "Esc начинает новый разговор";

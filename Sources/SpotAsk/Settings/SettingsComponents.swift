@@ -101,6 +101,78 @@ struct SettingsGroup<Content: View>: View {
     }
 }
 
+struct SettingsDangerGroup<Content: View>: View {
+    let title: String
+    var documentation: URL? = nil
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.octagon.fill")
+                        .foregroundStyle(.red)
+                    Text(title)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.red)
+                }
+                if let documentation {
+                    Spacer(minLength: 12)
+                    SettingsDocumentationLink(url: documentation, groupTitle: title)
+                        .padding(.trailing, 16)
+                }
+            }
+            VStack(alignment: .leading, spacing: 13) {
+                content
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.red.opacity(0.04))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color.red.opacity(0.35), lineWidth: 1)
+            )
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .id(title)
+    }
+}
+
+struct SettingsDangerBanner: View {
+    let text: String
+
+    init(_ text: String) {
+        self.text = text
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.red)
+                .font(.system(size: 14, weight: .semibold))
+                .padding(.top, 1)
+            Text(text)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.red)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.red.opacity(0.08))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(Color.red.opacity(0.22), lineWidth: 1)
+        )
+    }
+}
+
 /// A label/control row that lays out horizontally when the panel is wide enough
 /// for the fixed 134pt label column, and stacks the label above the control when
 /// it is not. The horizontal candidate demands at least 400pt so every row in a
