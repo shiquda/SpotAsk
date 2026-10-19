@@ -33,7 +33,7 @@ Type `@` at the beginning of the input or after a space to open the floating com
 
 <SpotAskSettingsLink section="prompts" />
 
-Custom prompts appear in the same picker as built-in prompts. Use the up and down buttons to control their order.
+Custom prompts appear in the same list as built-in prompts. Use the up and down buttons to reorder them, or edit and delete any preset. Click **Restore Default Prompts** if you ever need to reset built-in prompts to their original state.
 
 ## Enable and disable prompts
 

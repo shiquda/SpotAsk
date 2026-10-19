@@ -59,10 +59,10 @@ After both architecture DMGs exist, generate signed feeds. Release notes are emb
 ```sh
 SPARKLE_ED_PRIVATE_KEY_FILE=.sparkle/eddsa_priv.key \
 ./Scripts/generate-appcast.sh \
-  --version 0.3.0 \
-  --tag v0.3.0 \
-  --arm64-dmg dist/SpotAsk-0.3.0-arm64.dmg \
-  --x86_64-dmg dist/SpotAsk-0.3.0-x86_64.dmg \
+  --version 0.3.1 \
+  --tag v0.3.1 \
+  --arm64-dmg dist/SpotAsk-0.3.1-arm64.dmg \
+  --x86_64-dmg dist/SpotAsk-0.3.1-x86_64.dmg \
   --notes path/to/notes.md \
   --notes-zh path/to/notes.zh-CN.md
 ```
@@ -255,8 +255,8 @@ CI runs it on every pull request and every push to `main`, before the test suite
 
 ```sh
 ./Scripts/audit-changelog-diff.sh                    # latest v* tag .. HEAD vs. [Unreleased]
-./Scripts/audit-changelog-diff.sh --section 0.3.0    # audit against a released section instead
-./Scripts/audit-changelog-diff.sh --base v0.2.7      # audit a wider or narrower range
+./Scripts/audit-changelog-diff.sh --section 0.3.1    # audit against a released section instead
+./Scripts/audit-changelog-diff.sh --base v0.3.0      # audit a wider or narrower range
 ```
 
 Reads `git log <base>..HEAD` with the file list per commit, compares every commit subject against the text of the section, and prints a Markdown report with the range, the diff stat, and three groups:
