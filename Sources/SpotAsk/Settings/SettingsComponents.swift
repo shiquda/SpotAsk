@@ -312,3 +312,47 @@ struct SettingsFieldRow<Content: View>: View {
     }
 }
 
+/// Compact vertical reorder controls with stacked chevron buttons (up on top, down on bottom).
+struct ListReorderControls: View {
+    let title: String
+    let position: Int
+    let totalCount: Int
+    var onMoveUp: (() -> Void)?
+    var onMoveDown: (() -> Void)?
+
+    var body: some View {
+        VStack(spacing: 1) {
+            reorderButton(
+                systemImage: "chevron.up",
+                title: L10n.string("settings.moveUp"),
+                action: onMoveUp
+            )
+            reorderButton(
+                systemImage: "chevron.down",
+                title: L10n.string("settings.moveDown"),
+                action: onMoveDown
+            )
+        }
+        .frame(width: 20)
+    }
+
+    private func reorderButton(
+        systemImage: String,
+        title: String,
+        action: (() -> Void)?
+    ) -> some View {
+        Button(action: { action?() }) {
+            Image(systemName: systemImage)
+                .font(.system(size: 9.5, weight: .semibold))
+                .frame(width: 20, height: 13)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .controlSize(.small)
+        .disabled(action == nil)
+        .help(title + " " + self.title)
+        .accessibilityLabel(title + " " + self.title)
+        .accessibilityHint(L10n.string("settings.promptPosition", position, totalCount))
+    }
+}
+

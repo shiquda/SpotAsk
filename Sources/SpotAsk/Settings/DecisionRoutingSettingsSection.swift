@@ -302,27 +302,13 @@ struct DecisionRoutingSettingsSection: View {
     }
 
     private func routeReorderControls(for action: QuickAction, index: Int, totalCount: Int) -> some View {
-        HStack(spacing: 2) {
-            Button {
-                settings.moveQuickAction(id: action.id, by: -1)
-            } label: {
-                Image(systemName: "chevron.up")
-                    .frame(width: 20, height: 20)
-            }
-            .buttonStyle(.borderless)
-            .disabled(index == 0)
-            .help(L10n.string("settings.moveUp"))
-
-            Button {
-                settings.moveQuickAction(id: action.id, by: 1)
-            } label: {
-                Image(systemName: "chevron.down")
-                    .frame(width: 20, height: 20)
-            }
-            .buttonStyle(.borderless)
-            .disabled(index + 1 >= totalCount)
-            .help(L10n.string("settings.moveDown"))
-        }
+        ListReorderControls(
+            title: action.displayName,
+            position: index + 1,
+            totalCount: totalCount,
+            onMoveUp: index > 0 ? { settings.moveQuickAction(id: action.id, by: -1) } : nil,
+            onMoveDown: index + 1 < totalCount ? { settings.moveQuickAction(id: action.id, by: 1) } : nil
+        )
     }
 
     private var fallbackRouteCard: some View {
