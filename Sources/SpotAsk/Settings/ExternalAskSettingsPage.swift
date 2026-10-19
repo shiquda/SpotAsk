@@ -225,46 +225,7 @@ private struct QuickActionRow: View {
 }
 
 
-private struct QuickActionReorderControls: View {
-    let title: String
-    let position: Int
-    let totalCount: Int
-    var onMoveUp: (() -> Void)?
-    var onMoveDown: (() -> Void)?
-
-    var body: some View {
-        HStack(spacing: 2) {
-            reorderButton(
-                systemImage: "chevron.up",
-                title: L10n.string("settings.moveUp"),
-                action: onMoveUp
-            )
-            reorderButton(
-                systemImage: "chevron.down",
-                title: L10n.string("settings.moveDown"),
-                action: onMoveDown
-            )
-        }
-        .frame(width: 46)
-    }
-
-    private func reorderButton(
-        systemImage: String,
-        title: String,
-        action: (() -> Void)?
-    ) -> some View {
-        Button(action: { action?() }) {
-            Image(systemName: systemImage)
-                .frame(width: 20, height: 24)
-        }
-        .buttonStyle(.borderless)
-        .controlSize(.small)
-        .disabled(action == nil)
-        .help(title + " " + self.title)
-        .accessibilityLabel(title + " " + self.title)
-        .accessibilityHint(L10n.string("settings.promptPosition", position, totalCount))
-    }
-}
+private typealias QuickActionReorderControls = ListReorderControls
 
 private enum ActionKindOption: String, CaseIterable, Identifiable {
     case web

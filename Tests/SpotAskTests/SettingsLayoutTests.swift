@@ -543,6 +543,34 @@ struct SettingsLayoutTests {
         } while Date() < deadline
     }
 
+    @Test func listReorderControlsVerticalLayoutAndActionWiring() {
+        var movedUp = false
+        var movedDown = false
+
+        let controls = ListReorderControls(
+            title: "Test Item",
+            position: 2,
+            totalCount: 3,
+            onMoveUp: { movedUp = true },
+            onMoveDown: { movedDown = true }
+        )
+
+        let host = NSHostingView(rootView: controls)
+        host.frame = NSRect(x: 0, y: 0, width: 60, height: 60)
+        host.layoutSubtreeIfNeeded()
+
+        let size = host.fittingSize
+        // Vertically stacked controls should be compact: width around 20, height around 27
+        #expect(size.width <= 25)
+        #expect(size.height >= 20 && size.height <= 35)
+
+        // Verify action closures work as expected
+        controls.onMoveUp?()
+        #expect(movedUp)
+
+        controls.onMoveDown?()
+        #expect(movedDown)
+    }
 }
 
 @MainActor
