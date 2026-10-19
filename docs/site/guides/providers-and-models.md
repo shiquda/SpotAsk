@@ -65,9 +65,7 @@ Each service has:
 - A **Service Address** and **Address Type**.
 - A **Response Timeout**.
 - Its own **Access Key**.
-
-You can add, edit, or delete services. Deleting a service removes its models. At least one service and model must remain.
-
+You can add, edit, or delete services. Deleting a service removes its models. At least one service and model must remain. The top of the page indicates the currently active model and connection status, with options to use preset templates or configure models in a dedicated sheet.
 ## Official addresses and API keys
 
 A new service starts with the official address of the selected **API Format** and **Address Type** already filled in — for example `https://api.openai.com/v1` in **Service Root** mode. Keep it to use the official service, or replace it with your gateway's address. Until you type an address of your own, the two pickers keep the field in step, so switching between formats shows what each one expects ([Service Root vs Full Request Address](/guides/service-addresses)).

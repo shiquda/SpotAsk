@@ -80,7 +80,7 @@ flowchart TD
 
 **Run default action** sends the selected text directly to the default prompt you choose.
 
-**Show quick actions** displays the action bar next to the selection. You can also enable labels beside the action icons.
+**Show quick actions** displays the action bar next to the selection. You can toggle text labels beside icons, drag buttons in the interactive 1:1 preview stage to reorder them, or fold lower-frequency actions into a secondary `...` menu to keep the bar compact.
 
 - **Ask in Chat icon**: A dedicated speech bubble icon appears at the start of the action bar. Clicking it opens the question window with the selected text filled in and a blank line ready for your follow-up question. This can be toggled in Settings > **Selection Assistant** (enabled by default).
 - Built-in prompts, custom prompts, and enabled External Ask targets follow in the bar.

@@ -96,12 +96,11 @@ omp {query}
 ## Add your own
 
 1. Open Settings > **External Ask**.
-2. Select **New**.
-3. Enter a **Name**, choose an **Action Type**, and fill in the link or command with `{query}` where the question goes.
+2. Click **Add Channel** (`+`). You can select a preset template (ChatGPT, Claude, Perplexity, etc.) or create a custom channel.
+3. For custom channels, enter a **Name**, choose an **Action Type**, and fill in the link or command with `{query}` where the question goes.
 4. Save it. A matching brand icon is picked automatically when one is available.
 
 Entries can be reordered, disabled, edited, or deleted from the same settings page. Built-in entries use the same edit and delete controls as ones you add. Deleting one asks for confirmation and cannot be undone. Disabled entries keep their place but no longer appear in the question window.
-
 <SpotAskSettingsLink section="external-ask" />
 
 
