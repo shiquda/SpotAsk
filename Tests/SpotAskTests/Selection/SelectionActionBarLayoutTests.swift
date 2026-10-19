@@ -351,6 +351,40 @@ struct SelectionActionBarLayoutTests {
         expectButtonsStayInsidePanel(layout)
     }
 
+    @Test("A customized partition drives the bar's item placement and its more menu")
+    func customizedPartitionDrivesPlacementAndMoreMenu() {
+        let items = [
+            SelectionActionBarItem.chat(),
+            SelectionActionBarItem.promptPreset(preset("Translate")),
+            SelectionActionBarItem.promptPreset(preset("Explain")),
+            SelectionActionBarItem.externalAsk(action("ChatGPT"))
+        ]
+        let primary = [items[1], items[0], items[2]]
+        let secondary = [items[3]]
+
+        let layout = SelectionActionBarLayout.make(
+            showsChat: true,
+            presets: [preset("Translate"), preset("Explain")],
+            externalAsks: [action("ChatGPT")],
+            showsLabels: true,
+            collapsesOverflow: true,
+            primaryItems: primary,
+            secondaryItems: secondary
+        )
+
+        let placedIDs: [String] = layout.placedItems.compactMap { placed in
+            guard case let .item(item, _) = placed else { return nil }
+            return item.id
+        }
+        #expect(placedIDs == primary.map(\.id))
+        #expect(layout.secondaryItems.map(\.id) == secondary.map(\.id))
+        #expect(layout.showsMoreButton)
+        if case .more = layout.placedItems.last {} else {
+            Issue.record("Expected the more button to follow the customized primary items")
+        }
+        expectButtonsStayInsidePanel(layout)
+    }
+
     private func preset(_ title: String) -> PromptPreset {
         PromptPreset(title: title, instruction: "Do it")
     }

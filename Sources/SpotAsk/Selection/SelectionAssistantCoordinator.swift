@@ -136,6 +136,8 @@ final class SelectionAssistantCoordinator {
                         externalAsks: content.externalAsks,
                         showsLabels: content.showsLabels,
                         collapsesOverflow: content.collapsesOverflow,
+                        primaryItems: content.primaryItems,
+                        secondaryItems: content.secondaryItems,
                         shortcutForChat: nil,
                         shortcutForPreset: { [settings] preset in
                             settings.shortcut(for: .promptPreset(preset.id))
@@ -288,6 +290,8 @@ protocol SelectionOverlayControlling: AnyObject {
         externalAsks: [QuickAction],
         showsLabels: Bool,
         collapsesOverflow: Bool,
+        primaryItems: [SelectionActionBarItem],
+        secondaryItems: [SelectionActionBarItem],
         shortcutForChat: InAppShortcut?,
         shortcutForPreset: ((PromptPreset) -> InAppShortcut?)?,
         shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?,
@@ -322,6 +326,8 @@ extension SelectionOverlayControlling {
             externalAsks: externalAsks,
             showsLabels: showsLabels,
             collapsesOverflow: false,
+            primaryItems: [],
+            secondaryItems: [],
             shortcutForChat: shortcutForChat,
             shortcutForPreset: shortcutForPreset,
             shortcutForExternalAsk: shortcutForExternalAsk,
