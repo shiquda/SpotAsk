@@ -151,6 +151,145 @@ final class SandboxDataMigratorTests: XCTestCase {
         // Existing credentials were preserved
         XCTAssertEqual(try Data(contentsOf: destCredsURL), existingCreds)
     }
+
+    func testSandboxDataMigratorRejectsNonDictionaryPreferencesPlist() throws {
+        let bundleID = "com.spotask.app"
+
+        let prefsDir = containerURL.appendingPathComponent("Preferences", isDirectory: true)
+        try FileManager.default.createDirectory(at: prefsDir, withIntermediateDirectories: true)
+        let prefsPlistURL = prefsDir.appendingPathComponent("\(bundleID).plist")
+        let plistBytes = try PropertyListSerialization.data(
+            fromPropertyList: ["not", "a", "dictionary"],
+            format: .xml,
+            options: 0
+        )
+        try plistBytes.write(to: prefsPlistURL)
+
+        let migrator = SandboxDataMigrator(
+            bundleIdentifier: bundleID,
+            containerBaseURL: containerURL,
+            applicationSupportURL: appSupportURL,
+            defaults: defaults
+        )
+
+        let result = migrator.migrateIfNeeded()
+
+        XCTAssertFalse(result.didMigrate)
+        XCTAssertEqual(result.migratedPreferencesCount, 0)
+        let markerFile = appSupportURL.appendingPathComponent("SpotAsk/.sandbox-migration-completed")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: markerFile.path))
+    }
+
+    func testSandboxDataMigratorReplacesSynthesizedCatalog() throws {
+        let bundleID = "com.spotask.app"
+        let synthesizedCatalog = Data("{\"synthesized\":true}".utf8)
+        let legacyCatalog = Data("{\"legacy\":true}".utf8)
+        defaults.set(synthesizedCatalog, forKey: ProviderModelRegistry.defaultsKey)
+        defaults.set(true, forKey: ProviderModelRegistry.synthesizedCatalogDefaultsKey)
+        defaults.set(UUID().uuidString, forKey: ProviderModelRegistry.pendingLegacyAPIKeyMigrationProviderIDDefaultsKey)
+
+        let prefsDir = containerURL.appendingPathComponent("Preferences", isDirectory: true)
+        try FileManager.default.createDirectory(at: prefsDir, withIntermediateDirectories: true)
+        let prefsPlistURL = prefsDir.appendingPathComponent("\(bundleID).plist")
+        let plistBytes = try PropertyListSerialization.data(
+            fromPropertyList: [ProviderModelRegistry.defaultsKey: legacyCatalog],
+            format: .xml,
+            options: 0
+        )
+        try plistBytes.write(to: prefsPlistURL)
+
+        let migrator = SandboxDataMigrator(
+            bundleIdentifier: bundleID,
+            containerBaseURL: containerURL,
+            applicationSupportURL: appSupportURL,
+            defaults: defaults
+        )
+
+        let result = migrator.migrateIfNeeded()
+
+        XCTAssertTrue(result.didMigrate)
+        XCTAssertEqual(result.migratedPreferencesCount, 1)
+        XCTAssertEqual(defaults.data(forKey: ProviderModelRegistry.defaultsKey), legacyCatalog)
+        XCTAssertFalse(defaults.bool(forKey: ProviderModelRegistry.synthesizedCatalogDefaultsKey))
+        XCTAssertNil(defaults.string(forKey: ProviderModelRegistry.pendingLegacyAPIKeyMigrationProviderIDDefaultsKey))
+    }
+
+    func testSandboxDataMigratorDoesNotOverwriteUserOwnedCatalog() throws {
+        let bundleID = "com.spotask.app"
+        let userCatalog = Data("{\"user\":true}".utf8)
+        let containerCatalog = Data("{\"container\":true}".utf8)
+        defaults.set(userCatalog, forKey: ProviderModelRegistry.defaultsKey)
+
+        let prefsDir = containerURL.appendingPathComponent("Preferences", isDirectory: true)
+        try FileManager.default.createDirectory(at: prefsDir, withIntermediateDirectories: true)
+        let prefsPlistURL = prefsDir.appendingPathComponent("\(bundleID).plist")
+        let plistBytes = try PropertyListSerialization.data(
+            fromPropertyList: [ProviderModelRegistry.defaultsKey: containerCatalog],
+            format: .xml,
+            options: 0
+        )
+        try plistBytes.write(to: prefsPlistURL)
+
+        let migrator = SandboxDataMigrator(
+            bundleIdentifier: bundleID,
+            containerBaseURL: containerURL,
+            applicationSupportURL: appSupportURL,
+            defaults: defaults
+        )
+
+        let result = migrator.migrateIfNeeded()
+
+        XCTAssertTrue(result.didMigrate)
+        XCTAssertEqual(result.migratedPreferencesCount, 0)
+        XCTAssertEqual(defaults.data(forKey: ProviderModelRegistry.defaultsKey), userCatalog)
+    }
+
+    @MainActor
+    func testMigrationRestoresLegacyCatalogBeforeSettingsLoad() throws {
+        let bundleID = "com.spotask.app"
+        let provider = ProviderConfiguration(
+            name: "Legacy",
+            address: "https://legacy.example/v1",
+            addressMode: .baseURL,
+            timeout: 30
+        )
+        let model = ModelConfiguration(
+            displayName: "Legacy Chat",
+            upstreamModelID: "legacy-chat",
+            providerID: provider.id,
+            isStreamingEnabled: true
+        )
+        let legacyCatalog = ProviderModelCatalog(
+            providers: [provider],
+            models: [model],
+            selectedModelID: model.id
+        )
+        let legacyData = try JSONEncoder().encode(legacyCatalog)
+
+        let prefsDir = containerURL.appendingPathComponent("Preferences", isDirectory: true)
+        try FileManager.default.createDirectory(at: prefsDir, withIntermediateDirectories: true)
+        let prefsPlistURL = prefsDir.appendingPathComponent("\(bundleID).plist")
+        let plistBytes = try PropertyListSerialization.data(
+            fromPropertyList: [ProviderModelRegistry.defaultsKey: legacyData],
+            format: .xml,
+            options: 0
+        )
+        try plistBytes.write(to: prefsPlistURL)
+
+        let migrator = SandboxDataMigrator(
+            bundleIdentifier: bundleID,
+            containerBaseURL: containerURL,
+            applicationSupportURL: appSupportURL,
+            defaults: defaults
+        )
+        XCTAssertTrue(migrator.migrateIfNeeded().didMigrate)
+
+        let settings = AppSettings(defaults: defaults)
+
+        XCTAssertNil(settings.catalogLoadError)
+        XCTAssertEqual(settings.providerRegistry.catalog, legacyCatalog)
+    }
+
     func testSandboxDataMigratorFailureDoesNotWriteMarkerAndAllowsRetry() throws {
         let bundleID = "com.spotask.app"
 

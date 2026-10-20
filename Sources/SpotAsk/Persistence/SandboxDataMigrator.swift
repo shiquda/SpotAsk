@@ -8,6 +8,10 @@ struct SandboxDataMigrationResult: Equatable, Sendable {
     let migratedDiagnostics: Bool
 }
 
+enum SandboxDataMigrationError: Error, Equatable {
+    case invalidPreferencesPlist
+}
+
 struct SandboxDataMigrator {
     private let fileManager: FileManager
     private let bundleIdentifier: String
@@ -81,13 +85,27 @@ struct SandboxDataMigrator {
         if fileManager.fileExists(atPath: containerPrefsURL.path) {
             do {
                 let plistData = try Data(contentsOf: containerPrefsURL)
-                if let plistDict = try PropertyListSerialization.propertyList(from: plistData, options: [], format: nil) as? [String: Any] {
-                    for (key, value) in plistDict {
-                        // Non-destructive: only migrate keys not already present in defaults
-                        if defaults.object(forKey: key) == nil {
-                            defaults.set(value, forKey: key)
-                            migratedPrefsCount += 1
-                        }
+                guard let plistDict = try PropertyListSerialization.propertyList(
+                    from: plistData,
+                    options: [],
+                    format: nil
+                ) as? [String: Any] else {
+                    throw SandboxDataMigrationError.invalidPreferencesPlist
+                }
+                for (key, value) in plistDict {
+                    let synthesizedCatalogStillPending = key == ProviderModelRegistry.defaultsKey
+                        && defaults.bool(forKey: ProviderModelRegistry.synthesizedCatalogDefaultsKey)
+                    // Non-destructive: only migrate keys not already present in defaults.
+                    // A catalog synthesized from legacy scalars is not user data, so a
+                    // pending migration may replace it and recover the real catalog.
+                    guard defaults.object(forKey: key) == nil || synthesizedCatalogStillPending else {
+                        continue
+                    }
+                    defaults.set(value, forKey: key)
+                    migratedPrefsCount += 1
+                    if synthesizedCatalogStillPending {
+                        defaults.removeObject(forKey: ProviderModelRegistry.synthesizedCatalogDefaultsKey)
+                        defaults.removeObject(forKey: ProviderModelRegistry.pendingLegacyAPIKeyMigrationProviderIDDefaultsKey)
                     }
                 }
             } catch {

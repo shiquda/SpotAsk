@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Math answers containing `\boldsymbol` now render as bold italic instead of disappearing, unsupported expressions fall back to readable raw LaTeX, and malformed math no longer terminates the app.
+- Sandbox migration now runs before any settings load, so a pending legacy provider catalog can no longer be skipped in favor of a synthesized default. A catalog stored with an unexpected type is reported and preserved instead of being overwritten, and an unreadable legacy preferences file fails migration without recording completion or discarding a still-pending catalog.
 
 ## [0.3.1] - 2026-10-19
 

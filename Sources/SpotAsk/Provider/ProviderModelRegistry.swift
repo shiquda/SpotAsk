@@ -21,6 +21,7 @@ enum ProviderModelRegistryError: Error, Equatable, Sendable {
 
 enum ProviderModelCatalogLoadError: Error, Equatable, Sendable {
     case decodingFailed
+    case unexpectedStorageType
     case invalidCatalog(ProviderModelRegistryError)
 }
 
@@ -35,8 +36,13 @@ struct LegacyProviderConfiguration: Sendable {
 @MainActor
 @Observable
 final class ProviderModelRegistry {
-    static let defaultsKey = "providerModelCatalog"
-    static let pendingLegacyAPIKeyMigrationProviderIDDefaultsKey = "providerModelCatalog.pendingLegacyAPIKeyMigrationProviderID"
+    nonisolated static let defaultsKey = "providerModelCatalog"
+    nonisolated static let pendingLegacyAPIKeyMigrationProviderIDDefaultsKey = "providerModelCatalog.pendingLegacyAPIKeyMigrationProviderID"
+    /// Set while the stored catalog is still the fallback synthesized from
+    /// legacy scalar settings. The sandbox migrator may replace such a catalog
+    /// with the legacy one still sitting in a pending container; any user edit
+    /// clears the marker so real catalogs are never overwritten.
+    nonisolated static let synthesizedCatalogDefaultsKey = "providerModelCatalog.synthesized"
 
     private let defaults: UserDefaults
     private(set) var catalog: ProviderModelCatalog?
@@ -46,7 +52,12 @@ final class ProviderModelRegistry {
     init(defaults: UserDefaults, legacy: LegacyProviderConfiguration) {
         self.defaults = defaults
         pendingLegacyAPIKeyMigrationProviderID = Self.pendingLegacyAPIKeyMigrationProviderID(from: defaults)
-        if let data = defaults.data(forKey: Self.defaultsKey) {
+        if let storedCatalog = defaults.object(forKey: Self.defaultsKey) {
+            guard let data = storedCatalog as? Data else {
+                catalog = nil
+                loadError = .unexpectedStorageType
+                return
+            }
             do {
                 let decoded = try JSONDecoder().decode(ProviderModelCatalog.self, from: data)
                 let normalized = try Self.normalized(catalog: decoded)
@@ -76,6 +87,7 @@ final class ProviderModelRegistry {
             do {
                 let normalized = try Self.normalized(catalog: migrated)
                 try Self.persist(normalized, to: defaults)
+                defaults.set(true, forKey: Self.synthesizedCatalogDefaultsKey)
                 catalog = normalized
                 pendingLegacyAPIKeyMigrationProviderID = provider.id
                 defaults.set(provider.id.uuidString, forKey: Self.pendingLegacyAPIKeyMigrationProviderIDDefaultsKey)
@@ -131,6 +143,7 @@ final class ProviderModelRegistry {
     func replaceCatalog(with catalog: ProviderModelCatalog) throws {
         let normalized = try Self.normalized(catalog: catalog)
         try Self.persist(normalized, to: defaults)
+        defaults.removeObject(forKey: Self.synthesizedCatalogDefaultsKey)
         self.catalog = normalized
         loadError = nil
     }
@@ -215,6 +228,7 @@ final class ProviderModelRegistry {
         updated = try Self.normalized(catalog: updated)
         try keyStore.deleteAPIKey(for: id)
         try Self.persist(updated, to: defaults)
+        defaults.removeObject(forKey: Self.synthesizedCatalogDefaultsKey)
         catalog = updated
     }
 
@@ -229,6 +243,7 @@ final class ProviderModelRegistry {
         try mutation(&updated)
         updated = try Self.normalized(catalog: updated)
         try Self.persist(updated, to: defaults)
+        defaults.removeObject(forKey: Self.synthesizedCatalogDefaultsKey)
         catalog = updated
     }
 
