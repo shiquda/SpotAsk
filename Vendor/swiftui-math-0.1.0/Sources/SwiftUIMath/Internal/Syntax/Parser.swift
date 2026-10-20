@@ -1263,11 +1263,20 @@ extension Math {
           // If there is an error building the list, bail out early.
           return nil
         }
+        guard currentRow < rows.count else {
+          self.setError(.internalError, message: "Invalid row index")
+          return nil
+        }
         rows[currentRow].append(list!)
         currentCol += 1
         if currentEnvironment!.numberOfRows > currentRow {
           currentRow = currentEnvironment!.numberOfRows
-          rows.append([AtomList]())
+          // A row separator inside a nested group can advance numberOfRows
+          // past the row being built; grow the table so currentRow stays
+          // addressable instead of subscripting out of range.
+          while rows.count <= currentRow {
+            rows.append([AtomList]())
+          }
           currentCol = 0
         }
       }

@@ -439,6 +439,7 @@ extension Math {
       "mathbb": .blackboard,
       "mathbfit": .boldItalic,
       "bm": .boldItalic,
+      "boldsymbol": .boldItalic,
       "text": .roman,
     ]
 
