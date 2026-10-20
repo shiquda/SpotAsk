@@ -114,6 +114,39 @@ final class ProviderModelRegistryTests: XCTestCase {
         XCTAssertEqual(defaults.data(forKey: ProviderModelRegistry.defaultsKey), corrupt)
     }
 
+    func testNonDataCatalogIsPreservedAndReported() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let corrupt = "catalog stored as a string"
+        defaults.set(corrupt, forKey: ProviderModelRegistry.defaultsKey)
+
+        let settings = AppSettings(defaults: defaults)
+
+        XCTAssertNil(settings.providerRegistry.catalog)
+        XCTAssertEqual(settings.catalogLoadError, .unexpectedStorageType)
+        XCTAssertEqual(defaults.string(forKey: ProviderModelRegistry.defaultsKey), corrupt)
+        XCTAssertFalse(defaults.bool(forKey: ProviderModelRegistry.synthesizedCatalogDefaultsKey))
+    }
+
+    func testUserEditClearsSynthesizedCatalogMarker() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        XCTAssertTrue(defaults.bool(forKey: ProviderModelRegistry.synthesizedCatalogDefaultsKey))
+
+        let provider = try XCTUnwrap(settings.providerRegistry.catalog?.providers.first)
+        try settings.providerRegistry.saveModel(
+            ModelConfiguration(
+                displayName: "Edited",
+                upstreamModelID: "edited",
+                providerID: provider.id,
+                isStreamingEnabled: true
+            )
+        )
+
+        XCTAssertFalse(defaults.bool(forKey: ProviderModelRegistry.synthesizedCatalogDefaultsKey))
+    }
+
     func testProviderWithoutModelIsAllowedButModelNeedsExistingProvider() throws {
         let (defaults, suiteName) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }

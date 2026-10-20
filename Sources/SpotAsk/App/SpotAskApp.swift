@@ -96,14 +96,14 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
     private let sessionStore: SessionStore
     private let chatViewModel: ChatViewModel
     private let accessibilityPermissionCoordinator: AccessibilityPermissionCoordinator
-    private let panelController = SpotAskPanelController()
+    private let panelController: SpotAskPanelController
     private let globalHotKey = GlobalHotKey()
     private let selectionHotKey = GlobalHotKey(identifier: 2)
     private let selectionAssistantToggleHotKey = GlobalHotKey(identifier: 3)
     private var selectionCoordinator: SelectionAssistantCoordinator?
     private var selectionOverlay: SelectionOverlayController?
     private var selectionAutoInvokeMonitor: SelectionAutoInvokeMonitor?
-    private let updateCoordinator = UpdateCoordinator.shared
+    private let updateCoordinator: UpdateCoordinator
     private var statusBarController: StatusBarController?
     private var entryPresentationCoordinator: AppEntryPresentationCoordinator?
     private lazy var settingsWindowController = SettingsWindowController(
@@ -122,6 +122,12 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
     private var pendingLaunchURLs: [URL] = []
 
     override init() {
+        // This must stay the first side effect of launch. AppSettings
+        // synthesizes a provider catalog whenever its storage is empty, and a
+        // synthesized catalog makes the migrator skip the legacy catalog that
+        // is still waiting in a sandbox container. Constructing the panel
+        // controller or the update coordinator before this line would touch
+        // AppSettings.shared through their default arguments.
         SandboxDataMigrator.migrateIfNeeded()
         let settings = AppSettings.shared
         let keyStore = LocalAPIKeyStore()
@@ -145,6 +151,8 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
             providerFactory: providerFactory,
             sessionStore: sessionStore
         )
+        self.panelController = SpotAskPanelController(settings: settings)
+        self.updateCoordinator = UpdateCoordinator.shared
         super.init()
     }
 
