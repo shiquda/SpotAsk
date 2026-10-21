@@ -1,13 +1,13 @@
 cask "spotask" do
-  version "0.3.1"
+  version "0.3.2"
 
   on_arm do
-    sha256 "17defba5b4806ebce3f65f5054fd3bbb67b6491286ab3b4341853138dab45be7"
+    sha256 "90eb1962eb7481f8db0c845403ffdd29969e69e598d0a1b1fca12c6af6cb5fb1"
 
     url "https://github.com/shiquda/SpotAsk/releases/download/v#{version}/SpotAsk-#{version}-arm64.dmg"
   end
   on_intel do
-    sha256 "68082fb8a4c6c5c7a577ca202253605d4965796f36ade23652377c56751ce3ed"
+    sha256 "d2ecb4c7fa7e0e6902bbd54eef736b4d125139a9d2dc7a492343190326ba3756"
 
     url "https://github.com/shiquda/SpotAsk/releases/download/v#{version}/SpotAsk-#{version}-x86_64.dmg"
   end
