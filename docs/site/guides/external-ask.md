@@ -78,6 +78,8 @@ Each External Ask entry is one of three action types.
 | Ask Grok | `https://grok.com/?q={query}` |
 | Ask Perplexity | `https://www.perplexity.ai/search?q={query}` |
 
+<a id="auto-submitting-in-chatgpt-with-a-userscript"></a>
+
 ::: tip Auto-submitting in ChatGPT with a userscript
 By default, ChatGPT only **pre-fills** the query in the composer and requires clicking send manually. If you want ChatGPT to **pre-fill and automatically submit** the question upon opening, you can install this userscript:
 - **[ChatGPT URL Prompt Auto Submit](https://greasyfork.org/en/scripts/592577-chatgpt-url-prompt-auto-submit)** (Greasy Fork)
