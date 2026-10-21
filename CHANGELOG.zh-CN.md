@@ -7,6 +7,10 @@ SpotAsk 的所有重要变更都记录在本文件中。
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-21
+
+**修复旧配置迁移与数学公式显示**
+
 ### 修复
 
 - 包含 `\boldsymbol` 的数学公式现在正确渲染为粗斜体，不再整段消失；无法解析的公式会回退显示原始 LaTeX，畸形公式也不再导致应用崩溃。
@@ -281,7 +285,8 @@ SpotAsk 的所有重要变更都记录在本文件中。
 - 服务配置卡片支持稳定平滑地展开与收起。
 - 修正思考过程展开行为：开启时思考中展开并在输出最终回答时收起，关闭时始终折叠。
 
-[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/shiquda/SpotAsk/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/shiquda/SpotAsk/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/shiquda/SpotAsk/compare/v0.2.7...v0.3.0
 [0.2.7]: https://github.com/shiquda/SpotAsk/compare/v0.2.6...v0.2.7
