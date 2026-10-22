@@ -1,13 +1,13 @@
 ---
 layout: home
 
-title: SpotAsk
-titleTemplate: "Native macOS AI Assistant & Query Router"
-description: "SpotAsk is a free, open-source native macOS menu-bar AI assistant and query router. Summon with a hotkey — stream fast in-app BYOK answers, or route questions to ChatGPT, Perplexity, and local CLI agents automatically with a decision model or in 1 click."
+title: "SpotAsk – One Hotkey to Ask Any AI | Mac Menu Bar App"
+titleTemplate: false
+description: "Open-source Mac menu bar app: press ⌥Space to ask any AI with your own API key, ChatGPT, Perplexity, or a local CLI agent. Free and native."
 
 hero:
-  name: SpotAsk
-  tagline: "Ask first, decide where it goes after. A fast, native macOS menu-bar AI assistant & query router."
+  text: "One hotkey. Any AI."
+  tagline: "A free, open-source menu bar assistant for Mac. Use your own API key, or send the question to ChatGPT, Perplexity, or a local CLI agent."
   actions:
     - theme: brand
       text: Download (Apple Silicon)
