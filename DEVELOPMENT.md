@@ -24,6 +24,8 @@ The GitHub Pages workflow in `.github/workflows/docs.yml` builds `docs/site`, ru
 
 The English homepage owns its exact title, description, and hero copy in `docs/site/index.md` (`titleTemplate: false`). English documentation pages inherit `:title | SpotAsk – Ask Any AI on Mac` from `.vitepress/config.ts`; Chinese titles keep their existing template. The same config derives Open Graph and Twitter text from page metadata and publishes the `SpotAsk` WebSite name and SoftwareApplication image. After editing these values, inspect the built homepage and a secondary page in the browser as well as running the verifier. In Search Console, submit only `https://shiquda.github.io/SpotAsk/sitemap.xml`; the generated text sitemap remains available to other consumers.
 
+The repository is also the Homebrew tap. Keep the listing description in `Casks/spotask.rb` aligned with the product positioning, and point its homepage to the documentation site. Metadata-only edits must leave release versions, download URLs, and checksums unchanged.
+
 ## Build and test
 
 ```sh
