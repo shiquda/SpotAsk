@@ -293,7 +293,7 @@ export default defineConfig({
           '@graph': [
             {
               '@type': 'WebSite',
-              name: title,
+              name: 'SpotAsk',
               description,
               url: canonicalUrl,
               inLanguage: language
@@ -303,6 +303,7 @@ export default defineConfig({
               name: 'SpotAsk',
               description,
               url: canonicalUrl,
+              image: socialImageUrl,
               inLanguage: language,
               applicationCategory: 'DeveloperApplication',
               operatingSystem: 'macOS 15 or later',
@@ -328,7 +329,7 @@ export default defineConfig({
           inLanguage: language,
           isPartOf: {
             '@type': 'WebSite',
-            name: 'SpotAsk Documentation',
+            name: 'SpotAsk',
             url: docsUrl
           }
         }
@@ -373,6 +374,7 @@ export default defineConfig({
       label: 'English',
       lang: 'en',
       title: 'SpotAsk Docs',
+      titleTemplate: ':title | SpotAsk – Ask Any AI on Mac',
       description: 'Learn what SpotAsk can do, connect your AI service, and solve common problems.',
       themeConfig: {
         nav: [

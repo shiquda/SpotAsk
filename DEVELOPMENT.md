@@ -22,6 +22,8 @@ npm run docs:preview
 
 The GitHub Pages workflow in `.github/workflows/docs.yml` builds `docs/site`, runs `npm run docs:verify` to validate `sitemap.xml`, plain text `sitemap.txt`, canonicals, `hreflang` reciprocity, JSON-LD structured data, and internal links, and deploys the artifact to `https://shiquda.github.io/SpotAsk/`.
 
+The English homepage owns its exact title, description, and hero copy in `docs/site/index.md` (`titleTemplate: false`). English documentation pages inherit `:title | SpotAsk – Ask Any AI on Mac` from `.vitepress/config.ts`; Chinese titles keep their existing template. The same config derives Open Graph and Twitter text from page metadata and publishes the `SpotAsk` WebSite name and SoftwareApplication image. After editing these values, inspect the built homepage and a secondary page in the browser as well as running the verifier. In Search Console, submit only `https://shiquda.github.io/SpotAsk/sitemap.xml`; the generated text sitemap remains available to other consumers.
+
 ## Build and test
 
 ```sh
