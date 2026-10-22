@@ -31,11 +31,12 @@ enum SessionDocumentResources {
 
 // MARK: - Snapshot Model
 
-struct SessionDocumentAttachment: Codable, Equatable, Sendable {
-    let id: String
-    let filename: String
-    let isImage: Bool
-}
+ struct SessionDocumentAttachment: Codable, Equatable, Sendable {
+     let id: String
+     let filename: String
+     let isImage: Bool
+     let symbol: String?
+ }
 
 struct SessionDocumentMessage: Codable, Equatable, Sendable {
     let id: String
@@ -43,10 +44,12 @@ struct SessionDocumentMessage: Codable, Equatable, Sendable {
     let content: String
     let state: String
     let bubble: Bool
-    let title: String?
-    let metadata: String?
-    let iconSlug: String?
-    let reasoning: String?
+     let title: String?
+     let presetText: String?
+     let presetSymbol: String?
+     let metadata: String?
+     let iconSlug: String?
+     let reasoning: String?
     let reasoningTitle: String?
     let reasoningExpanded: Bool
     let collapsed: Bool
@@ -191,8 +194,9 @@ enum SessionDocumentSnapshotBuilder {
         generation: String,
         copiedMessageID: UUID?,
         isReasoningExpanded: (UUID) -> Bool,
-        isAssistantExpanded: (UUID) -> Bool,
-        canInsertSelection: (UUID) -> Bool,
+         isAssistantExpanded: (UUID) -> Bool,
+         isUserExpanded: (UUID) -> Bool = { _ in false },
+         canInsertSelection: (UUID) -> Bool,
         pendingExternalAskID: UUID?,
         showsShortcutHints: Bool,
         shortcutHint: (InAppShortcutTarget) -> InAppShortcut?,
@@ -244,16 +248,30 @@ enum SessionDocumentSnapshotBuilder {
                 reasoningTitle = nil
             }
 
-            let shouldCollapse = isAssistant && message.state != .streaming && AssistantMessageDisplayPolicy.shouldCollapse(message.content)
-            let isCollapsed = shouldCollapse && !isAssistantExpanded(message.id)
-            let preview = isCollapsed ? AssistantMessageDisplayPolicy.collapsedPreview(for: message.content) : nil
-            let canToggleExpand = shouldCollapse
+             let shouldCollapse: Bool
+             let isCollapsed: Bool
+             let preview: String?
+             if isAssistant && message.state != .streaming {
+                 shouldCollapse = AssistantMessageDisplayPolicy.shouldCollapse(message.content)
+                 isCollapsed = shouldCollapse && !isAssistantExpanded(message.id)
+                 preview = isCollapsed ? AssistantMessageDisplayPolicy.collapsedPreview(for: message.content) : nil
+             } else if isUser {
+                 shouldCollapse = UserMessageDisplayPolicy.shouldCollapse(message.content)
+                 isCollapsed = shouldCollapse && !isUserExpanded(message.id)
+                 preview = isCollapsed ? UserMessageDisplayPolicy.collapsedPreview(for: message.content) : nil
+             } else {
+                 shouldCollapse = false
+                 isCollapsed = false
+                 preview = nil
+             }
+             let canToggleExpand = shouldCollapse
 
-            let attachments = message.attachments.map { att in
-                let isImage: Bool
-                if case .image = att.payload { isImage = true } else { isImage = false }
-                return SessionDocumentAttachment(id: att.id.uuidString, filename: att.filename, isImage: isImage)
-            }
+             let attachments = message.attachments.map { att in
+                 let isImage: Bool
+                 if case .image = att.payload { isImage = true } else { isImage = false }
+                 let symbol = isImage ? nil : (att.kind == .code ? "chevron.left.forwardslash.chevron.right" : "doc.text")
+                 return SessionDocumentAttachment(id: att.id.uuidString, filename: att.filename, isImage: isImage, symbol: symbol)
+             }
 
              let hasUserMessage = visibleMessages.contains { $0.role == .user }
              let canRegenerate = isLastAssistant
@@ -303,7 +321,9 @@ enum SessionDocumentSnapshotBuilder {
                  content: message.content,
                  state: message.state.rawValue,
                  bubble: settings.chatMessageStyle == .im,
-                 title: message.modelDisplayName,
+                 title: isUser ? L10n.string("chat.user") : message.modelDisplayName,
+                 presetText: isUser ? message.appliedPresetTitle.map { L10n.string("chat.usedPrompt", $0) } : nil,
+                 presetSymbol: (isUser && message.appliedPresetTitle != nil) ? message.appliedPresetIcon : nil,
                  metadata: metadata,
                  iconSlug: iconSlug,
                  reasoning: reasoning,
@@ -340,6 +360,10 @@ enum SessionDocumentSnapshotBuilder {
              "retryWithModel": L10n.string("chat.retryWithAnotherModel"),
              "expandAnswer": L10n.string("chat.expandAnswer"),
              "collapseAnswer": L10n.string("chat.collapseAnswer"),
+             "showFullQuestion": L10n.string("chat.showFullQuestion"),
+             "collapseQuestion": L10n.string("chat.collapseQuestion"),
+             "generating": L10n.string("chat.generating"),
+             "codeLanguage": L10n.string("code.defaultLanguage"),
              "reasoning": L10n.string("chat.reasoning"),
              "reasoningExpand": L10n.string("chat.reasoningExpand"),
              "reasoningCollapse": L10n.string("chat.reasoningCollapse")

@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Replaced legacy `Textual` and `SwiftUIMath` rendering pipeline with a sandboxed WebKit KaTeX document host, eliminating layout jitter and missing symbol issues during math-heavy responses.
  - Raw Markdown source is preserved during message copying, and MathML annotations preserve LaTeX source during math selection copy.
- - Message actions stay the original icon-only toolbar: copy, insert selection, and regenerate, with shortcut keycaps and trailing model metadata. Extra text labels and invented edit/external-ask buttons are not shown.
+ - Message chrome matches the previous native rows: icon-only 24pt actions, shortcut keycaps, user identity, attachment chips, and code-block copy. Extra text labels and invented edit/external-ask buttons are not shown.
 
 ## [0.3.2] - 2026-10-21
 

@@ -153,7 +153,8 @@ struct ChatMessageListView: View {
             generation: host.generation,
             copiedMessageID: copiedMessageID,
             isReasoningExpanded: { reconciliationCoordinator.reasoningToggle.state(for: $0).isExpanded },
-            isAssistantExpanded: { reconciliationCoordinator.assistantMessageExpansionState.isExpanded(messageID: $0) },
+             isAssistantExpanded: { reconciliationCoordinator.assistantMessageExpansionState.isExpanded(messageID: $0) },
+             isUserExpanded: { reconciliationCoordinator.userMessageExpansionState.isExpanded(messageID: $0) },
             canInsertSelection: { id in
                 viewModel.selectionSnapshot(for: id)?.canReplaceSelection ?? false
             },
@@ -192,10 +193,14 @@ struct ChatMessageListView: View {
             reconciliationCoordinator.reasoningToggle.toggleByUser(messageID: id)
             applySnapshot()
         }
-        host.onToggleExpand = { id in
-            reconciliationCoordinator.assistantMessageExpansionState.toggle(messageID: id)
-            applySnapshot()
-        }
+         host.onToggleExpand = { id in
+             if viewModel.messages.first(where: { $0.id == id })?.role == .user {
+                 reconciliationCoordinator.userMessageExpansionState.toggle(messageID: id)
+             } else {
+                 reconciliationCoordinator.assistantMessageExpansionState.toggle(messageID: id)
+             }
+             applySnapshot()
+         }
         host.onRetryUserMessage = { _ in
             viewModel.retry()
         }

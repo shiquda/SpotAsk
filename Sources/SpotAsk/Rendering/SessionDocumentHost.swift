@@ -130,17 +130,20 @@ final class SessionDocumentSchemeHandler: NSObject, WKURLSchemeHandler {
          let parts = name.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
          let weightName: String
          let pointSize: CGFloat
+         let frameSize: CGFloat
          let symbolName: String
-         if parts.count >= 3, let size = Double(parts[1]) {
+         if parts.count >= 4, let size = Double(parts[1]), let frame = Double(parts[2]) {
              weightName = parts[0]
              pointSize = CGFloat(size)
-             symbolName = parts.dropFirst(2).joined(separator: "/")
+             frameSize = CGFloat(frame)
+             symbolName = parts.dropFirst(3).joined(separator: "/")
          } else {
              weightName = "regular"
              pointSize = 10
+             frameSize = 24
              symbolName = name
          }
-         let cacheKey = "\(weightName)|\(pointSize)|\(symbolName)"
+         let cacheKey = "\(weightName)|\(pointSize)|\(frameSize)|\(symbolName)"
          lock.lock()
          if let cached = symbolCache[cacheKey] {
              lock.unlock()
@@ -159,15 +162,20 @@ final class SessionDocumentSchemeHandler: NSObject, WKURLSchemeHandler {
          case "medium": weight = .medium
          default: weight = .regular
          }
-         let config = NSImage.SymbolConfiguration(pointSize: pointSize, weight: weight)
-             .applying(NSImage.SymbolConfiguration(paletteColors: [.black]))
-         let configured = base.withSymbolConfiguration(config) ?? base
-         let pixels = max(pointSize * 4, 32)
-         let pixelSize = NSSize(width: pixels, height: pixels)
+         let configured: NSImage
+         if pointSize > 0 {
+             let config = NSImage.SymbolConfiguration(pointSize: pointSize, weight: weight)
+                 .applying(NSImage.SymbolConfiguration(paletteColors: [.black]))
+             configured = base.withSymbolConfiguration(config) ?? base
+         } else {
+             configured = base.withSymbolConfiguration(NSImage.SymbolConfiguration(paletteColors: [.black])) ?? base
+         }
+         let scale: CGFloat = 2
+         let pixels = max(Int((frameSize * scale).rounded()), 2)
          guard let rep = NSBitmapImageRep(
              bitmapDataPlanes: nil,
-             pixelsWide: Int(pixels),
-             pixelsHigh: Int(pixels),
+             pixelsWide: pixels,
+             pixelsHigh: pixels,
              bitsPerSample: 8,
              samplesPerPixel: 4,
              hasAlpha: true,
@@ -179,10 +187,17 @@ final class SessionDocumentSchemeHandler: NSObject, WKURLSchemeHandler {
              fail(task, status: 404)
              return
          }
-         rep.size = pixelSize
+         rep.size = NSSize(width: frameSize, height: frameSize)
+         let symbolPixels = NSSize(width: configured.size.width * scale, height: configured.size.height * scale)
+         let drawRect = NSRect(
+             x: (CGFloat(pixels) - symbolPixels.width) / 2,
+             y: (CGFloat(pixels) - symbolPixels.height) / 2,
+             width: symbolPixels.width,
+             height: symbolPixels.height
+         )
          NSGraphicsContext.saveGraphicsState()
          NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
-         configured.draw(in: NSRect(origin: .zero, size: pixelSize))
+         configured.draw(in: drawRect)
          NSGraphicsContext.restoreGraphicsState()
          if let data = rep.representation(using: .png, properties: [:]) {
              lock.lock()

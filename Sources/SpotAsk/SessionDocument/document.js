@@ -66,18 +66,18 @@
     created.renderer.rules.image = function (tokens, idx) {
       return '<span class="md-image">' + escapeText(tokens[idx].content || "") + "</span>";
     };
-    created.renderer.rules.fence = function (tokens, idx) {
-      const token = tokens[idx];
-      const info = escapeText((token.info || "").trim().split(/\s+/)[0] || "");
-      const code = escapeText(token.content || "");
-      return (
-        '<div class="code-block"><div class="code-bar"><span class="code-lang">' +
-        info +
-        '</span><button type="button" class="icon-button" data-action="copy-code"></button></div><pre><code>' +
-        code +
-        "</code></pre></div>"
-      );
-    };
+     created.renderer.rules.fence = function (tokens, idx) {
+       const token = tokens[idx];
+       const info = escapeText((token.info || "").trim().split(/\s+/)[0] || label("codeLanguage"));
+       const code = escapeText(token.content || "");
+       return (
+         '<div class="code-block"><div class="code-bar"><span class="code-lang">' +
+         info +
+         '</span><button type="button" class="icon-button" data-action="copy-code"></button></div><pre><code>' +
+         code +
+         "</code></pre></div>"
+       );
+     };
     const defaultLink = created.renderer.rules.link_open || function (tokens, idx, options, env, self) {
       return self.renderToken(tokens, idx, options);
     };
@@ -270,16 +270,19 @@
     return page.labels[key] || "";
   }
 
-  function icon(name, className, weight, size) {
-    const src =
-      "spotask-doc://symbol/" +
-      (weight || "regular") +
-      "/" +
-      (size || 10) +
-      "/" +
-      encodeURIComponent(name);
-    return '<i class="' + (className || "icon") + '" style="-webkit-mask-image:url(\'' + src + '\');mask-image:url(\'' + src + '\')"></i>';
-  }
+   function icon(name, className, weight, size, frame) {
+     const box = frame || size || 10;
+     const src =
+       "spotask-doc://symbol/" +
+       (weight || "regular") +
+       "/" +
+       (size || 0) +
+       "/" +
+       box +
+       "/" +
+       encodeURIComponent(name);
+     return '<i class="' + (className || "icon") + " frame-" + box + '" style="-webkit-mask-image:url(\'' + src + '\');mask-image:url(\'' + src + '\')"></i>';
+   }
 
   function keycaps(raw) {
     if (!raw) return "";
@@ -311,7 +314,7 @@
       '" title="' +
       escapeText(title) +
       '">' +
-      icon(symbol, "icon", weight, pointSize) +
+       icon(symbol, "icon", weight, pointSize, (options && options.frame) || 24) +
       (showHint ? keycaps(page.hints[hintKey]) : "") +
       "</button>"
     );
@@ -334,50 +337,67 @@
     const buttons = rootNode.querySelectorAll('[data-action="copy-code"]');
     for (let i = 0; i < buttons.length; i++) {
       buttons[i].setAttribute("aria-label", label("copy"));
-       buttons[i].innerHTML = icon("doc.on.doc", "icon", "regular", 12);
+       buttons[i].innerHTML = icon("doc.on.doc", "icon", "regular", 0, 20);
     }
   }
 
-  function renderBody(message, renderMath) {
-    if (message.role === "user") return { mode: "text", text: message.content || "" };
-    if (message.collapsed) return { mode: "text", text: message.preview || "" };
-    return streamingBody(message.content || "", renderMath, message.state !== "streaming");
-  }
-
-  function articleHTML(message) {
-    const role = message.role === "user" ? "user" : "assistant";
-    const style = message.bubble ? " im" : "";
-    const parts = ['<article class="message ' + role + style + '" data-id="' + escapeText(message.id) + '">'];
+   function renderBody(message, renderMath) {
+     if (message.role === "user") {
+       return { mode: "text", text: message.collapsed ? message.preview || "" : message.content || "" };
+     }
+     if (message.collapsed) return { mode: "text", text: message.preview || "" };
+     return streamingBody(message.content || "", renderMath, message.state !== "streaming");
+   }
+ 
+   function articleHTML(message) {
+     const role = message.role === "user" ? "user" : "assistant";
+     const parts = ['<article class="message ' + role + '" data-id="' + escapeText(message.id) + '">'];
      if (role === "assistant") {
        const dark = document.documentElement.dataset.theme === "dark" ? "?dark=true" : "";
-       parts.push('<header class="assistant-header">');
+       parts.push('<header class="identity">');
        if (message.iconSlug) {
          parts.push(
-           '<span class="provider-mark"><img class="provider-icon" alt="" src="spotask-doc://icon/' +
+           '<span class="provider-mark brand"><img class="provider-icon" alt="" src="spotask-doc://icon/' +
              encodeURIComponent(message.iconSlug) +
              dark +
              '"></span>'
          );
        } else {
-         parts.push('<span class="provider-mark fallback">' + icon("brain.head.profile", "icon fallback-icon", "semibold", 10) + "</span>");
+         parts.push('<span class="provider-mark fallback">' + icon("brain.head.profile", "icon", "semibold", 9.9, 18) + "</span>");
        }
-       parts.push('<div class="model-name">' + escapeText(message.title || "") + "</div>");
+       parts.push('<span class="identity-name">' + escapeText(message.title || "") + "</span>");
        if (message.canRetryWithModel) {
          parts.push(
            toolbarButton("show-model-menu", "arrow.triangle.2.circlepath", label("retryWithModel"), {
              className: "model-retry",
              weight: "semibold",
              size: 10,
+             frame: 22,
            })
+         );
+       }
+       parts.push("</header>");
+     } else {
+       parts.push('<header class="identity">');
+       parts.push('<span class="user-avatar">' + icon("person.fill", "icon", "semibold", 9, 18) + "</span>");
+       parts.push('<span class="identity-name">' + escapeText(message.title || "") + "</span>");
+       if (message.presetText) {
+         parts.push(
+           '<span class="preset">' +
+             icon(message.presetSymbol || "sparkles", "icon", "regular", 11, 14) +
+             "<span>" +
+             escapeText(message.presetText) +
+             "</span></span>"
          );
        }
        parts.push("</header>");
      }
      if (message.reasoning) {
-       parts.push('<section class="reasoning"><button type="button" class="reasoning-toggle" data-action="toggle-reasoning" aria-expanded="' + (message.reasoningExpanded ? "true" : "false") + '">');
-       parts.push(icon(message.reasoningExpanded ? "chevron.down" : "chevron.right", "icon", "medium", 11));
+       const expanded = !!message.reasoningExpanded;
+       parts.push('<section class="reasoning"><button type="button" class="reasoning-toggle" data-action="toggle-reasoning" aria-expanded="' + (expanded ? "true" : "false") + '" title="' + escapeText(expanded ? label("reasoningCollapse") : label("reasoningExpand")) + '">');
+       parts.push(icon(expanded ? "chevron.down" : "chevron.right", "icon", "medium", 11, 14));
        parts.push("<span>" + escapeText(message.reasoningTitle || "") + "</span></button>");
-       if (message.reasoningExpanded) parts.push('<pre class="reasoning-body">' + escapeText(message.reasoning) + "</pre>");
+       if (expanded) parts.push('<pre class="reasoning-body">' + escapeText(message.reasoning) + "</pre>");
        parts.push("</section>");
      }
      if (message.attachments && message.attachments.length) {
@@ -385,27 +405,38 @@
        for (let i = 0; i < message.attachments.length; i++) {
          const item = message.attachments[i];
          parts.push('<span class="attachment" title="' + escapeText(item.filename) + '">');
-         if (item.isImage) parts.push('<img alt="" src="spotask-doc://attachment/' + encodeURIComponent(item.id) + '">');
+         if (item.isImage) {
+           parts.push('<img alt="" src="spotask-doc://attachment/' + encodeURIComponent(item.id) + '">');
+         } else if (item.symbol) {
+           parts.push('<span class="attachment-symbol">' + icon(item.symbol, "icon", "regular", 9, 18) + "</span>");
+         }
          parts.push("<span>" + escapeText(item.filename) + "</span></span>");
        }
        parts.push("</div>");
      }
-     parts.push('<div class="body"></div>');
+     if (role === "assistant" && message.state === "streaming" && !message.content) {
+       parts.push('<div class="generating"><span class="spinner"></span><span>' + escapeText(label("generating")) + "</span></div>");
+     } else {
+       parts.push('<div class="body"></div>');
+     }
      if (message.canToggleExpand) {
+       const expandLabel = message.collapsed
+         ? label(role === "user" ? "showFullQuestion" : "expandAnswer")
+         : label(role === "user" ? "collapseQuestion" : "collapseAnswer");
        parts.push(
          '<button type="button" class="expand-button" data-action="toggle-expand" aria-label="' +
-           escapeText(message.collapsed ? label("expandAnswer") : label("collapseAnswer")) +
+           escapeText(expandLabel) +
+           '" title="' +
+           escapeText(expandLabel) +
            '">' +
-           icon(message.collapsed ? "chevron.down" : "chevron.up", "icon", "medium", 11) +
+           icon(message.collapsed ? "chevron.down" : "chevron.up", "icon", "medium", 11, 14) +
            "<span>" +
-           escapeText(message.collapsed ? label("expandAnswer") : label("collapseAnswer")) +
+           escapeText(expandLabel) +
            "</span></button>"
        );
      }
      if (message.errorText) {
-       const retryTitle = page.hints.regenerateFull
-         ? label("retry") + " (" + page.hints.regenerateFull + ")"
-         : label("retry");
+       const retryTitle = page.hints.regenerateFull ? label("retry") + " (" + page.hints.regenerateFull + ")" : label("retry");
        parts.push('<div class="error-row"><span class="error-text">' + escapeText(message.errorText) + "</span>");
        if (message.canRetry) {
          parts.push(
@@ -447,8 +478,8 @@
        parts.push('<span class="metadata" title="' + escapeText(message.metadata) + '">' + escapeText(message.metadata) + "</span>");
      }
      parts.push("</div></article>");
-    return parts.join("");
-  }
+     return parts.join("");
+   }
 
   function updateBody(article, message, renderMath) {
     const body = article.querySelector(".body");
@@ -494,18 +525,19 @@
     const wrapper = document.createElement("div");
     wrapper.innerHTML = articleHTML(message);
     const article = wrapper.firstChild;
-    if (existing) {
-      article.dataset.stable = existing.dataset.stable || "";
-      const previousBody = existing.querySelector(".body");
-      if (previousBody && message.state === "streaming" && !message.collapsed) {
-        article.querySelector(".body").innerHTML = previousBody.innerHTML;
-      }
-      existing.replaceWith(article);
-    } else {
-      host.appendChild(article);
-    }
-    updateBody(article, message, renderMath);
-  }
+     if (existing) {
+       article.dataset.stable = existing.dataset.stable || "";
+       const previousBody = existing.querySelector(".body");
+       const nextBody = article.querySelector(".body");
+       if (previousBody && nextBody && message.state === "streaming" && !message.collapsed) {
+         nextBody.innerHTML = previousBody.innerHTML;
+       }
+       existing.replaceWith(article);
+     } else {
+       host.appendChild(article);
+     }
+     updateBody(article, message, renderMath);
+   }
 
   function scrollToBottom() {
     const scroller = document.getElementById("scroller");
