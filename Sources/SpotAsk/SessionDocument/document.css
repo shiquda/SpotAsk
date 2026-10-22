@@ -103,39 +103,46 @@ html, body {
   width: 100%;
 }
 
-.assistant-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 2px;
-}
-
-.provider-icon {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-  border-radius: 4px;
-}
-
-.provider-fallback {
-  width: 18px;
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted);
-}
-
-.model-name {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--fg);
-}
-
-.metadata {
-  font-size: 10px;
-  color: var(--muted);
-}
+ .assistant-header {
+   display: flex;
+   align-items: center;
+   gap: 6px;
+   margin-bottom: 2px;
+ }
+ 
+ .provider-mark {
+   width: 18px;
+   height: 18px;
+   border-radius: 50%;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   background: var(--surface);
+   flex: none;
+   overflow: hidden;
+ }
+ 
+ .provider-mark.fallback {
+   background: linear-gradient(135deg, var(--accent), #32ade6);
+   color: #fff;
+ }
+ 
+ .provider-icon {
+   width: 18px;
+   height: 18px;
+   object-fit: contain;
+ }
+ 
+ .fallback-icon {
+   width: 10px;
+   height: 10px;
+ }
+ 
+ .model-name {
+   font-size: 12px;
+   font-weight: 500;
+   color: var(--muted);
+ }
 
 .reasoning {
   border-left: 2px solid var(--border);
@@ -309,52 +316,142 @@ section:has(> eqn),
   margin-top: 4px;
 }
 
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  margin-top: 4px;
-}
-
-.text-button, .icon-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: transparent;
-  border: none;
-  color: var(--muted);
-  padding: 4px 6px;
-  border-radius: 5px;
-  font-size: 11px;
-  cursor: pointer;
-  line-height: 1;
-}
-
-.text-button:hover, .icon-button:hover {
-  background: var(--surface);
-  color: var(--fg);
-}
-
-.text-button.copied {
-  color: #34c759;
-}
-
-.text-button kbd {
-  font-size: 9px;
-  padding: 1px 4px;
-  background: var(--surface);
-  border-radius: 3px;
-  border: 1px solid var(--border);
-  color: var(--muted);
-}
-
-.icon {
-  width: 12px;
-  height: 12px;
-  vertical-align: -1px;
-  display: inline-block;
-}
+ .expand-button {
+   display: inline-flex;
+   align-items: center;
+   gap: 4px;
+   border: none;
+   background: none;
+   color: var(--muted);
+   font-size: 12px;
+   font-weight: 500;
+   padding: 0;
+   cursor: pointer;
+ }
+ 
+ .expand-button .icon {
+   width: 11px;
+   height: 11px;
+ }
+ 
+ .actions {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   gap: 4px;
+   margin-top: 2px;
+   min-height: 24px;
+   overflow: visible;
+ }
+ 
+ :root[data-style="im"] .message.user .actions {
+   justify-content: flex-end;
+ }
+ 
+ .toolbar-button, .icon-button {
+   position: relative;
+   width: 24px;
+   height: 24px;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 0;
+   padding: 0;
+   border: none;
+   border-radius: 6px;
+   background: transparent;
+   color: var(--muted);
+   cursor: pointer;
+   overflow: visible;
+ }
+ 
+ .toolbar-button:hover, .icon-button:hover {
+   background: var(--surface);
+   color: var(--fg);
+ }
+ 
+ .toolbar-button.model-retry {
+   width: 22px;
+   height: 22px;
+   border-radius: 5px;
+ }
+ 
+ .code-bar .icon-button {
+   width: 28px;
+   height: 28px;
+ }
+ 
+ .code-bar .icon {
+   width: 12px;
+   height: 12px;
+ }
+ 
+ .actions .metadata {
+   margin-left: auto;
+   max-width: 140px;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+   font-size: 12px;
+   color: var(--muted);
+ }
+ 
+ .keycaps {
+   position: absolute;
+   right: -4px;
+   bottom: -4px;
+   display: flex;
+   gap: 2px;
+   pointer-events: none;
+   z-index: 1;
+ }
+ 
+ .keycap {
+   font-size: 9px;
+   font-weight: 600;
+   line-height: 1.1;
+   color: var(--muted);
+   padding: 2px 4px;
+   border-radius: 3px;
+   background: color-mix(in srgb, var(--fg) 8%, transparent);
+   border: 0.5px solid color-mix(in srgb, var(--fg) 18%, transparent);
+ }
+ 
+ :root[data-theme="dark"] .keycap {
+   background: color-mix(in srgb, var(--fg) 16%, transparent);
+ }
+ 
+ .icon {
+   width: 10px;
+   height: 10px;
+   display: inline-block;
+   flex: none;
+   background-color: currentColor;
+   -webkit-mask-size: contain;
+   -webkit-mask-repeat: no-repeat;
+   -webkit-mask-position: center;
+   mask-size: contain;
+   mask-repeat: no-repeat;
+   mask-position: center;
+ }
+ 
+ .error-row {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   margin-top: 4px;
+ }
+ 
+ .retry-text {
+   position: relative;
+   border: 1px solid var(--border);
+   background: var(--surface);
+   color: var(--fg);
+   font-size: 12px;
+   border-radius: 5px;
+   padding: 2px 8px;
+   cursor: pointer;
+ }
 
 .tail.raw {
   white-space: pre-wrap;

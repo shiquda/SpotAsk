@@ -160,7 +160,8 @@ struct ChatMessageListView: View {
             pendingExternalAskID: pendingExternalAskID,
             showsShortcutHints: showsShortcutHints,
             shortcutHint: shortcutHint,
-            followsLatest: scrollFollowState.followsLatest
+             followsLatest: scrollFollowState.followsLatest,
+             generationState: viewModel.generationState
         )
         let attachments = liveMessages.flatMap(\.attachments)
         host.catalog = settings.providerRegistry.catalog

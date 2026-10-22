@@ -270,33 +270,71 @@
     return page.labels[key] || "";
   }
 
-  function icon(name, className) {
-    const src = "spotask-doc://symbol/" + encodeURIComponent(name);
-    return '<img class="' + (className || "icon") + '" alt="" src="' + src + '">';
+  function icon(name, className, weight, size) {
+    const src =
+      "spotask-doc://symbol/" +
+      (weight || "regular") +
+      "/" +
+      (size || 10) +
+      "/" +
+      encodeURIComponent(name);
+    return '<i class="' + (className || "icon") + '" style="-webkit-mask-image:url(\'' + src + '\');mask-image:url(\'' + src + '\')"></i>';
   }
 
-  function button(action, symbol, labelKey, hintKey) {
-    const hint = hintKey && page.hints[hintKey] ? "<kbd>" + escapeText(page.hints[hintKey]) + "</kbd>" : "";
+  function keycaps(raw) {
+    if (!raw) return "";
+    const parts = String(raw).split("|");
+    let html = '<span class="keycaps">';
+    for (let i = 0; i < parts.length; i++) {
+      if (!parts[i]) continue;
+      html += '<kbd class="keycap">' + escapeText(parts[i]) + "</kbd>";
+    }
+    return html + "</span>";
+  }
+
+  function toolbarButton(action, symbol, labelText, options) {
+    const hintKey = options && options.hintKey;
+    const showHint = !!(options && options.showHint && hintKey && page.hints[hintKey]);
+    const full = showHint && page.hints[hintKey + "Full"] ? page.hints[hintKey + "Full"] : "";
+    const title = full ? labelText + " (" + full + ")" : labelText;
+    const aria = (options && options.aria) || labelText;
+    const weight = (options && options.weight) || "regular";
+    const pointSize = (options && options.size) || 10;
+    const extraClass = options && options.className ? " " + options.className : "";
     return (
-      '<button type="button" class="text-button" data-action="' +
+      '<button type="button" class="toolbar-button' +
+      extraClass +
+      '" data-action="' +
       action +
       '" aria-label="' +
-      escapeText(label(labelKey)) +
+      escapeText(aria) +
+      '" title="' +
+      escapeText(title) +
       '">' +
-      icon(symbol) +
-      "<span>" +
-      escapeText(label(labelKey)) +
-      "</span>" +
-      hint +
+      icon(symbol, "icon", weight, pointSize) +
+      (showHint ? keycaps(page.hints[hintKey]) : "") +
       "</button>"
     );
+  }
+
+  function copyButton(message, role) {
+    const copied = !!message.copied;
+    const isUser = role === "user";
+    const labelText = copied ? label("copied") : label(isUser ? "copyQuestion" : "copyCompleteAnswer");
+    const aria = copied ? label(isUser ? "questionCopied" : "copyAnswer") : labelText;
+    return toolbarButton("copy-message", copied ? "checkmark" : "doc.on.doc", labelText, {
+      aria: aria,
+      hintKey: "copy",
+      showHint: !copied && role === "assistant" && !!message.isLatest,
+      className: copied ? "copied" : "",
+    });
   }
 
   function fillCopyButtons(rootNode) {
     const buttons = rootNode.querySelectorAll('[data-action="copy-code"]');
     for (let i = 0; i < buttons.length; i++) {
       buttons[i].setAttribute("aria-label", label("copy"));
-      buttons[i].innerHTML = icon("doc.on.doc");
+       buttons[i].innerHTML = icon("doc.on.doc", "icon", "regular", 12);
     }
   }
 
@@ -310,72 +348,105 @@
     const role = message.role === "user" ? "user" : "assistant";
     const style = message.bubble ? " im" : "";
     const parts = ['<article class="message ' + role + style + '" data-id="' + escapeText(message.id) + '">'];
-    if (role === "assistant") {
-      parts.push('<header class="assistant-header">');
-      if (message.iconSlug) {
-        parts.push('<img class="provider-icon" alt="" src="spotask-doc://icon/' + encodeURIComponent(message.iconSlug) + '">');
-      } else {
-        parts.push('<span class="provider-fallback">' + icon("brain.head.profile", "icon fallback-icon") + "</span>");
-      }
-      parts.push('<div><div class="model-name">' + escapeText(message.title || "") + "</div>");
-      if (message.metadata) parts.push('<div class="metadata">' + escapeText(message.metadata) + "</div>");
-      parts.push("</div>");
-      if (message.canRetryWithModel) {
-        parts.push(
-          '<button type="button" class="icon-button" data-action="show-model-menu" aria-label="' +
-            escapeText(label("retryWithModel")) +
-            '">' +
-            icon("arrow.triangle.2.circlepath") +
-            "</button>"
-        );
-      }
-      parts.push("</header>");
-    }
-    if (message.reasoning) {
-      parts.push('<section class="reasoning"><button type="button" class="reasoning-toggle" data-action="toggle-reasoning" aria-expanded="' + (message.reasoningExpanded ? "true" : "false") + '">');
-      parts.push(icon(message.reasoningExpanded ? "chevron.down" : "chevron.right"));
-      parts.push("<span>" + escapeText(message.reasoningTitle || "") + "</span></button>");
-      if (message.reasoningExpanded) parts.push('<pre class="reasoning-body">' + escapeText(message.reasoning) + "</pre>");
-      parts.push("</section>");
-    }
-    if (message.attachments && message.attachments.length) {
-      parts.push('<div class="attachments">');
-      for (let i = 0; i < message.attachments.length; i++) {
-        const item = message.attachments[i];
-        parts.push('<span class="attachment" title="' + escapeText(item.filename) + '">');
-        if (item.isImage) parts.push('<img alt="" src="spotask-doc://attachment/' + encodeURIComponent(item.id) + '">');
-        parts.push("<span>" + escapeText(item.filename) + "</span></span>");
-      }
-      parts.push("</div>");
-    }
-    parts.push('<div class="body"></div>');
-    if (message.errorText) parts.push('<div class="error-text">' + escapeText(message.errorText) + "</div>");
-    if (message.cancelledText) parts.push('<div class="cancelled-text">' + escapeText(message.cancelledText) + "</div>");
-    parts.push('<div class="actions">');
-    if (message.canCopy) {
-      const copied = !!message.copied;
-      parts.push(
-        '<button type="button" class="text-button' +
-          (copied ? " copied" : "") +
-          '" data-action="copy-message" aria-label="' +
-          escapeText(copied ? label("copied") : label("copy")) +
-          '">' +
-          icon(copied ? "checkmark" : "doc.on.doc") +
-          "<span>" +
-          escapeText(copied ? label("copied") : label("copy")) +
-          "</span></button>"
-      );
-    }
-    if (message.canEdit) parts.push(button("edit-user", "square.and.pencil", "edit", "edit"));
-    if (message.canRetryUser) parts.push(button("retry-user", "arrow.clockwise", "retry", "retry"));
-    if (message.canExternalAsk) parts.push(button("show-external-ask", "arrow.up.right.square", "externalAsk"));
-    if (message.canInsert) parts.push(button("insert-selection", "text.insert", "insertSelection", "insertSelection"));
-    if (message.canRegenerate) parts.push(button("regenerate", "arrow.clockwise", "regenerate", "regenerate"));
-    if (message.canRetry) parts.push(button("retry", "arrow.clockwise", "retry", "retry"));
-    if (message.canToggleExpand) {
-      parts.push(button("toggle-expand", message.collapsed ? "chevron.down" : "chevron.up", message.collapsed ? "expand" : "collapse"));
-    }
-    parts.push("</div></article>");
+     if (role === "assistant") {
+       const dark = document.documentElement.dataset.theme === "dark" ? "?dark=true" : "";
+       parts.push('<header class="assistant-header">');
+       if (message.iconSlug) {
+         parts.push(
+           '<span class="provider-mark"><img class="provider-icon" alt="" src="spotask-doc://icon/' +
+             encodeURIComponent(message.iconSlug) +
+             dark +
+             '"></span>'
+         );
+       } else {
+         parts.push('<span class="provider-mark fallback">' + icon("brain.head.profile", "icon fallback-icon", "semibold", 10) + "</span>");
+       }
+       parts.push('<div class="model-name">' + escapeText(message.title || "") + "</div>");
+       if (message.canRetryWithModel) {
+         parts.push(
+           toolbarButton("show-model-menu", "arrow.triangle.2.circlepath", label("retryWithModel"), {
+             className: "model-retry",
+             weight: "semibold",
+             size: 10,
+           })
+         );
+       }
+       parts.push("</header>");
+     }
+     if (message.reasoning) {
+       parts.push('<section class="reasoning"><button type="button" class="reasoning-toggle" data-action="toggle-reasoning" aria-expanded="' + (message.reasoningExpanded ? "true" : "false") + '">');
+       parts.push(icon(message.reasoningExpanded ? "chevron.down" : "chevron.right", "icon", "medium", 11));
+       parts.push("<span>" + escapeText(message.reasoningTitle || "") + "</span></button>");
+       if (message.reasoningExpanded) parts.push('<pre class="reasoning-body">' + escapeText(message.reasoning) + "</pre>");
+       parts.push("</section>");
+     }
+     if (message.attachments && message.attachments.length) {
+       parts.push('<div class="attachments">');
+       for (let i = 0; i < message.attachments.length; i++) {
+         const item = message.attachments[i];
+         parts.push('<span class="attachment" title="' + escapeText(item.filename) + '">');
+         if (item.isImage) parts.push('<img alt="" src="spotask-doc://attachment/' + encodeURIComponent(item.id) + '">');
+         parts.push("<span>" + escapeText(item.filename) + "</span></span>");
+       }
+       parts.push("</div>");
+     }
+     parts.push('<div class="body"></div>');
+     if (message.canToggleExpand) {
+       parts.push(
+         '<button type="button" class="expand-button" data-action="toggle-expand" aria-label="' +
+           escapeText(message.collapsed ? label("expandAnswer") : label("collapseAnswer")) +
+           '">' +
+           icon(message.collapsed ? "chevron.down" : "chevron.up", "icon", "medium", 11) +
+           "<span>" +
+           escapeText(message.collapsed ? label("expandAnswer") : label("collapseAnswer")) +
+           "</span></button>"
+       );
+     }
+     if (message.errorText) {
+       const retryTitle = page.hints.regenerateFull
+         ? label("retry") + " (" + page.hints.regenerateFull + ")"
+         : label("retry");
+       parts.push('<div class="error-row"><span class="error-text">' + escapeText(message.errorText) + "</span>");
+       if (message.canRetry) {
+         parts.push(
+           '<button type="button" class="retry-text" data-action="retry" aria-label="' +
+             escapeText(label("retryFailed")) +
+             '" title="' +
+             escapeText(retryTitle) +
+             '"><span>' +
+             escapeText(label("retry")) +
+             "</span>" +
+             keycaps(page.hints.regenerate) +
+             "</button>"
+         );
+       }
+       parts.push("</div>");
+     }
+     if (message.cancelledText) parts.push('<div class="cancelled-text">' + escapeText(message.cancelledText) + "</div>");
+     parts.push('<div class="actions">');
+     if (message.canCopy) parts.push(copyButton(message, role));
+     if (message.canRetryUser) {
+       parts.push(
+         toolbarButton("retry-user", "arrow.clockwise", label("retry"), {
+           hintKey: "regenerate",
+           showHint: true,
+           aria: label("retryFailed"),
+         })
+       );
+     }
+     if (message.canInsert) parts.push(toolbarButton("insert-selection", "arrow.down.doc", label("insertSelection")));
+     if (message.canRegenerate) {
+       parts.push(
+         toolbarButton("regenerate", "arrow.clockwise", label("regenerate"), {
+           hintKey: "regenerate",
+           showHint: true,
+         })
+       );
+     }
+     if (role === "assistant" && message.metadata) {
+       parts.push('<span class="metadata" title="' + escapeText(message.metadata) + '">' + escapeText(message.metadata) + "</span>");
+     }
+     parts.push("</div></article>");
     return parts.join("");
   }
 
@@ -520,7 +591,7 @@
           post({ type: "copy-code", messageID: messageID, code: text });
           return;
         }
-        if (control.dataset.action === "show-model-menu" || control.dataset.action === "show-external-ask") {
+         if (control.dataset.action === "show-model-menu") {
           const rect = control.getBoundingClientRect();
           post({
             type: control.dataset.action,

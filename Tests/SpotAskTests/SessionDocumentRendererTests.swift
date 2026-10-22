@@ -275,4 +275,64 @@ final class SessionDocumentRendererTests: XCTestCase {
         XCTAssertTrue(jsonString.contains("Hello $x$"))
         XCTAssertTrue(jsonString.contains("Answer $y$"))
     }
+ 
+     @MainActor
+     func testMessageActionsMatchNativeToolbar() {
+         let user = ChatMessage(role: .user, content: "Question")
+         let assistant = ChatMessage(
+             role: .assistant,
+             content: "Answer",
+             modelDisplayName: "Claude 3.7 Sonnet",
+             providerName: "Anthropic"
+         )
+         let failedUser = ChatMessage(role: .user, content: "Failed question")
+         let failedAssistant = ChatMessage(role: .assistant, content: "partial", state: .failed)
+ 
+         let idle = SessionDocumentSnapshotBuilder.make(
+             messages: [user, assistant],
+             settings: AppSettings(),
+             effectiveAppearance: nil,
+             generation: "gen",
+             copiedMessageID: nil,
+             isReasoningExpanded: { _ in false },
+             isAssistantExpanded: { _ in false },
+             canInsertSelection: { _ in true },
+             pendingExternalAskID: nil,
+             showsShortcutHints: false,
+             shortcutHint: { _ in nil },
+             followsLatest: true
+         )
+         XCTAssertEqual(idle.messages.count, 2)
+         XCTAssertFalse(idle.messages[0].canRetryUser)
+         XCTAssertFalse(idle.messages[0].canRegenerate)
+         XCTAssertTrue(idle.messages[1].canCopy)
+         XCTAssertTrue(idle.messages[1].canInsert)
+         XCTAssertTrue(idle.messages[1].canRegenerate)
+         XCTAssertTrue(idle.messages[1].canRetryWithModel)
+         XCTAssertTrue(idle.messages[1].isLatest)
+         XCTAssertEqual(idle.messages[1].iconSlug, "claude-color")
+         XCTAssertEqual(idle.messages[1].metadata, "Claude 3.7 Sonnet")
+         XCTAssertFalse(idle.messages[1].canRetry)
+ 
+         let failed = SessionDocumentSnapshotBuilder.make(
+             messages: [failedUser, failedAssistant],
+             settings: AppSettings(),
+             effectiveAppearance: nil,
+             generation: "gen",
+             copiedMessageID: nil,
+             isReasoningExpanded: { _ in false },
+             isAssistantExpanded: { _ in false },
+             canInsertSelection: { _ in false },
+             pendingExternalAskID: nil,
+             showsShortcutHints: false,
+             shortcutHint: { _ in nil },
+             followsLatest: true,
+             generationState: .failed
+         )
+         XCTAssertTrue(failed.messages[0].canRetryUser)
+         XCTAssertFalse(failed.messages[1].canRegenerate)
+         XCTAssertTrue(failed.messages[1].canRetry)
+         XCTAssertEqual(failed.messages[1].cancelledText, nil)
+         XCTAssertEqual(failed.messages[1].errorText, L10n.string("chat.requestFailed"))
+     }
 }

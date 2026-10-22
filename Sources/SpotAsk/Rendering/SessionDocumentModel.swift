@@ -53,17 +53,16 @@ struct SessionDocumentMessage: Codable, Equatable, Sendable {
     let preview: String?
     let errorText: String?
     let cancelledText: String?
-    let canCopy: Bool
-    let copied: Bool
-    let canEdit: Bool
-    let canRetryUser: Bool
-    let canExternalAsk: Bool
-    let canInsert: Bool
-    let canRegenerate: Bool
-    let canRetry: Bool
-    let canRetryWithModel: Bool
-    let canToggleExpand: Bool
-    let attachments: [SessionDocumentAttachment]
+     let canCopy: Bool
+     let copied: Bool
+     let canRetryUser: Bool
+     let canInsert: Bool
+     let canRegenerate: Bool
+     let canRetry: Bool
+     let canRetryWithModel: Bool
+     let canToggleExpand: Bool
+     let isLatest: Bool
+     let attachments: [SessionDocumentAttachment]
 }
 
 struct SessionDocumentSnapshot: Codable, Equatable, Sendable {
@@ -112,76 +111,73 @@ enum SessionDocumentAction: Equatable {
     case copyMessage(id: UUID)
     case copyCode(messageID: UUID, code: String)
     case openLink(url: URL)
-    case toggleReasoning(id: UUID)
-    case toggleExpand(id: UUID)
-    case editUser(id: UUID)
-    case retryUser(id: UUID)
-    case showModelMenu(messageID: UUID, anchorRect: CGRect)
-    case showExternalAsk(messageID: UUID, anchorRect: CGRect)
-    case insertSelection(id: UUID)
-    case regenerate(id: UUID)
-    case retry(id: UUID)
-    case scroll(phase: String, nearBottom: Bool)
-
-    static func parse(body: Any, expectedGeneration: String, knownMessageIDs: Set<UUID>) -> SessionDocumentAction? {
-        guard let dict = body as? [String: Any] else { return nil }
-        guard let generation = dict["generation"] as? String, generation == expectedGeneration else {
-            return nil
-        }
-        guard let type = dict["type"] as? String else { return nil }
-
-        switch type {
-        case "scroll":
-            guard let phase = dict["phase"] as? String,
-                  let nearBottom = dict["nearBottom"] as? Bool else { return nil }
-            return .scroll(phase: phase, nearBottom: nearBottom)
-
-        case "open-link":
-            guard let rawURL = dict["url"] as? String,
-                  let url = URL(string: rawURL),
-                  let scheme = url.scheme?.lowercased(),
-                  scheme == "http" || scheme == "https" || scheme == "mailto" else {
-                return nil
-            }
-            return .openLink(url: url)
-
-        case "copy-code":
-            guard let rawID = dict["messageID"] as? String,
-                  let id = UUID(uuidString: rawID),
-                  knownMessageIDs.contains(id),
-                  let code = dict["code"] as? String else { return nil }
-            return .copyCode(messageID: id, code: code)
-
-        case "show-model-menu", "show-external-ask":
-            guard let rawID = dict["messageID"] as? String,
-                  let id = UUID(uuidString: rawID),
-                  knownMessageIDs.contains(id),
-                  let x = dict["x"] as? Double,
-                  let y = dict["y"] as? Double,
-                  let width = dict["width"] as? Double,
-                  let height = dict["height"] as? Double else { return nil }
-            let rect = CGRect(x: x, y: y, width: width, height: height)
-            return type == "show-model-menu"
-                ? .showModelMenu(messageID: id, anchorRect: rect)
-                : .showExternalAsk(messageID: id, anchorRect: rect)
-
-        default:
-            guard let rawID = dict["messageID"] as? String,
-                  let id = UUID(uuidString: rawID),
-                  knownMessageIDs.contains(id) else { return nil }
-            switch type {
-            case "copy-message": return .copyMessage(id: id)
-            case "toggle-reasoning": return .toggleReasoning(id: id)
-            case "toggle-expand": return .toggleExpand(id: id)
-            case "edit-user": return .editUser(id: id)
-            case "retry-user": return .retryUser(id: id)
-            case "insert-selection": return .insertSelection(id: id)
-            case "regenerate": return .regenerate(id: id)
-            case "retry": return .retry(id: id)
-            default: return nil
-            }
-        }
-    }
+     case toggleReasoning(id: UUID)
+     case toggleExpand(id: UUID)
+     case retryUser(id: UUID)
+     case showModelMenu(messageID: UUID, anchorRect: CGRect)
+     case insertSelection(id: UUID)
+     case regenerate(id: UUID)
+     case retry(id: UUID)
+     case scroll(phase: String, nearBottom: Bool)
+ 
+     static func parse(body: Any, expectedGeneration: String, knownMessageIDs: Set<UUID>) -> SessionDocumentAction? {
+         guard let dict = body as? [String: Any] else { return nil }
+         guard let generation = dict["generation"] as? String, generation == expectedGeneration else {
+             return nil
+         }
+         guard let type = dict["type"] as? String else { return nil }
+ 
+         switch type {
+         case "scroll":
+             guard let phase = dict["phase"] as? String,
+                   let nearBottom = dict["nearBottom"] as? Bool else { return nil }
+             return .scroll(phase: phase, nearBottom: nearBottom)
+ 
+         case "open-link":
+             guard let rawURL = dict["url"] as? String,
+                   let url = URL(string: rawURL),
+                   let scheme = url.scheme?.lowercased(),
+                   scheme == "http" || scheme == "https" || scheme == "mailto" else {
+                 return nil
+             }
+             return .openLink(url: url)
+ 
+         case "copy-code":
+             guard let rawID = dict["messageID"] as? String,
+                   let id = UUID(uuidString: rawID),
+                   knownMessageIDs.contains(id),
+                   let code = dict["code"] as? String else { return nil }
+             return .copyCode(messageID: id, code: code)
+ 
+         case "show-model-menu":
+             guard let rawID = dict["messageID"] as? String,
+                   let id = UUID(uuidString: rawID),
+                   knownMessageIDs.contains(id),
+                   let x = dict["x"] as? Double,
+                   let y = dict["y"] as? Double,
+                   let width = dict["width"] as? Double,
+                   let height = dict["height"] as? Double else { return nil }
+             return .showModelMenu(
+                 messageID: id,
+                 anchorRect: CGRect(x: x, y: y, width: width, height: height)
+             )
+ 
+         default:
+             guard let rawID = dict["messageID"] as? String,
+                   let id = UUID(uuidString: rawID),
+                   knownMessageIDs.contains(id) else { return nil }
+             switch type {
+             case "copy-message": return .copyMessage(id: id)
+             case "toggle-reasoning": return .toggleReasoning(id: id)
+             case "toggle-expand": return .toggleExpand(id: id)
+             case "retry-user": return .retryUser(id: id)
+             case "insert-selection": return .insertSelection(id: id)
+             case "regenerate": return .regenerate(id: id)
+             case "retry": return .retry(id: id)
+             default: return nil
+             }
+         }
+     }
 }
 
 // MARK: - Snapshot Builder
@@ -200,7 +196,8 @@ enum SessionDocumentSnapshotBuilder {
         pendingExternalAskID: UUID?,
         showsShortcutHints: Bool,
         shortcutHint: (InAppShortcutTarget) -> InAppShortcut?,
-        followsLatest: Bool
+         followsLatest: Bool,
+         generationState: GenerationState = .idle
     ) -> SessionDocumentSnapshot {
         let isDark: Bool
         if let modeScheme = settings.appearance.colorScheme {
@@ -258,93 +255,107 @@ enum SessionDocumentSnapshotBuilder {
                 return SessionDocumentAttachment(id: att.id.uuidString, filename: att.filename, isImage: isImage)
             }
 
-            let canRetryWithModel = isLastAssistant && (message.state == .complete || message.state == .cancelled || message.state == .failed)
-            let canCopy = !message.content.isEmpty
-            let canEdit = isUser
-            let canRetryUser = isUser
-            let canExternalAsk = isLastAssistant
-            let canInsert = isAssistant && message.state == .complete && canInsertSelection(message.id)
-            let canRegenerate = isLastAssistant && message.state == .complete
-            let canRetry = isLastAssistant && (message.state == .failed || message.state == .cancelled)
-            
-
-            let metadata: String?
-            if isAssistant, let model = message.modelDisplayName {
-                if let duration = message.responseDuration {
-                    let seconds = duration.formatted(.number.precision(.fractionLength(1)))
-                    metadata = "\(model) · \(seconds)s"
-                } else {
-                    metadata = model
-                }
-            } else {
-                metadata = nil
-            }
-
-            let errorText: String?
-            if message.state == .failed {
-                errorText = L10n.string("chat.errorGeneric")
-            } else {
-                errorText = nil
-            }
-
-            let cancelledText: String?
-            if message.state == .cancelled {
-                cancelledText = L10n.string("chat.cancelled")
-            } else {
-                cancelledText = nil
-            }
-
-            docMessages.append(SessionDocumentMessage(
-                id: message.id.uuidString,
-                role: message.role.rawValue,
-                content: message.content,
-                state: message.state.rawValue,
-                bubble: settings.chatMessageStyle == .im,
-                title: message.modelDisplayName,
-                metadata: metadata,
-                iconSlug: iconSlug,
-                reasoning: reasoning,
-                reasoningTitle: reasoningTitle,
-                reasoningExpanded: reasoningExpanded,
-                collapsed: isCollapsed,
-                preview: preview,
-                errorText: errorText,
-                cancelledText: cancelledText,
-                canCopy: canCopy,
-                copied: copiedMessageID == message.id,
-                canEdit: canEdit,
-                canRetryUser: canRetryUser,
-                canExternalAsk: canExternalAsk,
-                canInsert: canInsert,
-                canRegenerate: canRegenerate,
-                canRetry: canRetry,
-                canRetryWithModel: canRetryWithModel,
-                canToggleExpand: canToggleExpand,
-                attachments: attachments
-            ))
-        }
-
-        let labels: [String: String] = [
-            "copy": L10n.string("chat.copy"),
-            "copied": L10n.string("chat.copied"),
-            "edit": L10n.string("chat.edit"),
-            "retry": L10n.string("chat.retry"),
-            "regenerate": L10n.string("chat.regenerate"),
-            "insertSelection": L10n.string("chat.insertSelection"),
-            "externalAsk": L10n.string("chat.externalAsk"),
-            "retryWithModel": L10n.string("chat.retryWithAnotherModel"),
-            "expand": L10n.string("chat.showMore"),
-            "collapse": L10n.string("chat.showLess"),
-            "reasoning": L10n.string("chat.reasoning"),
-            "reasoningExpand": L10n.string("chat.reasoningExpand"),
-            "reasoningCollapse": L10n.string("chat.reasoningCollapse")
-        ]
-
-        var hints: [String: String] = [:]
-        if showsShortcutHints {
-            if let hint = shortcutHint(.operation(.regenerateOrRetry)) { hints["regenerate"] = hint.key.uppercased() }
-            if let hint = shortcutHint(.operation(.copyAnswer)) { hints["copy"] = hint.key.uppercased() }
-        }
+             let hasUserMessage = visibleMessages.contains { $0.role == .user }
+             let canRegenerate = isLastAssistant
+                 && generationState == .idle
+                 && message.state == .complete
+                 && hasUserMessage
+             let canRetryWithModel = canRegenerate
+             let canCopy = !message.content.isEmpty
+             let lastUser = visibleMessages.last { $0.role == .user }
+             let canRetryUser = isUser
+                 && generationState == .failed
+                 && visibleMessages.last?.role == .assistant
+                 && visibleMessages.last?.state == .failed
+                 && message.id == lastUser?.id
+             let canInsert = isAssistant && message.state == .complete && canInsertSelection(message.id)
+             let canRetry = isLastAssistant && message.state == .failed
+ 
+             let metadata: String?
+             if isAssistant, let model = message.modelDisplayName {
+                 if let duration = message.responseDuration {
+                     let seconds = duration.formatted(.number.precision(.fractionLength(1)))
+                     metadata = "\(model) · \(seconds)s"
+                 } else {
+                     metadata = model
+                 }
+             } else {
+                 metadata = nil
+             }
+ 
+             let errorText: String?
+             if message.state == .failed {
+                 errorText = L10n.string("chat.requestFailed")
+             } else {
+                 errorText = nil
+             }
+ 
+             let cancelledText: String?
+             if message.state == .cancelled {
+                 cancelledText = L10n.string("chat.stopped")
+             } else {
+                 cancelledText = nil
+             }
+ 
+             docMessages.append(SessionDocumentMessage(
+                 id: message.id.uuidString,
+                 role: message.role.rawValue,
+                 content: message.content,
+                 state: message.state.rawValue,
+                 bubble: settings.chatMessageStyle == .im,
+                 title: message.modelDisplayName,
+                 metadata: metadata,
+                 iconSlug: iconSlug,
+                 reasoning: reasoning,
+                 reasoningTitle: reasoningTitle,
+                 reasoningExpanded: reasoningExpanded,
+                 collapsed: isCollapsed,
+                 preview: preview,
+                 errorText: errorText,
+                 cancelledText: cancelledText,
+                 canCopy: canCopy,
+                 copied: copiedMessageID == message.id,
+                 canRetryUser: canRetryUser,
+                 canInsert: canInsert,
+                 canRegenerate: canRegenerate,
+                 canRetry: canRetry,
+                 canRetryWithModel: canRetryWithModel,
+                 canToggleExpand: canToggleExpand,
+                 isLatest: isLastAssistant,
+                 attachments: attachments
+             ))
+         }
+ 
+         let labels: [String: String] = [
+             "copy": L10n.string("chat.copy"),
+             "copied": L10n.string("chat.copied"),
+             "copyQuestion": L10n.string("chat.copyQuestion"),
+             "copyCompleteAnswer": L10n.string("chat.copyCompleteAnswer"),
+             "copyAnswer": L10n.string("chat.copyAnswer"),
+             "questionCopied": L10n.string("chat.questionCopied"),
+             "retry": L10n.string("chat.retry"),
+             "retryFailed": L10n.string("chat.retryFailedRequest"),
+             "regenerate": L10n.string("chat.regenerate"),
+             "insertSelection": L10n.string("chat.insertSelection"),
+             "retryWithModel": L10n.string("chat.retryWithAnotherModel"),
+             "expandAnswer": L10n.string("chat.expandAnswer"),
+             "collapseAnswer": L10n.string("chat.collapseAnswer"),
+             "reasoning": L10n.string("chat.reasoning"),
+             "reasoningExpand": L10n.string("chat.reasoningExpand"),
+             "reasoningCollapse": L10n.string("chat.reasoningCollapse")
+         ]
+ 
+         var hints: [String: String] = [:]
+         if showsShortcutHints {
+             if let hint = shortcutHint(.operation(.regenerateOrRetry)) {
+                 hints["regenerate"] = InAppShortcutDisplay.labels(for: hint, includeCommand: false).joined(separator: "|")
+                 hints["regenerateFull"] = InAppShortcutDisplay.labels(for: hint).joined()
+             }
+             if let hint = shortcutHint(.operation(.copyAnswer)) {
+                 hints["copy"] = InAppShortcutDisplay.labels(for: hint, includeCommand: false).joined(separator: "|")
+                 hints["copyFull"] = InAppShortcutDisplay.labels(for: hint).joined()
+             }
+         }
 
         return SessionDocumentSnapshot(
             generation: generation,

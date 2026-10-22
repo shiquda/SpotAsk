@@ -126,35 +126,73 @@ final class SessionDocumentSchemeHandler: NSObject, WKURLSchemeHandler {
         fail(task, status: 404)
     }
 
-    private func serveSymbol(name: String, task: any WKURLSchemeTask) {
-        lock.lock()
-        if let cached = symbolCache[name] {
-            lock.unlock()
-            respond(task, data: cached, mimeType: "image/png")
-            return
-        }
-        lock.unlock()
-
-        let image = NSImage(systemSymbolName: name, accessibilityDescription: nil) ?? NSImage()
-        let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
-        let configured = image.withSymbolConfiguration(config) ?? image
-        let size = NSSize(width: 16, height: 16)
-        let target = NSImage(size: size)
-        target.lockFocus()
-        configured.draw(in: NSRect(origin: .zero, size: size))
-        target.unlockFocus()
-
-        if let tiff = target.tiffRepresentation,
-           let rep = NSBitmapImageRep(data: tiff),
-           let data = rep.representation(using: .png, properties: [:]) {
-            lock.lock()
-            symbolCache[name] = data
-            lock.unlock()
-            respond(task, data: data, mimeType: "image/png")
-            return
-        }
-        fail(task, status: 404)
-    }
+     private func serveSymbol(name: String, task: any WKURLSchemeTask) {
+         let parts = name.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
+         let weightName: String
+         let pointSize: CGFloat
+         let symbolName: String
+         if parts.count >= 3, let size = Double(parts[1]) {
+             weightName = parts[0]
+             pointSize = CGFloat(size)
+             symbolName = parts.dropFirst(2).joined(separator: "/")
+         } else {
+             weightName = "regular"
+             pointSize = 10
+             symbolName = name
+         }
+         let cacheKey = "\(weightName)|\(pointSize)|\(symbolName)"
+         lock.lock()
+         if let cached = symbolCache[cacheKey] {
+             lock.unlock()
+             respond(task, data: cached, mimeType: "image/png")
+             return
+         }
+         lock.unlock()
+ 
+         guard let base = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) else {
+             fail(task, status: 404)
+             return
+         }
+         let weight: NSFont.Weight
+         switch weightName {
+         case "semibold": weight = .semibold
+         case "medium": weight = .medium
+         default: weight = .regular
+         }
+         let config = NSImage.SymbolConfiguration(pointSize: pointSize, weight: weight)
+             .applying(NSImage.SymbolConfiguration(paletteColors: [.black]))
+         let configured = base.withSymbolConfiguration(config) ?? base
+         let pixels = max(pointSize * 4, 32)
+         let pixelSize = NSSize(width: pixels, height: pixels)
+         guard let rep = NSBitmapImageRep(
+             bitmapDataPlanes: nil,
+             pixelsWide: Int(pixels),
+             pixelsHigh: Int(pixels),
+             bitsPerSample: 8,
+             samplesPerPixel: 4,
+             hasAlpha: true,
+             isPlanar: false,
+             colorSpaceName: .deviceRGB,
+             bytesPerRow: 0,
+             bitsPerPixel: 0
+         ) else {
+             fail(task, status: 404)
+             return
+         }
+         rep.size = pixelSize
+         NSGraphicsContext.saveGraphicsState()
+         NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+         configured.draw(in: NSRect(origin: .zero, size: pixelSize))
+         NSGraphicsContext.restoreGraphicsState()
+         if let data = rep.representation(using: .png, properties: [:]) {
+             lock.lock()
+             symbolCache[cacheKey] = data
+             lock.unlock()
+             respond(task, data: data, mimeType: "image/png")
+             return
+         }
+         fail(task, status: 404)
+     }
 
     private func respond(_ task: any WKURLSchemeTask, data: Data, mimeType: String) {
         guard !isStopped(task), let url = task.request.url else { return }
@@ -220,9 +258,8 @@ final class SessionDocumentHost: NSObject, ObservableObject, WKNavigationDelegat
     var onCopyCode: ((UUID, String) -> Void)?
     var onOpenLink: ((URL) -> Void)?
     var onToggleReasoning: ((UUID) -> Void)?
-    var onToggleExpand: ((UUID) -> Void)?
-    var onEditUserMessage: ((UUID) -> Void)?
-    var onRetryUserMessage: ((UUID) -> Void)?
+     var onToggleExpand: ((UUID) -> Void)?
+     var onRetryUserMessage: ((UUID) -> Void)?
     var onRetryLatestWithModel: ((UUID) -> Void)?
     var onRetryLatestWithDefaultModel: (() -> Void)?
     var onSelectExternalAsk: ((QuickAction) -> Void)?
@@ -379,8 +416,6 @@ final class SessionDocumentHost: NSObject, ObservableObject, WKNavigationDelegat
             onToggleReasoning?(id)
         case let .toggleExpand(id):
             onToggleExpand?(id)
-        case let .editUser(id):
-            onEditUserMessage?(id)
         case let .retryUser(id):
             onRetryUserMessage?(id)
         case let .insertSelection(id):
@@ -399,8 +434,6 @@ final class SessionDocumentHost: NSObject, ObservableObject, WKNavigationDelegat
             onScrollPositionChanged?(nearBottom)
         case let .showModelMenu(messageID, anchorRect):
             presentModelMenu(for: messageID, at: anchorRect)
-        case let .showExternalAsk(messageID, anchorRect):
-            presentExternalAskMenu(for: messageID, at: anchorRect)
         }
     }
 
@@ -439,25 +472,6 @@ final class SessionDocumentHost: NSObject, ObservableObject, WKNavigationDelegat
         popover.show(relativeTo: rect, of: webView, preferredEdge: .maxY)
     }
 
-    private func presentExternalAskMenu(for messageID: UUID, at viewportRect: CGRect) {
-        guard let webView, !externalAsks.isEmpty else { return }
-        let menu = NSMenu()
-        for action in externalAsks {
-            let item = NSMenuItem(title: action.displayName, action: #selector(externalAskItemClicked(_:)), keyEquivalent: "")
-            item.target = self
-            item.representedObject = action
-            menu.addItem(item)
-        }
-        let flippedY = webView.bounds.height - (viewportRect.origin.y + viewportRect.height)
-        let point = NSPoint(x: viewportRect.origin.x, y: flippedY)
-        menu.popUp(positioning: menu.items.first, at: point, in: webView)
-    }
-
-    @objc private func externalAskItemClicked(_ sender: NSMenuItem) {
-        if let action = sender.representedObject as? QuickAction {
-            onSelectExternalAsk?(action)
-        }
-    }
 }
 
 // MARK: - SwiftUI View Wrapper
