@@ -6,7 +6,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		00100000000000000000001A /* Textual in Frameworks */ = {isa = PBXBuildFile; productRef = 009000000000000000000002 /* Textual */; };
+		0010000000000000000000E1 /* SessionDocumentModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000E1 /* SessionDocumentModel.swift */; };
+		0010000000000000000000E2 /* SessionDocumentHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000E2 /* SessionDocumentHost.swift */; };
+		0010000000000000000000E3 /* SessionDocument in Resources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000E3 /* SessionDocument */; };
 		001000000000000000000001 /* SpotAskApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000001 /* SpotAskApp.swift */; };
 		001000000000000000000002 /* SpotAskCommandCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000002 /* SpotAskCommandCenter.swift */; };
 		001000000000000000000003 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000003 /* StatusBarController.swift */; };
@@ -20,9 +22,6 @@
 		00100000000000000000000B /* SSEParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000000B /* SSEParser.swift */; };
 		00100000000000000000000C /* ChatInputTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000000C /* ChatInputTextView.swift */; };
 		00100000000000000000000D /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000000D /* ChatView.swift */; };
-		00100000000000000000000E /* CodeBlockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000000E /* CodeBlockView.swift */; };
-		001000000000000000000010 /* MarkdownTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000010 /* MarkdownTextView.swift */; };
-		001000000000000000000011 /* MessageContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000011 /* MessageContentView.swift */; };
 		001000000000000000000012 /* ScrollPositionObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000012 /* ScrollPositionObserver.swift */; };
 		001000000000000000000013 /* LocalAPIKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000013 /* LocalAPIKeyStore.swift */; };
 		001000000000000000000014 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000014 /* AppSettings.swift */; };
@@ -82,11 +81,8 @@
 		001000000000000000000042 /* ProviderBrandIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000005B /* ProviderBrandIcon.swift */; };
 		001000000000000000000043 /* ChatStreamingDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000005C /* ChatStreamingDriver.swift */; };
 		001000000000000000000044 /* ChatDisplayPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000005D /* ChatDisplayPolicy.swift */; };
-		001000000000000000000045 /* ReasoningViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000005E /* ReasoningViews.swift */; };
-		001000000000000000000046 /* AssistantMessageRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000005F /* AssistantMessageRow.swift */; };
 		001000000000000000000047 /* ChatChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000060 /* ChatChrome.swift */; };
 		001000000000000000000048 /* ComposerWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000061 /* ComposerWidgets.swift */; };
-		001000000000000000000049 /* UserMessageContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000062 /* UserMessageContentView.swift */; };
 		00100000000000000000004A /* ModelPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000063 /* ModelPickerView.swift */; };
 		00100000000000000000004B /* ProviderSettingsState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000064 /* ProviderSettingsState.swift */; };
 		00100000000000000000004C /* SettingsComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000065 /* SettingsComponents.swift */; };
@@ -115,6 +111,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0020000000000000000000E1 /* SessionDocumentModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/SessionDocumentModel.swift; sourceTree = SOURCE_ROOT; };
+		0020000000000000000000E2 /* SessionDocumentHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/SessionDocumentHost.swift; sourceTree = SOURCE_ROOT; };
+		0020000000000000000000E3 /* SessionDocument */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Sources/SpotAsk/SessionDocument; sourceTree = SOURCE_ROOT; };
 		002000000000000000000001 /* SpotAskApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/App/SpotAskApp.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000002 /* SpotAskCommandCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/App/SpotAskCommandCenter.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000003 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/App/StatusBarController.swift; sourceTree = SOURCE_ROOT; };
@@ -128,9 +127,6 @@
 		00200000000000000000000B /* SSEParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/SSEParser.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000000C /* ChatInputTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatInputTextView.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000000D /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatView.swift; sourceTree = SOURCE_ROOT; };
-		00200000000000000000000E /* CodeBlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/CodeBlockView.swift; sourceTree = SOURCE_ROOT; };
-		002000000000000000000010 /* MarkdownTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/MarkdownTextView.swift; sourceTree = SOURCE_ROOT; };
-		002000000000000000000011 /* MessageContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/MessageContentView.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000012 /* ScrollPositionObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ScrollPositionObserver.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000013 /* LocalAPIKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Persistence/LocalAPIKeyStore.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000014 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/AppSettings.swift; sourceTree = SOURCE_ROOT; };
@@ -206,11 +202,8 @@
 		00200000000000000000005B /* ProviderBrandIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ProviderBrandIcon.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000005C /* ChatStreamingDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Provider/ChatStreamingDriver.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000005D /* ChatDisplayPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatDisplayPolicy.swift; sourceTree = SOURCE_ROOT; };
-		00200000000000000000005E /* ReasoningViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ReasoningViews.swift; sourceTree = SOURCE_ROOT; };
-		00200000000000000000005F /* AssistantMessageRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/AssistantMessageRow.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000060 /* ChatChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatChrome.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000061 /* ComposerWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ComposerWidgets.swift; sourceTree = SOURCE_ROOT; };
-		002000000000000000000062 /* UserMessageContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/UserMessageContentView.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000063 /* ModelPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ModelPickerView.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000064 /* ProviderSettingsState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/ProviderSettingsState.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000065 /* SettingsComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Settings/SettingsComponents.swift; sourceTree = SOURCE_ROOT; };
@@ -274,9 +267,6 @@
 				00200000000000000000000C /* ChatInputTextView.swift */,
 				002000000000000000000039 /* InAppShortcutDispatcher.swift */,
 				00200000000000000000000D /* ChatView.swift */,
-				00200000000000000000000E /* CodeBlockView.swift */,
-				002000000000000000000010 /* MarkdownTextView.swift */,
-				002000000000000000000011 /* MessageContentView.swift */,
 				00200000000000000000003A /* StatusToast.swift */,
 				002000000000000000000035 /* ReasoningToggleState.swift */,
 				002000000000000000000012 /* ScrollPositionObserver.swift */,
@@ -322,11 +312,8 @@
 				002000000000000000000023 /* Localization.swift */,
 				00200000000000000000005C /* ChatStreamingDriver.swift */,
 				00200000000000000000005D /* ChatDisplayPolicy.swift */,
-				00200000000000000000005E /* ReasoningViews.swift */,
-				00200000000000000000005F /* AssistantMessageRow.swift */,
 				002000000000000000000060 /* ChatChrome.swift */,
 				002000000000000000000061 /* ComposerWidgets.swift */,
-				002000000000000000000062 /* UserMessageContentView.swift */,
 				002000000000000000000063 /* ModelPickerView.swift */,
 				002000000000000000000064 /* ProviderSettingsState.swift */,
 				002000000000000000000065 /* SettingsComponents.swift */,
@@ -352,13 +339,15 @@
 				00200000000000000000009D /* ChatHeaderView.swift */,
 				00200000000000000000009E /* ChatMessageListView.swift */,
 				00200000000000000000009F /* ChatReconciliationCoordinator.swift */,
+				0020000000000000000000E1 /* SessionDocumentModel.swift */,
+				0020000000000000000000E2 /* SessionDocumentHost.swift */,
 		);
 			name = Sources;
 			sourceTree = "<group>";
 		};
 		003000000000000000000003 /* Resources */ = {
 			isa = PBXGroup;
-			children = (002000000000000000000020 /* Info.plist */, 002000000000000000000030 /* AppIcon.icns */, 002000000000000000000026 /* Localizable.strings */, 002000000000000000000029 /* AppShortcuts.strings */, 00200000000000000000005A /* ProviderIcons */);
+			children = (002000000000000000000020 /* Info.plist */, 002000000000000000000030 /* AppIcon.icns */, 002000000000000000000026 /* Localizable.strings */, 002000000000000000000029 /* AppShortcuts.strings */, 00200000000000000000005A /* ProviderIcons */, 0020000000000000000000E3 /* SessionDocument */);
 			name = Resources;
 			sourceTree = "<group>";
 		};
@@ -422,7 +411,6 @@
 			dependencies = ();
 			name = SpotAsk;
 			packageProductDependencies = (
-				009000000000000000000002 /* Textual */,
 				009000000000000000000004 /* Sparkle */,
 			);
 			productName = SpotAsk;
@@ -456,7 +444,6 @@
 			projectDirPath = "";
 			projectRoot = "";
 			packageReferences = (
-				009000000000000000000001 /* XCLocalSwiftPackageReference "textual-0.5.0" */,
 				009000000000000000000005 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			targets = (004000000000000000000001 /* SpotAsk */,);
@@ -464,7 +451,7 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		006000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (001000000000000000000021 /* Localizable.strings in Resources */, 001000000000000000000022 /* AppShortcuts.strings in Resources */, 001000000000000000000023 /* AppIcon.icns in Resources */, 001000000000000000000041 /* ProviderIcons in Resources */,); runOnlyForDeploymentPostprocessing = 0; };
+		006000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (001000000000000000000021 /* Localizable.strings in Resources */, 001000000000000000000022 /* AppShortcuts.strings in Resources */, 001000000000000000000023 /* AppIcon.icns in Resources */, 001000000000000000000041 /* ProviderIcons in Resources */, 0010000000000000000000E3 /* SessionDocument in Resources */,); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -476,8 +463,7 @@
 				001000000000000000000004, 001000000000000000000005, 001000000000000000000006,
 				001000000000000000000007, 001000000000000000000008, 001000000000000000000009,
 				00100000000000000000000A, 00100000000000000000000B, 00100000000000000000000C,
-				00100000000000000000000D, 00100000000000000000000E, 001000000000000000000010,
-				001000000000000000000011, 001000000000000000000012,
+				00100000000000000000000D, 0010000000000000000000E1 /* SessionDocumentModel.swift in Sources */, 0010000000000000000000E2 /* SessionDocumentHost.swift in Sources */, 001000000000000000000012,
 				001000000000000000000013, 001000000000000000000014, A10A1BF55C41862B4D74E27E, 3FC6126F1DE94BF2D7037BB1, 98A8F92204242C8C229BC165, BAB11B847CB8759B26387593, 001000000000000000000015,
 				001000000000000000000016, 001000000000000000000017, 001000000000000000000018,
 				001000000000000000000019,
@@ -546,14 +532,10 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		006000000000000000000002 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (00100000000000000000001A /* Textual in Frameworks */, 001000000000000000000072 /* Sparkle in Frameworks */,); runOnlyForDeploymentPostprocessing = 0; };
+		006000000000000000000002 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (001000000000000000000072 /* Sparkle in Frameworks */,); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		009000000000000000000001 /* XCLocalSwiftPackageReference "textual-0.5.0" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = "Vendor/textual-0.5.0";
-		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -568,11 +550,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		009000000000000000000002 /* Textual */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 009000000000000000000001 /* XCLocalSwiftPackageReference "textual-0.5.0" */;
-			productName = Textual;
-		};
 		009000000000000000000004 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 009000000000000000000005 /* XCRemoteSwiftPackageReference "Sparkle" */;

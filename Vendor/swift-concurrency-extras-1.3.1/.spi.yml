@@ -1,5 +1,0 @@
-version: 1
-builder:
-  configs:
-  - scheme: ConcurrencyExtras
-    documentation_targets: [ConcurrencyExtras]

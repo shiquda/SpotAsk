@@ -31,16 +31,22 @@ final class AssistantMessageDisplayPolicyTests: XCTestCase {
         let content = String(repeating: "a", count: 4_001)
         let message = ChatMessage(role: .assistant, content: content, state: .streaming)
 
-        let view = MessageContentView(
-            message: message,
-            canRegenerate: false,
-            onRegenerate: {},
-            isCopied: false,
-            onCopy: {},
-            copyShortcut: nil,
-            regenerateShortcut: nil
+        let snapshot = SessionDocumentSnapshotBuilder.make(
+            messages: [message],
+            settings: AppSettings(),
+            effectiveAppearance: nil,
+            generation: "test",
+            copiedMessageID: nil,
+            isReasoningExpanded: { _ in false },
+            isAssistantExpanded: { _ in false },
+            canInsertSelection: { _ in false },
+            pendingExternalAskID: nil,
+            showsShortcutHints: false,
+            shortcutHint: { _ in nil },
+            followsLatest: true
         )
 
-        withExtendedLifetime(view) {}
+        XCTAssertFalse(snapshot.messages[0].collapsed, "Streaming message must not be collapsed")
+        XCTAssertNil(snapshot.messages[0].preview)
     }
 }

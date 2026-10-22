@@ -4,6 +4,7 @@ import SwiftUI
 struct ChatMessageListView: View {
     @Bindable var viewModel: ChatViewModel
     let settings: AppSettings
+    let host: SessionDocumentHost
     let reconciliationCoordinator: ChatReconciliationCoordinator
     let pendingExternalAskID: UUID?
     let isPanelVisible: Bool
@@ -21,7 +22,7 @@ struct ChatMessageListView: View {
     let onRetryLatestAnswerWithDefaultModel: () -> Void
     let shortcutHint: (InAppShortcutTarget) -> InAppShortcut?
 
-    @State private var pendingScrollTask: Task<Void, Never>?
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         if viewModel.messages.isEmpty {
@@ -74,87 +75,54 @@ struct ChatMessageListView: View {
                 sessionRestoreBanner
                 Divider()
             }
-            GeometryReader { geometry in
-                let contentWidth = conversationColumnWidth(viewportWidth: geometry.size.width)
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        conversationContent(contentWidth: contentWidth)
-                            .padding(
-                                .horizontal,
-                                conversationColumnHorizontalPadding(viewportWidth: geometry.size.width)
-                            )
-                            .padding(.vertical, 20)
+            ZStack(alignment: .bottomTrailing) {
+                SessionDocumentWebView(host: host)
+                if !scrollFollowState.followsLatest {
+                    Button {
+                        scrollFollowState.resumeFollowing()
+                        host.scrollToBottom()
+                    } label: {
+                        Image(systemName: "arrow.down")
+                            .frame(width: 28, height: 28)
                     }
-                    .defaultScrollAnchor(scrollFollowState.followsLatest ? .bottom : nil, for: .sizeChanges)
-                    .contentMargins(.top, 32, for: .scrollContent)
-                    .overlay(alignment: .bottomTrailing) {
-                        if !scrollFollowState.followsLatest {
-                            Button {
-                                scrollFollowState.resumeFollowing()
-                                withAnimation(.easeOut(duration: 0.16)) {
-                                    proxy.scrollTo("conversation-bottom", anchor: .bottom)
-                                }
-                            } label: {
-                                Image(systemName: "arrow.down")
-                                    .frame(width: 28, height: 28)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .clipShape(Circle())
-                            .padding(14)
-                            .help(L10n.string("chat.goToBottom"))
-                            .accessibilityLabel(L10n.string("chat.goToBottom"))
-                        }
-                    }
-                    .onAppear {
-                        DispatchQueue.main.async {
-                            proxy.scrollTo("conversation-bottom", anchor: .bottom)
-                        }
-                    }
-                    .onDisappear {
-                        pendingScrollTask?.cancel()
-                    }
-                    .onScrollGeometryChange(for: Bool.self, of: Self.isNearBottom) { _, isNearBottom in
-                        if scrollFollowState.isNearBottomValue != isNearBottom {
-                            scrollFollowState.positionChanged(isNearBottom: isNearBottom)
-                        }
-                    }
-                    .onScrollPhaseChange { _, newPhase, context in
-                        let isNearBottom = Self.isNearBottom(context.geometry)
-                        if scrollFollowState.isNearBottomValue != isNearBottom {
-                            scrollFollowState.positionChanged(isNearBottom: isNearBottom)
-                        }
-                        scrollFollowState.phaseChanged(to: Self.scrollFollowPhase(for: newPhase))
-                    }
-                    .onChange(of: viewModel.messages.last?.id) { _, _ in
-                        scrollToBottom(using: proxy)
-                    }
+                    .buttonStyle(.borderedProminent)
+                    .clipShape(Circle())
+                    .padding(14)
+                    .help(L10n.string("chat.goToBottom"))
+                    .accessibilityLabel(L10n.string("chat.goToBottom"))
                 }
             }
         }
-    }
-
-    private func conversationColumnWidth(viewportWidth: CGFloat) -> CGFloat {
-        let paddedWidth = max(0, viewportWidth - 48)
-        return settings.chatMessageStyle == .im ? paddedWidth : min(paddedWidth, 760)
-    }
-
-    private func conversationColumnHorizontalPadding(viewportWidth: CGFloat) -> CGFloat {
-        let columnWidth = conversationColumnWidth(viewportWidth: viewportWidth)
-        return max(24, (viewportWidth - columnWidth) / 2)
-    }
-
-    private func conversationContent(contentWidth: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: 20) {
-            // Keep every row mounted. LazyVStack replaces offscreen rows with
-            // estimated heights; a long Markdown message misses that estimate
-            // by hundreds of points, so a small scroll jumps the visible text.
-            ForEach(viewModel.messages) { message in
-                messageRow(message, contentWidth: contentWidth)
-                    .id(message.id)
-            }
-            Color.clear
-                .frame(height: 1)
-                .id("conversation-bottom")
+        .onAppear {
+            wireHostCallbacks()
+            applySnapshot()
+        }
+        .onChange(of: viewModel.messages) { _, _ in
+            applySnapshot()
+        }
+        .onChange(of: viewModel.streamingAnswerChunks) { _, _ in
+            applySnapshot()
+        }
+        .onChange(of: copiedMessageID) { _, _ in
+            applySnapshot()
+        }
+        .onChange(of: settings.renderMath) { _, _ in
+            applySnapshot()
+        }
+        .onChange(of: settings.chatMessageStyle) { _, _ in
+            applySnapshot()
+        }
+        .onChange(of: settings.fontSize) { _, _ in
+            applySnapshot()
+        }
+        .onChange(of: settings.interfaceZoomLevel) { _, _ in
+            applySnapshot()
+        }
+        .onChange(of: settings.appearance) { _, _ in
+            applySnapshot()
+        }
+        .onChange(of: scrollFollowState.followsLatest) { _, _ in
+            applySnapshot()
         }
     }
 
@@ -176,108 +144,87 @@ struct ChatMessageListView: View {
         .accessibilityElement(children: .contain)
     }
 
-    @ViewBuilder
-    private func messageRow(_ message: ChatMessage, contentWidth: CGFloat) -> some View {
-        Group {
-            switch message.role {
-            case .system:
-                EmptyView()
-            case .user:
-                let canRetry = canRetryUserMessage(message)
-                UserMessageContentView(
-                    message: message,
-                    isIM: settings.chatMessageStyle == .im,
-                    isExpanded: reconciliationCoordinator.userMessageExpansionState.isExpanded(messageID: message.id),
-                    onToggleExpansion: { reconciliationCoordinator.userMessageExpansionState.toggle(messageID: message.id) },
-                    canRetry: canRetry,
-                    onRetry: viewModel.retry,
-                    retryShortcut: canRetry ? shortcutHint(.operation(.regenerateOrRetry)) : nil
-                )
-            case .assistant:
-                AssistantMessageRow(
-                    viewModel: viewModel,
-                    settings: settings,
-                    message: message,
-                    reasoningState: reconciliationCoordinator.reasoningToggle.state(for: message.id),
-                    reduceMotion: reduceMotion,
-                    isIM: settings.chatMessageStyle == .im,
-                    isLatestAssistant: message.id == viewModel.messages.last(where: { $0.role == .assistant })?.id,
-                    canRegenerate: viewModel.canRegenerate,
-                    canRetryWithModel: message.id == viewModel.messages.last(where: { $0.role == .assistant })?.id && viewModel.canRegenerate,
-                    onRegenerate: viewModel.regenerate,
-                    onRetryWithModel: onRetryLatestAnswerWithModel,
-                    onRetryWithDefaultModel: onRetryLatestAnswerWithDefaultModel,
-                    externalAsks: settings.enabledQuickActions,
-                    onRetryWithExternalAsk: { action in
-                        onRetryWithExternalAsk(action, message.id)
-                    },
-                    isCopied: copiedMessageID == message.id,
-                    onCopy: { onCopyMessage(message) },
-                    canInsertSelection: message.state == .complete && (viewModel.selectionSnapshot(for: message.id)?.canReplaceSelection ?? false),
-                    onInsertSelection: { onInsertSelection(message) },
-                    copyShortcut: shortcutHint(.operation(.copyAnswer)),
-                    regenerateShortcut: shortcutHint(.operation(.regenerateOrRetry)),
-                    retryShortcut: shortcutHint(.operation(.regenerateOrRetry)),
-                    errorDescription: viewModel.error?.localizedDescription,
-                    onRetry: viewModel.retry,
-                    isExpanded: reconciliationCoordinator.assistantMessageExpansionState.isExpanded(messageID: message.id),
-                    onToggleExpansion: {
-                        reconciliationCoordinator.assistantMessageExpansionState.toggle(messageID: message.id)
-                    },
-                    onToggleReasoning: {
-                        reconciliationCoordinator.reasoningToggle.toggleByUser(messageID: message.id)
-                    },
-                    onLiveMessageChanged: {
-                        reconciliationCoordinator.reconcileStreamingMessage($0, prefersExpanded: settings.defaultExpandReasoning)
-                    },
-                    isPanelVisible: isPanelVisible
-                )
-            }
-        }
-        .frame(
-            width: contentWidth,
-            alignment: settings.chatMessageStyle == .im && message.role == .user ? .trailing : .leading
+    private func applySnapshot() {
+        let liveMessages = viewModel.messages.map(viewModel.liveMessage)
+        let snapshot = SessionDocumentSnapshotBuilder.make(
+            messages: liveMessages,
+            settings: settings,
+            effectiveAppearance: colorScheme == .dark ? NSAppearance(named: .darkAqua) : NSAppearance(named: .aqua),
+            generation: host.generation,
+            copiedMessageID: copiedMessageID,
+            isReasoningExpanded: { reconciliationCoordinator.reasoningToggle.state(for: $0).isExpanded },
+            isAssistantExpanded: { reconciliationCoordinator.assistantMessageExpansionState.isExpanded(messageID: $0) },
+            canInsertSelection: { id in
+                viewModel.selectionSnapshot(for: id)?.canReplaceSelection ?? false
+            },
+            pendingExternalAskID: pendingExternalAskID,
+            showsShortcutHints: showsShortcutHints,
+            shortcutHint: shortcutHint,
+            followsLatest: scrollFollowState.followsLatest
         )
+        let attachments = liveMessages.flatMap(\.attachments)
+        host.catalog = settings.providerRegistry.catalog
+        host.effectiveModelID = viewModel.effectiveModel?.id
+        host.hasSessionOverride = viewModel.sessionModelID != nil
+        host.externalAsks = settings.enabledQuickActions
+        host.apply(snapshot: snapshot, attachments: attachments)
     }
 
-    private func canRetryUserMessage(_ userMessage: ChatMessage) -> Bool {
-        guard viewModel.generationState == .failed,
-              viewModel.messages.last?.role == .assistant,
-              viewModel.messages.last?.state == .failed,
-              let lastUserMessage = viewModel.messages.last(where: { $0.role == .user }) else { return false }
-        return userMessage.id == lastUserMessage.id
-    }
+    private func wireHostCallbacks() {
+        host.catalog = settings.providerRegistry.catalog
+        host.effectiveModelID = viewModel.effectiveModel?.id
+        host.hasSessionOverride = viewModel.sessionModelID != nil
+        host.externalAsks = settings.enabledQuickActions
 
-    private func scrollToBottom(using proxy: ScrollViewProxy) {
-        guard scrollFollowState.followsLatest else { return }
-        pendingScrollTask?.cancel()
-        pendingScrollTask = Task { @MainActor in
-            await Task.yield()
-            try? await Task.sleep(for: .milliseconds(16))
-
-            guard scrollFollowState.followsLatest else { return }
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                proxy.scrollTo("conversation-bottom", anchor: .bottom)
+        host.onCopyMessage = { messageID in
+            if let msg = viewModel.messages.first(where: { $0.id == messageID }) {
+                onCopyMessage(msg)
             }
         }
-    }
-
-    private static func isNearBottom(_ geometry: ScrollGeometry) -> Bool {
-        geometry.visibleRect.maxY >= geometry.contentSize.height - 12
-    }
-
-    private static func scrollFollowPhase(for phase: ScrollPhase) -> ScrollFollowState.Phase {
-        switch phase {
-        case .idle:
-            .idle
-        case .tracking, .interacting:
-            .userInteracting
-        case .decelerating:
-            .userDecelerating
-        case .animating:
-            .programmaticAnimating
+        host.onCopyCode = { _, code in
+            Clipboard.copy(code)
+        }
+        host.onOpenLink = { url in
+            NSWorkspace.shared.open(url)
+        }
+        host.onToggleReasoning = { id in
+            reconciliationCoordinator.reasoningToggle.toggleByUser(messageID: id)
+            applySnapshot()
+        }
+        host.onToggleExpand = { id in
+            reconciliationCoordinator.assistantMessageExpansionState.toggle(messageID: id)
+            applySnapshot()
+        }
+        host.onRetryUserMessage = { _ in
+            viewModel.retry()
+        }
+        host.onRetryLatestWithModel = { modelID in
+            onRetryLatestAnswerWithModel(modelID)
+        }
+        host.onRetryLatestWithDefaultModel = {
+            onRetryLatestAnswerWithDefaultModel()
+        }
+        host.onSelectExternalAsk = { action in
+            if let lastAssistant = viewModel.messages.last(where: { $0.role == .assistant }) {
+                onRetryWithExternalAsk(action, lastAssistant.id)
+            }
+        }
+        host.onInsertSelection = { id in
+            if let msg = viewModel.messages.first(where: { $0.id == id }) {
+                onInsertSelection(msg)
+            }
+        }
+        host.onRegenerate = {
+            viewModel.regenerate()
+        }
+        host.onRetry = {
+            viewModel.retry()
+        }
+        host.onScrollPhaseChanged = { phase in
+            scrollFollowState.phaseChanged(to: phase)
+        }
+        host.onScrollPositionChanged = { nearBottom in
+            scrollFollowState.positionChanged(isNearBottom: nearBottom)
         }
     }
 }

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline' spotask-doc:; script-src 'self' spotask-doc:; font-src 'self' spotask-doc:; img-src 'self' spotask-doc: data:;">
+  <link rel="stylesheet" href="vendor/katex.min.css">
+  <link rel="stylesheet" href="document.css">
+</head>
+<body>
+  <div id="scroller" tabindex="-1">
+    <div id="messages"></div>
+  </div>
+  <script src="vendor/markdown-it.min.js"></script>
+  <script src="vendor/katex.min.js"></script>
+  <script src="vendor/texmath.js"></script>
+  <script src="document.js"></script>
+  <script>
+    if (window.SessionDocument && window.SessionDocument.install) {
+      window.SessionDocument.install();
+    }
+  </script>
+</body>
+</html>

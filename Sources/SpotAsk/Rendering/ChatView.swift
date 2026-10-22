@@ -29,6 +29,7 @@ struct ChatView: View {
     @State private var composerModeCoordinator = ComposerModeCoordinator()
     @State private var routingController = DecisionRoutingController()
     @State private var isPanelVisible = true
+    @State private var sessionDocumentHost = SessionDocumentHost()
 
     init(
         viewModel: ChatViewModel,
@@ -113,10 +114,12 @@ struct ChatView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: .spotAskPanelDidShow)) { _ in
                 isPanelVisible = true
+                sessionDocumentHost.prepare()
             }
             .onReceive(NotificationCenter.default.publisher(for: .spotAskPanelDidHide)) { _ in
                 isPanelVisible = false
                 dismissAtCommandPalette()
+                sessionDocumentHost.release()
             }
             .onReceive(NotificationCenter.default.publisher(for: NSWindow.didChangeOcclusionStateNotification)) { notification in
                 if let window = notification.object as? NSWindow, window === chatWindowReference.window {
@@ -193,6 +196,7 @@ struct ChatView: View {
         ChatMessageListView(
             viewModel: viewModel,
             settings: settings,
+            host: sessionDocumentHost,
             reconciliationCoordinator: reconciliationCoordinator,
             pendingExternalAskID: composerModeCoordinator.pendingExternalAsk?.id,
             isPanelVisible: isPanelVisible,

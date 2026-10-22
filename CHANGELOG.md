@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- KaTeX-based offline math rendering engine (`SessionDocument`) powered by markdown-it and texmath, providing support for inline math (`$...$`, `\(...\)`), block display equations (`$$...$$`, `\[...\]`), Greek symbols, operators, and matrices without external network dependencies.
+- One shared, lightweight local WKWebView message viewport reused across conversations, themes, and interface zoom levels, maintaining native input, window chrome, toolbar, and banner controls.
+
+### Changed
+
+- Replaced legacy `Textual` and `SwiftUIMath` rendering pipeline with a sandboxed WebKit KaTeX document host, eliminating layout jitter and missing symbol issues during math-heavy responses.
+- Raw Markdown source is preserved during message copying, and MathML annotations preserve LaTeX source during math selection copy.
+
 ## [0.3.2] - 2026-10-21
 
 **Safer settings migration and more reliable math rendering**
