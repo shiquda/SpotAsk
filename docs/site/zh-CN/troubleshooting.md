@@ -48,9 +48,9 @@ description: SpotAsk 连接、模型、划词、权限和快捷键的常见问�
 检查设置 > **外部提问** > **智能路由**：
 
 1. **启用外部提问**与**启用自动路由**都是开的，这次对话的标题栏开关也是开的，并且至少启用了一个外部渠道。
-2. 服务地址是 System One 根地址，不是聊天补全接口。TypeSafe 官方是 `https://api.typesafe.ai`。OpenRouter 是 `https://openrouter.ai/api`。
-3. 决策模型和该服务匹配：TypeSafe 官方用 `jev-1.13.0`，OpenRouter 用 `typesafe/jev-1.13`。
-4. 访问密钥属于同一个服务。TypeSafe 官方没有密钥时不会发请求。OpenRouter 会拒绝缺失的密钥，或误填的 TypeSafe 密钥。
+2. 所选引擎和地址一致。System One 用 System One 根地址，不是聊天补全接口。TypeSafe 官方是 `https://api.typesafe.ai`。OpenRouter 是 `https://openrouter.ai/api`。OpenAI Decisions 用 `https://api.openai.com`（SpotAsk 会补 `/v1/decisions`），不要粘贴聊天补全接口。
+3. 决策模型和该引擎匹配：TypeSafe 官方用 `jev-1.13.0`，OpenRouter 用 `typesafe/jev-1.13`，OpenAI Decisions 用 `gpt-6-luna`。OpenAI 不提供 `jev`。
+4. 访问密钥属于同一个引擎。TypeSafe 官方和 `api.openai.com` 没有密钥时不会发请求。自定义 OpenAI 地址可以不填密钥。OpenRouter 会拒绝缺失的密钥，或误填的 TypeSafe 密钥。
 5. **等待上限**要够这次请求用。默认 2 秒，最长 5 秒。超时后会回到手动选择渠道，除非你把超时处理设成了**在 SpotAsk 内回答**。
 6. 先用设置里的**测试提问**。它只显示推荐去向，不会打开外部应用。
 

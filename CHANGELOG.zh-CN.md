@@ -7,6 +7,10 @@ SpotAsk 的所有重要变更都记录在本文件中。
 
 ## [Unreleased]
 
+### 新增
+
+- 设置 > 外部提问的决策路由可以在 System One 之外使用 OpenAI Decisions API（默认 `https://api.openai.com` 的 `gpt-6-luna`，地址可改）。两个引擎各自保存地址、模型和访问密钥。
+
 ## [0.3.2] - 2026-10-21
 
 **修复旧配置迁移与数学公式显示**

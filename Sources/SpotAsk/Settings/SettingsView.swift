@@ -57,7 +57,7 @@ enum SettingsSection: CaseIterable, Hashable, Identifiable {
         switch self {
         case .provider: ["service", "provider", "model", "models", "access key", "endpoint", "connection", "服务", "模型", "密钥", "地址"]
         case .prompts: ["prompt", "prompts", "instruction", "preset", "提示词", "指令"]
-        case .externalAsk: ["external ask", "quick action", "web", "app", "terminal", "decision", "routing", "route", "confidence", "jev", "system one", "外部提问", "网页", "应用", "终端", "决策", "路由", "置信度"]
+        case .externalAsk: ["external ask", "quick action", "web", "app", "terminal", "decision", "routing", "route", "confidence", "jev", "system one", "openai", "decisions", "gpt-6-luna", "外部提问", "网页", "应用", "终端", "决策", "路由", "置信度"]
         case .selectionAssistant: ["selection", "selected text", "accessibility", "application", "划词", "选中文字", "辅助功能", "应用"]
         case .shortcuts: ["shortcut", "keyboard", "command", "快捷键", "键盘"]
         case .general: ["behavior", "proxy", "diagnostics", "language", "launch", "window", "local data", "danger zone", "configuration", "行为", "代理", "诊断", "语言", "启动", "窗口", "数据", "危险区域", "配置"]

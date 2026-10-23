@@ -81,7 +81,7 @@ Press the global hotkey (default `⌥ + Space`) to summon a focused question win
 
 ### 3. Decision routing: the model picks the destination
 
-Turn on automatic routing and SpotAsk asks a System One decision model before sending, then recommends a destination with a confidence score. `↩` continues, `Tab` switches channels, `Esc` cancels, and the toolbar toggle (`⌘ + ⇧ + R`) turns automatic routing off for the current conversation.
+Turn on automatic routing and SpotAsk asks a decision model (System One or OpenAI Decisions) before sending, then recommends a destination with a confidence score. `↩` continues, `Tab` switches channels, `Esc` cancels, and the toolbar toggle (`⌘ + ⇧ + R`) turns automatic routing off for the current conversation.
 <p align="center">
   <a href="https://github.com/shiquda/SpotAsk/releases/download/v0.3.0/SpotAsk-smart-routing-v5.mp4">
     <img src="docs/site/public/images/spotask-smart-routing-preview.gif" width="720" alt="SpotAsk smart routing demo preview">

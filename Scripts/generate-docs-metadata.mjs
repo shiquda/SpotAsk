@@ -207,7 +207,7 @@ const llmsIndex = [
   '',
   '- SpotAsk is a free, open-source, native macOS menu-bar AI assistant for quick, lightweight questions and text processing.',
   '- Primary workflows: summon a focused question window with a global hotkey (default Option + Space); run translate/explain/summarize/polish or custom prompts on selected text in other apps (Selection Assistant).',
-  '- It is deliberately NOT a full AI workspace; questions can be routed to ChatGPT, Perplexity, Grok, desktop apps, or terminal CLI agents via External Ask (URL, URI scheme, or Bash command) either in 1 click or automatically with a System One decision model (such as `jev`).',
+  '- It is deliberately NOT a full AI workspace; questions can be routed to ChatGPT, Perplexity, Grok, desktop apps, or terminal CLI agents via External Ask (URL, URI scheme, or Bash command) either in 1 click or automatically with a decision model (System One such as `jev`, or OpenAI Decisions).',
   '- BYOK (bring your own key): connects to user-configured OpenAI-compatible, Anthropic, and Gemini services; access keys are stored in the macOS Keychain and data is sent only to the configured API provider. No account system, no telemetry.',
   '- Keyboard-first: every core action has a configurable shortcut; the pointer is optional. App size is under 10 MB; it lives in the menu bar.',
   '- Requirements: macOS 15 or later; supports Apple silicon and Intel Macs. Distribution: GitHub Releases (Developer ID signed and notarized). License: AGPL-3.0 (open source).',

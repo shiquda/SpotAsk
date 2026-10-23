@@ -724,7 +724,12 @@
 "decisionRouting.fallbackDescription" = "当提问不满足上方任何外部渠道的特定条件，或 SystemOne 决策置信度低于阈值时，自动采用此兜底渠道直接回答，确保提问流畅不中断。";
 "decisionRouting.defaultConditionForChannel" = "问题符合「%@」擅长的主题";
 "decisionRouting.noChannelsHint" = "暂无启用的外部提问渠道。请在上方渠道列表中启用或从模版库添加渠道以激活路由规则。";
-"decisionRouting.engineSettingsTitle" = "SystemOne 引擎与连接参数";
+"decisionRouting.engineSettingsTitle" = "决策引擎与连接参数";
+"decisionRouting.providerSystemOne" = "System One (jev)";
+"decisionRouting.providerOpenAI" = "OpenAI Decisions";
+"decisionRouting.serviceNoteOpenAI" = "使用 OpenAI Decisions API。地址可改，默认 api.openai.com 必须填写密钥。密钥仅发往上方填写的服务地址。";
+"decisionRouting.credentialPlaceholderOpenAI" = "OpenAI API Key";
+"decisionRouting.refused" = "决策服务拒绝选择去向。";
 "decisionRouting.requiresConfirmBadge" = "需先确认";
 "decisionRouting.autoRouteBadge" = "达标直发";
 "decisionRouting.defaultFallbackBadge" = "默认兜底";

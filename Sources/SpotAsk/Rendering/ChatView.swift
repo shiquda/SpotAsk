@@ -458,8 +458,10 @@ struct ChatView: View {
             return performStandardOrManualSend()
         }
         let apiKey = DecisionCredentialSlot.activeAPIKey(
+            for: settings.decisionRoutingProvider,
             systemOne: try? decisionKeyStore.readAPIKey(for: DecisionCredentialSlot.systemOne),
             legacyCustom: try? decisionKeyStore.readAPIKey(for: DecisionCredentialSlot.legacyCustom),
+            openAIDecisions: try? decisionKeyStore.readAPIKey(for: DecisionCredentialSlot.openAIDecisions),
             preferLegacyCustom: settings.defaults.bool(forKey: DecisionCredentialSlot.preferLegacyCustomKey)
         )
         let proxy = ChatNetworking.proxyConfiguration(settings: settings, keyStore: decisionKeyStore)

@@ -48,9 +48,9 @@ Settings > General > **Clear All Local Data** resets corrupted local service dat
 Check Settings > **External Ask** > **Decision Routing**:
 
 1. **Enable External Ask** and **Enable automatic routing** are on, the toolbar switch for this conversation is on, and at least one external channel is enabled.
-2. The service address is a System One base address, not a chat-completions URL. TypeSafe official is `https://api.typesafe.ai`. OpenRouter is `https://openrouter.ai/api`.
-3. The decision model matches that service: `jev-1.13.0` for TypeSafe official, `typesafe/jev-1.13` for OpenRouter.
-4. The access key belongs to that same service. TypeSafe official will not send a request without a key. OpenRouter rejects a missing or TypeSafe key at its own endpoint.
+2. The selected engine matches the address. System One uses a System One base address, not a chat-completions URL. TypeSafe official is `https://api.typesafe.ai`. OpenRouter is `https://openrouter.ai/api`. OpenAI Decisions uses `https://api.openai.com` (SpotAsk adds `/v1/decisions`); do not paste a chat-completions URL.
+3. The decision model matches that engine: `jev-1.13.0` for TypeSafe official, `typesafe/jev-1.13` for OpenRouter, `gpt-6-luna` for OpenAI Decisions. OpenAI does not serve `jev`.
+4. The access key belongs to that same engine. TypeSafe official and `api.openai.com` will not send a request without a key. A custom OpenAI address can omit the key. OpenRouter rejects a missing or TypeSafe key at its own endpoint.
 5. **Timeout** is long enough for that service. The default is 2 seconds, and the maximum is 5 seconds. A timeout falls back to manual channel selection unless you chose **Answer in SpotAsk**.
 6. Use **Test question** in Settings. It shows the recommended destination without opening an external app.
 
