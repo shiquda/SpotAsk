@@ -661,6 +661,16 @@ final class AppSettings {
         didSet { saveSetting("decisionRoutingModel") }
     }
 
+    /// OpenAI Decisions address. Independent of `decisionRoutingServiceURL`.
+    var decisionRoutingOpenAIServiceURL: String = DecisionRoutingPolicy.defaultOpenAIServiceURL {
+        didSet { saveSetting("decisionRoutingOpenAIServiceURL") }
+    }
+
+    /// OpenAI Decisions model. Independent of `decisionRoutingModel`.
+    var decisionRoutingOpenAIModel: String = DecisionRoutingPolicy.defaultOpenAIModel {
+        didSet { saveSetting("decisionRoutingOpenAIModel") }
+    }
+
     var decisionRoutingConfirmationMode: DecisionConfirmationMode = .always {
         didSet { saveSetting("decisionRoutingConfirmationMode") }
     }
@@ -701,11 +711,21 @@ final class AppSettings {
         return quickActionCatalog.filter(\.isEnabled)
     }
     func decisionRoutingSettings() -> DecisionRoutingSettings {
-        DecisionRoutingSettings(
+        let serviceURL: String
+        let model: String
+        switch decisionRoutingProvider {
+        case .systemOne:
+            serviceURL = decisionRoutingServiceURL
+            model = decisionRoutingModel
+        case .openAIDecisions:
+            serviceURL = decisionRoutingOpenAIServiceURL
+            model = decisionRoutingOpenAIModel
+        }
+        return DecisionRoutingSettings(
             isEnabled: decisionRoutingEnabled,
             provider: decisionRoutingProvider,
-            serviceURL: decisionRoutingServiceURL,
-            model: decisionRoutingModel,
+            serviceURL: serviceURL,
+            model: model,
             confirmationMode: decisionRoutingConfirmationMode,
             confidenceThreshold: decisionRoutingConfidenceThreshold,
             timeoutSeconds: decisionRoutingTimeoutSeconds,

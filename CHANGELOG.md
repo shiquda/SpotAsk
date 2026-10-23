@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Settings > External Ask decision routing can use the OpenAI Decisions API (`gpt-6-luna` at `https://api.openai.com`, address editable) alongside System One. Each engine keeps its own address, model, and access key.
+
 ## [0.3.2] - 2026-10-21
 
 **Safer settings migration and more reliable math rendering**

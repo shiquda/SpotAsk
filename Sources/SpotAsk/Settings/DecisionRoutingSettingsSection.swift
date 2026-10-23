@@ -7,6 +7,8 @@ struct DecisionRoutingSettingsSection: View {
     @State private var apiKey = ""
     /// Last value the field wrote or restored, so a programmatic restore is not re-saved.
     @State private var restoredAPIKey = ""
+    /// Slot the field currently represents. Persist uses this, not the provider at write time, so a switch cannot land the previous key in the other engine's slot.
+    @State private var credentialSlot = DecisionCredentialSlot.systemOne
     @State private var isAPIKeyVisible = false
     @State private var testQuestion = ""
     @State private var testResult: DecisionPreviewResult?
@@ -52,6 +54,9 @@ struct DecisionRoutingSettingsSection: View {
             }
         }
         .onAppear(perform: loadKeys)
+        .onChange(of: settings.decisionRoutingProvider) { _, _ in
+            loadKeys()
+        }
         .sheet(item: $editingHintsAction) { action in
             RoutingHintsEditorSheet(action: action) { purpose, scenario, forceConfirm in
                 settings.updateQuickActionRouting(
@@ -68,25 +73,25 @@ struct DecisionRoutingSettingsSection: View {
     private var endpointFields: some View {
         Group {
             SettingsFieldRow(label: L10n.string("decisionRouting.serviceURL")) {
-                styledInputField(DecisionRoutingPolicy.defaultServiceURL, text: Bindable(settings).decisionRoutingServiceURL)
+                styledInputField(serviceURLPlaceholder, text: serviceURLBinding)
             }
             SettingsFieldRow(label: L10n.string("decisionRouting.model")) {
-                styledInputField(DecisionRoutingPolicy.defaultOfficialModel, text: Bindable(settings).decisionRoutingModel)
+                styledInputField(modelPlaceholder, text: modelBinding)
             }
             SettingsFieldRow(label: L10n.string("decisionRouting.credential")) {
                 HStack(spacing: 6) {
                     Group {
                         if isAPIKeyVisible {
-                            TextField(L10n.string("decisionRouting.credentialPlaceholder"), text: $apiKey)
+                            TextField(credentialPlaceholder, text: $apiKey)
                         } else {
-                            SecureField(L10n.string("decisionRouting.credentialPlaceholder"), text: $apiKey)
+                            SecureField(credentialPlaceholder, text: $apiKey)
                                 .textContentType(.password)
                         }
                     }
                     .textFieldStyle(.roundedBorder)
                     .frame(minWidth: 120, idealWidth: 200, maxWidth: .infinity)
                     .onChange(of: apiKey) { _, _ in
-                        persist(apiKey, slot: DecisionCredentialSlot.systemOne)
+                        persist(apiKey, slot: credentialSlot)
                     }
 
                     Button {
@@ -98,12 +103,71 @@ struct DecisionRoutingSettingsSection: View {
                     .buttonStyle(.borderless)
                 }
             }
-            Text(L10n.string("decisionRouting.serviceNote"))
+            Text(serviceNote)
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.leading, 148)
                 .padding(.top, -6)
+        }
+    }
+
+    private var providerPicker: some View {
+        HStack(spacing: 0) {
+            Spacer(minLength: 0)
+            Picker(L10n.string("decisionRouting.engineSettingsTitle"), selection: Bindable(settings).decisionRoutingProvider) {
+                Text(L10n.string("decisionRouting.providerSystemOne")).tag(DecisionProviderKind.systemOne)
+                Text(L10n.string("decisionRouting.providerOpenAI")).tag(DecisionProviderKind.openAIDecisions)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+        }
+    }
+
+    private var serviceURLBinding: Binding<String> {
+        switch settings.decisionRoutingProvider {
+        case .systemOne:
+            Bindable(settings).decisionRoutingServiceURL
+        case .openAIDecisions:
+            Bindable(settings).decisionRoutingOpenAIServiceURL
+        }
+    }
+
+    private var modelBinding: Binding<String> {
+        switch settings.decisionRoutingProvider {
+        case .systemOne:
+            Bindable(settings).decisionRoutingModel
+        case .openAIDecisions:
+            Bindable(settings).decisionRoutingOpenAIModel
+        }
+    }
+
+    private var serviceURLPlaceholder: String {
+        switch settings.decisionRoutingProvider {
+        case .systemOne: DecisionRoutingPolicy.defaultServiceURL
+        case .openAIDecisions: DecisionRoutingPolicy.defaultOpenAIServiceURL
+        }
+    }
+
+    private var modelPlaceholder: String {
+        switch settings.decisionRoutingProvider {
+        case .systemOne: DecisionRoutingPolicy.defaultOfficialModel
+        case .openAIDecisions: DecisionRoutingPolicy.defaultOpenAIModel
+        }
+    }
+
+    private var credentialPlaceholder: String {
+        switch settings.decisionRoutingProvider {
+        case .systemOne: L10n.string("decisionRouting.credentialPlaceholder")
+        case .openAIDecisions: L10n.string("decisionRouting.credentialPlaceholderOpenAI")
+        }
+    }
+
+    private var serviceNote: String {
+        switch settings.decisionRoutingProvider {
+        case .systemOne: L10n.string("decisionRouting.serviceNote")
+        case .openAIDecisions: L10n.string("decisionRouting.serviceNoteOpenAI")
         }
     }
 
@@ -386,6 +450,7 @@ struct DecisionRoutingSettingsSection: View {
             Text(L10n.string("decisionRouting.engineSettingsTitle"))
                 .font(.system(size: 13, weight: .semibold))
 
+            providerPicker
             SettingsToggleRow(
                 label: L10n.string("decisionRouting.showToolbarToggle"),
                 description: L10n.string("decisionRouting.showToolbarToggleDescription"),
@@ -500,6 +565,20 @@ struct DecisionRoutingSettingsSection: View {
     }
 
     private func loadKeys() {
+        // Freeze the field before changing slots so a late change handler cannot
+        // write the previous engine's key into the newly selected slot.
+        restoredAPIKey = apiKey
+        let provider = settings.decisionRoutingProvider
+        credentialSlot = DecisionCredentialSlot.slot(for: provider)
+        switch provider {
+        case .systemOne:
+            loadSystemOneKey()
+        case .openAIDecisions:
+            loadStoredKey(slot: credentialSlot)
+        }
+    }
+
+    private func loadSystemOneKey() {
         let preferLegacy = settings.defaults.bool(forKey: DecisionCredentialSlot.preferLegacyCustomKey)
         let outcome = DecisionCredentialMigration.resolve(
             readSystemOne: { try keyStore.readAPIKey(for: DecisionCredentialSlot.systemOne) },
@@ -509,21 +588,30 @@ struct DecisionRoutingSettingsSection: View {
                 try keyStore.saveAPIKey(key, for: DecisionCredentialSlot.systemOne)
             }
         )
-        apiKey = outcome.apiKey
-        // The restore already wrote (or failed) above, so the field's change handler
-        // must not repeat the same write and report the failure twice.
         restoredAPIKey = outcome.apiKey
+        apiKey = outcome.apiKey
         if outcome.clearLegacyCustomPreference {
             settings.defaults.set(false, forKey: DecisionCredentialSlot.preferLegacyCustomKey)
         }
         switch outcome.failure {
         case .read:
-            // Report read failures separately from failed migration saves.
             StatusToastCenter.shared.show(L10n.string("decisionRouting.credentialReadFailed"), isError: true)
         case .save:
             StatusToastCenter.shared.show(L10n.string("decisionRouting.credentialSaveFailed"), isError: true)
         case nil:
             break
+        }
+    }
+
+    private func loadStoredKey(slot: UUID) {
+        do {
+            let key = try keyStore.readAPIKey(for: slot) ?? ""
+            restoredAPIKey = key
+            apiKey = key
+        } catch {
+            restoredAPIKey = ""
+            apiKey = ""
+            StatusToastCenter.shared.show(L10n.string("decisionRouting.credentialReadFailed"), isError: true)
         }
     }
 
@@ -537,7 +625,9 @@ struct DecisionRoutingSettingsSection: View {
                 try keyStore.saveAPIKey(trimmed, for: slot)
             }
             restoredAPIKey = key
-            settings.defaults.set(false, forKey: DecisionCredentialSlot.preferLegacyCustomKey)
+            if slot == DecisionCredentialSlot.systemOne {
+                settings.defaults.set(false, forKey: DecisionCredentialSlot.preferLegacyCustomKey)
+            }
         } catch {
             StatusToastCenter.shared.show(L10n.string("decisionRouting.credentialSaveFailed"), isError: true)
         }

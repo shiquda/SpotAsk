@@ -724,7 +724,12 @@
 "decisionRouting.fallbackDescription" = "When a question does not match any specific external channel conditions or confidence is below threshold, routes here to ensure uninterrupted responses.";
 "decisionRouting.defaultConditionForChannel" = "Question matches what “%@” is best suited for";
 "decisionRouting.noChannelsHint" = "No active external channels. Enable channels or add from the template library above to activate routing rules.";
-"decisionRouting.engineSettingsTitle" = "SystemOne Engine & Connection Settings";
+"decisionRouting.engineSettingsTitle" = "Moteur de décision et connexion";
+"decisionRouting.providerSystemOne" = "System One (jev)";
+"decisionRouting.providerOpenAI" = "OpenAI Decisions";
+"decisionRouting.serviceNoteOpenAI" = "Utilise l'API Decisions d'OpenAI. L'adresse est modifiable et vaut par défaut api.openai.com, qui exige une clé. La clé n'est envoyée qu'à l'adresse ci-dessus.";
+"decisionRouting.credentialPlaceholderOpenAI" = "Clé API OpenAI";
+"decisionRouting.refused" = "Le service de décision a refusé de choisir une destination.";
 "decisionRouting.requiresConfirmBadge" = "Confirm First";
 "decisionRouting.autoRouteBadge" = "Auto-send";
 "decisionRouting.defaultFallbackBadge" = "Default Fallback";

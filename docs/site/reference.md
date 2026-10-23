@@ -22,8 +22,8 @@ Decision Routing lives in Settings > External Ask, after the channel list. It is
 
 | Field | What to enter |
 | --- | --- |
-| Service address | TypeSafe official: `https://api.typesafe.ai`. OpenRouter: `https://openrouter.ai/api`. |
-| Decision model | TypeSafe official: `jev-1.13.0`. OpenRouter: `typesafe/jev-1.13`. |
+| Service address | TypeSafe official: `https://api.typesafe.ai`. OpenRouter: `https://openrouter.ai/api`. OpenAI Decisions: `https://api.openai.com`. |
+| Decision model | TypeSafe official: `jev-1.13.0`. OpenRouter: `typesafe/jev-1.13`. OpenAI Decisions: `gpt-6-luna`. |
 | Access key | A key for that same service. It is sent only to the address above. |
 | Confirmation | **Always confirm**, or **Auto-send above threshold**. |
 | Confidence threshold | Auto-send only when confidence is strictly above this value. Default 0.8. |

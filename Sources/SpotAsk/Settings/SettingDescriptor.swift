@@ -781,6 +781,16 @@ final class SettingRegistry: Sendable {
             defaultValue: DecisionRoutingPolicy.defaultOfficialModel,
             keyPath: \.decisionRoutingModel
         ))
+        register(SettingDescriptors.string(
+            key: "decisionRoutingOpenAIServiceURL",
+            defaultValue: DecisionRoutingPolicy.defaultOpenAIServiceURL,
+            keyPath: \.decisionRoutingOpenAIServiceURL
+        ))
+        register(SettingDescriptors.string(
+            key: "decisionRoutingOpenAIModel",
+            defaultValue: DecisionRoutingPolicy.defaultOpenAIModel,
+            keyPath: \.decisionRoutingOpenAIModel
+        ))
         register(SettingDescriptors.rawRepresentable(
             key: "decisionRoutingConfirmationMode",
             defaultValue: DecisionConfirmationMode.always,

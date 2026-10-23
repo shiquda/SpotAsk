@@ -69,7 +69,7 @@ omp {query}
 
 ## 智能路由 {#decision-routing}
 
-开启智能路由后，无需手动挑选目标，System One 决策模型会在你敲下回车时自动研判意图，推荐留在应用内或发往最合适的外部平台。
+开启智能路由后，无需手动挑选目标。在「决策引擎与连接参数」里选择 **System One (jev)** 或 **OpenAI Decisions**，敲下回车时由所选引擎研判意图，推荐留在应用内或发往最合适的外部平台。两个引擎各自保存地址、模型和访问密钥，切换不会覆盖另一边。
 
 <video poster="/images/spotask-smart-routing-preview.gif" src="/videos/SpotAsk-smart-routing-v5.mp4" controls muted playsinline width="720"></video>
 
@@ -77,7 +77,7 @@ omp {query}
 
 ### 快速配置
 
-在 **设置 > 外部提问 > 智能路由** 中开启总开关。SpotAsk 提供两种推荐配置，填写后点击**测试提问**即可验证：
+在 **设置 > 外部提问 > 智能路由** 中开启总开关，并用分段选择器选定引擎。SpotAsk 提供三种推荐配置，填写后点击**测试提问**即可验证：
 
 #### 方案 A：TypeSafe 官方（推荐）
 地址与模型已默认预填，填入 TypeSafe API 密钥即可开箱即用：
@@ -90,6 +90,12 @@ omp {query}
 - **服务地址**：`https://openrouter.ai/api`（SpotAsk 会自动补全接口路径）
 - **决策模型**：`typesafe/jev-1.13`
 - **访问密钥**：你的 OpenRouter API Key
+
+#### 方案 C：OpenAI Decisions
+在分段选择器中选择 **OpenAI Decisions**。这会调用 [OpenAI Decisions API](https://developers.openai.com/api/docs/guides/decisions)（`POST /v1/decisions`），不是 System One。OpenAI 不提供 `jev` / System One。
+- **服务地址**：`https://api.openai.com`（可改；自定义地址仍走 `/v1/decisions`）
+- **决策模型**：`gpt-6-luna`
+- **访问密钥**：你的 OpenAI API Key。官方地址没有密钥时不会发请求；自定义地址的密钥可选，除非主机是 `api.openai.com`。不要粘贴聊天补全接口。
 
 ### 交互体验与快捷操作
 
@@ -119,7 +125,7 @@ omp {query}
 只有支持通过链接预填并直接作答的平台才会默认内置。Claude 目前仅支持预填需手动点击发送，Gemini 的 Web 链接暂不支持传参。你仍可随时将其添加为自定义网页条目使用。
 
 **我的问题文本会被发送到哪里？**  
-手动点击渠道时，问题仅会发送给你指定的网页或本地程序。使用智能路由时，问题文本与候选渠道名称会发送给你配置的决策服务进行分类研判，不包含任何账户凭据或历史对话。
+手动点击渠道时，问题仅会发送给你指定的网页或本地程序。使用智能路由时，问题文本与候选渠道名称会发送给你当前选择的决策服务进行分类研判，不包含任何账户凭据或历史对话。
 
 ---
 

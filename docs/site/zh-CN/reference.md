@@ -22,8 +22,8 @@ description: SpotAsk 设置分区、默认快捷键和受支持附件类型的�
 
 | 字段 | 填写 |
 | --- | --- |
-| 服务地址 | TypeSafe 官方：`https://api.typesafe.ai`。OpenRouter：`https://openrouter.ai/api`。 |
-| 决策模型 | TypeSafe 官方：`jev-1.13.0`。OpenRouter：`typesafe/jev-1.13`。 |
+| 服务地址 | TypeSafe 官方：`https://api.typesafe.ai`。OpenRouter：`https://openrouter.ai/api`。OpenAI Decisions：`https://api.openai.com`。 |
+| 决策模型 | TypeSafe 官方：`jev-1.13.0`。OpenRouter：`typesafe/jev-1.13`。OpenAI Decisions：`gpt-6-luna`。 |
 | 访问密钥 | 与该服务匹配的密钥，只发给上面的地址。 |
 | 发送确认 | **每次都需确认**，或**高于阈值自动发送**。 |
 | 置信度阈值 | 只有置信度严格高于该值才自动发送。默认 0.8。 |
