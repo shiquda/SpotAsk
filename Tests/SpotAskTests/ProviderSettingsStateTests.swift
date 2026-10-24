@@ -126,7 +126,23 @@ final class ProviderSettingsStateTests: XCTestCase {
 
     func testClearingAllDataDeletesEveryCredentialSlot() {
         let keyStore = RecordingKeyStore()
-        let state = makeGeneralState(keyStore: keyStore)
+        let suiteName = "ProviderSettingsStateTests.Clear.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        let diagnosticsURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ProviderSettingsStateClear-\(UUID().uuidString).json")
+        let sessionStore = SessionStore(bundleIdentifier: suiteName)
+        defer {
+            defaults.removePersistentDomain(forName: suiteName)
+            try? sessionStore.clear()
+            try? FileManager.default.removeItem(at: diagnosticsURL)
+        }
+        let state = GeneralSettingsState(
+            settings: AppSettings(defaults: defaults, persistentDomainName: suiteName),
+            keyStore: keyStore,
+            sessionStore: sessionStore,
+            diagnosticLogStore: DiagnosticLogStore(fileURL: diagnosticsURL),
+            onConfigurationImported: {}
+        )
 
         state.clearAllLocalData()
 
@@ -1479,9 +1495,16 @@ final class ProviderSettingsStateTests: XCTestCase {
     }
 
     private func makeGeneralState(keyStore: RecordingKeyStore) -> GeneralSettingsState {
-        GeneralSettingsState(
-            settings: AppSettings(defaults: UserDefaults(suiteName: "ProviderSettingsStateTests.\(UUID().uuidString)")!),
+        let suiteName = "ProviderSettingsStateTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        return GeneralSettingsState(
+            settings: AppSettings(defaults: defaults, persistentDomainName: suiteName),
             keyStore: keyStore,
+            sessionStore: SessionStore(bundleIdentifier: suiteName),
+            diagnosticLogStore: DiagnosticLogStore(
+                fileURL: FileManager.default.temporaryDirectory
+                    .appendingPathComponent("ProviderSettingsState-\(UUID().uuidString).json")
+            ),
             onConfigurationImported: {}
         )
     }

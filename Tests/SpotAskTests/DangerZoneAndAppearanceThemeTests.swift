@@ -135,12 +135,16 @@ struct DangerZoneAndAppearanceThemeTests {
         let sessionStore = SessionStore(bundleIdentifier: testBundleID)
         let suiteName = "SpotAskDangerZoneClearingTest.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
+        let diagnosticsURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SpotAskDangerZoneClearingTest-\(UUID().uuidString).json")
+        let diagnostics = DiagnosticLogStore(fileURL: diagnosticsURL)
         defer {
             defaults.removePersistentDomain(forName: suiteName)
             try? sessionStore.clear()
+            try? FileManager.default.removeItem(at: diagnosticsURL)
         }
 
-        let settings = AppSettings(defaults: defaults)
+        let settings = AppSettings(defaults: defaults, persistentDomainName: suiteName)
         let keyStore = DangerZoneInMemoryKeyStore()
 
         // 1. Setup session data
@@ -154,9 +158,10 @@ struct DangerZoneAndAppearanceThemeTests {
         try keyStore.saveAPIKey("proxy-pass", for: ProxyCredentialSlot.providerID)
         #expect(try keyStore.readAPIKey(for: testProviderID) == "secret-api-key")
 
-        // 3. Setup diagnostics
-        DiagnosticLogStore.shared.setEnabled(true)
-        DiagnosticLogStore.shared.record("Test diagnostic log")
+        // 3. Setup diagnostics in an isolated file, never the shared production log.
+        diagnostics.setEnabled(true)
+        diagnostics.record("Test diagnostic log")
+        #expect(diagnostics.exportedText().contains("Test diagnostic log"))
 
         // 4. Setup settings
         settings.systemPrompt = "Custom prompt"
@@ -169,6 +174,7 @@ struct DangerZoneAndAppearanceThemeTests {
             settings: settings,
             keyStore: keyStore,
             sessionStore: sessionStore,
+            diagnosticLogStore: diagnostics,
             onConfigurationImported: {},
             onClearAllData: {
                 clearCallbackInvoked = true
@@ -195,6 +201,7 @@ struct DangerZoneAndAppearanceThemeTests {
         #expect(!settings.proxyEnabled)
         #expect(generalState.proxyPasswordDraft == "")
         #expect(!generalState.statusIsError)
+        #expect(!diagnostics.exportedText().contains("Test diagnostic log"))
     }
 
     // MARK: - Screenshot Capture for Visual Verification

@@ -39,6 +39,8 @@ swift build -c release
 ./Scripts/install-debug-app.sh
 ```
 
+`swift test` runs in a SwiftPM process with no bundle identifier. Data-clearing tests must inject their own `UserDefaults` suite name, `SessionStore`, credential file, and `DiagnosticLogStore`. `GeneralSettingsState.clearAllLocalData()` deletes only those injected stores. It does not fall back to `com.spotask.app` when the process has no bundle identifier, and it must not be pointed at `UserDefaults.standard` or `DiagnosticLogStore.shared`.
+
 ## App bundle and DMG
 
 `Scripts/make-app-bundle.sh` creates `build/SpotAsk.app`. The default entitlements (`Config/SpotAsk.selection-assistant.entitlements`) disable App Sandbox so the selection assistant can read selected text with Accessibility permission.

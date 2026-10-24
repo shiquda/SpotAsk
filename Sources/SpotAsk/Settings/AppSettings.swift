@@ -412,6 +412,32 @@ final class AppSettings {
         static let removedBuiltInQuickActionIDs = "removedBuiltInQuickActionIDs"
     }
 
+    /// Persistent domain owned by `defaults`. A suite store must be named by
+    /// its caller. `UserDefaults.standard` uses the process bundle identifier
+    /// when one exists. Clear never invents `com.spotask.app` when that
+    /// identifier is missing.
+    let persistentDomainName: String?
+
+    static let legacyDecisionRoutingEndpointKey = "decisionRoutingEndpoint"
+    static let legacyDecisionRoutingOfficialModelKey = "decisionRoutingOfficialModel"
+    static let legacyDecisionRoutingCustomBaseURLKey = "decisionRoutingCustomBaseURL"
+    static let legacyDecisionRoutingCustomModelKey = "decisionRoutingCustomModel"
+
+    /// Domain keys written outside `SettingRegistry`. Clear-all removes these
+    /// from the injected store even when the registry reset does not.
+    static let supplementalPersistentKeys: [String] = [
+        ProviderModelRegistry.synthesizedCatalogDefaultsKey,
+        DecisionCredentialSlot.preferLegacyCustomKey,
+        UserDefaultsSelectionDiagnosticsSink.defaultDefaultsKey,
+        UserDefaultsAccessibilityGrantIdentityStore.lastTrustedIdentityDefaultsKey,
+        UserDefaultsAccessibilityGrantIdentityStore.lastResetIdentityDefaultsKey,
+        UserDefaultsSkippedVersionStore.key,
+        legacyDecisionRoutingEndpointKey,
+        legacyDecisionRoutingOfficialModelKey,
+        legacyDecisionRoutingCustomBaseURLKey,
+        legacyDecisionRoutingCustomModelKey,
+    ]
+
     let defaults: UserDefaults
     private var isInitializing = true
     var dynamicSettingStorage: [String: Any] = [:]
@@ -753,8 +779,15 @@ final class AppSettings {
         )
     }
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, persistentDomainName: String? = nil) {
         self.defaults = defaults
+        if let persistentDomainName {
+            self.persistentDomainName = persistentDomainName
+        } else if defaults === UserDefaults.standard {
+            self.persistentDomainName = Bundle.main.bundleIdentifier
+        } else {
+            self.persistentDomainName = nil
+        }
         removedBuiltInPromptPresetIDs = Self.loadRemovedBuiltInPromptPresetIDs(from: defaults)
         promptPresetCatalog = Self.loadPromptPresetCatalog(from: defaults)
         removedBuiltInQuickActionIDs = Self.loadRemovedBuiltInQuickActionIDs(from: defaults)
@@ -791,10 +824,10 @@ final class AppSettings {
             hasStoredServiceURL: false,
             storedServiceURL: "",
             storedModel: "",
-            legacyEndpoint: defaults.string(forKey: "decisionRoutingEndpoint"),
-            legacyOfficialModel: defaults.string(forKey: "decisionRoutingOfficialModel"),
-            legacyCustomURL: defaults.string(forKey: "decisionRoutingCustomBaseURL"),
-            legacyCustomModel: defaults.string(forKey: "decisionRoutingCustomModel")
+            legacyEndpoint: defaults.string(forKey: Self.legacyDecisionRoutingEndpointKey),
+            legacyOfficialModel: defaults.string(forKey: Self.legacyDecisionRoutingOfficialModelKey),
+            legacyCustomURL: defaults.string(forKey: Self.legacyDecisionRoutingCustomBaseURLKey),
+            legacyCustomModel: defaults.string(forKey: Self.legacyDecisionRoutingCustomModelKey)
         )
         decisionRoutingServiceURL = migrated.serviceURL
         decisionRoutingModel = migrated.model
@@ -802,6 +835,23 @@ final class AppSettings {
             defaults.set(true, forKey: DecisionCredentialSlot.preferLegacyCustomKey)
         }
         return true
+    }
+
+    /// Deletes every persisted value in this settings store, including keys
+    /// the registry does not own. Does nothing to any other domain.
+    func clearOwnedPersistentDomain() {
+        defaults.synchronize()
+        if let persistentDomainName {
+            let persistedKeys = defaults.persistentDomain(forName: persistentDomainName).map { Array($0.keys) } ?? []
+            defaults.removePersistentDomain(forName: persistentDomainName)
+            for key in persistedKeys {
+                defaults.removeObject(forKey: key)
+            }
+        }
+        for key in Self.supplementalPersistentKeys {
+            defaults.removeObject(forKey: key)
+        }
+        defaults.synchronize()
     }
 
     /// Missing key keeps the historical hot-key preset. Empty data is an

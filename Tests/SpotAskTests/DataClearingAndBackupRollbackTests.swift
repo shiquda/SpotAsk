@@ -42,12 +42,16 @@ final class DataClearingAndBackupRollbackTests: XCTestCase {
         let sessionStore = SessionStore(bundleIdentifier: testBundleID)
         let suiteName = "SpotAskDataClearingTest.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
+        let diagnosticsURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SpotAskDataClearingTest-\(UUID().uuidString).json")
+        let diagnostics = DiagnosticLogStore(fileURL: diagnosticsURL)
         defer {
             defaults.removePersistentDomain(forName: suiteName)
             try? sessionStore.clear()
+            try? FileManager.default.removeItem(at: diagnosticsURL)
         }
 
-        let settings = AppSettings(defaults: defaults)
+        let settings = AppSettings(defaults: defaults, persistentDomainName: suiteName)
         let keyStore = InMemoryKeyStore()
 
         // 1. Setup session data
@@ -61,9 +65,10 @@ final class DataClearingAndBackupRollbackTests: XCTestCase {
         try keyStore.saveAPIKey("proxy-pass", for: ProxyCredentialSlot.providerID)
         XCTAssertEqual(try keyStore.readAPIKey(for: testProviderID), "secret-api-key")
 
-        // 3. Setup diagnostics
-        DiagnosticLogStore.shared.setEnabled(true)
-        DiagnosticLogStore.shared.record("Test diagnostic")
+        // 3. Setup diagnostics in an isolated file, never the shared production log.
+        diagnostics.setEnabled(true)
+        diagnostics.record("Test diagnostic")
+        XCTAssertTrue(diagnostics.exportedText().contains("Test diagnostic"))
 
         // 4. Setup settings
         settings.systemPrompt = "My custom system prompt"
@@ -76,6 +81,7 @@ final class DataClearingAndBackupRollbackTests: XCTestCase {
             settings: settings,
             keyStore: keyStore,
             sessionStore: sessionStore,
+            diagnosticLogStore: diagnostics,
             onConfigurationImported: {},
             onClearAllData: {
                 clearCallbackInvoked = true
@@ -102,6 +108,146 @@ final class DataClearingAndBackupRollbackTests: XCTestCase {
         XCTAssertFalse(settings.proxyEnabled)
         XCTAssertEqual(generalState.proxyPasswordDraft, "")
         XCTAssertFalse(generalState.statusIsError)
+        XCTAssertFalse(diagnostics.exportedText().contains("Test diagnostic"))
+    }
+
+    @MainActor
+    func testClearAllLocalDataLeavesSpectatorStoresUntouched() throws {
+        let fixtureSuite = "SpotAskClearFixture.\(UUID().uuidString)"
+        let spectatorSuite = "SpotAskClearSpectator.\(UUID().uuidString)"
+        let fixtureDefaults = UserDefaults(suiteName: fixtureSuite)!
+        let spectatorDefaults = UserDefaults(suiteName: spectatorSuite)!
+        let fixtureDiagnosticsURL = temporaryJSONURL()
+        let spectatorDiagnosticsURL = temporaryJSONURL()
+        let fixtureCredentialsURL = temporaryJSONURL()
+        let spectatorCredentialsURL = temporaryJSONURL()
+        let fixtureSession = SessionStore(bundleIdentifier: fixtureSuite)
+        let spectatorSession = SessionStore(bundleIdentifier: spectatorSuite)
+        defer {
+            fixtureDefaults.removePersistentDomain(forName: fixtureSuite)
+            spectatorDefaults.removePersistentDomain(forName: spectatorSuite)
+            try? fixtureSession.clear()
+            try? spectatorSession.clear()
+            for url in [fixtureDiagnosticsURL, spectatorDiagnosticsURL, fixtureCredentialsURL, spectatorCredentialsURL] {
+                try? FileManager.default.removeItem(at: url)
+            }
+        }
+
+        let fixtureSettings = AppSettings(defaults: fixtureDefaults, persistentDomainName: fixtureSuite)
+        let provider = ProviderConfiguration(
+            name: "Custom Relay",
+            address: "https://relay.example/v1",
+            addressMode: .baseURL,
+            timeout: 42
+        )
+        let model = ModelConfiguration(
+            displayName: "Custom Model",
+            upstreamModelID: "custom-model-id",
+            providerID: provider.id,
+            isStreamingEnabled: false
+        )
+        try fixtureSettings.providerRegistry.replaceCatalog(
+            with: ProviderModelCatalog(providers: [provider], models: [model], selectedModelID: model.id)
+        )
+        fixtureSettings.systemPrompt = "Keep this custom prompt"
+
+        let reloaded = AppSettings(defaults: fixtureDefaults, persistentDomainName: fixtureSuite)
+        XCTAssertEqual(reloaded.systemPrompt, "Keep this custom prompt")
+        let reloadedCatalog = try XCTUnwrap(reloaded.providerRegistry.catalog)
+        XCTAssertEqual(reloadedCatalog.providers.map(\.name), ["Custom Relay"])
+        XCTAssertEqual(reloadedCatalog.providers.map(\.address), ["https://relay.example/v1"])
+        XCTAssertEqual(reloadedCatalog.models.map(\.upstreamModelID), ["custom-model-id"])
+        XCTAssertEqual(reloadedCatalog.selectedModelID, model.id)
+
+        let spectatorSettings = AppSettings(defaults: spectatorDefaults, persistentDomainName: spectatorSuite)
+        let spectatorProvider = ProviderConfiguration(
+            name: "Spectator Service",
+            address: "https://spectator.example/v1",
+            addressMode: .baseURL,
+            timeout: 15
+        )
+        let spectatorModel = ModelConfiguration(
+            displayName: "Spectator Model",
+            upstreamModelID: "spectator-model",
+            providerID: spectatorProvider.id,
+            isStreamingEnabled: true
+        )
+        try spectatorSettings.providerRegistry.replaceCatalog(
+            with: ProviderModelCatalog(
+                providers: [spectatorProvider],
+                models: [spectatorModel],
+                selectedModelID: spectatorModel.id
+            )
+        )
+        spectatorSettings.systemPrompt = "Spectator prompt must survive"
+
+        let probeKey = "spotask.unregisteredProbe"
+        fixtureDefaults.set("fixture-probe", forKey: probeKey)
+        spectatorDefaults.set("spectator-probe", forKey: probeKey)
+        for key in AppSettings.supplementalPersistentKeys {
+            fixtureDefaults.set("fixture-\(key)", forKey: key)
+            spectatorDefaults.set("spectator-\(key)", forKey: key)
+        }
+        fixtureDefaults.synchronize()
+        spectatorDefaults.synchronize()
+
+        try fixtureSession.save([ChatMessage(role: .user, content: "fixture", attachments: [])])
+        try spectatorSession.save([ChatMessage(role: .user, content: "spectator", attachments: [])])
+        let fixtureKeys = LocalAPIKeyStore(fileURL: fixtureCredentialsURL)
+        let spectatorKeys = LocalAPIKeyStore(fileURL: spectatorCredentialsURL)
+        try fixtureKeys.saveAPIKey("fixture-secret", for: provider.id)
+        try spectatorKeys.saveAPIKey("spectator-secret", for: spectatorProvider.id)
+
+        let fixtureLogs = DiagnosticLogStore(fileURL: fixtureDiagnosticsURL)
+        let spectatorLogs = DiagnosticLogStore(fileURL: spectatorDiagnosticsURL)
+        fixtureLogs.setEnabled(true)
+        fixtureLogs.record("fixture diagnostic")
+        spectatorLogs.setEnabled(true)
+        spectatorLogs.record("spectator diagnostic must survive")
+        let spectatorLogText = spectatorLogs.exportedText()
+
+        let generalState = GeneralSettingsState(
+            settings: fixtureSettings,
+            keyStore: fixtureKeys,
+            sessionStore: fixtureSession,
+            diagnosticLogStore: fixtureLogs,
+            onConfigurationImported: {}
+        )
+        generalState.clearAllLocalData()
+
+        XCTAssertEqual(try fixtureSession.load().count, 0)
+        XCTAssertNil(try fixtureKeys.readAPIKey(for: provider.id))
+        XCTAssertFalse(fixtureLogs.exportedText().contains("fixture diagnostic"))
+        XCTAssertEqual(fixtureSettings.systemPrompt, "")
+        let clearedDomain = fixtureDefaults.persistentDomain(forName: fixtureSuite) ?? [:]
+        XCTAssertNil(clearedDomain[probeKey])
+        for key in AppSettings.supplementalPersistentKeys {
+            XCTAssertNil(clearedDomain[key], "Clear left supplemental key \(key) in the fixture domain")
+        }
+
+        let clearedReload = AppSettings(defaults: fixtureDefaults, persistentDomainName: fixtureSuite)
+        XCTAssertEqual(clearedReload.systemPrompt, "")
+        let clearedCatalog = try XCTUnwrap(clearedReload.providerRegistry.catalog)
+        XCTAssertEqual(clearedCatalog.providers.map(\.name), ["OpenAI Compatible"])
+        XCTAssertEqual(clearedCatalog.models.map(\.upstreamModelID), ["gpt-5-mini"])
+        XCTAssertFalse(clearedCatalog.providers.contains { $0.name == "Custom Relay" })
+
+        XCTAssertEqual(spectatorDefaults.string(forKey: probeKey), "spectator-probe")
+        for key in AppSettings.supplementalPersistentKeys {
+            XCTAssertEqual(spectatorDefaults.string(forKey: key), "spectator-\(key)")
+        }
+        XCTAssertEqual(spectatorSettings.systemPrompt, "Spectator prompt must survive")
+        XCTAssertEqual(spectatorSettings.providerRegistry.catalog?.providers.map(\.name), ["Spectator Service"])
+        XCTAssertEqual(spectatorSettings.providerRegistry.catalog?.models.map(\.upstreamModelID), ["spectator-model"])
+        XCTAssertEqual(try spectatorSession.load().first?.content, "spectator")
+        XCTAssertEqual(try spectatorKeys.readAPIKey(for: spectatorProvider.id), "spectator-secret")
+        XCTAssertEqual(spectatorLogs.exportedText(), spectatorLogText)
+        XCTAssertFalse(generalState.statusIsError)
+    }
+
+    private func temporaryJSONURL() -> URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("SpotAskClearIsolation-\(UUID().uuidString).json")
     }
 
     @MainActor

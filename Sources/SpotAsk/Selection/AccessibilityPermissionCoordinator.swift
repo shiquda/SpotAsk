@@ -82,9 +82,12 @@ protocol AccessibilityGrantIdentityStoring: AnyObject {
 }
 
 final class UserDefaultsAccessibilityGrantIdentityStore: AccessibilityGrantIdentityStoring {
+    static let lastTrustedIdentityDefaultsKey = "spotask.accessibility.lastTrustedIdentity"
+    static let lastResetIdentityDefaultsKey = "spotask.accessibility.lastResetIdentity"
+
     private enum Key {
-        static let lastTrustedIdentity = "spotask.accessibility.lastTrustedIdentity"
-        static let lastResetIdentity = "spotask.accessibility.lastResetIdentity"
+        static let lastTrustedIdentity = lastTrustedIdentityDefaultsKey
+        static let lastResetIdentity = lastResetIdentityDefaultsKey
     }
 
     private let defaults: UserDefaults
