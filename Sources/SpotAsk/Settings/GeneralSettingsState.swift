@@ -8,6 +8,7 @@ final class GeneralSettingsState {
     private let settings: AppSettings
     private let keyStore: any APIKeyStoring
     private let sessionStore: SessionStore
+    private let diagnosticLogStore: DiagnosticLogStore
     private let settingsWindowProvider: (() -> NSWindow?)?
     var status = ""
     var statusIsError = false
@@ -21,6 +22,7 @@ final class GeneralSettingsState {
         settings: AppSettings,
         keyStore: any APIKeyStoring,
         sessionStore: SessionStore = SessionStore(),
+        diagnosticLogStore: DiagnosticLogStore = .shared,
         settingsWindowProvider: (() -> NSWindow?)? = nil,
         onConfigurationImported: @escaping () -> Void,
         onClearAllData: (() -> Void)? = nil
@@ -28,6 +30,7 @@ final class GeneralSettingsState {
         self.settings = settings
         self.keyStore = keyStore
         self.sessionStore = sessionStore
+        self.diagnosticLogStore = diagnosticLogStore
         self.settingsWindowProvider = settingsWindowProvider
         self.onConfigurationImported = onConfigurationImported
         self.onClearAllData = onClearAllData
@@ -152,9 +155,8 @@ final class GeneralSettingsState {
         do {
             try keyStore.deleteAllAPIKeys()
             try sessionStore.clear()
-            DiagnosticLogStore.shared.clear()
-            let bundleID = Bundle.main.bundleIdentifier ?? "com.spotask.app"
-            UserDefaults.standard.removePersistentDomain(forName: bundleID)
+            diagnosticLogStore.clear()
+            settings.clearOwnedPersistentDomain()
             settings.resetToDefaults()
             proxyPasswordDraft = ""
             onClearAllData?()
@@ -174,7 +176,7 @@ final class GeneralSettingsState {
             guard let self else { return }
             guard response == .OK, let url = panel.url else { return }
             do {
-                try DiagnosticLogStore.shared.exportedText().write(to: url, atomically: true, encoding: .utf8)
+                try diagnosticLogStore.exportedText().write(to: url, atomically: true, encoding: .utf8)
                 self.setStatus(L10n.string("settings.diagnosticsExported"), isError: false)
             } catch {
                 self.setStatus(L10n.string("settings.diagnosticsExportFailed"), isError: true)
@@ -184,7 +186,7 @@ final class GeneralSettingsState {
     }
 
     func clearDiagnostics() {
-        DiagnosticLogStore.shared.clear()
+        diagnosticLogStore.clear()
         setStatus(L10n.string("settings.diagnosticsCleared"), isError: false)
     }
 
