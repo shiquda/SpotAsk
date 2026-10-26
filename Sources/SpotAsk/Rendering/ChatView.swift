@@ -268,12 +268,21 @@ struct ChatView: View {
             force: true
         )
         installShortcutDispatcher()
+        #if SPOTASK_BENCHMARK
+        BenchmarkControl.shared.install(viewModel: viewModel) {
+            MathCache.shared.clear()
+            MathSegmentCache.shared.clear()
+        }
+        #endif
     }
 
     private func handleDisappear() {
         shortcutDispatcher?.stop()
         shortcutDispatcher = nil
         isPanelVisible = false
+        #if SPOTASK_BENCHMARK
+        BenchmarkControl.shared.uninstall()
+        #endif
     }
 
 

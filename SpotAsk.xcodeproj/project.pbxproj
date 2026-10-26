@@ -113,6 +113,19 @@
 		00100000000000000000009D /* ChatHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000009D /* ChatHeaderView.swift */; };
 		00100000000000000000009E /* ChatMessageListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000009E /* ChatMessageListView.swift */; };
 		00100000000000000000009F /* ChatReconciliationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000009F /* ChatReconciliationCoordinator.swift */; };
+		0010000000000000000000B1 /* MathCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000B1 /* MathCache.swift */; };
+		0010000000000000000000B2 /* MathCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000B2 /* MathCoordinator.swift */; };
+		0010000000000000000000B3 /* MathEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000B3 /* MathEngine.swift */; };
+		0010000000000000000000B4 /* MathIsolator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000B4 /* MathIsolator.swift */; };
+		0010000000000000000000B5 /* NativeMathAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000B5 /* NativeMathAttachment.swift */; };
+		0010000000000000000000B6 /* NativeMathMarkupParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000B6 /* NativeMathMarkupParser.swift */; };
+		0010000000000000000000B7 /* RenderedMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000B7 /* RenderedMath.swift */; };
+		0010000000000000000000B8 /* MathSegmenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000B8 /* MathSegmenter.swift */; };
+		0010000000000000000000B9 /* MathMessageBody.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000B9 /* MathMessageBody.swift */; };
+		0010000000000000000000BA /* DisplayMathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000BA /* DisplayMathView.swift */; };
+		0010000000000000000000BB /* BenchmarkControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000BB /* BenchmarkControl.swift */; };
+		001000000000000000000073 /* SwiftDraw in Frameworks */ = {isa = PBXBuildFile; productRef = 009000000000000000000007 /* SwiftDraw */; };
+		0010000000000000000000C1 /* mathjax.js in Resources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000C1 /* mathjax.js */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -238,6 +251,18 @@
 		00200000000000000000009D /* ChatHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatHeaderView.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000009E /* ChatMessageListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatMessageListView.swift; sourceTree = SOURCE_ROOT; };
 		00200000000000000000009F /* ChatReconciliationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ChatReconciliationCoordinator.swift; sourceTree = SOURCE_ROOT; };
+		0020000000000000000000B1 /* MathCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/Math/MathCache.swift; sourceTree = SOURCE_ROOT; };
+		0020000000000000000000B2 /* MathCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/Math/MathCoordinator.swift; sourceTree = SOURCE_ROOT; };
+		0020000000000000000000B3 /* MathEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/Math/MathEngine.swift; sourceTree = SOURCE_ROOT; };
+		0020000000000000000000B4 /* MathIsolator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/Math/MathIsolator.swift; sourceTree = SOURCE_ROOT; };
+		0020000000000000000000B5 /* NativeMathAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/Math/NativeMathAttachment.swift; sourceTree = SOURCE_ROOT; };
+		0020000000000000000000B6 /* NativeMathMarkupParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/Math/NativeMathMarkupParser.swift; sourceTree = SOURCE_ROOT; };
+		0020000000000000000000B7 /* RenderedMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/Math/RenderedMath.swift; sourceTree = SOURCE_ROOT; };
+		0020000000000000000000B8 /* MathSegmenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/Math/MathSegmenter.swift; sourceTree = SOURCE_ROOT; };
+		0020000000000000000000B9 /* MathMessageBody.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/Math/MathMessageBody.swift; sourceTree = SOURCE_ROOT; };
+		0020000000000000000000BA /* DisplayMathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/Math/DisplayMathView.swift; sourceTree = SOURCE_ROOT; };
+		0020000000000000000000BB /* BenchmarkControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Benchmark/BenchmarkControl.swift; sourceTree = SOURCE_ROOT; };
+		0020000000000000000000C1 /* mathjax.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Sources/SpotAsk/Resources/MathJax/mathjax.js; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -355,13 +380,24 @@
 				00200000000000000000009D /* ChatHeaderView.swift */,
 				00200000000000000000009E /* ChatMessageListView.swift */,
 				00200000000000000000009F /* ChatReconciliationCoordinator.swift */,
+				0020000000000000000000B1 /* MathCache.swift */,
+				0020000000000000000000B2 /* MathCoordinator.swift */,
+				0020000000000000000000B3 /* MathEngine.swift */,
+				0020000000000000000000B4 /* MathIsolator.swift */,
+				0020000000000000000000B5 /* NativeMathAttachment.swift */,
+				0020000000000000000000B6 /* NativeMathMarkupParser.swift */,
+				0020000000000000000000B7 /* RenderedMath.swift */,
+				0020000000000000000000B8 /* MathSegmenter.swift */,
+				0020000000000000000000B9 /* MathMessageBody.swift */,
+				0020000000000000000000BA /* DisplayMathView.swift */,
+				0020000000000000000000BB /* BenchmarkControl.swift */,
 		);
 			name = Sources;
 			sourceTree = "<group>";
 		};
 		003000000000000000000003 /* Resources */ = {
 			isa = PBXGroup;
-			children = (002000000000000000000020 /* Info.plist */, 002000000000000000000030 /* AppIcon.icns */, 002000000000000000000026 /* Localizable.strings */, 002000000000000000000029 /* AppShortcuts.strings */, 00200000000000000000005A /* ProviderIcons */);
+			children = (002000000000000000000020 /* Info.plist */, 002000000000000000000030 /* AppIcon.icns */, 002000000000000000000026 /* Localizable.strings */, 002000000000000000000029 /* AppShortcuts.strings */, 00200000000000000000005A /* ProviderIcons */, 0020000000000000000000C1 /* mathjax.js */);
 			name = Resources;
 			sourceTree = "<group>";
 		};
@@ -427,6 +463,7 @@
 			packageProductDependencies = (
 				009000000000000000000002 /* Textual */,
 				009000000000000000000004 /* Sparkle */,
+				009000000000000000000007 /* SwiftDraw */,
 			);
 			productName = SpotAsk;
 			productReference = 002000000000000000000022 /* SpotAsk.app */;
@@ -461,13 +498,14 @@
 			packageReferences = (
 				009000000000000000000001 /* XCLocalSwiftPackageReference "textual-0.5.0" */,
 				009000000000000000000005 /* XCRemoteSwiftPackageReference "Sparkle" */,
+				009000000000000000000006 /* XCRemoteSwiftPackageReference "SwiftDraw" */,
 			);
 			targets = (004000000000000000000001 /* SpotAsk */,);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		006000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (001000000000000000000021 /* Localizable.strings in Resources */, 001000000000000000000022 /* AppShortcuts.strings in Resources */, 001000000000000000000023 /* AppIcon.icns in Resources */, 001000000000000000000041 /* ProviderIcons in Resources */,); runOnlyForDeploymentPostprocessing = 0; };
+		006000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (001000000000000000000021 /* Localizable.strings in Resources */, 001000000000000000000022 /* AppShortcuts.strings in Resources */, 001000000000000000000023 /* AppIcon.icns in Resources */, 001000000000000000000041 /* ProviderIcons in Resources */, 0010000000000000000000C1 /* mathjax.js in Resources */,); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -543,13 +581,14 @@
 				001000000000000000000057,
 				001000000000000000000097, 001000000000000000000098, 001000000000000000000099, 00100000000000000000009A, 00100000000000000000009B, 00100000000000000000009C, 00100000000000000000009D, 00100000000000000000009E, 00100000000000000000009F, 0010000000000000000000A0,
 				D3C151000000000000000001, D3C151000000000000000002, D3C151000000000000000003, D3C151000000000000000004, D3C151000000000000000005, D3C151000000000000000006,
+				0010000000000000000000B1, 0010000000000000000000B2, 0010000000000000000000B3, 0010000000000000000000B4, 0010000000000000000000B5, 0010000000000000000000B6, 0010000000000000000000B7, 0010000000000000000000B8, 0010000000000000000000B9, 0010000000000000000000BA, 0010000000000000000000BB,
 		);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		006000000000000000000002 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (00100000000000000000001A /* Textual in Frameworks */, 001000000000000000000072 /* Sparkle in Frameworks */,); runOnlyForDeploymentPostprocessing = 0; };
+		006000000000000000000002 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (00100000000000000000001A /* Textual in Frameworks */, 001000000000000000000072 /* Sparkle in Frameworks */, 001000000000000000000073 /* SwiftDraw in Frameworks */,); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -568,6 +607,14 @@
 				version = 2.9.6;
 			};
 		};
+		009000000000000000000006 /* XCRemoteSwiftPackageReference "SwiftDraw" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/swhitty/SwiftDraw";
+			requirement = {
+				kind = exactVersion;
+				version = 0.29.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -580,6 +627,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 009000000000000000000005 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
+		};
+		009000000000000000000007 /* SwiftDraw */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 009000000000000000000006 /* XCRemoteSwiftPackageReference "SwiftDraw" */;
+			productName = SwiftDraw;
 		};
 /* End XCSwiftPackageProductDependency section */
 

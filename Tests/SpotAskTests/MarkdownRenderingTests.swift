@@ -2,7 +2,7 @@ import XCTest
 @testable import SpotAsk
 import SwiftUI
 import Textual
-@_spi(Textual) import SwiftUIMath
+import SwiftDraw
 
 final class MarkdownRenderingTests: XCTestCase {
     func testStreamingMarkdownContentJoinsDeltasIntoOneDocument() {
@@ -83,174 +83,102 @@ final class MarkdownRenderingTests: XCTestCase {
         XCTAssertEqual(MarkdownTextView.markdownWithCopyableStandaloneCode(markdown), markdown)
     }
 
-    func testMathNormalizerSupportsCommonBackslashDelimiters() {
-        let markdown = #"""
-        Inline \(x + y\).
-
-        \[
-        \int_0^1 x^2\,dx
-        \]
-        """#
-
-        XCTAssertEqual(
-            MathMarkdownNormalizer.normalize(markdown),
-            """
-            Inline $x + y$.
-
-            ```math
-            \\int_0^1 x^2\\,dx
-            ```
-            """
-        )
-    }
-
-    func testMathNormalizerPreservesDollarDelimitersAndCode() {
-        let markdown = #"""
-        Existing $x$ and $$y$$.
-        Inline code `\(notMath\)`.
-
-        ```tex
-        \[notMath\]
-        ```
-        """#
-
-        XCTAssertEqual(MathMarkdownNormalizer.normalize(markdown), markdown)
-    }
-
-    func testMathNormalizerLeavesEscapedAndUnclosedDelimitersAlone() {
-        let markdown = #"Escaped \\(value\\) and unclosed \(value."#
-        XCTAssertEqual(MathMarkdownNormalizer.normalize(markdown), markdown)
-    }
-
-    func testMathNormalizerConvertsSpacedBlockDelimiterToMathFence() {
-        let markdown = """
-        由此可推出电磁波，并得到其在真空中的传播速度：
-
-        $$ c=\\frac{1}{\\sqrt{\\mu_0\\varepsilon_0}} $$
-
-        这说明光本质上是一种电磁波。
+    func testMathIsolatorSupportsFourDelimiters() {
+        let text = """
+        Inline 1: $x_1 * y_1$.
+        Inline 2: \\(a + b\\).
+        Block 1:
+        $$
+        \\sum_{i=1}^n x_i
+        $$
+        Block 2:
+        \\[
+        E = mc^2
+        \\]
         """
-
-        XCTAssertEqual(
-            MathMarkdownNormalizer.normalize(markdown),
-            """
-            由此可推出电磁波，并得到其在真空中的传播速度：
-
-            ```math
-            c=\\frac{1}{\\sqrt{\\mu_0\\varepsilon_0}}
-            ```
-
-            这说明光本质上是一种电磁波。
-            """
-        )
+        let isolated = MathIsolator.isolate(text)
+        XCTAssertEqual(isolated.formulas.count, 4)
+        XCTAssertEqual(isolated.formulas[0].tex, "x_1 * y_1")
+        XCTAssertFalse(isolated.formulas[0].display)
+        XCTAssertEqual(isolated.formulas[1].tex, "a + b")
+        XCTAssertFalse(isolated.formulas[1].display)
+        XCTAssertEqual(isolated.formulas[2].tex, "\\sum_{i=1}^n x_i")
+        XCTAssertTrue(isolated.formulas[2].display)
+        XCTAssertEqual(isolated.formulas[3].tex, "E = mc^2")
+        XCTAssertTrue(isolated.formulas[3].display)
     }
 
-    func testMathNormalizerAdaptsMultiColumnAlignedBlockForRenderer() {
-        let markdown = #"""
-        \[
-        \begin{aligned}
-        \nabla\cdot \mathbf{E} &= \frac{\rho}{\varepsilon_0}
-        &&\text{（高斯定律：电荷产生电场）}\\[4pt]
-        \nabla\cdot \mathbf{B} &= 0
-        &&\text{（磁场无散：不存在磁单极子）}
-        \end{aligned}
-        \]
-        """#
+    func testMathIsolatorProtectsCodeAndCurrency() {
+        let text = """
+        Price is $100 and $200.
+        Inline code: `echo $HOME` should not be math.
+        Code block:
+        ```swift
+        let cost = "$100"
+        ```
+        Escaped \\$notMath\\$ and \\\\[notBlock\\\\] and \\\\(notInline\\\\).
+        Unclosed $formula is left alone.
+        """
+        let isolated = MathIsolator.isolate(text)
+        XCTAssertTrue(isolated.formulas.isEmpty)
+        XCTAssertEqual(isolated.sanitizedMarkdown, text)
+    }
 
-        XCTAssertEqual(
-            MathMarkdownNormalizer.normalize(markdown),
-            #"""
-            ```math
-            \begin{aligned}
-            \nabla\cdot \mathbf{E} &= \frac{\rho}{\varepsilon_0}
-            \quad \text{（高斯定律：电荷产生电场）}\\
-            \nabla\cdot \mathbf{B} &= 0
-            \quad \text{（磁场无散：不存在磁单极子）}
-            \end{aligned}
-            ```
-            """#
-        )
+    func testMathEngineRendersReFunctionAndZeta() async throws {
+        let mathRe = try await MathEngine.shared.render(#"\operatorname{Re}(s)>1"#, display: false)
+        XCTAssertEqual(mathRe.tex, #"\operatorname{Re}(s)>1"#)
+        XCTAssertFalse(mathRe.display)
+        XCTAssertGreaterThan(mathRe.widthEm, 0)
+        XCTAssertGreaterThan(mathRe.heightEm, 0)
+
+        let mathZeta = try await MathEngine.shared.render(#"\zeta(s)=\sum_{n=1}^\infty\frac{1}{n^s}"#, display: true)
+        XCTAssertTrue(mathZeta.display)
+        XCTAssertGreaterThan(mathZeta.widthEm, 0)
+        XCTAssertGreaterThan(mathZeta.heightEm, 0)
+    }
+
+    func testMathEngineRendersBoldsymbolAndAlignedMultiColumn() async throws {
+        let boldSymbol = #"\boldsymbol{o}_t=\frac{\sum_{i=1}^t e^{\boldsymbol{q}_t\cdot\boldsymbol{k}_i}\boldsymbol{v}_i}{\sum_{i=1}^t e^{\boldsymbol{q}_t\cdot\boldsymbol{k}_i}}"#
+        let mathBold = try await MathEngine.shared.render(boldSymbol, display: true)
+        XCTAssertGreaterThan(mathBold.widthEm, 0)
+
+        let aligned = #"\begin{aligned} a&=b+c &&\text{first}\\[4pt] d&=e-f &&\text{second}\end{aligned}"#
+        let mathAligned = try await MathEngine.shared.render(aligned, display: true)
+        XCTAssertGreaterThan(mathAligned.widthEm, 0)
+    }
+
+    func testMathEngineRejectsExcessiveLength() async {
+        let huge = String(repeating: "x+", count: 10_000)
+        do {
+            _ = try await MathEngine.shared.render(huge, display: false)
+            XCTFail("Should reject formulas exceeding 16384 bytes")
+        } catch {
+            XCTAssertTrue(error is MathFailure)
+        }
+    }
+
+    func testMathEngineFailsGracefullyOnSyntaxError() async {
+        do {
+            _ = try await MathEngine.shared.render(#"\frac{"#, display: false)
+            XCTFail("Should fail on incomplete syntax")
+        } catch {
+            XCTAssertTrue(error is MathFailure)
+        }
     }
 
     @MainActor
-    func testNormalizedBlockMathUsesTextualMathCodeBlock() throws {
-        let normalized = MathMarkdownNormalizer.normalize("$$ x^2 + y^2 = z^2 $$")
-        let parsed = try AttributedStringMarkdownParser.markdown().attributedString(for: normalized)
+    func testNativeMathMarkupParserProducesAttachments() async throws {
+        let rendered = try await MathEngine.shared.render(#"E = mc^2"#, display: false)
+        MathCache.shared.set(tex: #"E = mc^2"#, display: false, rendered: rendered)
 
-        XCTAssertTrue(parsed.runs.contains { run in
-            run.presentationIntent?.components.contains { component in
-                guard case let .codeBlock(languageHint) = component.kind else { return false }
-                return languageHint?.lowercased() == "math"
-            } == true
-        })
+        let parser = NativeMathMarkupParser(rendersMath: true)
+        let attr = try parser.attributedString(for: "Energy formula: $E = mc^2$.")
+
+        XCTAssertTrue(attr.characters.contains("￼"))
+        let attachments = attr.runs.compactMap { $0.attributes.textual.attachment }
+        XCTAssertFalse(attachments.isEmpty)
+        XCTAssertEqual(attachments.first?.description, "$E = mc^2$")
     }
-
-    func testBoldsymbolFormulaRendersWithNonZeroSize() {
-        let latex = #"\boldsymbol{o}_t = \frac{\sum_{i=1}^t e^{\boldsymbol{q}_t \cdot \boldsymbol{k}_i} \boldsymbol{v}_i}{\sum_{i=1}^t e^{\boldsymbol{q}_t \cdot \boldsymbol{k}_i}}"#
-        XCTAssertTrue(Math.canRender(latex))
-
-        let bounds = Math.typographicBounds(
-            for: latex,
-            fitting: ProposedViewSize(width: 800, height: nil),
-            font: .init(name: .latinModern, size: 20),
-            style: .display
-        )
-
-        XCTAssertGreaterThan(bounds.width, 0)
-        XCTAssertGreaterThan(bounds.size.height, 0)
-    }
-
-    func testUnsupportedMathFallsBackToReadableText() {
-        let markdown = #"""
-        \[
-        \unknowncommand{x}
-        \]
-        """#
-
-        XCTAssertEqual(
-            MathMarkdownNormalizer.normalize(markdown),
-            """
-            ```text
-            \\unknowncommand{x}
-            ```
-            """
-        )
-    }
-
-    func testUnsupportedInlineMathFallsBackToCodeSpan() {
-        XCTAssertEqual(
-            MathMarkdownNormalizer.normalize(#"before \(\unknowncommand{x}\) after"#),
-            #"before `\unknowncommand{x}` after"#
-        )
-    }
-
-    func testMalformedDoubleBackslashMathDoesNotCrash() {
-        let latex = #"\\boldsymbol{o}*t = \\frac{\\sum*{i=1}^t e^{\\boldsymbol{q}\_t \\cdot \\boldsymbol{k}_i} \\boldsymbol{v}*i}{\\sum*{i=1}^t e^{\\boldsymbol{q}\_t \\cdot \\boldsymbol{k}_i}}"#
-
-        XCTAssertFalse(Math.canRender(latex))
-        let bounds = Math.typographicBounds(
-            for: latex,
-            fitting: ProposedViewSize(width: 800, height: nil),
-            font: .init(name: .latinModern, size: 20),
-            style: .display
-        )
-        XCTAssertEqual(bounds.width, 0)
-
-        XCTAssertEqual(
-            MathMarkdownNormalizer.normalize("\\[\n\(latex)\n\\]"),
-            "```text\n\(latex)\n```"
-        )
-    }
-
-    func testMathNormalizerPreservesUnclosedDollarBlock() {
-        let markdown = """
-        $$
-        x + y
-        """
-
-        XCTAssertEqual(MathMarkdownNormalizer.normalize(markdown), markdown)
-    }
-
     @MainActor
     func testMathRenderingCanBeEnabledOrDisabled() {
         let enabled = MarkdownTextView(content: "$E = mc^2$", rendersMath: true)
@@ -318,5 +246,153 @@ final class MarkdownRenderingTests: XCTestCase {
 
         XCTAssertEqual(document.blocks.map(\.id), sealedIDs)
         XCTAssertEqual(document.liveTail?.source, "第四段第五段")
+    }
+
+    func testEmptyMathFenceDoesNotHangAndPreservesText() {
+        let emptyCases = [
+            "```math\n\n```",
+            "```latex\n\n```",
+            "```tex\n\n```",
+            "```math\n   \n```",
+            "~~~math\n\n~~~"
+        ]
+
+        for testCase in emptyCases {
+            let isolated = MathIsolator.isolate(testCase)
+            XCTAssertTrue(isolated.formulas.isEmpty, "Empty math fence should not extract any formulas: \(testCase)")
+            XCTAssertEqual(isolated.sanitizedMarkdown, testCase, "Empty math fence should preserve verbatim text")
+        }
+    }
+
+    func testUnclosedCodeFenceProtectsContentFromMathExtraction() {
+        let unclosedCases = [
+            "~~~swift\nlet x = \"$a$\"",
+            "```python\nx = \"$alpha$\"\ny = \"$beta$\"",
+            "```math\n\\frac{1}{2}"
+        ]
+
+        for testCase in unclosedCases {
+            let isolated = MathIsolator.isolate(testCase)
+            XCTAssertTrue(isolated.formulas.isEmpty, "Unclosed code or math fence should protect content from math extraction: \(testCase)")
+            XCTAssertEqual(isolated.sanitizedMarkdown, testCase, "Unclosed fence should preserve raw text")
+        }
+    }
+
+    @MainActor
+    func testTokenCollisionProtection() throws {
+        let input = "⟦SPOTASK_MATH:0⟧ and $x$"
+        let isolated = MathIsolator.isolate(input)
+
+        XCTAssertEqual(isolated.formulas.count, 1)
+        XCTAssertEqual(isolated.formulas.first?.tex, "x")
+        // Ensure the token does NOT collide with user's literal text
+        XCTAssertNotEqual(isolated.formulas.first?.token, "⟦SPOTASK_MATH:0⟧")
+        XCTAssertTrue(isolated.sanitizedMarkdown.contains("⟦SPOTASK_MATH:0⟧"))
+
+        let parser = NativeMathMarkupParser(rendersMath: true, fontSize: 14.5)
+        let attr = try parser.attributedString(for: input)
+        let plainText = String(attr.characters)
+
+        // The user's original literal string "⟦SPOTASK_MATH:0⟧" must still exist in the output
+        XCTAssertTrue(plainText.contains("⟦SPOTASK_MATH:0⟧"), "User's literal token string must be preserved")
+    }
+
+    func testInlineMathAttachmentKeepsNaturalSizeAndClampsToNarrowContainer() {
+        let sampleMath = RenderedMath(
+            tex: "x = \\int_0^\\infty e^{-t} dt",
+            display: false,
+            svg: SVG(xml: "<svg width=\"100\" height=\"50\"></svg>")!,
+            widthEm: 30.0,
+            heightEm: 2.0,
+            descentEm: 0.5
+        )
+        let attachment = NativeMathAttachment(math: sampleMath, fontSize: 14.0)
+
+        let unconstrained = attachment.sizeThatFits(ProposedViewSize(width: nil, height: nil))
+        XCTAssertEqual(unconstrained.width, 30.0 * 14.0, accuracy: 0.001)
+        XCTAssertEqual(unconstrained.height, 2.0 * 14.0, accuracy: 0.001)
+
+        let constrained = attachment.sizeThatFits(ProposedViewSize(width: 240.0, height: nil))
+        XCTAssertEqual(constrained.width, 240.0, accuracy: 0.001, "Wide inline formula is scaled to the line")
+        XCTAssertEqual(constrained.height, 2.0 * 14.0 * 240.0 / (30.0 * 14.0), accuracy: 0.001)
+    }
+
+    func testInlineAttachmentKeepsItsParagraphIntent() throws {
+        let document = MathIsolator.isolate("Before $E = mc^2$ after.")
+        let rendered = RenderedMath(
+            tex: "E = mc^2",
+            display: false,
+            svg: SVG(xml: "<svg width=\"100\" height=\"50\"></svg>")!,
+            widthEm: 3.0,
+            heightEm: 1.0,
+            descentEm: 0.2
+        )
+        MathCache.shared.set(tex: rendered.tex, display: false, rendered: rendered)
+        defer { MathCache.shared.clear() }
+
+        let parser = NativeMathMarkupParser(isolated: document, fontSize: 14)
+        let attributed = try parser.attributedString(for: document.sanitizedMarkdown)
+
+        let attachmentRun = try XCTUnwrap(attributed.runs.first { $0.textual.attachment != nil })
+        // Dropping the paragraph intent makes Textual lay the attachment out as
+        // its own block, which splits the sentence around the formula.
+        XCTAssertEqual(attachmentRun.presentationIntent?.components.map(\.kind), [.paragraph])
+    }
+
+    func testSegmenterGivesDisplayMathItsOwnBlockAndKeepsInlineInText() {
+        let content = "Energy $E = mc^2$ inline.\n\n$$\\int_0^1 x\\,dx$$\n\nTail $a^2$ end."
+        let segments = MathSegmenter.segments(for: content, fontSize: 14)
+
+        XCTAssertEqual(segments.count, 3)
+        guard case let .markdown(_, firstContent, firstText, firstInline) = segments[0] else {
+            return XCTFail("first segment must be markdown")
+        }
+        XCTAssertTrue(firstText.contains("Energy"))
+        XCTAssertEqual(firstContent.characters.count, firstText.count)
+        XCTAssertEqual(Set(firstInline.map(\.tex)), ["E = mc^2", "a^2"])
+
+        guard case let .display(_, formula) = segments[1] else {
+            return XCTFail("middle segment must be the display formula")
+        }
+        XCTAssertEqual(formula.tex, "\\int_0^1 x\\,dx")
+        XCTAssertTrue(formula.display)
+
+        guard case let .markdown(_, _, tail, _) = segments[2] else {
+            return XCTFail("last segment must be markdown")
+        }
+        XCTAssertTrue(tail.contains("Tail"))
+    }
+
+    func testSegmenterWithoutDisplayMathReturnsSingleRun() {
+        let segments = MathSegmenter.segments(for: "Only $a^2$ inline.", fontSize: 14)
+        XCTAssertEqual(segments.count, 1)
+        guard case let .markdown(_, content, text, inline) = segments[0] else {
+            return XCTFail("expected markdown segment")
+        }
+        XCTAssertTrue(text.contains("Only"))
+        XCTAssertTrue(String(content.characters).contains("a^2"))
+        XCTAssertEqual(inline.map(\.tex), ["a^2"])
+    }
+
+    /// A reference definition may sit on the far side of a display formula. The
+    /// document has to be parsed before it is split, otherwise every run loses
+    /// the definition and the link degrades to plain text.
+    func testSegmenterKeepsReferenceLinksDefinedAcrossDisplayMath() throws {
+        let content = """
+            Read [the guide][guide].
+
+            $$x^2$$
+
+            [guide]: https://example.com/guide
+            """
+
+        let segments = MathSegmenter.segments(for: content, fontSize: 14)
+        XCTAssertEqual(segments.count, 2)
+
+        guard case let .markdown(_, head, _, _) = segments[0] else {
+            return XCTFail("first segment must be markdown")
+        }
+        let link = head.runs.compactMap(\.link).first
+        XCTAssertEqual(link?.absoluteString, "https://example.com/guide")
     }
 }
