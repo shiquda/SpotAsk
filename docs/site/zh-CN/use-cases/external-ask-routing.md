@@ -47,7 +47,8 @@ brew install --cask shiquda/spotask/spotask
 
 ### 相关指南
 
-- [External Ask 外部提问指南](/zh-CN/guides/external-ask) — 自定义渠道语法、智能路由配置与常见问题。
+- [External Ask 外部提问指南](/zh-CN/guides/external-ask) — 外部渠道添加、自定义语法与快捷分发。
+- [智能路由指南](/zh-CN/guides/decision-routing) — 意图识别分类器配置、双引擎参数与进阶微调。
 - [macOS 全局 AI 启动器](/zh-CN/use-cases/mac-ai-launcher) — 快捷键呼出与全键盘交互。
 - [BYOK 原生 macOS AI 客户端](/zh-CN/use-cases/byok-macos-ai) — 自带 API 密钥与按需用量计费。
 - [全局划词 AI 助手](/zh-CN/use-cases/selection-assistant) — 跨软件划词就地处理。
