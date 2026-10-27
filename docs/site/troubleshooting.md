@@ -35,7 +35,9 @@ If refresh fails, verify the service address and access key first. If your provi
 
 ## Global shortcut conflicts
 
-If another app uses the same global hotkey, record a different shortcut in Settings > **General**, or clear **Global Shortcut** if you open SpotAsk from the menu bar or a URL. In-app shortcuts are separate from the global hotkey.
+If another app uses the same global hotkey, record a different shortcut in Settings > **Shortcuts** > **Global Shortcut**, or clear **Global Shortcut** if you open SpotAsk from the menu bar or a URL. In-app shortcuts are separate from the global hotkey.
+
+SpotAsk can only detect conflicts between its own shortcuts. It does not know when ChatGPT, Raycast, or another app already owns a key, so a shortcut that SpotAsk accepts may still be taken at the system level. Using the ChatGPT Mac app? See [ChatGPT ⌥Space conflicts](/guides/chatgpt-option-space).
 
 ## SpotAsk says it cannot read saved service settings
 
