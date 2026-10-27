@@ -349,7 +349,7 @@
 "settings.deleteProviderMessage" = "Все модели этого сервиса также будут удалены. Действие нельзя отменить.";
 "settings.deleteProviderTitle" = "Удалить сервис?";
 "settings.displayName" = "Отображаемое имя";
-"settings.displayNamePlaceholder" = "напр. GPT-5 Mini";
+"settings.displayNamePlaceholder" = "напр. %@";
 "settings.discoveredModel" = "Из сервиса";
 "settings.discoveredModelHint" = "Добавлена из этого сервиса. При сохранении она остаётся настраиваемой моделью.";
 "settings.editModel" = "Изменить модель";

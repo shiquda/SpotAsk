@@ -349,7 +349,7 @@
 "settings.deleteProviderMessage" = "Todos los modelos de este servicio también se eliminarán. Esta acción no se puede deshacer.";
 "settings.deleteProviderTitle" = "¿Eliminar servicio?";
 "settings.displayName" = "Nombre mostrado";
-"settings.displayNamePlaceholder" = "p. ej. GPT-5 Mini";
+"settings.displayNamePlaceholder" = "p. ej. %@";
 "settings.discoveredModel" = "Desde el servicio";
 "settings.discoveredModelHint" = "Añadido desde este servicio. Al guardar cambios, pasa a ser un modelo personalizado.";
 "settings.editModel" = "Editar modelo";

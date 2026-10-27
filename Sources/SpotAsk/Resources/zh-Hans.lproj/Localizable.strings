@@ -349,7 +349,7 @@
 "settings.deleteProviderMessage" = "该服务下的所有模型也将被删除。此操作无法撤销。";
 "settings.deleteProviderTitle" = "删除服务？";
 "settings.displayName" = "显示名称";
-"settings.displayNamePlaceholder" = "例如：GPT-5 Mini";
+"settings.displayNamePlaceholder" = "例如：%@";
 "settings.discoveredModel" = "来自服务";
 "settings.discoveredModelHint" = "此模型来自该服务。保存修改后将作为自定义模型保留。";
 "settings.editModel" = "编辑模型";

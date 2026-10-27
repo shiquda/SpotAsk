@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Replaced legacy SwiftUIMath rendering engine with an offline MathJax 4.1.3 SVG and SwiftDraw native attachment pipeline, isolating math syntax before Markdown parsing and supporting `$$...$$`, `\[...\]`, `$...$`, and `\(...\)` delimiters. Inline formulas now stay inside their sentence, and display formulas render as centred native blocks that scroll horizontally when the window is too narrow.
 - Native text selection is scoped to each text segment and does not continue across display-formula blocks.
+- Removed the development-only math benchmark tools, timing tests, and application hooks; functional math regression tests remain.
+
+- Model placeholders in the model editor now adapt dynamically to each service channel's latest model (e.g. `gpt-6-luna` for OpenAI, `claude-3-7-sonnet-20250219` for Anthropic, `gemini-2.5-flash` for Google Gemini, `deepseek-chat` for DeepSeek, `moonshot-v1-auto` for Kimi, `llama3.3` for Ollama), and the default initial model updates from `gpt-5-mini` to `gpt-6-luna`.
 
 ### Fixed
 

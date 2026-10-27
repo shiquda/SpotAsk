@@ -349,7 +349,7 @@
 "settings.deleteProviderMessage" = "このサービスのすべてのモデルも削除されます。元に戻せません。";
 "settings.deleteProviderTitle" = "サービスを削除しますか？";
 "settings.displayName" = "表示名";
-"settings.displayNamePlaceholder" = "例: GPT-5 Mini";
+"settings.displayNamePlaceholder" = "例: %@";
 "settings.discoveredModel" = "サービスから";
 "settings.discoveredModelHint" = "このサービスから追加されました。保存するとカスタムモデルとして保持されます。";
 "settings.editModel" = "モデルを編集";

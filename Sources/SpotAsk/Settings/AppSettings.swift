@@ -800,7 +800,7 @@ final class AppSettings {
             legacy: LegacyProviderConfiguration(
                 baseURL: defaults.string(forKey: Key.baseURL) ?? "https://api.openai.com/v1",
                 useFullEndpoint: defaults.object(forKey: Key.useFullEndpoint) as? Bool ?? false,
-                model: defaults.string(forKey: Key.model) ?? "gpt-5-mini",
+                model: defaults.string(forKey: Key.model) ?? "gpt-6-luna",
                 streaming: defaults.object(forKey: Key.streaming) as? Bool ?? true,
                 timeout: defaults.object(forKey: Key.timeout) as? Double ?? 60
             )
@@ -1371,8 +1371,8 @@ final class AppSettings {
             timeout: 60
         )
         let model = ModelConfiguration(
-            displayName: "gpt-5-mini",
-            upstreamModelID: "gpt-5-mini",
+            displayName: "gpt-6-luna",
+            upstreamModelID: "gpt-6-luna",
             providerID: provider.id,
             isStreamingEnabled: true
         )

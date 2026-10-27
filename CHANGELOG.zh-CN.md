@@ -16,6 +16,9 @@ SpotAsk 的所有重要变更都记录在本文件中。
 
 - 将旧版 SwiftUIMath 渲染引擎替换为离线 MathJax 4.1.3 SVG + SwiftDraw 原生附件流水线，在 Markdown 解析前隔离数学语法，原生支持 `$$...$$`、`\[...\]`、`$...$` 与 `\(...\)` 四种定界符。行内公式保持在同一句话内，块公式改为居中的原生视图，窗口过窄时可横向滚动。
 - 原生文字选区限定在各自文本段内，不跨越块公式连续选择。
+- 移除开发专用的数学公式性能基准工具、计时测试及应用接入代码，保留数学功能回归测试。
+
+- 模型编辑弹窗中的占位模型现在会根据服务渠道动态适配各渠道最新模型（如 OpenAI 适配 `gpt-6-luna`、Anthropic 适配 `claude-3-7-sonnet-20250219`、Google Gemini 适配 `gemini-2.5-flash`、DeepSeek 适配 `deepseek-chat`、Kimi 适配 `moonshot-v1-auto`、Ollama 适配 `llama3.3`），初始默认模型也由 `gpt-5-mini` 更新为 `gpt-6-luna`。
 
 ### 修复
 

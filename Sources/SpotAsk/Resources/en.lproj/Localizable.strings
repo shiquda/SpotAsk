@@ -349,7 +349,7 @@
 "settings.deleteProviderMessage" = "All models under this provider will also be removed. This cannot be undone.";
 "settings.deleteProviderTitle" = "Delete Provider?";
 "settings.displayName" = "Display Name";
-"settings.displayNamePlaceholder" = "e.g. GPT-5 Mini";
+"settings.displayNamePlaceholder" = "e.g. %@";
 "settings.discoveredModel" = "From service";
 "settings.discoveredModelHint" = "Added from this service. Saving changes keeps it as a custom model.";
 "settings.editModel" = "Edit Model";

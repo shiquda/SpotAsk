@@ -4,6 +4,129 @@ import Observation
 
 // MARK: - Provider Settings State
 
+/// Resolves channel-specific model placeholder identifiers and display names.
+struct ChannelModelPlaceholder: Hashable, Sendable {
+    let upstreamModelID: String
+    let displayName: String
+
+    static let defaultOpenAI = ChannelModelPlaceholder(
+        upstreamModelID: "gpt-6-luna",
+        displayName: "GPT-6 Luna"
+    )
+
+    static func resolve(
+        format: ProviderFormat? = nil,
+        providerName: String? = nil,
+        address: String? = nil
+    ) -> ChannelModelPlaceholder {
+        if format == .anthropic {
+            return ChannelModelPlaceholder(
+                upstreamModelID: "claude-3-7-sonnet-20250219",
+                displayName: "Claude 3.7 Sonnet"
+            )
+        }
+        if format == .gemini {
+            return ChannelModelPlaceholder(
+                upstreamModelID: "gemini-2.5-flash",
+                displayName: "Gemini 2.5 Flash"
+            )
+        }
+
+        let combined = [providerName, address]
+            .compactMap { $0 }
+            .joined(separator: " ")
+            .lowercased()
+
+        if containsAny(combined, ["deepseek", "深度求索"]) {
+            return ChannelModelPlaceholder(
+                upstreamModelID: "deepseek-chat",
+                displayName: "DeepSeek V3"
+            )
+        }
+        if containsAny(combined, ["kimi", "moonshot", "月之暗面"]) {
+            return ChannelModelPlaceholder(
+                upstreamModelID: "moonshot-v1-auto",
+                displayName: "Kimi Latest"
+            )
+        }
+        if containsAny(combined, ["ollama", "11434"]) {
+            return ChannelModelPlaceholder(
+                upstreamModelID: "llama3.3",
+                displayName: "Llama 3.3"
+            )
+        }
+        if containsAny(combined, ["openrouter"]) {
+            return ChannelModelPlaceholder(
+                upstreamModelID: "anthropic/claude-3.7-sonnet",
+                displayName: "Claude 3.7 Sonnet"
+            )
+        }
+        if containsAny(combined, ["siliconflow", "siliconcloud", "硅基流动"]) {
+            return ChannelModelPlaceholder(
+                upstreamModelID: "deepseek-ai/DeepSeek-V3",
+                displayName: "DeepSeek V3"
+            )
+        }
+        if containsAny(combined, ["qwen", "dashscope", "bailian", "百炼", "通义"]) {
+            return ChannelModelPlaceholder(
+                upstreamModelID: "qwen-plus",
+                displayName: "Qwen Plus"
+            )
+        }
+        if containsAny(combined, ["zhipu", "chatglm", "glm", "bigmodel", "智谱", "z.ai", "zai"]) {
+            return ChannelModelPlaceholder(
+                upstreamModelID: "glm-4-plus",
+                displayName: "GLM-4 Plus"
+            )
+        }
+        if containsAny(combined, ["mistral", "codestral", "lechat"]) {
+            return ChannelModelPlaceholder(
+                upstreamModelID: "mistral-large-latest",
+                displayName: "Mistral Large"
+            )
+        }
+        if containsAny(combined, ["grok", "xai"]) {
+            return ChannelModelPlaceholder(
+                upstreamModelID: "grok-2-latest",
+                displayName: "Grok 2"
+            )
+        }
+        if containsAny(combined, ["doubao", "volcengine", "volc", "ark", "豆包", "火山"]) {
+            return ChannelModelPlaceholder(
+                upstreamModelID: "doubao-pro-32k",
+                displayName: "Doubao Pro"
+            )
+        }
+        if containsAny(combined, ["anthropic", "claude"]) {
+            return ChannelModelPlaceholder(
+                upstreamModelID: "claude-3-7-sonnet-20250219",
+                displayName: "Claude 3.7 Sonnet"
+            )
+        }
+        if containsAny(combined, ["gemini", "google"]) {
+            return ChannelModelPlaceholder(
+                upstreamModelID: "gemini-2.5-flash",
+                displayName: "Gemini 2.5 Flash"
+            )
+        }
+
+        return defaultOpenAI
+    }
+
+    static func resolve(for provider: ProviderConfiguration?) -> ChannelModelPlaceholder {
+        guard let provider else { return defaultOpenAI }
+        return resolve(
+            format: provider.format,
+            providerName: provider.name,
+            address: provider.address
+        )
+    }
+
+    private static func containsAny(_ text: String, _ keywords: [String]) -> Bool {
+        keywords.contains { text.contains($0) }
+    }
+}
+
 struct ProviderTemplate: Identifiable, Hashable, Sendable {
     let id: String
     let name: String
@@ -11,6 +134,29 @@ struct ProviderTemplate: Identifiable, Hashable, Sendable {
     let address: String
     let addressMode: ProviderAddressMode
     let iconSlug: String
+    let placeholderModelID: String
+    let placeholderDisplayName: String
+
+    init(
+        id: String,
+        name: String,
+        format: ProviderFormat,
+        address: String,
+        addressMode: ProviderAddressMode,
+        iconSlug: String,
+        placeholderModelID: String? = nil,
+        placeholderDisplayName: String? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.format = format
+        self.address = address
+        self.addressMode = addressMode
+        self.iconSlug = iconSlug
+        let resolved = ChannelModelPlaceholder.resolve(format: format, providerName: name, address: address)
+        self.placeholderModelID = placeholderModelID ?? resolved.upstreamModelID
+        self.placeholderDisplayName = placeholderDisplayName ?? resolved.displayName
+    }
 
     static let allTemplates: [ProviderTemplate] = [
         ProviderTemplate(
@@ -19,7 +165,9 @@ struct ProviderTemplate: Identifiable, Hashable, Sendable {
             format: .openAICompatible,
             address: "https://api.openai.com/v1",
             addressMode: .baseURL,
-            iconSlug: "openai"
+            iconSlug: "openai",
+            placeholderModelID: "gpt-6-luna",
+            placeholderDisplayName: "GPT-6 Luna"
         ),
         ProviderTemplate(
             id: "anthropic",
@@ -27,7 +175,9 @@ struct ProviderTemplate: Identifiable, Hashable, Sendable {
             format: .anthropic,
             address: "https://api.anthropic.com/v1",
             addressMode: .baseURL,
-            iconSlug: "claude-color"
+            iconSlug: "claude-color",
+            placeholderModelID: "claude-3-7-sonnet-20250219",
+            placeholderDisplayName: "Claude 3.7 Sonnet"
         ),
         ProviderTemplate(
             id: "gemini",
@@ -35,7 +185,9 @@ struct ProviderTemplate: Identifiable, Hashable, Sendable {
             format: .gemini,
             address: "https://generativelanguage.googleapis.com/v1beta",
             addressMode: .baseURL,
-            iconSlug: "gemini-color"
+            iconSlug: "gemini-color",
+            placeholderModelID: "gemini-2.5-flash",
+            placeholderDisplayName: "Gemini 2.5 Flash"
         ),
         ProviderTemplate(
             id: "deepseek",
@@ -43,7 +195,9 @@ struct ProviderTemplate: Identifiable, Hashable, Sendable {
             format: .openAICompatible,
             address: "https://api.deepseek.com",
             addressMode: .baseURL,
-            iconSlug: "deepseek-color"
+            iconSlug: "deepseek-color",
+            placeholderModelID: "deepseek-chat",
+            placeholderDisplayName: "DeepSeek V3"
         ),
         ProviderTemplate(
             id: "ollama",
@@ -51,7 +205,9 @@ struct ProviderTemplate: Identifiable, Hashable, Sendable {
             format: .openAICompatible,
             address: "http://localhost:11434/v1",
             addressMode: .baseURL,
-            iconSlug: "ollama"
+            iconSlug: "ollama",
+            placeholderModelID: "llama3.3",
+            placeholderDisplayName: "Llama 3.3"
         ),
         ProviderTemplate(
             id: "openrouter",
@@ -59,7 +215,9 @@ struct ProviderTemplate: Identifiable, Hashable, Sendable {
             format: .openAICompatible,
             address: "https://openrouter.ai/api/v1",
             addressMode: .baseURL,
-            iconSlug: "openrouter-color"
+            iconSlug: "openrouter-color",
+            placeholderModelID: "anthropic/claude-3.7-sonnet",
+            placeholderDisplayName: "Claude 3.7 Sonnet"
         ),
         ProviderTemplate(
             id: "siliconflow",
@@ -67,7 +225,9 @@ struct ProviderTemplate: Identifiable, Hashable, Sendable {
             format: .openAICompatible,
             address: "https://api.siliconflow.cn/v1",
             addressMode: .baseURL,
-            iconSlug: "siliconcloud-color"
+            iconSlug: "siliconcloud-color",
+            placeholderModelID: "deepseek-ai/DeepSeek-V3",
+            placeholderDisplayName: "DeepSeek V3"
         ),
         ProviderTemplate(
             id: "kimi",
@@ -75,7 +235,9 @@ struct ProviderTemplate: Identifiable, Hashable, Sendable {
             format: .openAICompatible,
             address: "https://api.moonshot.cn/v1",
             addressMode: .baseURL,
-            iconSlug: "kimi-color"
+            iconSlug: "kimi-color",
+            placeholderModelID: "moonshot-v1-auto",
+            placeholderDisplayName: "Kimi Latest"
         )
     ]
 }

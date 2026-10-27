@@ -835,7 +835,7 @@ final class SettingRegistry: Sendable {
         ))
         register(SettingDescriptors.string(
             key: "model",
-            defaultValue: "gpt-5-mini"
+            defaultValue: "gpt-6-luna"
         ))
         register(SettingDescriptors.bool(
             key: "streaming",

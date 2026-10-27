@@ -349,7 +349,7 @@
 "settings.deleteProviderMessage" = "Alle Modelle dieses Dienstes werden ebenfalls entfernt. Dies kann nicht rückgängig gemacht werden.";
 "settings.deleteProviderTitle" = "Dienst löschen?";
 "settings.displayName" = "Anzeigename";
-"settings.displayNamePlaceholder" = "z. B. GPT-5 Mini";
+"settings.displayNamePlaceholder" = "z. B. %@";
 "settings.discoveredModel" = "Vom Dienst";
 "settings.discoveredModelHint" = "Von diesem Dienst hinzugefügt. Beim Speichern bleibt es ein benutzerdefiniertes Modell.";
 "settings.editModel" = "Modell bearbeiten";
