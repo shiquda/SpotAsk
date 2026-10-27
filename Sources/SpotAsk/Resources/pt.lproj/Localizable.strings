@@ -300,6 +300,10 @@
 "settings.renderMath" = "Mostrar fórmulas matemáticas";
 "settings.copyMathWithDelimiters" = "Copiar fórmulas com delimitadores $$";
 "settings.fontSize" = "Tamanho da fonte";
+"settings.readingFont" = "Fonte de leitura";
+"settings.readingFontSystem" = "Padrão do sistema";
+"settings.readingFontUnavailable" = "%@ (não instalada)";
+"settings.readingFontSample" = "Um pequeno jabuti xereta viu dez cegonhas felizes.";
 "settings.launchAtLogin" = "Iniciar ao fazer login";
 "settings.silentLaunch" = "Iniciar silenciosamente";
 "settings.silentLaunchDescription" = "Manter a janela oculta quando o SpotAsk iniciar.";

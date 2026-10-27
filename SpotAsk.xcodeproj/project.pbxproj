@@ -123,6 +123,7 @@
 		0010000000000000000000B8 /* MathSegmenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000B8 /* MathSegmenter.swift */; };
 		0010000000000000000000B9 /* MathMessageBody.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000B9 /* MathMessageBody.swift */; };
 		0010000000000000000000BA /* DisplayMathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000BA /* DisplayMathView.swift */; };
+		0010000000000000000000C2 /* ReadingFont.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000C2 /* ReadingFont.swift */; };
 		001000000000000000000073 /* SwiftDraw in Frameworks */ = {isa = PBXBuildFile; productRef = 009000000000000000000007 /* SwiftDraw */; };
 		0010000000000000000000C1 /* mathjax.js in Resources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000C1 /* mathjax.js */; };
 /* End PBXBuildFile section */
@@ -260,6 +261,7 @@
 		0020000000000000000000B8 /* MathSegmenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/Math/MathSegmenter.swift; sourceTree = SOURCE_ROOT; };
 		0020000000000000000000B9 /* MathMessageBody.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/Math/MathMessageBody.swift; sourceTree = SOURCE_ROOT; };
 		0020000000000000000000BA /* DisplayMathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/Math/DisplayMathView.swift; sourceTree = SOURCE_ROOT; };
+		0020000000000000000000C2 /* ReadingFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Rendering/ReadingFont.swift; sourceTree = SOURCE_ROOT; };
 		0020000000000000000000C1 /* mathjax.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Sources/SpotAsk/Resources/MathJax/mathjax.js; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -388,6 +390,7 @@
 				0020000000000000000000B8 /* MathSegmenter.swift */,
 				0020000000000000000000B9 /* MathMessageBody.swift */,
 				0020000000000000000000BA /* DisplayMathView.swift */,
+				0020000000000000000000C2 /* ReadingFont.swift */,
 		);
 			name = Sources;
 			sourceTree = "<group>";
@@ -579,6 +582,7 @@
 				001000000000000000000097, 001000000000000000000098, 001000000000000000000099, 00100000000000000000009A, 00100000000000000000009B, 00100000000000000000009C, 00100000000000000000009D, 00100000000000000000009E, 00100000000000000000009F, 0010000000000000000000A0,
 				D3C151000000000000000001, D3C151000000000000000002, D3C151000000000000000003, D3C151000000000000000004, D3C151000000000000000005, D3C151000000000000000006,
 				0010000000000000000000B1, 0010000000000000000000B2, 0010000000000000000000B3, 0010000000000000000000B4, 0010000000000000000000B5, 0010000000000000000000B6, 0010000000000000000000B7, 0010000000000000000000B8, 0010000000000000000000B9, 0010000000000000000000BA,
+				0010000000000000000000C2 /* ReadingFont.swift in Sources */,
 		);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -300,6 +300,10 @@
 "settings.renderMath" = "Mostrar fórmulas matemáticas";
 "settings.copyMathWithDelimiters" = "Copiar fórmulas con delimitadores $$";
 "settings.fontSize" = "Tamaño de letra";
+"settings.readingFont" = "Tipo de letra de lectura";
+"settings.readingFontSystem" = "Del sistema";
+"settings.readingFontUnavailable" = "%@ (no instalada)";
+"settings.readingFontSample" = "El veloz murciélago hindú comía feliz cardillo y kiwi.";
 "settings.launchAtLogin" = "Iniciar al iniciar sesión";
 "settings.silentLaunch" = "Iniciar en silencio";
 "settings.silentLaunchDescription" = "Mantener la ventana oculta cuando SpotAsk se inicia.";

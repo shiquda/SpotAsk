@@ -300,6 +300,10 @@
 "settings.renderMath" = "Mathematische Formeln darstellen";
 "settings.copyMathWithDelimiters" = "Formeln mit $$-Trennzeichen kopieren";
 "settings.fontSize" = "Schriftgröße";
+"settings.readingFont" = "Leseschrift";
+"settings.readingFontSystem" = "Systemstandard";
+"settings.readingFontUnavailable" = "%@ (nicht installiert)";
+"settings.readingFontSample" = "Franz jagt im komplett verwahrlosten Taxi quer durch Bayern.";
 "settings.launchAtLogin" = "Bei Anmeldung starten";
 "settings.silentLaunch" = "Lautlos starten";
 "settings.silentLaunchDescription" = "Fenster beim Start von SpotAsk ausgeblendet halten.";

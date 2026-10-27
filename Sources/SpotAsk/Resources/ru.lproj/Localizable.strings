@@ -300,6 +300,10 @@
 "settings.renderMath" = "Отображать математические формулы";
 "settings.copyMathWithDelimiters" = "Копировать формулы с разделителями $$";
 "settings.fontSize" = "Размер шрифта";
+"settings.readingFont" = "Шрифт для чтения";
+"settings.readingFontSystem" = "Системный";
+"settings.readingFontUnavailable" = "%@ (не установлен)";
+"settings.readingFontSample" = "Съешь же ещё этих мягких французских булок, да выпей чаю.";
 "settings.launchAtLogin" = "Запускать при входе в систему";
 "settings.silentLaunch" = "Запускать скрытно";
 "settings.silentLaunchDescription" = "Не показывать окно при запуске SpotAsk.";

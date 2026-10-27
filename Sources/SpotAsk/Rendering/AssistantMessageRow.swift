@@ -126,7 +126,8 @@ private func reasoningSection(message: ChatMessage, reasoning: String) -> some V
         .accessibilityLabel(reasoningState.isExpanded ? L10n.string("chat.reasoningCollapse") : L10n.string("chat.reasoningExpand"))
         if reasoningState.isExpanded {
             ReasoningContentView(
-                reasoning: reasoning
+                reasoning: reasoning,
+                fontFamily: settings.readingFontFamily
             )
             .transition(reduceMotion ? .identity : .opacity.combined(with: .move(edge: .top)))
         }

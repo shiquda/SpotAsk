@@ -358,13 +358,7 @@ struct ChatView: View {
     }
 
     private var contentFont: Font {
-        let baseSize: CGFloat
-        switch settings.fontSize {
-        case .small: baseSize = 13
-        case .standard: baseSize = 14.5
-        case .large: baseSize = 17
-        }
-        return .system(size: baseSize * settings.interfaceZoomLevel.displayScale)
+        settings.readingFont
     }
 
     private func primaryAction() {

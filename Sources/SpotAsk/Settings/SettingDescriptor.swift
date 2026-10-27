@@ -496,6 +496,11 @@ final class SettingRegistry: Sendable {
             defaultValue: FontSize.standard,
             keyPath: \.fontSize
         ))
+        register(SettingDescriptors.string(
+            key: "readingFontFamily",
+            defaultValue: "",
+            keyPath: \.readingFontFamily
+        ))
         register(SettingDescriptors.rawRepresentable(
             key: "chatMessageStyle",
             defaultValue: ChatMessageStyle.standard,

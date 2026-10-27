@@ -12,6 +12,8 @@ struct ChatInputTextView: NSViewRepresentable {
     @Binding var text: String
     @FocusState.Binding var isFocused: Bool
     @Binding var height: CGFloat
+    /// Family for the draft text; empty keeps the system font.
+    var readingFontFamily: String = ""
     let isGenerating: Bool
     let onSubmit: () -> Bool
     let onEscape: () -> Void
@@ -30,6 +32,11 @@ struct ChatInputTextView: NSViewRepresentable {
     let onAtCommandConfirm: () -> Void
     /// Shift is true for Shift-Tab. Return true when the key was consumed.
     let onTab: (Bool) -> Bool
+
+    /// AppKit editor font: the body text style's size with the chosen family.
+    private var readingFont: NSFont {
+        ReadingFontResolver.appKitFont(family: readingFontFamily, textStyle: .body)
+    }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
@@ -68,7 +75,7 @@ struct ChatInputTextView: NSViewRepresentable {
         textView.string = text
         let initialLocation = (text as NSString).length
         textView.setSelectedRange(NSRange(location: initialLocation, length: 0))
-        textView.font = .preferredFont(forTextStyle: .body)
+        textView.font = readingFont
         textView.textColor = .labelColor
         textView.backgroundColor = .clear
         textView.drawsBackground = false
@@ -138,6 +145,17 @@ struct ChatInputTextView: NSViewRepresentable {
             isModelTextEmpty: text.isEmpty,
             isMarkedText: textView.hasMarkedText()
         )
+
+        // Setting `font` restyles the existing draft and typing attributes, so
+        // an inactive editor keeps its text; a live composition is left alone
+        // until the input method finishes with it.
+        let targetFont = readingFont
+        if !textView.hasMarkedText(),
+           textView.font?.fontName != targetFont.fontName || textView.font?.pointSize != targetFont.pointSize {
+            textView.font = targetFont
+            context.coordinator.updateHeight(of: textView)
+        }
+
         if textView.string != text && !editorOwnsDraft {
             textView.string = text
             let targetLocation = (text as NSString).length
