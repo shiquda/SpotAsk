@@ -7,6 +7,22 @@ description: A capability map for the questions, selection, model, attachment, p
 
 Use this page as a map of what SpotAsk can do. Pick a task instead of a setting; each section explains when it is useful and where to start.
 
+## SpotAsk in action
+
+Three workflows cover most everyday use:
+
+1. **Instant hotkey summoning** — press the global hotkey, type, and read the streamed answer.
+
+   ![Quick chat with the default hotkey](/images/spotask-hotkey.gif)
+
+2. **Inline actions on selected text** — highlight text anywhere to translate, explain, summarize, or polish it in place.
+
+   ![Quick actions on selected text](/images/spotask-selection.gif)
+
+3. **1-click query routing to CLI agents & tools** — hand the question to a web AI, desktop app, or local CLI agent instead.
+
+   ![1-click query routing to CLI agents and external tools](/images/spotask-external.gif)
+
 ## Quick questions from anywhere
 
 Press your global hotkey (default `⌥ + Space`) to summon a focused input window over any app. Ask, stream an answer, and dismiss instantly with `⎋`.

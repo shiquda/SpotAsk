@@ -377,23 +377,54 @@ export default defineConfig({
       titleTemplate: ':title | SpotAsk – Ask Any AI on Mac',
       description: 'Learn what SpotAsk can do, connect your AI service, and solve common problems.',
       themeConfig: {
+        // First level stays on the entries a user actually looks for while
+        // using the app: install, capability map, troubleshooting, releases.
+        // The search-facing pages (per-feature topics, background, settings
+        // reference) live one level down so they do not compete for the
+        // first click or for the homepage.
         nav: [
           { text: 'Getting Started', link: '/getting-started' },
           {
-            text: 'Use Cases',
+            text: 'Guides',
             items: [
-              { text: 'macOS AI Launcher', link: '/use-cases/mac-ai-launcher' },
-              { text: 'BYOK Native AI Client', link: '/use-cases/byok-macos-ai' },
-              { text: 'External Ask & Routing', link: '/use-cases/external-ask-routing' },
-              { text: 'Selection Assistant', link: '/use-cases/selection-assistant' },
-              { text: 'Zero-Telemetry Privacy', link: '/use-cases/privacy-architecture' }
+              {
+                text: 'How-to Guides',
+                items: [
+                  { text: 'Connect an OpenAI-Compatible Service', link: '/guides/connect-openai-compatible' },
+                  { text: 'Connect Anthropic', link: '/guides/connect-anthropic' },
+                  { text: 'Service Root vs Full Request Address', link: '/guides/service-addresses' },
+                  { text: 'Providers & Models', link: '/guides/providers-and-models' },
+                  { text: 'Selection Assistant', link: '/guides/selection-assistant' },
+                  { text: 'Prompts', link: '/guides/prompts' },
+                  { text: 'External Ask', link: '/guides/external-ask' },
+                  { text: 'Images & Files', link: '/guides/attachments' },
+                  { text: 'Spotlight, Siri & Shortcuts', link: '/guides/macos-integration' },
+                  { text: 'Proxy', link: '/guides/proxy' },
+                  { text: 'Appearance & Behavior', link: '/guides/appearance' }
+                ]
+              },
+              {
+                text: 'Use Cases',
+                items: [
+                  { text: 'macOS AI Launcher', link: '/use-cases/mac-ai-launcher' },
+                  { text: 'BYOK Native AI Client', link: '/use-cases/byok-macos-ai' },
+                  { text: 'External Ask & Routing', link: '/use-cases/external-ask-routing' },
+                  { text: 'Selection Assistant', link: '/use-cases/selection-assistant' },
+                  { text: 'Zero-Telemetry Privacy', link: '/use-cases/privacy-architecture' }
+                ]
+              },
+              {
+                text: 'More',
+                items: [
+                  { text: 'Settings & Shortcuts Reference', link: '/reference' },
+                  { text: 'Design Philosophy', link: '/philosophy' },
+                  { text: 'Privacy & Local Data', link: '/privacy' }
+                ]
+              }
             ]
           },
           { text: 'Explore', link: '/explore' },
-          { text: 'Philosophy', link: '/philosophy' },
-          { text: 'Guides', link: '/guides/connect-openai-compatible' },
           { text: 'Troubleshooting', link: '/troubleshooting' },
-          { text: 'Reference', link: '/reference' },
           { text: 'Changelog', link: '/changelog' }
         ],
         sidebar: englishSidebar
@@ -418,23 +449,52 @@ export default defineConfig({
         }
       },
       themeConfig: {
+        // Mirrors the English first level exactly: install, capability map,
+        // troubleshooting, releases. Search-facing pages sit in the 指南
+        // dropdown, and the homepage keeps the same short link list.
         nav: [
           { text: '快速开始', link: '/zh-CN/getting-started' },
           {
-            text: '场景专题',
+            text: '指南',
             items: [
-              { text: 'macOS 全局 AI 启动器', link: '/zh-CN/use-cases/mac-ai-launcher' },
-              { text: 'BYOK 原生 macOS AI 客户端', link: '/zh-CN/use-cases/byok-macos-ai' },
-              { text: 'External Ask 智能路由', link: '/zh-CN/use-cases/external-ask-routing' },
-              { text: '全局划词 AI 助手', link: '/zh-CN/use-cases/selection-assistant' },
-              { text: '本地优先与零遥测隐私架构', link: '/zh-CN/use-cases/privacy-architecture' }
+              {
+                text: '使用指南',
+                items: [
+                  { text: '连接 OpenAI 兼容服务', link: '/zh-CN/guides/connect-openai-compatible' },
+                  { text: '连接 Anthropic', link: '/zh-CN/guides/connect-anthropic' },
+                  { text: '服务根地址与完整请求地址', link: '/zh-CN/guides/service-addresses' },
+                  { text: '服务与模型', link: '/zh-CN/guides/providers-and-models' },
+                  { text: '划词助手', link: '/zh-CN/guides/selection-assistant' },
+                  { text: '提示词', link: '/zh-CN/guides/prompts' },
+                  { text: '外部提问', link: '/zh-CN/guides/external-ask' },
+                  { text: '图片与文件', link: '/zh-CN/guides/attachments' },
+                  { text: 'Spotlight、Siri 与快捷指令', link: '/zh-CN/guides/macos-integration' },
+                  { text: '代理', link: '/zh-CN/guides/proxy' },
+                  { text: '外观与行为', link: '/zh-CN/guides/appearance' }
+                ]
+              },
+              {
+                text: '场景专题',
+                items: [
+                  { text: 'macOS 全局 AI 启动器', link: '/zh-CN/use-cases/mac-ai-launcher' },
+                  { text: 'BYOK 原生 macOS AI 客户端', link: '/zh-CN/use-cases/byok-macos-ai' },
+                  { text: 'External Ask 智能路由', link: '/zh-CN/use-cases/external-ask-routing' },
+                  { text: '全局划词 AI 助手', link: '/zh-CN/use-cases/selection-assistant' },
+                  { text: '本地优先与零遥测隐私架构', link: '/zh-CN/use-cases/privacy-architecture' }
+                ]
+              },
+              {
+                text: '更多',
+                items: [
+                  { text: '设置与快捷键参考', link: '/zh-CN/reference' },
+                  { text: '设计理念', link: '/zh-CN/philosophy' },
+                  { text: '隐私与本地数据', link: '/zh-CN/privacy' }
+                ]
+              }
             ]
           },
           { text: '能力地图', link: '/zh-CN/explore' },
-          { text: '设计理念', link: '/zh-CN/philosophy' },
-          { text: '指南', link: '/zh-CN/guides/connect-openai-compatible' },
           { text: '故障排查', link: '/zh-CN/troubleshooting' },
-          { text: '参考', link: '/zh-CN/reference' },
           { text: '更新日志', link: '/zh-CN/changelog' }
         ],
         sidebar: chineseSidebar,

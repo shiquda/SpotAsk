@@ -45,25 +45,16 @@ heroShowcase:
 
 <span class="nowrap">SpotAsk</span> 是一款免费开源的 macOS 菜单栏 AI 助手与分流工具，建立在一个极简的前提之上：**“先提问，再决定去向（Ask first. Decide where it goes after.）”**。
 
-随时按快捷键（默认 <kbd>⌥ + Space</kbd>），专注的提问小窗即刻浮现于屏幕之上。在灵感或疑问闪现的当下先写下问题，再决定如何处理：
+随时按快捷键（默认 <kbd>⌥ + Space</kbd>），专注的提问小窗即刻浮现。先写下当下的问题，再决定如何处理：
 
-- **应用内流式回答**：使用你配置的 AI 模型（BYOK）直接在小窗内快速作答。
-- **外部提问智能与一键分流 (<span class="nowrap">External Ask</span>)**：将问题直派给网页平台（ChatGPT、Perplexity、Grok）、本地终端 CLI Agent 或桌面应用——支持快捷键一键直达或由决策模型（如 `jev`）自动选路，不消耗对话 API 额度，不留多余历史记录。
+- **应用内流式回答（BYOK）**：用你配置的 AI 模型直接在小窗内作答。
+- **外部提问智能分流 (<span class="nowrap">External Ask</span>)**：把问题交给网页平台（ChatGPT、Perplexity、Grok）、桌面应用或本地终端 CLI Agent——一键直达，或由决策模型自动选路。
 
-没有账号系统，没有多余中转，没有遥测监控。按 <kbd>Esc</kbd> 随问随走，彻底告别沉重的工作流。
+没有账号系统，没有遥测监控。按 <kbd>Esc</kbd> 随问随走。
 
-### 核心工作流一览
-
-#### 1. 快捷呼出，即问即走
-![默认快捷键快速对话](/images/spotask-hotkey.gif)
-
-#### 2. 全局划词，就近处理
-![选中文字后显示快捷操作](/images/spotask-selection.gif)
-
-#### 3. 外部路由，多向分流
-![一键分流至终端 CLI Agent 与外部工具](/images/spotask-external.gif)
 ## 下一步
 
-- [快速开始](/zh-CN/getting-started)介绍安装和第一次提问。
-- [探索 SpotAsk](/zh-CN/explore) 是应用能力地图。
-- [故障排查](/zh-CN/troubleshooting)处理连接、模型、权限和快捷键问题。
+- [快速开始](/zh-CN/getting-started)：安装 SpotAsk、连接 AI 服务并完成第一次提问。
+- [探索 SpotAsk](/zh-CN/explore)：提问、划词、分流、模型、附件、提示词与快捷键的能力地图。
+- [指南](/zh-CN/guides/connect-openai-compatible)：先配置服务，再按功能查阅使用指南与场景专题。
+- [故障排查](/zh-CN/troubleshooting)：处理连接、模型、权限和快捷键问题。
