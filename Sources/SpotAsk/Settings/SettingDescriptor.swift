@@ -436,6 +436,11 @@ final class SettingRegistry: Sendable {
             keyPath: \.renderMath
         ))
         register(SettingDescriptors.bool(
+            key: "copyMathWithDelimiters",
+            defaultValue: false,
+            keyPath: \.copyMathWithDelimiters
+        ))
+        register(SettingDescriptors.bool(
             key: "launchAtLogin",
             defaultValue: false,
             keyPath: \.launchAtLogin

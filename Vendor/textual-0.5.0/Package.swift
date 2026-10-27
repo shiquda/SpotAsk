@@ -16,14 +16,12 @@ let package = Package(
   ],
   dependencies: [
     .package(path: "../swift-concurrency-extras-1.3.1"),
-    .package(path: "../swiftui-math-0.1.0"),
   ],
   targets: [
     .target(
       name: "Textual",
       dependencies: [
         .product(name: "ConcurrencyExtras", package: "swift-concurrency-extras-1.3.1"),
-        .product(name: "SwiftUIMath", package: "swiftui-math-0.1.0"),
       ],
       resources: [
         .process("Internal/Highlighter/Prism")

@@ -58,6 +58,7 @@
 "code.accessibility" = "コードブロック";
 "code.copy" = "コードをコピー";
 "code.copied" = "コードをコピーしました";
+"math.copy" = "LaTeX をコピー";
 "code.defaultLanguage" = "コード";
 "error.cancelled" = "リクエストはキャンセルされました。";
 "error.decodingFailed" = "サービスが想定外の内容を返しました。しばらくしてから再試行してください。";
@@ -297,6 +298,7 @@
 "settings.cancel" = "キャンセル";
 "settings.chatMessageStyle" = "メッセージ表示";
 "settings.renderMath" = "数式を表示";
+"settings.copyMathWithDelimiters" = "数式のコピー時に $$ を含める";
 "settings.fontSize" = "文字サイズ";
 "settings.launchAtLogin" = "ログイン時に起動";
 "settings.silentLaunch" = "静かに起動";

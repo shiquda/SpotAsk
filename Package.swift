@@ -10,7 +10,7 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "Vendor/textual-0.5.0"),
-        .package(path: "Vendor/swiftui-math-0.1.0"),
+        .package(url: "https://github.com/swhitty/SwiftDraw", exact: "0.29.0"),
         .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.9.6"),
     ],
     targets: [
@@ -18,7 +18,7 @@ let package = Package(
             name: "SpotAsk",
             dependencies: [
                 .product(name: "Textual", package: "textual-0.5.0"),
-                .product(name: "SwiftUIMath", package: "swiftui-math-0.1.0"),
+                .product(name: "SwiftDraw", package: "SwiftDraw"),
                 .product(name: "Sparkle", package: "Sparkle"),
             ],
             resources: [.process("Resources")]
@@ -28,7 +28,7 @@ let package = Package(
             dependencies: [
                 "SpotAsk",
                 .product(name: "Textual", package: "textual-0.5.0"),
-                .product(name: "SwiftUIMath", package: "swiftui-math-0.1.0")
+                .product(name: "SwiftDraw", package: "SwiftDraw")
             ]
         )
     ]

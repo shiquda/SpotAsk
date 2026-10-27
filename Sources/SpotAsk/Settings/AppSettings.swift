@@ -361,6 +361,7 @@ final class AppSettings {
         static let escapeStartsNewConversation = "escapeStartsNewConversation"
         static let defaultExpandReasoning = "defaultExpandReasoning"
         static let renderMath = "renderMath"
+        static let copyMathWithDelimiters = "copyMathWithDelimiters"
         static let launchAtLogin = "launchAtLogin"
         static let silentLaunch = "silentLaunch"
         static let proxyEnabled = "proxyEnabled"
@@ -485,6 +486,7 @@ final class AppSettings {
         didSet { saveSetting("defaultExpandReasoning") }
     }
     var renderMath: Bool = true { didSet { saveSetting("renderMath") } }
+    var copyMathWithDelimiters: Bool = false { didSet { saveSetting("copyMathWithDelimiters") } }
     var launchAtLogin: Bool = false { didSet { saveSetting("launchAtLogin") } }
     var silentLaunch: Bool = false { didSet { saveSetting("silentLaunch") } }
     var proxyEnabled: Bool = false { didSet { saveSetting("proxyEnabled") } }
