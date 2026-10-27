@@ -69,49 +69,24 @@ omp {query}
 
 ## 智能路由 {#decision-routing}
 
-开启智能路由后，无需手动挑选目标。在「决策引擎与连接参数」里选择 **System One (jev)** 或 **OpenAI Decisions**，敲下回车时由所选引擎研判意图，推荐留在应用内或发往最合适的外部平台。两个引擎各自保存地址、模型和访问密钥，切换不会覆盖另一边。
+除了手动点击渠道或按快捷键发送外，SpotAsk 还支持**智能路由**：
+
+在提问输入框中敲下回车时，由轻量决策模型（分类器）研判意图，判断应当留在应用内直接作答，还是自动分发至最合适的外部平台。
 
 <video poster="/images/spotask-smart-routing-preview.gif" src="/videos/SpotAsk-smart-routing-v5.mp4" controls muted playsinline width="720"></video>
 
 *视频：一个问题，三种去向——智能路由实机演示（28 秒）。[下载 / 观看高清视频 (1080p MP4)](/videos/SpotAsk-smart-routing-v5.mp4)*
 
-### 快速配置
+- **内联交互确认**：敲下回车后在输入框上方显示推荐去向与置信度，按 <kbd>↩</kbd> 放行，按 <kbd>Tab</kbd> 或方向键快速切换目标，按 <kbd>Esc</kbd> 取消。
+- **双决策引擎支持**：支持配置 **System One (jev-1.13.0)** 官方/OpenRouter 端点或 **OpenAI Decisions (gpt-6-luna)**，各引擎参数独立存储。
+- **阈值自动放行与临时暂停**：支持设定置信度阈值自动流转，并可通过标题栏图标（快捷键 <kbd>⌘ + ⇧ + R</kbd>）随时针对当前对话暂停路由。
 
-在 **设置 > 外部提问 > 智能路由** 中开启总开关，并用分段选择器选定引擎。SpotAsk 提供三种推荐配置，填写后点击**测试提问**即可验证：
+::: tip 详细配置与进阶指南
+有关 TypeSafe、OpenRouter 与 OpenAI Decisions 的完整接口参数、API Key 配置、渠道语义提示与安全边界，请参阅专门的使用指南：  
+👉 **[智能路由完整配置指南](/zh-CN/guides/decision-routing)**
+:::
 
-#### 方案 A：TypeSafe 官方（推荐）
-地址与模型已默认预填，填入 TypeSafe API 密钥即可开箱即用：
-- **服务地址**：`https://api.typesafe.ai`
-- **决策模型**：`jev-1.13.0`
-- **访问密钥**：你的 TypeSafe API Key
-
-#### 方案 B：OpenRouter
-使用 OpenRouter 托管的 System One 分类模型：
-- **服务地址**：`https://openrouter.ai/api`（SpotAsk 会自动补全接口路径）
-- **决策模型**：`typesafe/jev-1.13`
-- **访问密钥**：你的 OpenRouter API Key
-
-#### 方案 C：OpenAI Decisions
-在分段选择器中选择 **OpenAI Decisions**。这会调用 [OpenAI Decisions API](https://developers.openai.com/api/docs/guides/decisions)（`POST /v1/decisions`），不是 System One。OpenAI 不提供 `jev` / System One。
-- **服务地址**：`https://api.openai.com`（可改；自定义地址仍走 `/v1/decisions`）
-- **决策模型**：`gpt-6-luna`
-- **访问密钥**：你的 OpenAI API Key。官方地址没有密钥时不会发请求；自定义地址的密钥可选，除非主机是 `api.openai.com`。不要粘贴聊天补全接口。
-
-### 交互体验与快捷操作
-
-- **内联确认卡片**：敲下回车后，输入框上方会弹出推荐去向卡片及置信度：
-  - 按 <kbd>↩</kbd>：立即按照推荐去向放行；
-  - 按 <kbd>Tab</kbd> 或方向键：快速在候选渠道之间切换；
-  - 按 <kbd>Esc</kbd>：取消路由并保留当前草稿。
-- **阈值自动放行**：开启高于阈值自动放行后，高置信度问题命中应用内直接作答；命中外部渠道时先显示 0.8 秒提示（期间按回车立即发送，按 Esc 可取消），随后自动跳转。
-- **当前对话一键暂停**：标题栏提供路由快捷开关（默认快捷键 <kbd>⌘ + ⇧ + R</kbd>）。处理特定任务需要专注应用内问答时，可临时暂停自动路由，新建对话自动恢复。
-- **渠道微调**：编辑任意渠道时，可补充「渠道用途」与「适用场景」，或开启「始终先确认」。
-- **安全与兜底**：远程决策服务强制使用 HTTPS 加密连接；问题带有图片等附件时自动留在应用内，不触发外部路由。修改草稿或取消操作会静默撤销待执行的推荐，绝不误触发跳转。
-
-![智能路由设置与实时测试路由](/images/spotask-decision-routing-settings.png)
-
----
-
+<SpotAskSettingsLink section="external-ask" />
 ## 快捷键与停用
 
 - **快捷键**：外部提问渠道按启用顺序排列，前两个渠道默认快捷键为 <kbd>⌘ + 5</kbd> 与 <kbd>⌘ + 6</kbd>。可在 **设置 > 快捷键** 中自定义。
@@ -129,4 +104,4 @@ omp {query}
 
 ---
 
-相关内容：[提示词预设](/zh-CN/guides/prompts) · [隐私与本地数据](/zh-CN/privacy) · [快捷键一览](/zh-CN/reference)
+相关内容：[智能路由](/zh-CN/guides/decision-routing) · [提示词预设](/zh-CN/guides/prompts) · [隐私与本地数据](/zh-CN/privacy) · [快捷键一览](/zh-CN/reference)

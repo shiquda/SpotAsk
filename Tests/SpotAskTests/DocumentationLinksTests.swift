@@ -14,6 +14,7 @@ struct DocumentationLinksTests {
                 "guides/providers-and-models",
                 "guides/prompts",
                 "guides/external-ask",
+                "guides/decision-routing",
                 "guides/selection-assistant",
                 "guides/appearance",
                 "guides/proxy",
