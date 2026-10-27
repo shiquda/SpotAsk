@@ -1590,19 +1590,19 @@ final class ProviderSettingsStateTests: XCTestCase {
         XCTAssertEqual(openAI.displayName, "GPT-6 Luna")
 
         let anthropic = ChannelModelPlaceholder.resolve(format: .anthropic, providerName: "Anthropic", address: "https://api.anthropic.com/v1")
-        XCTAssertEqual(anthropic.upstreamModelID, "claude-3-7-sonnet-20250219")
-        XCTAssertEqual(anthropic.displayName, "Claude 3.7 Sonnet")
+        XCTAssertEqual(anthropic.upstreamModelID, "claude-sonnet-5-5")
+        XCTAssertEqual(anthropic.displayName, "Claude Sonnet 5.5")
 
         let gemini = ChannelModelPlaceholder.resolve(format: .gemini, providerName: "Google Gemini", address: "https://generativelanguage.googleapis.com/v1beta")
-        XCTAssertEqual(gemini.upstreamModelID, "gemini-2.5-flash")
-        XCTAssertEqual(gemini.displayName, "Gemini 2.5 Flash")
+        XCTAssertEqual(gemini.upstreamModelID, "gemini-3.8-flash")
+        XCTAssertEqual(gemini.displayName, "Gemini 3.8 Flash")
 
         let deepseek = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "DeepSeek", address: "https://api.deepseek.com")
-        XCTAssertEqual(deepseek.upstreamModelID, "deepseek-chat")
-        XCTAssertEqual(deepseek.displayName, "DeepSeek V3")
+        XCTAssertEqual(deepseek.upstreamModelID, "deepseek-v4-flash")
+        XCTAssertEqual(deepseek.displayName, "DeepSeek V4 Flash")
 
         let kimi = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "Moonshot Kimi", address: "https://api.moonshot.cn/v1")
-        XCTAssertEqual(kimi.upstreamModelID, "moonshot-v1-auto")
+        XCTAssertEqual(kimi.upstreamModelID, "kimi-latest")
         XCTAssertEqual(kimi.displayName, "Kimi Latest")
 
         let ollama = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "Ollama", address: "http://localhost:11434/v1")
@@ -1610,20 +1610,24 @@ final class ProviderSettingsStateTests: XCTestCase {
         XCTAssertEqual(ollama.displayName, "Llama 3.3")
 
         let openRouter = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "OpenRouter", address: "https://openrouter.ai/api/v1")
-        XCTAssertEqual(openRouter.upstreamModelID, "anthropic/claude-3.7-sonnet")
-        XCTAssertEqual(openRouter.displayName, "Claude 3.7 Sonnet")
+        XCTAssertEqual(openRouter.upstreamModelID, "anthropic/claude-sonnet-5.5")
+        XCTAssertEqual(openRouter.displayName, "Claude Sonnet 5.5")
 
         let siliconFlow = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "SiliconFlow", address: "https://api.siliconflow.cn/v1")
-        XCTAssertEqual(siliconFlow.upstreamModelID, "deepseek-ai/DeepSeek-V3")
-        XCTAssertEqual(siliconFlow.displayName, "DeepSeek V3")
+        XCTAssertEqual(siliconFlow.upstreamModelID, "deepseek-ai/DeepSeek-V4-Flash")
+        XCTAssertEqual(siliconFlow.displayName, "DeepSeek V4 Flash")
 
         let qwen = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "通义千问 (DashScope)", address: "https://dashscope.aliyuncs.com/compatible-mode/v1")
         XCTAssertEqual(qwen.upstreamModelID, "qwen-plus")
         XCTAssertEqual(qwen.displayName, "Qwen Plus")
 
         let zhipu = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "智谱 BigModel", address: "https://open.bigmodel.cn/api/paas/v4")
-        XCTAssertEqual(zhipu.upstreamModelID, "glm-4-plus")
-        XCTAssertEqual(zhipu.displayName, "GLM-4 Plus")
+        XCTAssertEqual(zhipu.upstreamModelID, "glm-5.3")
+        XCTAssertEqual(zhipu.displayName, "GLM-5.3")
+
+        let grok = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "xAI Grok", address: "https://api.x.ai/v1")
+        XCTAssertEqual(grok.upstreamModelID, "grok-4.7")
+        XCTAssertEqual(grok.displayName, "Grok 4.7")
 
         let fallback = ChannelModelPlaceholder.resolve(for: nil)
         XCTAssertEqual(fallback.upstreamModelID, "gpt-6-luna")
