@@ -231,18 +231,29 @@ for (const rel of htmlFiles) {
     errors.push(`[${rel}] Canonical URL "${canonical}" does not match page's served URL`)
   }
 
-  // Verify hreflang reciprocity (en, zh-CN, x-default)
+  // Verify hreflang reciprocity.
+  // A page may be English-only (its translation not written yet). A translation
+  // alternate is therefore required exactly when that translation exists, and
+  // an alternate must never point at a page that does not exist.
   const hreflangs = new Map(
     linkTags
       .filter((l) => l.rel === 'alternate' && l.hreflang)
       .map((l) => [l.hreflang, l.href])
   )
-  for (const requiredLang of ['en', 'zh-CN', 'x-default']) {
-    const targetHref = hreflangs.get(requiredLang)
-    if (!targetHref) {
+  const urlForRel = (targetRel) =>
+    [...servedFullUrls.entries()].find(([, value]) => value === targetRel)?.[0]
+  const siblingBase = rel.startsWith('zh-CN/') ? rel.slice('zh-CN/'.length) : rel
+  const requiredLangs = ['x-default']
+  if (urlForRel(siblingBase) !== undefined) requiredLangs.push('en')
+  if (urlForRel(`zh-CN/${siblingBase}`) !== undefined) requiredLangs.push('zh-CN')
+  for (const requiredLang of requiredLangs) {
+    if (!hreflangs.get(requiredLang)) {
       errors.push(`[${rel}] Missing hreflang="${requiredLang}" link`)
-    } else if (!servedFullUrls.has(targetHref)) {
-      errors.push(`[${rel}] hreflang="${requiredLang}" points to non-existent/non-200 URL: ${targetHref}`)
+    }
+  }
+  for (const [lang, targetHref] of hreflangs.entries()) {
+    if (!servedFullUrls.has(targetHref)) {
+      errors.push(`[${rel}] hreflang="${lang}" points to non-existent/non-200 URL: ${targetHref}`)
     }
   }
 
@@ -287,8 +298,29 @@ for (const rel of htmlFiles) {
           if (!hasWebSite || !hasSoftwareApp) {
             errors.push(`[${rel}] Homepage JSON-LD must include WebSite and SoftwareApplication in @graph`)
           }
-        } else if (parsed['@type'] !== 'WebPage' || parsed.url !== canonical) {
-          errors.push(`[${rel}] Subpage JSON-LD must have @type="WebPage" and url="${canonical}"`)
+        } else {
+          // Subpages carry a WebPage node, either standalone or as the first node of
+          // a @graph that also holds a FAQPage. The canonical URL must be the page's
+          // own URL in both shapes.
+          const nodes = Array.isArray(parsed['@graph']) ? parsed['@graph'] : [parsed]
+          const webPage = nodes.find((node) => node['@type'] === 'WebPage')
+          if (!webPage || webPage.url !== canonical) {
+            errors.push(`[${rel}] Subpage JSON-LD must have @type="WebPage" and url="${canonical}"`)
+          }
+          for (const node of nodes) {
+            if (node === webPage) continue
+            if (node['@type'] === 'FAQPage') {
+              const questions = Array.isArray(node.mainEntity) ? node.mainEntity : []
+              const complete = questions.length > 0 && questions.every(
+                (q) => typeof q.name === 'string' && q.name.trim() && typeof q.acceptedAnswer?.text === 'string' && q.acceptedAnswer.text.trim()
+              )
+              if (!complete) {
+                errors.push(`[${rel}] FAQPage JSON-LD has a question without name and acceptedAnswer text`)
+              }
+            } else {
+              errors.push(`[${rel}] Unexpected JSON-LD node in @graph: ${node['@type']}`)
+            }
+          }
         }
       } catch (err) {
         errors.push(`[${rel}] Invalid JSON-LD syntax: ${err.message}`)

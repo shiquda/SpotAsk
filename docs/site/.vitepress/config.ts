@@ -4,6 +4,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { defineConfig, type HeadConfig, type PageData } from 'vitepress'
 import { mermaidFence } from './mermaidFence'
+import { localeLinkFilterPlugin } from './englishOnlyPages'
 
 const docsUrl = 'https://shiquda.github.io/SpotAsk/'
 const repositoryUrl = 'https://github.com/shiquda/SpotAsk'
@@ -146,6 +147,7 @@ const englishSidebar = [
     text: 'Help',
     items: [
       { text: 'Troubleshooting', link: '/troubleshooting' },
+      { text: 'ChatGPT ⌥Space Conflicts', link: '/guides/chatgpt-option-space' },
       { text: 'Privacy & Local Data', link: '/privacy' },
       { text: 'Changelog', link: '/changelog' }
     ]
@@ -253,6 +255,9 @@ export default defineConfig({
   markdown: {
     config: mermaidFence
   },
+  vite: {
+    plugins: [localeLinkFilterPlugin()]
+  },
   sitemap: {
     hostname: docsUrl
   },
@@ -271,7 +276,7 @@ export default defineConfig({
 
     return { lastUpdated }
   },
-  transformHead({ page, title, description }): HeadConfig[] {
+  transformHead({ page, title, description, siteConfig, pageData }): HeadConfig[] {
     if (page === '404.md') {
       return [['meta', { name: 'robots', content: 'noindex, nofollow' }]]
     }
@@ -329,11 +334,56 @@ export default defineConfig({
           }
         }
 
+    // An English-only page has no Chinese counterpart. Emitting an alternate for a
+    // page that was never written would advertise a 404, so alternates are derived
+    // from the pages that actually exist in the build.
+    const pageExists = (candidate: string): boolean => siteConfig.pages.includes(candidate)
+    const translationLinks: HeadConfig[] = []
+    if (pageExists(pages.english)) {
+      translationLinks.push(['link', { rel: 'alternate', hreflang: 'en', href: canonicalUrlForPage(pages.english) }])
+    }
+    if (pageExists(pages.chinese)) {
+      translationLinks.push(['link', { rel: 'alternate', hreflang: 'zh-CN', href: canonicalUrlForPage(pages.chinese) }])
+    }
+    const defaultLanguagePage = pageExists(pages.english) ? pages.english : pages.chinese
+    if (pageExists(defaultLanguagePage)) {
+      translationLinks.push(['link', { rel: 'alternate', hreflang: 'x-default', href: canonicalUrlForPage(defaultLanguagePage) }])
+    }
+
+    // Pages declare an `faq:` frontmatter list to emit FAQPage structured data next
+    // to the WebPage node. Keeping the answers in frontmatter ties the schema to the
+    // visible FAQ copy on the same page.
+    const faqItems: Record<string, unknown>[] = Array.isArray(pageData.frontmatter.faq)
+      ? pageData.frontmatter.faq
+          .filter((item: { question?: unknown; answer?: unknown }) =>
+            typeof item?.question === 'string' && typeof item?.answer === 'string'
+          )
+          .map((item: { question: string; answer: string }) => ({
+            '@type': 'Question',
+            name: item.question,
+            acceptedAnswer: { '@type': 'Answer', text: item.answer }
+          }))
+      : []
+    const { '@context': schemaContext, ...pageNode } = structuredData as Record<string, unknown>
+    const jsonLd = faqItems.length === 0
+      ? structuredData
+      : {
+          '@context': schemaContext,
+          '@graph': [
+            pageNode,
+            {
+              '@type': 'FAQPage',
+              name: title,
+              url: canonicalUrl,
+              inLanguage: language,
+              mainEntity: faqItems
+            }
+          ]
+        }
+
     return [
       ['link', { rel: 'canonical', href: canonicalUrl }],
-      ['link', { rel: 'alternate', hreflang: 'en', href: canonicalUrlForPage(pages.english) }],
-      ['link', { rel: 'alternate', hreflang: 'zh-CN', href: canonicalUrlForPage(pages.chinese) }],
-      ['link', { rel: 'alternate', hreflang: 'x-default', href: canonicalUrlForPage(pages.english) }],
+      ...translationLinks,
       ['link', { rel: 'alternate', type: 'text/markdown', href: markdownUrl }],
       ['link', { rel: 'describedby', type: 'text/plain', href: `${docsUrl}llms.txt` }],
       ['meta', { property: 'og:type', content: 'website' }],
@@ -348,7 +398,7 @@ export default defineConfig({
       ['meta', { name: 'twitter:title', content: title }],
       ['meta', { name: 'twitter:description', content: description }],
       ['meta', { name: 'twitter:image', content: isChinese ? socialImageUrlZh : socialImageUrl }],
-      ['script', { type: 'application/ld+json' }, JSON.stringify(structuredData)]
+      ['script', { type: 'application/ld+json' }, JSON.stringify(jsonLd)]
     ]
   },
   head: [

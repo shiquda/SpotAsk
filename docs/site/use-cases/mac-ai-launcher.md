@@ -29,7 +29,7 @@ Press a global keyboard shortcut to bring up a focused floating window above you
 ## Verified Boundaries & Practical Notes
 
 - **Operating System Requirement**: SpotAsk is built with modern Swift and AppKit, requiring macOS 15.0 (Sequoia) or later.
-- **Hotkey Conflicts**: If another utility has already registered <kbd>⌥ + Space</kbd>, SpotAsk alerts you so you can record an alternative conflict-free shortcut in Settings.
+- **Hotkey Conflicts**: SpotAsk warns you when a shortcut collides with another SpotAsk shortcut, so you can record a conflict-free combination in Settings > **Shortcuts**. It cannot detect a key that another app already owns: if Raycast, ChatGPT, or a similar utility has claimed <kbd>⌥ + Space</kbd>, give the hotkey to one app only. See [ChatGPT ⌥Space conflicts](/guides/chatgpt-option-space).
 - **Secure Input Protection**: In password prompts or secure terminal sessions where macOS activates Secure Input, global hotkey capture is temporarily suspended by the operating system for security.
 
 ## Download SpotAsk
