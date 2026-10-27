@@ -44,25 +44,16 @@ heroShowcase:
 
 SpotAsk is a free, open-source macOS menu-bar AI assistant and query router built on a simple premise: **"Ask first. Decide where it goes after."**
 
-Press one hotkey — `⌥ + Space` by default — and a focused question window appears instantly over whatever you are doing. Write down your thought while it is fresh, then choose how to handle it:
+Press one hotkey — `⌥ + Space` by default — and a focused question window appears instantly over whatever you are doing. Write the question while it is fresh, then choose:
 
-- **In-app quick answers**: Get rapid streaming replies using your own configured AI model (BYOK).
-- **Smart & 1-click query routing (External Ask)**: Dispatch your query to web platforms (ChatGPT, Perplexity, Grok), desktop apps via URI schemes, or local CLI agents in Terminal — in 1 click or automatically with a decision model (such as `jev`), without consuming chat API tokens or saving history.
+- **In-app quick answers (BYOK)**: stream a reply in the window using the AI service you configured.
+- **External Ask routing**: send the question to a web AI (ChatGPT, Perplexity, Grok), a desktop app, or a local CLI agent — in 1 click, or automatically with a decision model.
 
-There is no account system, no telemetry, and nothing between you and your AI provider. When you close the window (`Esc`), SpotAsk is done and gone — leaving your workspace clean and uninterrupted.
+No account, no telemetry, nothing between you and your provider. Press `Esc` and SpotAsk is gone.
 
-### Core workflows in action
-
-#### 1. Instant hotkey summoning
-![Quick chat with the default hotkey](/images/spotask-hotkey.gif)
-
-#### 2. Inline actions on selected text
-![Quick actions on selected text](/images/spotask-selection.gif)
-
-#### 3. 1-click query routing to CLI agents & tools
-![1-click query routing to CLI agents and external tools](/images/spotask-external.gif)
 ## Next steps
 
-- [Getting Started](/getting-started) walks through installation and your first question.
-- [Explore SpotAsk](/explore) is a map of what you can do with the app.
-- [Troubleshooting](/troubleshooting) covers connection, model, permission, and shortcut problems.
+- [Getting Started](/getting-started) — install SpotAsk, connect a service, and ask your first question.
+- [Explore SpotAsk](/explore) — the capability map for questions, selection, routing, models, attachments, prompts, and shortcuts.
+- [Guides](/guides/connect-openai-compatible) — provider setup, then per-feature how-to pages and use cases.
+- [Troubleshooting](/troubleshooting) — connection, model, permission, and shortcut problems.
