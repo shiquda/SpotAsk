@@ -51,8 +51,70 @@ struct AppearanceSettingsPage: View {
                         Spacer(minLength: 0)
                     }
                 }
+                SettingsFieldRow(label: L10n.string("settings.readingFont")) {
+                    ReadingFontPicker(
+                        selection: Bindable(settings).readingFontFamily,
+                        previewSize: settings.readingFontSize
+                    )
+                }
             }
         }
+    }
+}
+
+// MARK: - Reading Font Picker
+
+/// Lists the font families installed for this user. The catalogue is built on
+/// a background task because enumerating fonts costs ~120 ms, which is too long
+/// to spend while the settings page opens.
+private struct ReadingFontPicker: View {
+    @Binding var selection: String
+    let previewSize: CGFloat
+
+    @State private var families: [ReadingFontFamily] = []
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Picker(L10n.string("settings.readingFont"), selection: $selection) {
+                Text(L10n.string("settings.readingFontSystem")).tag("")
+                ForEach(options) { family in
+                    Text(family.displayName).tag(family.id)
+                }
+            }
+            .labelsHidden()
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(L10n.string("settings.readingFontSample"))
+                .font(
+                    ReadingFontResolver.swiftUIFont(
+                        family: selection,
+                        size: min(previewSize, 20)
+                    )
+                )
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .accessibilityHidden(true)
+        }
+        .task {
+            guard families.isEmpty else { return }
+            families = await Task.detached(priority: .userInitiated) {
+                ReadingFontCatalog.families()
+            }.value
+        }
+    }
+
+    /// The stored family stays selectable even when this Mac no longer has it,
+    /// so opening the page never silently clears the preference.
+    private var options: [ReadingFontFamily] {
+        guard let stored = ReadingFontResolver.family(for: selection),
+              !families.contains(where: { $0.id == stored }) else {
+            return families
+        }
+        let displayName = ReadingFontResolver.isInstalled(stored)
+            ? ReadingFontResolver.displayName(for: stored)
+            : L10n.string("settings.readingFontUnavailable", stored)
+        return families + [ReadingFontFamily(id: stored, displayName: displayName)]
     }
 }
 

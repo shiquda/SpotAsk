@@ -300,6 +300,10 @@
 "settings.renderMath" = "Render math formulas";
 "settings.copyMathWithDelimiters" = "Copy formulas with $$ delimiters";
 "settings.fontSize" = "Font Size";
+"settings.readingFont" = "Reading Font";
+"settings.readingFontSystem" = "System Default";
+"settings.readingFontUnavailable" = "%@ (not installed)";
+"settings.readingFontSample" = "The quick brown fox jumps over the lazy dog. 敏捷的棕色狐狸。";
 "settings.launchAtLogin" = "Launch at login";
 "settings.silentLaunch" = "Launch silently";
 "settings.silentLaunchDescription" = "Keep the window hidden when SpotAsk starts.";

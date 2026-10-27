@@ -13,7 +13,10 @@ Settings > **Appearance** controls how SpotAsk looks. Settings > **General** con
 | --- | --- |
 | Appearance | System, Light, or Dark (3-card preview) |
 | Font Size | Small, Standard, or Large reading size |
+| Reading Font | Any font family installed on your Mac, or the system font |
 | Message Style | Standard or Conversation bubbles |
+
+**Reading Font** applies to answers, your questions, reasoning, and the input field. Code blocks stay monospaced and formulas keep their own typography. SpotAsk keeps your choice even if you later remove that font, and falls back to the system font until it is installed again.
 
 Reading changes apply the next time the question window opens. You can also zoom the interface with the configured zoom shortcuts.
 

@@ -85,6 +85,7 @@ struct ChatComposerView: View {
                         text: $viewModel.input,
                         isFocused: $inputFocused,
                         height: $inputHeight,
+                        readingFontFamily: settings.readingFontFamily,
                         isGenerating: isGenerating,
                         onSubmit: onSend,
                         onEscape: onEscape,

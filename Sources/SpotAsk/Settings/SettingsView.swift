@@ -192,7 +192,7 @@ enum SettingsSearchIndex {
         Entry(section: .general, titleKey: "settings.configuration", labelKeys: ["settings.configurationDescription"]),
         Entry(section: .general, titleKey: "settings.dangerZone", labelKeys: ["settings.dangerZone", "settings.localData", "settings.localDataDescription", "settings.clearAllLocalData"]),
         Entry(section: .appearance, titleKey: "settings.appearance", labelKeys: ["settings.appearance", "settings.theme", "appearance.system", "appearance.light", "appearance.dark"]),
-        Entry(section: .appearance, titleKey: "settings.reading", labelKeys: ["settings.chatMessageStyle", "settings.renderMath", "settings.copyMathWithDelimiters", "settings.fontSize"]),
+        Entry(section: .appearance, titleKey: "settings.reading", labelKeys: ["settings.chatMessageStyle", "settings.renderMath", "settings.copyMathWithDelimiters", "settings.fontSize", "settings.readingFont", "settings.readingFontSystem"]),
         Entry(section: .about, titleKey: "SpotAsk", labelKeys: ["settings.version", "settings.source", "settings.userGuide"]),
         Entry(section: .about, titleKey: "settings.updates", labelKeys: ["settings.autoCheckForUpdates", "settings.checkForUpdates", "update.restoreReminder", "settings.openGitHubRelease"])
     ]

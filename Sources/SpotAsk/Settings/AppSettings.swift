@@ -372,6 +372,7 @@ final class AppSettings {
         static let diagnosticsEnabled = "diagnosticsEnabled"
         static let appearance = "appearance"
         static let fontSize = "fontSize"
+        static let readingFontFamily = "readingFontFamily"
         static let chatMessageStyle = "chatMessageStyle"
         static let interfaceZoomLevel = "interfaceZoomLevel"
         static let language = AppLanguage.defaultsKey
@@ -497,6 +498,9 @@ final class AppSettings {
     var diagnosticsEnabled: Bool = false { didSet { saveSetting("diagnosticsEnabled") } }
     var appearance: AppearanceMode = .system { didSet { saveSetting("appearance") } }
     var fontSize: FontSize = .standard { didSet { saveSetting("fontSize") } }
+    /// Family name of the font used for reading text (chat body, composer,
+    /// reasoning). Empty selects the system font.
+    var readingFontFamily: String = "" { didSet { saveSetting("readingFontFamily") } }
     var chatMessageStyle: ChatMessageStyle = .standard { didSet { saveSetting("chatMessageStyle") } }
     var interfaceZoomLevel: InterfaceZoomLevel = .standard { didSet { saveSetting("interfaceZoomLevel") } }
     var language: AppLanguage = .system { didSet { saveSetting(AppLanguage.defaultsKey) } }

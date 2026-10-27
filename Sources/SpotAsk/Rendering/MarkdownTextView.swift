@@ -12,16 +12,7 @@ struct MarkdownTextView: View {
     @Environment(AppSettings.self) private var settings: AppSettings?
 
     private var effectiveFontSize: Double {
-        if let settings {
-            let baseSize: CGFloat
-            switch settings.fontSize {
-            case .small: baseSize = 13
-            case .standard: baseSize = 14.5
-            case .large: baseSize = 17
-            }
-            return Double(baseSize * settings.interfaceZoomLevel.displayScale)
-        }
-        return 14.5
+        Double(settings?.readingFontSize ?? 14.5)
     }
     init(
         content: String,
