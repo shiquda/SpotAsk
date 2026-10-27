@@ -1,20 +1,28 @@
 ---
 layout: home
 
-title: SpotAsk
-titleTemplate: "Native macOS AI Assistant & Query Router"
-description: "SpotAsk is a free, open-source native macOS menu-bar AI assistant and query router. Summon with a hotkey — stream fast in-app BYOK answers, or route questions to ChatGPT, Perplexity, and local CLI agents automatically with a decision model or in 1 click."
+title: "SpotAsk – One Hotkey to Ask Any AI | Mac Menu Bar App"
+titleTemplate: false
+description: "Open-source Mac menu bar app: press ⌥Space to ask any AI with your own API key, ChatGPT, Perplexity, or a local CLI agent. Free and native."
 
 hero:
-  name: SpotAsk
-  tagline: "Ask first, decide where it goes after. A fast, native macOS menu-bar AI assistant & query router."
+  text: "One hotkey. Any AI."
+  tagline: "A free, open-source menu bar assistant for Mac. Use your own API key, or send the question to ChatGPT, Perplexity, or a local CLI agent."
   actions:
     - theme: brand
+      text: Download (Apple Silicon)
+      link: https://github.com/shiquda/SpotAsk/releases/latest
+    - theme: alt
+      text: Download (Intel)
+      link: https://github.com/shiquda/SpotAsk/releases/latest
+    - theme: alt
       text: Get Started
       link: /getting-started
-    - theme: alt
-      text: Explore SpotAsk
-      link: /explore
+
+# Left info rendered by SpotAskHeroCompat; right terminal card rendered by
+# SpotAskHeroInstall in #home-hero-image (see docs/site/.vitepress/theme/Layout.vue).
+heroInstall:
+  compat: "macOS 15+ · Apple Silicon / Intel · Native Swift"
 
 features:
   - title: "Ask first, route anywhere"
@@ -24,9 +32,9 @@ features:
   - title: "Bring your own AI service (BYOK)"
     details: "Connect OpenAI-compatible, Anthropic, or Gemini endpoints. Access keys stay encrypted in your Keychain with zero middle servers or telemetry."
   - title: "Lightweight & pure native"
-    details: "~10 MB installer, pure Swift/AppKit, zero Electron runtime, keyboard-first with Esc-to-close, and instant cold launch."
+    details: "Pure Swift/AppKit, zero Electron runtime, keyboard-first with Esc-to-close, and instant cold launch."
 
-# Rendered between the hero actions and the feature cards by SpotAskHeroShowcase.
+# Rendered below the hero install block by SpotAskHeroShowcase.
 heroShowcase:
   src: /images/spotask-hero.png
   alt: "SpotAsk — one prompt routed to an in-app answer, a web AI, or a local CLI agent"

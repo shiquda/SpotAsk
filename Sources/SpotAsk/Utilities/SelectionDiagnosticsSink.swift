@@ -5,10 +5,12 @@ protocol SelectionDiagnosticsSink: Sendable {
 }
 
 struct UserDefaultsSelectionDiagnosticsSink: SelectionDiagnosticsSink, @unchecked Sendable {
+    static let defaultDefaultsKey = "selectionDiagnostics"
+
     private let defaults: UserDefaults
     private let key: String
 
-    init(defaults: UserDefaults = .standard, key: String = "selectionDiagnostics") {
+    init(defaults: UserDefaults = .standard, key: String = defaultDefaultsKey) {
         self.defaults = defaults
         self.key = key
     }

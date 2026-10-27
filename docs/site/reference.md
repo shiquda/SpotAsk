@@ -10,20 +10,20 @@ description: A compact reference for SpotAsk settings sections, default shortcut
 | Section | What it configures |
 | --- | --- |
 | Services | AI service formats, addresses, access keys, timeouts, models, model discovery |
-| Prompts | Built-in prompts, custom prompts, order, enabled state, custom instructions |
-| External Ask | External targets, order, enabled state, the feature switch, custom entries, and optional System One decision routing |
-| Selection Assistant | Permission, trigger mode, default action, auto-show, app scope, delay |
-| Shortcuts | Global hotkey and shortcuts used while the SpotAsk window is open |
-| General | Language, launch behavior, session retention, proxy, diagnostics, local data |
-| Appearance | Appearance, font size, message style, and reading size |
+| Prompts | Built-in and custom prompt presets, order, restore defaults, custom instructions |
+| External Ask | External targets, preset templates, order, feature switch, and decision routing |
+| Selection Assistant | Permission, trigger mode, default action, preview & ordering, auto-show, app scope, delay |
+| Shortcuts | Global hotkey and in-app shortcuts with search, conflict detection, and grouping |
+| General | Language, launch behavior, session retention, proxy, diagnostics, local data & Danger Zone |
+| Appearance | Theme (System, Light, Dark), font size, message style, and reading size |
 | About | Version, project source, automatic update checks, and manual update checks |
 
 Decision Routing lives in Settings > External Ask, after the channel list. It is off until you turn on **Enable automatic routing**.
 
 | Field | What to enter |
 | --- | --- |
-| Service address | TypeSafe official: `https://api.typesafe.ai`. OpenRouter: `https://openrouter.ai/api`. |
-| Decision model | TypeSafe official: `jev-1.13.0`. OpenRouter: `typesafe/jev-1.13`. |
+| Service address | TypeSafe official: `https://api.typesafe.ai`. OpenRouter: `https://openrouter.ai/api`. OpenAI Decisions: `https://api.openai.com`. |
+| Decision model | TypeSafe official: `jev-1.13.0`. OpenRouter: `typesafe/jev-1.13`. OpenAI Decisions: `gpt-6-luna`. |
 | Access key | A key for that same service. It is sent only to the address above. |
 | Confirmation | **Always confirm**, or **Auto-send above threshold**. |
 | Confidence threshold | Auto-send only when confidence is strictly above this value. Default 0.8. |

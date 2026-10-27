@@ -11,6 +11,34 @@ struct SettingsLayoutTests {
         #expect(ModalSheetPresenter.resolveWindow(preferred: dummy) === dummy)
         #expect(ModalSheetPresenter.resolveWindow(preferred: nil, provider: { dummy }) === dummy)
     }
+    @Test func settingsLabeledLayoutSizingAndSinglePassInstantiation() {
+        final class Counter: @unchecked Sendable {
+            var count = 0
+        }
+        let counter = Counter()
+
+        struct CountingContentView: View {
+            let counter: Counter
+            var body: some View {
+                let _ = { counter.count += 1 }()
+                Text("Content")
+            }
+        }
+
+        let wideRow = SettingsLabeledLayout {
+            Text("Label")
+            CountingContentView(counter: counter)
+        }
+
+        let wideHost = NSHostingView(rootView: wideRow)
+        wideHost.frame = NSRect(x: 0, y: 0, width: 500, height: 40)
+        wideHost.layoutSubtreeIfNeeded()
+
+        #expect(counter.count == 1)
+        let size = wideHost.fittingSize
+        #expect(size.width >= 400)
+    }
+
 
     @Test func settingsSidebarNavigationMovesOnlyBetweenExistingSections() {
         #expect(SettingsSection.provider.moving(.down) == .prompts)
@@ -515,6 +543,34 @@ struct SettingsLayoutTests {
         } while Date() < deadline
     }
 
+    @Test func listReorderControlsVerticalLayoutAndActionWiring() {
+        var movedUp = false
+        var movedDown = false
+
+        let controls = ListReorderControls(
+            title: "Test Item",
+            position: 2,
+            totalCount: 3,
+            onMoveUp: { movedUp = true },
+            onMoveDown: { movedDown = true }
+        )
+
+        let host = NSHostingView(rootView: controls)
+        host.frame = NSRect(x: 0, y: 0, width: 60, height: 60)
+        host.layoutSubtreeIfNeeded()
+
+        let size = host.fittingSize
+        // Vertically stacked controls should be compact: width around 20, height around 27
+        #expect(size.width <= 25)
+        #expect(size.height >= 20 && size.height <= 35)
+
+        // Verify action closures work as expected
+        controls.onMoveUp?()
+        #expect(movedUp)
+
+        controls.onMoveDown?()
+        #expect(movedDown)
+    }
 }
 
 @MainActor

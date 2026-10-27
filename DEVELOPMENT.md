@@ -20,7 +20,11 @@ npm run docs:verify
 npm run docs:preview
 ```
 
-The GitHub Pages workflow in `.github/workflows/docs.yml` builds `docs/site`, runs `npm run docs:verify` to validate sitemap URLs, canonicals, `hreflang` reciprocity, JSON-LD structured data, and internal links, and deploys the artifact to `https://shiquda.github.io/SpotAsk/`.
+The GitHub Pages workflow in `.github/workflows/docs.yml` builds `docs/site`, runs `npm run docs:verify` to validate `sitemap.xml`, plain text `sitemap.txt`, canonicals, `hreflang` reciprocity, JSON-LD structured data, and internal links, and deploys the artifact to `https://shiquda.github.io/SpotAsk/`.
+
+The English homepage owns its exact title, description, and hero copy in `docs/site/index.md` (`titleTemplate: false`). English documentation pages inherit `:title | SpotAsk – Ask Any AI on Mac` from `.vitepress/config.ts`; Chinese titles keep their existing template. The same config derives Open Graph and Twitter text from page metadata and publishes the `SpotAsk` WebSite name and SoftwareApplication image. After editing these values, inspect the built homepage and a secondary page in the browser as well as running the verifier. In Search Console, submit only `https://shiquda.github.io/SpotAsk/sitemap.xml`; the generated text sitemap remains available to other consumers.
+
+The repository is also the Homebrew tap. Keep the listing description in `Casks/spotask.rb` aligned with the product positioning, and point its homepage to the documentation site. Metadata-only edits must leave release versions, download URLs, and checksums unchanged.
 
 ## Build and test
 
@@ -34,6 +38,8 @@ swift build -c release
 # Build, install, and open an isolated local Debug app
 ./Scripts/install-debug-app.sh
 ```
+
+`swift test` runs in a SwiftPM process with no bundle identifier. Data-clearing tests must inject their own `UserDefaults` suite name, `SessionStore`, credential file, and `DiagnosticLogStore`. `GeneralSettingsState.clearAllLocalData()` deletes only those injected stores. It does not fall back to `com.spotask.app` when the process has no bundle identifier, and it must not be pointed at `UserDefaults.standard` or `DiagnosticLogStore.shared`.
 
 ## App bundle and DMG
 
@@ -59,10 +65,10 @@ After both architecture DMGs exist, generate signed feeds. Release notes are emb
 ```sh
 SPARKLE_ED_PRIVATE_KEY_FILE=.sparkle/eddsa_priv.key \
 ./Scripts/generate-appcast.sh \
-  --version 0.3.0 \
-  --tag v0.3.0 \
-  --arm64-dmg dist/SpotAsk-0.3.0-arm64.dmg \
-  --x86_64-dmg dist/SpotAsk-0.3.0-x86_64.dmg \
+  --version 0.3.1 \
+  --tag v0.3.1 \
+  --arm64-dmg dist/SpotAsk-0.3.1-arm64.dmg \
+  --x86_64-dmg dist/SpotAsk-0.3.1-x86_64.dmg \
   --notes path/to/notes.md \
   --notes-zh path/to/notes.zh-CN.md
 ```
@@ -255,8 +261,8 @@ CI runs it on every pull request and every push to `main`, before the test suite
 
 ```sh
 ./Scripts/audit-changelog-diff.sh                    # latest v* tag .. HEAD vs. [Unreleased]
-./Scripts/audit-changelog-diff.sh --section 0.3.0    # audit against a released section instead
-./Scripts/audit-changelog-diff.sh --base v0.2.7      # audit a wider or narrower range
+./Scripts/audit-changelog-diff.sh --section 0.3.1    # audit against a released section instead
+./Scripts/audit-changelog-diff.sh --base v0.3.0      # audit a wider or narrower range
 ```
 
 Reads `git log <base>..HEAD` with the file list per commit, compares every commit subject against the text of the section, and prints a Markdown report with the range, the diff stat, and three groups:

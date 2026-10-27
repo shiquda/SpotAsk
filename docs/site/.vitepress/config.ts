@@ -1,5 +1,7 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { readFile, writeFile } from 'node:fs/promises'
+import path from 'node:path'
 import { defineConfig, type HeadConfig, type PageData } from 'vitepress'
 import { mermaidFence } from './mermaidFence'
 
@@ -7,6 +9,7 @@ const docsUrl = 'https://shiquda.github.io/SpotAsk/'
 const repositoryUrl = 'https://github.com/shiquda/SpotAsk'
 const socialImageUrl = `${docsUrl}images/spotask-hero.png`
 const socialImageUrlZh = `${docsUrl}images/spotask-hero-zh.png`
+const cloudflareAnalyticsToken = 'fafa994034644f97a61bd5516eb85fd3'
 
 const runGit = promisify(execFile)
 
@@ -114,6 +117,16 @@ const englishSidebar = [
     ]
   },
   {
+    text: 'Use Cases',
+    items: [
+      { text: 'macOS AI Launcher', link: '/use-cases/mac-ai-launcher' },
+      { text: 'BYOK Native AI Client', link: '/use-cases/byok-macos-ai' },
+      { text: 'External Ask & Routing', link: '/use-cases/external-ask-routing' },
+      { text: 'Selection Assistant', link: '/use-cases/selection-assistant' },
+      { text: 'Zero-Telemetry Privacy', link: '/use-cases/privacy-architecture' }
+    ]
+  },
+  {
     text: 'Guides',
     items: [
       { text: 'Connect an OpenAI-Compatible Service', link: '/guides/connect-openai-compatible' },
@@ -150,6 +163,16 @@ const chineseSidebar = [
     ]
   },
   {
+    text: '场景专题',
+    items: [
+      { text: 'macOS 全局 AI 启动器', link: '/zh-CN/use-cases/mac-ai-launcher' },
+      { text: 'BYOK 原生 macOS AI 客户端', link: '/zh-CN/use-cases/byok-macos-ai' },
+      { text: 'External Ask 智能路由', link: '/zh-CN/use-cases/external-ask-routing' },
+      { text: '全局划词 AI 助手', link: '/zh-CN/use-cases/selection-assistant' },
+      { text: '本地优先与零遥测隐私架构', link: '/zh-CN/use-cases/privacy-architecture' }
+    ]
+  },
+  {
     text: '指南',
     items: [
       { text: '连接 OpenAI 兼容服务', link: '/zh-CN/guides/connect-openai-compatible' },
@@ -174,6 +197,55 @@ const chineseSidebar = [
     ]
   }
 ]
+function unescapeXml(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+}
+
+async function waitForCompleteSitemapXml(sitemapPath: string, timeoutMs = 5000): Promise<string> {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const content = await readFile(sitemapPath, 'utf8')
+      if (content.includes('</urlset>')) {
+        return content
+      }
+    } catch {}
+    const { promise, resolve } = Promise.withResolvers<void>()
+    setTimeout(resolve, 50)
+    await promise
+  }
+  throw new Error(`Timed out waiting for complete ${sitemapPath} after ${timeoutMs}ms`)
+}
+
+async function generateSitemapTxt(outDir: string): Promise<void> {
+  const sitemapXmlPath = path.join(outDir, 'sitemap.xml')
+  const xmlContent = await waitForCompleteSitemapXml(sitemapXmlPath)
+  const locMatches = [...xmlContent.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) =>
+    unescapeXml(m[1].trim())
+  )
+
+  if (locMatches.length === 0) {
+    throw new Error('No <loc> entries found in sitemap.xml while generating sitemap.txt')
+  }
+
+  const uniqueUrls: string[] = []
+  const seen = new Set<string>()
+  for (const url of locMatches) {
+    if (!seen.has(url)) {
+      seen.add(url)
+      uniqueUrls.push(url)
+    }
+  }
+
+  const sitemapTxtPath = path.join(outDir, 'sitemap.txt')
+  await writeFile(sitemapTxtPath, `${uniqueUrls.join('\n')}\n`, 'utf8')
+}
+
 
 export default defineConfig({
   lang: 'en-US',
@@ -188,6 +260,9 @@ export default defineConfig({
   },
   sitemap: {
     hostname: docsUrl
+  },
+  async buildEnd(siteConfig) {
+    await generateSitemapTxt(siteConfig.outDir)
   },
   async transformPageData(page: PageData) {
     const source = typeof page.frontmatter.source === 'string'
@@ -218,7 +293,7 @@ export default defineConfig({
           '@graph': [
             {
               '@type': 'WebSite',
-              name: title,
+              name: 'SpotAsk',
               description,
               url: canonicalUrl,
               inLanguage: language
@@ -228,10 +303,12 @@ export default defineConfig({
               name: 'SpotAsk',
               description,
               url: canonicalUrl,
+              image: socialImageUrl,
               inLanguage: language,
               applicationCategory: 'DeveloperApplication',
               operatingSystem: 'macOS 15 or later',
-              softwareVersion: '0.3.0',
+              // Keep in sync with Resources/Info.plist CFBundleShortVersionString.
+              softwareVersion: '0.3.2',
               license: 'https://www.gnu.org/licenses/agpl-3.0.html',
               downloadUrl: 'https://github.com/shiquda/SpotAsk/releases/latest',
               codeRepository: repositoryUrl,
@@ -252,7 +329,7 @@ export default defineConfig({
           inLanguage: language,
           isPartOf: {
             '@type': 'WebSite',
-            name: 'SpotAsk Documentation',
+            name: 'SpotAsk',
             url: docsUrl
           }
         }
@@ -282,17 +359,36 @@ export default defineConfig({
   head: [
     ['meta', { name: 'google-site-verification', content: 'Ql8N_lmVtP3E7_UWahGD9Z98qn52SCfpR53f8tIXW3E' }],
     ['link', { rel: 'icon', href: '/SpotAsk/spotask-icon.png' }],
-    ['link', { rel: 'sitemap', type: 'application/xml', href: `${docsUrl}sitemap.xml` }]
+    ['link', { rel: 'sitemap', type: 'application/xml', href: `${docsUrl}sitemap.xml` }],
+    [
+      'script',
+      {
+        defer: '',
+        src: 'https://static.cloudflareinsights.com/beacon.min.js',
+        'data-cf-beacon': JSON.stringify({ token: cloudflareAnalyticsToken })
+      }
+    ]
   ],
   locales: {
     root: {
       label: 'English',
       lang: 'en',
       title: 'SpotAsk Docs',
+      titleTemplate: ':title | SpotAsk – Ask Any AI on Mac',
       description: 'Learn what SpotAsk can do, connect your AI service, and solve common problems.',
       themeConfig: {
         nav: [
           { text: 'Getting Started', link: '/getting-started' },
+          {
+            text: 'Use Cases',
+            items: [
+              { text: 'macOS AI Launcher', link: '/use-cases/mac-ai-launcher' },
+              { text: 'BYOK Native AI Client', link: '/use-cases/byok-macos-ai' },
+              { text: 'External Ask & Routing', link: '/use-cases/external-ask-routing' },
+              { text: 'Selection Assistant', link: '/use-cases/selection-assistant' },
+              { text: 'Zero-Telemetry Privacy', link: '/use-cases/privacy-architecture' }
+            ]
+          },
           { text: 'Explore', link: '/explore' },
           { text: 'Philosophy', link: '/philosophy' },
           { text: 'Guides', link: '/guides/connect-openai-compatible' },
@@ -324,6 +420,16 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: '快速开始', link: '/zh-CN/getting-started' },
+          {
+            text: '场景专题',
+            items: [
+              { text: 'macOS 全局 AI 启动器', link: '/zh-CN/use-cases/mac-ai-launcher' },
+              { text: 'BYOK 原生 macOS AI 客户端', link: '/zh-CN/use-cases/byok-macos-ai' },
+              { text: 'External Ask 智能路由', link: '/zh-CN/use-cases/external-ask-routing' },
+              { text: '全局划词 AI 助手', link: '/zh-CN/use-cases/selection-assistant' },
+              { text: '本地优先与零遥测隐私架构', link: '/zh-CN/use-cases/privacy-architecture' }
+            ]
+          },
           { text: '能力地图', link: '/zh-CN/explore' },
           { text: '设计理念', link: '/zh-CN/philosophy' },
           { text: '指南', link: '/zh-CN/guides/connect-openai-compatible' },

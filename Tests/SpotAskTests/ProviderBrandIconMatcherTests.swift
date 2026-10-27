@@ -4,6 +4,7 @@ import XCTest
 final class ProviderBrandIconMatcherTests: XCTestCase {
     func testMatchesCommonModelNames() {
         XCTAssertEqual(ProviderBrandIconMatcher.match("gpt-5-mini"), "openai")
+        XCTAssertEqual(ProviderBrandIconMatcher.match("gpt-6-luna"), "openai")
         XCTAssertEqual(ProviderBrandIconMatcher.match("claude-sonnet-4"), "claude-color")
         XCTAssertEqual(ProviderBrandIconMatcher.match("deepseek-chat"), "deepseek-color")
         XCTAssertEqual(ProviderBrandIconMatcher.match("kimi-latest"), "kimi-color")

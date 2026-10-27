@@ -334,3 +334,151 @@ extension QuickActionKind {
         }
     }
 }
+
+// MARK: - Quick Action Template (Mintlify Integrations Pattern)
+
+struct QuickActionTemplate: Identifiable, Sendable, Equatable {
+    let id: String
+    let name: String
+    let kind: QuickActionKind
+    let symbolName: String
+    let iconSlug: String?
+    let category: String
+    let description: String
+    let defaultRoutingPurpose: String
+    let defaultRoutingScenario: String
+
+    init(
+        id: String,
+        name: String,
+        kind: QuickActionKind,
+        symbolName: String,
+        iconSlug: String? = nil,
+        category: String,
+        description: String,
+        defaultRoutingPurpose: String = "",
+        defaultRoutingScenario: String = ""
+    ) {
+        self.id = id
+        self.name = name
+        self.kind = kind
+        self.symbolName = symbolName
+        self.iconSlug = iconSlug
+        self.category = category
+        self.description = description
+        self.defaultRoutingPurpose = defaultRoutingPurpose
+        self.defaultRoutingScenario = defaultRoutingScenario
+    }
+
+    func makeQuickAction() -> QuickAction {
+        QuickAction(
+            name: name,
+            kind: kind,
+            symbolName: symbolName,
+            isBuiltIn: false,
+            isEnabled: true,
+            routingPurpose: defaultRoutingPurpose,
+            routingScenario: defaultRoutingScenario,
+            requiresConfirmationOnAutoRoute: false
+        )
+    }
+
+    func isConfigured(in actions: [QuickAction]) -> Bool {
+        actions.contains { action in
+            action.kind.template == self.kind.template ||
+            action.displayName.caseInsensitiveCompare(self.name) == .orderedSame ||
+            action.name.caseInsensitiveCompare(self.name) == .orderedSame
+        }
+    }
+
+    static let allTemplates: [QuickActionTemplate] = [
+        QuickActionTemplate(
+            id: "chatgpt",
+            name: "ChatGPT",
+            kind: .web(urlTemplate: "https://chatgpt.com/?q={query}"),
+            symbolName: "bubble.left.and.bubble.right",
+            iconSlug: "openai",
+            category: L10n.string("externalAsk.template.category.ai"),
+            description: L10n.string("externalAsk.template.chatgpt.desc"),
+            defaultRoutingPurpose: L10n.string("externalAsk.template.chatgpt.purpose"),
+            defaultRoutingScenario: L10n.string("externalAsk.template.chatgpt.scenario")
+        ),
+        QuickActionTemplate(
+            id: "claude",
+            name: "Claude",
+            kind: .web(urlTemplate: "https://claude.ai/new?q={query}"),
+            symbolName: "sparkles",
+            iconSlug: "claude-color",
+            category: L10n.string("externalAsk.template.category.ai"),
+            description: L10n.string("externalAsk.template.claude.desc"),
+            defaultRoutingPurpose: L10n.string("externalAsk.template.claude.purpose"),
+            defaultRoutingScenario: L10n.string("externalAsk.template.claude.scenario")
+        ),
+        QuickActionTemplate(
+            id: "perplexity",
+            name: "Perplexity",
+            kind: .web(urlTemplate: "https://www.perplexity.ai/search?q={query}"),
+            symbolName: "globe",
+            iconSlug: "perplexity-color",
+            category: L10n.string("externalAsk.template.category.search"),
+            description: L10n.string("externalAsk.template.perplexity.desc"),
+            defaultRoutingPurpose: L10n.string("externalAsk.template.perplexity.purpose"),
+            defaultRoutingScenario: L10n.string("externalAsk.template.perplexity.scenario")
+        ),
+        QuickActionTemplate(
+            id: "deepseek",
+            name: "DeepSeek",
+            kind: .web(urlTemplate: "https://chat.deepseek.com/?q={query}"),
+            symbolName: "cpu",
+            iconSlug: "deepseek-color",
+            category: L10n.string("externalAsk.template.category.reasoning"),
+            description: L10n.string("externalAsk.template.deepseek.desc"),
+            defaultRoutingPurpose: L10n.string("externalAsk.template.deepseek.purpose"),
+            defaultRoutingScenario: L10n.string("externalAsk.template.deepseek.scenario")
+        ),
+        QuickActionTemplate(
+            id: "kimi",
+            name: "Kimi",
+            kind: .web(urlTemplate: "https://kimi.moonshot.cn/?q={query}"),
+            symbolName: "doc.text.magnifyingglass",
+            iconSlug: "kimi-color",
+            category: L10n.string("externalAsk.template.category.reading"),
+            description: L10n.string("externalAsk.template.kimi.desc"),
+            defaultRoutingPurpose: L10n.string("externalAsk.template.kimi.purpose"),
+            defaultRoutingScenario: L10n.string("externalAsk.template.kimi.scenario")
+        ),
+        QuickActionTemplate(
+            id: "google",
+            name: "Google Search",
+            kind: .web(urlTemplate: "https://www.google.com/search?q={query}"),
+            symbolName: "magnifyingglass",
+            iconSlug: "google-color",
+            category: L10n.string("externalAsk.template.category.webSearch"),
+            description: L10n.string("externalAsk.template.google.desc"),
+            defaultRoutingPurpose: L10n.string("externalAsk.template.google.purpose"),
+            defaultRoutingScenario: L10n.string("externalAsk.template.google.scenario")
+        ),
+        QuickActionTemplate(
+            id: "grok",
+            name: "Grok",
+            kind: .web(urlTemplate: "https://grok.com/?q={query}"),
+            symbolName: "sparkles",
+            iconSlug: "grok",
+            category: L10n.string("externalAsk.template.category.insights"),
+            description: L10n.string("externalAsk.template.grok.desc"),
+            defaultRoutingPurpose: L10n.string("externalAsk.template.grok.purpose"),
+            defaultRoutingScenario: L10n.string("externalAsk.template.grok.scenario")
+        ),
+        QuickActionTemplate(
+            id: "github",
+            name: "GitHub Code",
+            kind: .web(urlTemplate: "https://github.com/search?q={query}&type=code"),
+            symbolName: "chevron.left.forwardslash.chevron.right",
+            iconSlug: nil,
+            category: L10n.string("externalAsk.template.category.code"),
+            description: L10n.string("externalAsk.template.github.desc"),
+            defaultRoutingPurpose: L10n.string("externalAsk.template.github.purpose"),
+            defaultRoutingScenario: L10n.string("externalAsk.template.github.scenario")
+        )
+    ]
+}

@@ -1,6 +1,8 @@
 import XCTest
 @testable import SpotAsk
+import SwiftUI
 import Textual
+@_spi(Textual) import SwiftUIMath
 
 final class MarkdownRenderingTests: XCTestCase {
     func testStreamingMarkdownContentJoinsDeltasIntoOneDocument() {
@@ -181,6 +183,63 @@ final class MarkdownRenderingTests: XCTestCase {
                 return languageHint?.lowercased() == "math"
             } == true
         })
+    }
+
+    func testBoldsymbolFormulaRendersWithNonZeroSize() {
+        let latex = #"\boldsymbol{o}_t = \frac{\sum_{i=1}^t e^{\boldsymbol{q}_t \cdot \boldsymbol{k}_i} \boldsymbol{v}_i}{\sum_{i=1}^t e^{\boldsymbol{q}_t \cdot \boldsymbol{k}_i}}"#
+        XCTAssertTrue(Math.canRender(latex))
+
+        let bounds = Math.typographicBounds(
+            for: latex,
+            fitting: ProposedViewSize(width: 800, height: nil),
+            font: .init(name: .latinModern, size: 20),
+            style: .display
+        )
+
+        XCTAssertGreaterThan(bounds.width, 0)
+        XCTAssertGreaterThan(bounds.size.height, 0)
+    }
+
+    func testUnsupportedMathFallsBackToReadableText() {
+        let markdown = #"""
+        \[
+        \unknowncommand{x}
+        \]
+        """#
+
+        XCTAssertEqual(
+            MathMarkdownNormalizer.normalize(markdown),
+            """
+            ```text
+            \\unknowncommand{x}
+            ```
+            """
+        )
+    }
+
+    func testUnsupportedInlineMathFallsBackToCodeSpan() {
+        XCTAssertEqual(
+            MathMarkdownNormalizer.normalize(#"before \(\unknowncommand{x}\) after"#),
+            #"before `\unknowncommand{x}` after"#
+        )
+    }
+
+    func testMalformedDoubleBackslashMathDoesNotCrash() {
+        let latex = #"\\boldsymbol{o}*t = \\frac{\\sum*{i=1}^t e^{\\boldsymbol{q}\_t \\cdot \\boldsymbol{k}_i} \\boldsymbol{v}*i}{\\sum*{i=1}^t e^{\\boldsymbol{q}\_t \\cdot \\boldsymbol{k}_i}}"#
+
+        XCTAssertFalse(Math.canRender(latex))
+        let bounds = Math.typographicBounds(
+            for: latex,
+            fitting: ProposedViewSize(width: 800, height: nil),
+            font: .init(name: .latinModern, size: 20),
+            style: .display
+        )
+        XCTAssertEqual(bounds.width, 0)
+
+        XCTAssertEqual(
+            MathMarkdownNormalizer.normalize("\\[\n\(latex)\n\\]"),
+            "```text\n\(latex)\n```"
+        )
     }
 
     func testMathNormalizerPreservesUnclosedDollarBlock() {

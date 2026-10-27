@@ -710,6 +710,38 @@ final class SettingRegistry: Sendable {
             keyPath: \.selectionActionBarShowsExternalAsk
         ))
         register(SettingDescriptors.bool(
+            key: "selectionActionBarCollapseOverflow",
+            defaultValue: true,
+            keyPath: \.selectionActionBarCollapseOverflow,
+            onChanged: { _, _ in
+                NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+            }
+        ))
+        register(SettingDescriptors.stringArray(
+            key: "selectionActionBarItemOrder",
+            defaultValue: [],
+            keyPath: \.selectionActionBarItemOrder,
+            onChanged: { _, _ in
+                NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+            }
+        ))
+        register(SettingDescriptors.stringArray(
+            key: "selectionActionBarSecondaryItemIDs",
+            defaultValue: [],
+            keyPath: \.selectionActionBarSecondaryItemIDs,
+            onChanged: { _, _ in
+                NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+            }
+        ))
+        register(SettingDescriptors.bool(
+            key: "selectionActionBarCustomized",
+            defaultValue: false,
+            keyPath: \.selectionActionBarCustomized,
+            onChanged: { _, _ in
+                NotificationCenter.default.post(name: .spotAskSelectionAssistantChanged, object: nil)
+            }
+        ))
+        register(SettingDescriptors.bool(
             key: "automaticUpdateCheckEnabled",
             defaultValue: true,
             keyPath: \.automaticUpdateCheckEnabled
@@ -748,6 +780,16 @@ final class SettingRegistry: Sendable {
             key: "decisionRoutingModel",
             defaultValue: DecisionRoutingPolicy.defaultOfficialModel,
             keyPath: \.decisionRoutingModel
+        ))
+        register(SettingDescriptors.string(
+            key: "decisionRoutingOpenAIServiceURL",
+            defaultValue: DecisionRoutingPolicy.defaultOpenAIServiceURL,
+            keyPath: \.decisionRoutingOpenAIServiceURL
+        ))
+        register(SettingDescriptors.string(
+            key: "decisionRoutingOpenAIModel",
+            defaultValue: DecisionRoutingPolicy.defaultOpenAIModel,
+            keyPath: \.decisionRoutingOpenAIModel
         ))
         register(SettingDescriptors.rawRepresentable(
             key: "decisionRoutingConfirmationMode",
@@ -788,7 +830,7 @@ final class SettingRegistry: Sendable {
         ))
         register(SettingDescriptors.string(
             key: "model",
-            defaultValue: "gpt-5-mini"
+            defaultValue: "gpt-6-luna"
         ))
         register(SettingDescriptors.bool(
             key: "streaming",

@@ -11,7 +11,7 @@ Settings > **Appearance** controls how SpotAsk looks. Settings > **General** con
 
 | Setting | What it does |
 | --- | --- |
-| Appearance | Use System, Light, or Dark |
+| Appearance | System, Light, or Dark (3-card preview) |
 | Font Size | Small, Standard, or Large reading size |
 | Message Style | Standard or Conversation bubbles |
 
@@ -39,8 +39,7 @@ Settings > General > **Language** changes the app interface. Use **Automatic (Sy
 
 ## Configuration, diagnostics, and local data
 
-Use **Configuration Backup** to export and import settings without moving keys by default. Use **Diagnostics** for troubleshooting. Use **Clear All Local Data** to remove keys, settings, and saved conversations.
-
+Use **Configuration Backup** to export and import settings without moving keys by default. Use **Diagnostics** for troubleshooting. Sensitive actions like **Clear All Local Data** are protected in a **Danger Zone** with two-stage confirmation.
 <SpotAskSettingsLink section="general" />
 
 Related: [Settings & Shortcuts Reference](/reference), [Privacy & Local Data](/privacy)

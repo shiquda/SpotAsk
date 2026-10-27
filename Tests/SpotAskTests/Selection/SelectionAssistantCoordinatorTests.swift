@@ -476,6 +476,43 @@ struct SelectionAssistantCoordinatorTests {
         #expect(!overlay.shownPresets.isEmpty)
     }
 
+    @Test("A real selection presents the customized order and secondary menu the user arranged")
+    func actionBarPresentsCustomizedOrderAndSecondaryMenu() async throws {
+        let settings = makeSettings()
+        settings.selectionActionBarShowsChatAction = true
+        settings.selectionActionBarShowsPrompts = true
+        settings.selectionActionBarShowsExternalAsk = false
+        settings.selectionActionBarCollapseOverflow = true
+        for preset in settings.promptPresets {
+            settings.setPromptPresetEnabled(id: preset.id, isEnabled: false)
+        }
+        let presets = (1...3).map { PromptPreset(title: "P\($0)", instruction: "I\($0)") }
+        for preset in presets { _ = settings.saveCustomPromptPreset(preset) }
+
+        // The user folds the first prompt into the secondary menu and drags the
+        // chat action behind it, so the bar can only match by honouring the
+        // partition the Settings preview arranged.
+        let movedID = "preset:\(presets[0].id.uuidString)"
+        settings.moveActionBarItemToSecondary(id: movedID)
+        settings.reorderActionBarItem(id: "chat", toIndex: 1)
+
+        let overlay = SelectionOverlayStub()
+        let coordinator = makeCoordinator(settings: settings, reader: SelectionReaderStub(snapshot: sampleSnapshot), overlay: overlay)
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+
+        #expect(overlay.hasActionHandler)
+        #expect(overlay.primaryItems.map(\.id) == [
+            "preset:\(presets[1].id.uuidString)",
+            "chat",
+            "preset:\(presets[2].id.uuidString)"
+        ])
+        #expect(overlay.secondaryItems.map(\.id) == [movedID])
+    }
+
     @Test("Hiding External Ask in the action bar restores preset-only actions")
     func hidingExternalAskOmitsQuickActions() async {
         let settings = makeSettings()
@@ -905,6 +942,9 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
     private(set) var quickActions: [QuickAction] = []
     private(set) var shownPresets: [PromptPreset] = []
     private(set) var showsChat = false
+    private(set) var collapsesOverflow = false
+    private(set) var primaryItems: [SelectionActionBarItem] = []
+    private(set) var secondaryItems: [SelectionActionBarItem] = []
     private var chatHandler: (() -> Void)?
     private var actionHandler: ((PromptPreset) -> Void)?
     private var quickActionHandler: ((QuickAction) -> Void)?
@@ -918,6 +958,9 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
         presets: [PromptPreset],
         externalAsks: [QuickAction],
         showsLabels: Bool,
+        collapsesOverflow: Bool,
+        primaryItems: [SelectionActionBarItem],
+        secondaryItems: [SelectionActionBarItem],
         shortcutForChat: InAppShortcut?,
         shortcutForPreset: ((PromptPreset) -> InAppShortcut?)?,
         shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?,
@@ -926,6 +969,9 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
         onSelectExternalAsk: @escaping (QuickAction) -> Void
     ) {
         self.showsChat = showsChat
+        self.collapsesOverflow = collapsesOverflow
+        self.primaryItems = primaryItems
+        self.secondaryItems = secondaryItems
         shownPresets = presets
         self.quickActions = externalAsks
         chatHandler = onSelectChat
@@ -946,6 +992,8 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
         quickActionHandler = nil
         shownPresets = []
         quickActions = []
+        primaryItems = []
+        secondaryItems = []
     }
 
     func chooseFirstAction() {

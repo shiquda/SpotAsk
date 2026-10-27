@@ -39,7 +39,7 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
         self.id = id
         self.title = title
         self.instruction = instruction
-        self.customSymbolName = isBuiltIn ? nil : (Self.isValidSymbol(customSymbolName) ? customSymbolName?.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
+        self.customSymbolName = Self.isValidSymbol(customSymbolName) ? customSymbolName?.trimmingCharacters(in: .whitespacesAndNewlines) : nil
         self.isBuiltIn = isBuiltIn
         self.isEnabled = isEnabled
     }
@@ -51,7 +51,7 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
         instruction = try container.decode(String.self, forKey: .instruction)
         isBuiltIn = try container.decode(Bool.self, forKey: .isBuiltIn)
         let rawSymbol = try container.decodeIfPresent(String.self, forKey: .customSymbolName)
-        customSymbolName = isBuiltIn ? nil : (Self.isValidSymbol(rawSymbol) ? rawSymbol?.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
+        customSymbolName = Self.isValidSymbol(rawSymbol) ? rawSymbol?.trimmingCharacters(in: .whitespacesAndNewlines) : nil
         // Prompt presets saved before the catalog always remain enabled.
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
     }
@@ -89,16 +89,20 @@ struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
     /// their fixed symbols, while custom prompts use customSymbolName if valid,
     /// falling back to the default "sparkles" symbol.
     var symbolName: String {
+        if let customSymbolName, Self.isValidSymbol(customSymbolName) {
+            return customSymbolName
+        }
+        return Self.defaultSymbolName(for: id)
+    }
+
+    static func defaultSymbolName(for id: UUID) -> String {
         switch id.uuidString.uppercased() {
         case "EF8CF35C-386A-4389-A137-C207E4DB11FD": return "character.bubble"
         case "1C85A324-65B3-4EBD-B2C4-0C6B072E284A": return "pencil.and.scribble"
         case "5D03D444-EC3D-4F5D-9FB1-91EA5BD4E5B2": return "list.bullet.rectangle"
         case "BF43F694-E4AE-4B5B-9AE9-B4D6D4A4F248": return "doc.text.magnifyingglass"
         default:
-            if let customSymbolName, Self.isValidSymbol(customSymbolName) {
-                return customSymbolName
-            }
-            return Self.defaultSymbolName
+            return defaultSymbolName
         }
     }
 
@@ -131,6 +135,26 @@ enum HotKeyPreset: String, CaseIterable, Identifiable {
         case .commandShiftSpace: InAppShortcut(key: " ", modifiers: [.command, .shift])
         }
     }
+}
+
+enum ShortcutConflictKind: Equatable, Sendable {
+    case globalHotKey(String)
+    case selectionAssistantToggle(String)
+    case inAppTarget(InAppShortcutTarget, title: String)
+
+    var title: String {
+        switch self {
+        case let .globalHotKey(name): name
+        case let .selectionAssistantToggle(name): name
+        case let .inAppTarget(_, title): title
+        }
+    }
+}
+
+struct ShortcutConflictInfo: Equatable, Sendable {
+    let conflictingShortcut: InAppShortcut
+    let conflictSource: ShortcutConflictKind
+    let message: String
 }
 
 enum SelectionAssistantMode: String, CaseIterable, Identifiable, Codable, Sendable {
@@ -360,6 +384,7 @@ final class AppSettings {
         static let showsMenuBarIcon = "showsMenuBarIcon"
         static let customPromptPresets = "customPromptPresets"
         static let promptPresetCatalog = "promptPresetCatalog"
+        static let removedBuiltInPromptPresetIDs = "removedBuiltInPromptPresetIDs"
         static let inAppShortcutConfiguration = "inAppShortcutConfiguration"
         static let selectionAssistantEnabled = "selectionAssistantEnabled"
         static let selectionAssistantMode = "selectionAssistantMode"
@@ -377,12 +402,41 @@ final class AppSettings {
         static let selectionActionBarShowsLabels = "selectionActionBarShowsLabels"
         static let selectionActionBarShowsPrompts = "selectionActionBarShowsPrompts"
         static let selectionActionBarShowsExternalAsk = "selectionActionBarShowsExternalAsk"
+        static let selectionActionBarCollapseOverflow = "selectionActionBarCollapseOverflow"
+        static let selectionActionBarItemOrder = "selectionActionBarItemOrder"
+        static let selectionActionBarSecondaryItemIDs = "selectionActionBarSecondaryItemIDs"
         static let automaticUpdateCheckEnabled = "automaticUpdateCheckEnabled"
         static let updateDownloadSource = "updateDownloadSource"
         static let quickActionCatalog = "webQuickAskProviderCatalog"
         static let externalAskEnabled = "webQuickAskEnabled"
         static let removedBuiltInQuickActionIDs = "removedBuiltInQuickActionIDs"
     }
+
+    /// Persistent domain owned by `defaults`. A suite store must be named by
+    /// its caller. `UserDefaults.standard` uses the process bundle identifier
+    /// when one exists. Clear never invents `com.spotask.app` when that
+    /// identifier is missing.
+    let persistentDomainName: String?
+
+    static let legacyDecisionRoutingEndpointKey = "decisionRoutingEndpoint"
+    static let legacyDecisionRoutingOfficialModelKey = "decisionRoutingOfficialModel"
+    static let legacyDecisionRoutingCustomBaseURLKey = "decisionRoutingCustomBaseURL"
+    static let legacyDecisionRoutingCustomModelKey = "decisionRoutingCustomModel"
+
+    /// Domain keys written outside `SettingRegistry`. Clear-all removes these
+    /// from the injected store even when the registry reset does not.
+    static let supplementalPersistentKeys: [String] = [
+        ProviderModelRegistry.synthesizedCatalogDefaultsKey,
+        DecisionCredentialSlot.preferLegacyCustomKey,
+        UserDefaultsSelectionDiagnosticsSink.defaultDefaultsKey,
+        UserDefaultsAccessibilityGrantIdentityStore.lastTrustedIdentityDefaultsKey,
+        UserDefaultsAccessibilityGrantIdentityStore.lastResetIdentityDefaultsKey,
+        UserDefaultsSkippedVersionStore.key,
+        legacyDecisionRoutingEndpointKey,
+        legacyDecisionRoutingOfficialModelKey,
+        legacyDecisionRoutingCustomBaseURLKey,
+        legacyDecisionRoutingCustomModelKey,
+    ]
 
     let defaults: UserDefaults
     private var isInitializing = true
@@ -455,6 +509,57 @@ final class AppSettings {
     var selectionActionBarShowsLabels: Bool = true { didSet { saveSetting("selectionActionBarShowsLabels") } }
     var selectionActionBarShowsPrompts: Bool = true { didSet { saveSetting("selectionActionBarShowsPrompts") } }
     var selectionActionBarShowsExternalAsk: Bool = true { didSet { saveSetting("selectionActionBarShowsExternalAsk") } }
+    var selectionActionBarCollapseOverflow: Bool = true { didSet { saveSetting("selectionActionBarCollapseOverflow") } }
+    var selectionActionBarItemOrder: [String] = [] { didSet { saveSetting("selectionActionBarItemOrder") } }
+    var selectionActionBarSecondaryItemIDs: [String] = [] { didSet { saveSetting("selectionActionBarSecondaryItemIDs") } }
+    var selectionActionBarCustomized: Bool = false { didSet { saveSetting("selectionActionBarCustomized") } }
+
+    func reorderActionBarItem(id: String, toIndex: Int) {
+        let content = SelectionActionBarContent.resolve(from: self)
+        var primaryIDs = content.primaryItems.map(\.id)
+        guard let currentIndex = primaryIDs.firstIndex(of: id) else { return }
+        primaryIDs.remove(at: currentIndex)
+        let safeIndex = min(max(0, toIndex), primaryIDs.count)
+        primaryIDs.insert(id, at: safeIndex)
+        let secondaryIDs = content.secondaryItems.map(\.id)
+        selectionActionBarItemOrder = primaryIDs + secondaryIDs
+        selectionActionBarCustomized = true
+    }
+
+    func moveActionBarItemToSecondary(id: String) {
+        var secondary = Set(selectionActionBarSecondaryItemIDs)
+        if secondary.isEmpty {
+            let content = SelectionActionBarContent.resolve(from: self)
+            secondary = Set(content.secondaryItems.map(\.id))
+        }
+        secondary.insert(id)
+        selectionActionBarSecondaryItemIDs = Array(secondary)
+        selectionActionBarCustomized = true
+    }
+
+    func moveActionBarItemToPrimary(id: String, atIndex: Int? = nil) {
+        let content = SelectionActionBarContent.resolve(from: self)
+        var secondary = content.secondaryItems.map(\.id)
+        secondary.removeAll { $0 == id }
+        selectionActionBarSecondaryItemIDs = secondary
+
+        var primaryIDs = content.primaryItems.map(\.id)
+        primaryIDs.removeAll { $0 == id }
+        if let atIndex {
+            let safeIndex = min(max(0, atIndex), primaryIDs.count)
+            primaryIDs.insert(id, at: safeIndex)
+        } else {
+            primaryIDs.append(id)
+        }
+        selectionActionBarItemOrder = primaryIDs + secondary
+        selectionActionBarCustomized = true
+    }
+
+    func resetActionBarCustomization() {
+        selectionActionBarItemOrder = []
+        selectionActionBarSecondaryItemIDs = []
+        selectionActionBarCustomized = false
+    }
     var automaticUpdateCheckEnabled: Bool = true { didSet { saveSetting("automaticUpdateCheckEnabled") } }
     var updateDownloadSource: UpdateDownloadSource = .automatic { didSet { saveSetting("updateDownloadSource") } }
     var selectionAutoInvokeEnabled: Bool = false { didSet { saveSetting("selectionAutoInvokeEnabled") } }
@@ -539,6 +644,7 @@ final class AppSettings {
     var customPromptPresets: [PromptPreset] {
         promptPresetCatalog.filter { !$0.isBuiltIn }
     }
+    private var removedBuiltInPromptPresetIDs: Set<UUID>
 
     private var quickActionCatalog: [QuickAction] {
         didSet {
@@ -581,6 +687,16 @@ final class AppSettings {
         didSet { saveSetting("decisionRoutingModel") }
     }
 
+    /// OpenAI Decisions address. Independent of `decisionRoutingServiceURL`.
+    var decisionRoutingOpenAIServiceURL: String = DecisionRoutingPolicy.defaultOpenAIServiceURL {
+        didSet { saveSetting("decisionRoutingOpenAIServiceURL") }
+    }
+
+    /// OpenAI Decisions model. Independent of `decisionRoutingModel`.
+    var decisionRoutingOpenAIModel: String = DecisionRoutingPolicy.defaultOpenAIModel {
+        didSet { saveSetting("decisionRoutingOpenAIModel") }
+    }
+
     var decisionRoutingConfirmationMode: DecisionConfirmationMode = .always {
         didSet { saveSetting("decisionRoutingConfirmationMode") }
     }
@@ -621,11 +737,21 @@ final class AppSettings {
         return quickActionCatalog.filter(\.isEnabled)
     }
     func decisionRoutingSettings() -> DecisionRoutingSettings {
-        DecisionRoutingSettings(
+        let serviceURL: String
+        let model: String
+        switch decisionRoutingProvider {
+        case .systemOne:
+            serviceURL = decisionRoutingServiceURL
+            model = decisionRoutingModel
+        case .openAIDecisions:
+            serviceURL = decisionRoutingOpenAIServiceURL
+            model = decisionRoutingOpenAIModel
+        }
+        return DecisionRoutingSettings(
             isEnabled: decisionRoutingEnabled,
             provider: decisionRoutingProvider,
-            serviceURL: decisionRoutingServiceURL,
-            model: decisionRoutingModel,
+            serviceURL: serviceURL,
+            model: model,
             confirmationMode: decisionRoutingConfirmationMode,
             confidenceThreshold: decisionRoutingConfidenceThreshold,
             timeoutSeconds: decisionRoutingTimeoutSeconds,
@@ -653,8 +779,16 @@ final class AppSettings {
         )
     }
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, persistentDomainName: String? = nil) {
         self.defaults = defaults
+        if let persistentDomainName {
+            self.persistentDomainName = persistentDomainName
+        } else if defaults === UserDefaults.standard {
+            self.persistentDomainName = Bundle.main.bundleIdentifier
+        } else {
+            self.persistentDomainName = nil
+        }
+        removedBuiltInPromptPresetIDs = Self.loadRemovedBuiltInPromptPresetIDs(from: defaults)
         promptPresetCatalog = Self.loadPromptPresetCatalog(from: defaults)
         removedBuiltInQuickActionIDs = Self.loadRemovedBuiltInQuickActionIDs(from: defaults)
         quickActionCatalog = Self.loadQuickActionCatalog(from: defaults)
@@ -664,7 +798,7 @@ final class AppSettings {
             legacy: LegacyProviderConfiguration(
                 baseURL: defaults.string(forKey: Key.baseURL) ?? "https://api.openai.com/v1",
                 useFullEndpoint: defaults.object(forKey: Key.useFullEndpoint) as? Bool ?? false,
-                model: defaults.string(forKey: Key.model) ?? "gpt-5-mini",
+                model: defaults.string(forKey: Key.model) ?? "gpt-6-luna",
                 streaming: defaults.object(forKey: Key.streaming) as? Bool ?? true,
                 timeout: defaults.object(forKey: Key.timeout) as? Double ?? 60
             )
@@ -690,10 +824,10 @@ final class AppSettings {
             hasStoredServiceURL: false,
             storedServiceURL: "",
             storedModel: "",
-            legacyEndpoint: defaults.string(forKey: "decisionRoutingEndpoint"),
-            legacyOfficialModel: defaults.string(forKey: "decisionRoutingOfficialModel"),
-            legacyCustomURL: defaults.string(forKey: "decisionRoutingCustomBaseURL"),
-            legacyCustomModel: defaults.string(forKey: "decisionRoutingCustomModel")
+            legacyEndpoint: defaults.string(forKey: Self.legacyDecisionRoutingEndpointKey),
+            legacyOfficialModel: defaults.string(forKey: Self.legacyDecisionRoutingOfficialModelKey),
+            legacyCustomURL: defaults.string(forKey: Self.legacyDecisionRoutingCustomBaseURLKey),
+            legacyCustomModel: defaults.string(forKey: Self.legacyDecisionRoutingCustomModelKey)
         )
         decisionRoutingServiceURL = migrated.serviceURL
         decisionRoutingModel = migrated.model
@@ -701,6 +835,23 @@ final class AppSettings {
             defaults.set(true, forKey: DecisionCredentialSlot.preferLegacyCustomKey)
         }
         return true
+    }
+
+    /// Deletes every persisted value in this settings store, including keys
+    /// the registry does not own. Does nothing to any other domain.
+    func clearOwnedPersistentDomain() {
+        defaults.synchronize()
+        if let persistentDomainName {
+            let persistedKeys = defaults.persistentDomain(forName: persistentDomainName).map { Array($0.keys) } ?? []
+            defaults.removePersistentDomain(forName: persistentDomainName)
+            for key in persistedKeys {
+                defaults.removeObject(forKey: key)
+            }
+        }
+        for key in Self.supplementalPersistentKeys {
+            defaults.removeObject(forKey: key)
+        }
+        defaults.synchronize()
     }
 
     /// Missing key keeps the historical hot-key preset. Empty data is an
@@ -722,32 +873,62 @@ final class AppSettings {
     }
 
     @discardableResult
-    func saveCustomPromptPreset(_ preset: PromptPreset) -> Bool {
-        guard !preset.isBuiltIn else { return false }
+    func savePromptPreset(_ preset: PromptPreset) -> Bool {
         let title = preset.title.trimmingCharacters(in: .whitespacesAndNewlines)
         let instruction = preset.instruction.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty, !instruction.isEmpty else { return false }
 
-        let customSymbolName = (preset.customSymbolName.flatMap { PromptPreset.isValidSymbol($0) ? $0.trimmingCharacters(in: .whitespacesAndNewlines) : nil })
+        let isKnownBuiltIn = PromptPreset.builtIn.contains { $0.id == preset.id }
+        let customSymbolName = preset.customSymbolName.flatMap {
+            PromptPreset.isValidSymbol($0) ? $0.trimmingCharacters(in: .whitespacesAndNewlines) : nil
+        }
+        let existing = promptPresetCatalog.first { $0.id == preset.id }
         let savedPreset = PromptPreset(
             id: preset.id,
             title: title,
             instruction: instruction,
             customSymbolName: customSymbolName,
-            isEnabled: promptPresetCatalog.first(where: { $0.id == preset.id })?.isEnabled ?? preset.isEnabled
+            isBuiltIn: isKnownBuiltIn,
+            isEnabled: existing?.isEnabled ?? preset.isEnabled
         )
-        if let index = promptPresetCatalog.firstIndex(where: { $0.id == preset.id && !$0.isBuiltIn }) {
+
+        if let index = promptPresetCatalog.firstIndex(where: { $0.id == preset.id }) {
             promptPresetCatalog[index] = savedPreset
+        } else if isKnownBuiltIn {
+            return false
         } else {
             promptPresetCatalog.append(savedPreset)
+        }
+        if isKnownBuiltIn {
+            removedBuiltInPromptPresetIDs.remove(preset.id)
+            saveRemovedBuiltInPromptPresetIDs()
         }
         return true
     }
 
-    func deleteCustomPromptPreset(id: UUID) {
-        promptPresetCatalog.removeAll { $0.id == id && !$0.isBuiltIn }
+    @discardableResult
+    func saveCustomPromptPreset(_ preset: PromptPreset) -> Bool {
+        savePromptPreset(preset)
     }
 
+    func deletePromptPreset(id: UUID) {
+        if PromptPreset.builtIn.contains(where: { $0.id == id }) {
+            removedBuiltInPromptPresetIDs.insert(id)
+            saveRemovedBuiltInPromptPresetIDs()
+        }
+        promptPresetCatalog.removeAll { $0.id == id }
+    }
+
+    func deleteCustomPromptPreset(id: UUID) {
+        deletePromptPreset(id: id)
+    }
+
+    func restoreDefaultPromptPresets() {
+        removedBuiltInPromptPresetIDs.removeAll()
+        saveRemovedBuiltInPromptPresetIDs()
+        let custom = promptPresetCatalog.filter { !$0.isBuiltIn }
+        promptPresetCatalog = PromptPreset.builtIn + custom
+    }
     func setPromptPresetEnabled(id: UUID, isEnabled: Bool) {
         guard let index = promptPresetCatalog.firstIndex(where: { $0.id == id }) else { return }
         promptPresetCatalog[index].isEnabled = isEnabled
@@ -815,6 +996,13 @@ final class AppSettings {
         guard !action.isBuiltIn else { return false }
         guard !QuickAction.builtIn.contains(where: { $0.id == action.id }) else { return false }
         return saveQuickAction(action)
+    }
+
+    @discardableResult
+    func addQuickAction(from template: QuickActionTemplate) -> QuickAction? {
+        let action = template.makeQuickAction()
+        guard saveQuickAction(action) else { return nil }
+        return action
     }
 
     func deleteQuickAction(id: UUID) {
@@ -935,6 +1123,74 @@ final class AppSettings {
         saveInAppShortcutConfiguration()
     }
 
+    func targetTitle(for target: InAppShortcutTarget) -> String {
+        switch target {
+        case let .operation(operation):
+            operation.title
+        case let .promptPreset(id):
+            promptPresets.first(where: { $0.id == id })?.title ?? L10n.string("settings.shortcuts")
+        case let .quickAction(id):
+            quickActions.first(where: { $0.id == id })?.displayName ?? L10n.string("settings.externalAsk")
+        }
+    }
+
+    func shortcutConflict(
+        for shortcut: InAppShortcut,
+        excluding target: InAppShortcutTarget? = nil,
+        excludingGlobal: Bool = false,
+        excludingSelectionToggle: Bool = false
+    ) -> ShortcutConflictInfo? {
+        if !excludingGlobal {
+            let global = globalShortcut ?? hotKeyPreset.shortcut
+            if shortcut == global {
+                let name = L10n.string("settings.globalShortcut")
+                return ShortcutConflictInfo(
+                    conflictingShortcut: shortcut,
+                    conflictSource: .globalHotKey(name),
+                    message: L10n.string("settings.shortcutConflictGlobal", name)
+                )
+            }
+        }
+
+        if !excludingSelectionToggle, let toggle = selectionAssistantToggleShortcut {
+            if shortcut == toggle {
+                let name = L10n.string("settings.selectionAssistantToggleShortcut")
+                return ShortcutConflictInfo(
+                    conflictingShortcut: shortcut,
+                    conflictSource: .selectionAssistantToggle(name),
+                    message: L10n.string("settings.shortcutConflictGlobal", name)
+                )
+            }
+        }
+
+        let assignments = shortcutAssignments
+        if let conflict = assignments.first(where: { $0.shortcut == shortcut && $0.target != target }) {
+            let title = targetTitle(for: conflict.target)
+            return ShortcutConflictInfo(
+                conflictingShortcut: shortcut,
+                conflictSource: .inAppTarget(conflict.target, title: title),
+                message: L10n.string("settings.shortcutConflictInApp", title)
+            )
+        }
+
+        return nil
+    }
+
+    func shortcutConflict(for target: InAppShortcutTarget) -> ShortcutConflictInfo? {
+        guard let current = shortcut(for: target) else { return nil }
+        return shortcutConflict(for: current, excluding: target)
+    }
+
+    func globalShortcutConflict() -> ShortcutConflictInfo? {
+        let global = globalShortcut ?? hotKeyPreset.shortcut
+        return shortcutConflict(for: global, excludingGlobal: true)
+    }
+
+    func selectionAssistantToggleShortcutConflict() -> ShortcutConflictInfo? {
+        guard let toggle = selectionAssistantToggleShortcut else { return nil }
+        return shortcutConflict(for: toggle, excludingSelectionToggle: true)
+    }
+
     func makeConfigurationBackup(
         includeAccessKeys: Bool = false,
         keyStore: (any APIKeyStoring)? = nil
@@ -949,6 +1205,9 @@ final class AppSettings {
         var backup = SpotAskConfigBackup(
             general: general,
             promptPresetCatalog: promptPresetCatalog,
+            removedBuiltInPromptPresetIDs: removedBuiltInPromptPresetIDs.isEmpty
+                ? nil
+                : removedBuiltInPromptPresetIDs.sorted { $0.uuidString < $1.uuidString },
             quickActionCatalog: quickActionCatalog,
             removedBuiltInQuickActionIDs: removedBuiltInQuickActionIDs.isEmpty
                 ? nil
@@ -999,7 +1258,10 @@ final class AppSettings {
             for descriptor in SettingRegistry.shared.descriptors {
                 descriptor.importValue(into: self, from: backup.general)
             }
-            promptPresetCatalog = Self.normalizedPromptPresetCatalog(backup.promptPresetCatalog)
+            replacePromptPresetCatalog(
+                backup.promptPresetCatalog,
+                removedBuiltInPromptPresetIDs: backup.removedBuiltInPromptPresetIDs
+            )
             if let quickActionCatalog = backup.quickActionCatalog {
                 replaceQuickActionCatalog(
                     quickActionCatalog,
@@ -1051,7 +1313,10 @@ final class AppSettings {
         for descriptor in SettingRegistry.shared.descriptors {
             descriptor.importValue(into: self, from: snapshot.general)
         }
-        promptPresetCatalog = Self.normalizedPromptPresetCatalog(snapshot.promptPresetCatalog)
+        replacePromptPresetCatalog(
+            snapshot.promptPresetCatalog,
+            removedBuiltInPromptPresetIDs: snapshot.removedBuiltInPromptPresetIDs
+        )
         if let quickActionCatalog = snapshot.quickActionCatalog {
             replaceQuickActionCatalog(
                 quickActionCatalog,
@@ -1090,6 +1355,10 @@ final class AppSettings {
         }
         defaults.removeObject(forKey: ProviderModelRegistry.defaultsKey)
         defaults.removeObject(forKey: ProviderModelRegistry.pendingLegacyAPIKeyMigrationProviderIDDefaultsKey)
+        defaults.removeObject(forKey: Key.removedBuiltInPromptPresetIDs)
+        removedBuiltInPromptPresetIDs.removeAll()
+        defaults.removeObject(forKey: Key.removedBuiltInQuickActionIDs)
+        removedBuiltInQuickActionIDs.removeAll()
         promptPresetCatalog = PromptPreset.builtIn
         quickActionCatalog = Self.loadQuickActionCatalog(from: defaults)
         inAppShortcutConfiguration = InAppShortcutConfiguration()
@@ -1100,8 +1369,8 @@ final class AppSettings {
             timeout: 60
         )
         let model = ModelConfiguration(
-            displayName: "gpt-5-mini",
-            upstreamModelID: "gpt-5-mini",
+            displayName: "gpt-6-luna",
+            upstreamModelID: "gpt-6-luna",
             providerID: provider.id,
             isStreamingEnabled: true
         )
@@ -1109,6 +1378,8 @@ final class AppSettings {
         try? providerRegistry.replaceCatalog(with: defaultCatalog)
 
         savePromptPresetCatalog()
+        saveRemovedBuiltInPromptPresetIDs()
+        saveRemovedBuiltInQuickActionIDs()
         saveQuickActionCatalog()
         saveCustomPromptPresets()
         saveInAppShortcutConfiguration()
@@ -1125,17 +1396,47 @@ final class AppSettings {
         defaults.set(data, forKey: Key.promptPresetCatalog)
     }
 
+    private func replacePromptPresetCatalog(
+        _ catalog: [PromptPreset],
+        removedBuiltInPromptPresetIDs removed: [UUID]?
+    ) {
+        let removedIDs = Set(removed ?? [])
+        removedBuiltInPromptPresetIDs = removedIDs
+        saveRemovedBuiltInPromptPresetIDs()
+        promptPresetCatalog = Self.normalizedPromptPresetCatalog(catalog, removedBuiltInIDs: removedIDs)
+    }
+
+    private func saveRemovedBuiltInPromptPresetIDs() {
+        let values = removedBuiltInPromptPresetIDs.map(\.uuidString).sorted()
+        defaults.set(values, forKey: Key.removedBuiltInPromptPresetIDs)
+    }
+
+    private static func loadRemovedBuiltInPromptPresetIDs(from defaults: UserDefaults) -> Set<UUID> {
+        let raw = defaults.stringArray(forKey: Key.removedBuiltInPromptPresetIDs) ?? []
+        return Set(raw.compactMap(UUID.init(uuidString:)))
+    }
+
     private static func loadPromptPresetCatalog(from defaults: UserDefaults) -> [PromptPreset] {
+        let removed = loadRemovedBuiltInPromptPresetIDs(from: defaults)
         let legacyCustomPresets = loadCustomPromptPresets(from: defaults)
         guard let data = defaults.data(forKey: Key.promptPresetCatalog),
               let catalog = try? JSONDecoder().decode([PromptPreset].self, from: data) else {
-            return normalizedPromptPresetCatalog(PromptPreset.builtIn + legacyCustomPresets)
+            return normalizedPromptPresetCatalog(
+                PromptPreset.builtIn + legacyCustomPresets,
+                removedBuiltInIDs: removed,
+                legacyCustomPresets: legacyCustomPresets
+            )
         }
-        return normalizedPromptPresetCatalog(catalog, legacyCustomPresets: legacyCustomPresets)
+        return normalizedPromptPresetCatalog(
+            catalog,
+            removedBuiltInIDs: removed,
+            legacyCustomPresets: legacyCustomPresets
+        )
     }
 
     private static func normalizedPromptPresetCatalog(
         _ catalog: [PromptPreset],
+        removedBuiltInIDs: Set<UUID> = [],
         legacyCustomPresets: [PromptPreset] = []
     ) -> [PromptPreset] {
         let builtIns = Dictionary(uniqueKeysWithValues: PromptPreset.builtIn.map { ($0.id, $0) })
@@ -1144,19 +1445,38 @@ final class AppSettings {
 
         for preset in catalog where seenIDs.insert(preset.id).inserted {
             if let builtIn = builtIns[preset.id] {
+                if removedBuiltInIDs.contains(builtIn.id) {
+                    continue
+                }
+                let title = preset.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                let instruction = preset.instruction.trimmingCharacters(in: .whitespacesAndNewlines)
+                let customSymbol = preset.customSymbolName.flatMap {
+                    PromptPreset.isValidSymbol($0) ? $0.trimmingCharacters(in: .whitespacesAndNewlines) : nil
+                }
                 normalized.append(PromptPreset(
                     id: builtIn.id,
-                    title: builtIn.title,
-                    instruction: builtIn.instruction,
+                    title: title.isEmpty ? builtIn.title : title,
+                    instruction: instruction.isEmpty ? builtIn.instruction : instruction,
+                    customSymbolName: customSymbol,
                     isBuiltIn: true,
                     isEnabled: preset.isEnabled
                 ))
             } else if !preset.isBuiltIn {
-                normalized.append(preset)
+                let customSymbol = preset.customSymbolName.flatMap {
+                    PromptPreset.isValidSymbol($0) ? $0.trimmingCharacters(in: .whitespacesAndNewlines) : nil
+                }
+                normalized.append(PromptPreset(
+                    id: preset.id,
+                    title: preset.title,
+                    instruction: preset.instruction,
+                    customSymbolName: customSymbol,
+                    isBuiltIn: false,
+                    isEnabled: preset.isEnabled
+                ))
             }
         }
 
-        for builtIn in PromptPreset.builtIn where seenIDs.insert(builtIn.id).inserted {
+        for builtIn in PromptPreset.builtIn where !removedBuiltInIDs.contains(builtIn.id) && seenIDs.insert(builtIn.id).inserted {
             normalized.append(builtIn)
         }
         for preset in legacyCustomPresets where seenIDs.insert(preset.id).inserted {

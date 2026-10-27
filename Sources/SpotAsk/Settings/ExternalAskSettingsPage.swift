@@ -15,47 +15,7 @@ struct ExternalAskSettingsPage: View {
             SettingsCallout(L10n.string("settings.externalAskDescription"))
 
             externalAskToggle
-
-            SettingsGroup(
-                title: L10n.string("settings.externalAsk"),
-                documentation: DocumentationLinks.url(for: .externalAsk, language: settings.language)
-            ) {
-                HStack {
-                    Text(L10n.string("settings.promptCatalogDescription"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Button {
-                        editorAction = QuickAction(
-                            name: "",
-                            kind: .web(urlTemplate: ""),
-                            symbolName: QuickAction.defaultSymbolName,
-                            isBuiltIn: false,
-                            isEnabled: true
-                        )
-                    } label: {
-                        Label(L10n.string("settings.new"), systemImage: "plus")
-                    }
-                    .buttonStyle(.bordered)
-                }
-
-                VStack(spacing: 6) {
-                    ForEach(Array(settings.quickActions.enumerated()), id: \.element.id) { index, action in
-                        quickActionCard {
-                            QuickActionRow(
-                                action: action,
-                                settings: settings,
-                                position: index + 1,
-                                totalCount: settings.quickActions.count,
-                                onMoveUp: index > 0 ? { moveAction(id: action.id, by: -1) } : nil,
-                                onMoveDown: index + 1 < settings.quickActions.count ? { moveAction(id: action.id, by: 1) } : nil,
-                                onEdit: { editorAction = action },
-                                onDelete: { deletingAction = action }
-                            )
-                        }
-                    }
-                }
-            }
+            configuredChannelsSection
 
             DecisionRoutingSettingsSection(settings: settings, keyStore: keyStore)
         }
@@ -113,6 +73,87 @@ struct ExternalAskSettingsPage: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+
+    private var configuredChannelsSection: some View {
+        SettingsGroup(
+            title: L10n.string("externalAsk.configuredChannelsGroup"),
+            documentation: DocumentationLinks.url(for: .externalAsk, language: settings.language)
+        ) {
+            HStack {
+                Text(L10n.string("externalAsk.configuredChannelsDescription"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                addChannelMenu
+            }
+
+            VStack(spacing: 6) {
+                ForEach(Array(settings.quickActions.enumerated()), id: \.element.id) { index, action in
+                    quickActionCard {
+                        QuickActionRow(
+                            action: action,
+                            settings: settings,
+                            position: index + 1,
+                            totalCount: settings.quickActions.count,
+                            onMoveUp: index > 0 ? { moveAction(id: action.id, by: -1) } : nil,
+                            onMoveDown: index + 1 < settings.quickActions.count ? { moveAction(id: action.id, by: 1) } : nil,
+                            onEdit: { editorAction = action },
+                            onDelete: { deletingAction = action }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private var addChannelMenu: some View {
+        Menu {
+            Button {
+                editorAction = QuickAction(
+                    name: "",
+                    kind: .web(urlTemplate: ""),
+                    symbolName: QuickAction.defaultSymbolName,
+                    isBuiltIn: false,
+                    isEnabled: true
+                )
+            } label: {
+                Label(L10n.string("externalAsk.customChannel"), systemImage: "square.and.pencil")
+            }
+
+            Menu {
+                ForEach(QuickActionTemplate.allTemplates) { template in
+                    let isAdded = template.isConfigured(in: settings.quickActions)
+                    Button {
+                        if let added = settings.addQuickAction(from: template) {
+                            StatusToastCenter.shared.show(
+                                L10n.string("externalAsk.templateAddedToast", added.displayName)
+                            )
+                        }
+                    } label: {
+                        if isAdded {
+                            Label(
+                                "\(template.name) (\(template.category) · \(L10n.string("externalAsk.templateAdded")))",
+                                systemImage: "checkmark"
+                            )
+                        } else {
+                            Label(
+                                "\(template.name) (\(template.category))",
+                                systemImage: template.symbolName
+                            )
+                        }
+                    }
+                    .disabled(isAdded)
+                    .help(template.description)
+                }
+            } label: {
+                Label(L10n.string("externalAsk.presetTemplatesGroup"), systemImage: "square.grid.2x2")
+            }
+        } label: {
+            Label(L10n.string("externalAsk.addChannel"), systemImage: "plus")
+        }
+        .buttonStyle(.bordered)
     }
 }
 
@@ -183,46 +224,8 @@ private struct QuickActionRow: View {
     }
 }
 
-private struct QuickActionReorderControls: View {
-    let title: String
-    let position: Int
-    let totalCount: Int
-    var onMoveUp: (() -> Void)?
-    var onMoveDown: (() -> Void)?
 
-    var body: some View {
-        HStack(spacing: 2) {
-            reorderButton(
-                systemImage: "chevron.up",
-                title: L10n.string("settings.moveUp"),
-                action: onMoveUp
-            )
-            reorderButton(
-                systemImage: "chevron.down",
-                title: L10n.string("settings.moveDown"),
-                action: onMoveDown
-            )
-        }
-        .frame(width: 46)
-    }
-
-    private func reorderButton(
-        systemImage: String,
-        title: String,
-        action: (() -> Void)?
-    ) -> some View {
-        Button(action: { action?() }) {
-            Image(systemName: systemImage)
-                .frame(width: 20, height: 24)
-        }
-        .buttonStyle(.borderless)
-        .controlSize(.small)
-        .disabled(action == nil)
-        .help(title + " " + self.title)
-        .accessibilityLabel(title + " " + self.title)
-        .accessibilityHint(L10n.string("settings.promptPosition", position, totalCount))
-    }
-}
+private typealias QuickActionReorderControls = ListReorderControls
 
 private enum ActionKindOption: String, CaseIterable, Identifiable {
     case web

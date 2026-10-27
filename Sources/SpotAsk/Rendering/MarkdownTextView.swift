@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import Textual
+@_spi(Textual) import SwiftUIMath
 
 struct MarkdownTextView: View {
     let content: String
@@ -167,8 +168,12 @@ enum MathMarkdownNormalizer {
     }
 
     private static func appendMathFence(with lines: [String], to output: inout [String]) {
-        output.append("```math")
-        output.append(normalizeRendererCompatibility(lines.joined(separator: "\n")))
+        let latex = normalizeRendererCompatibility(lines.joined(separator: "\n"))
+        // Unsupported commands make SwiftUIMath drop the whole expression and
+        // report zero size. Fall back to the raw LaTeX in a text block so the
+        // formula stays readable instead of leaving a blank gap.
+        output.append(Math.canRender(latex) ? "```math" : "```text")
+        output.append(latex)
         output.append("```")
     }
 
@@ -272,9 +277,8 @@ enum MathMarkdownNormalizer {
 
             if isDelimiter(in: line, at: index, closing: "("),
                let closing = findDelimiter(in: line, from: line.index(index, offsetBy: 2), closing: ")") {
-                output += "$"
-                output += line[line.index(index, offsetBy: 2) ..< closing]
-                output += "$"
+                let latex = String(line[line.index(index, offsetBy: 2) ..< closing])
+                output += Math.canRender(latex) ? "$\(latex)$" : inlineCodeSpan(latex)
                 index = line.index(closing, offsetBy: 2)
                 continue
             }
@@ -344,6 +348,20 @@ enum MathMarkdownNormalizer {
             index = line.index(after: index)
         }
         return count
+    }
+
+    /// Wraps unsupported inline math in a code span so it stays visible.
+    private static func inlineCodeSpan(_ content: String) -> String {
+        var longestBacktickRun = 0
+        var currentRun = 0
+        for character in content {
+            currentRun = character == "`" ? currentRun + 1 : 0
+            longestBacktickRun = max(longestBacktickRun, currentRun)
+        }
+        let fence = String(repeating: "`", count: longestBacktickRun + 1)
+        let needsPadding = content.hasPrefix("`") || content.hasSuffix("`")
+        let padding = needsPadding ? " " : ""
+        return "\(fence)\(padding)\(content)\(padding)\(fence)"
     }
 
     private static func openingFence(in line: String) -> Fence? {

@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import SwiftUI
 import Testing
 @testable import SpotAsk
 
@@ -267,6 +268,31 @@ struct InAppShortcutTests {
         #expect(ShortcutRecorderEventParser.isCancelKey(escape))
     }
 
+    @Test("Recorder field skips redundant update calls when shortcut and conflict state are unchanged")
+    @MainActor
+    func recorderFieldSkipsRedundantUpdates() throws {
+        let field = ShortcutRecorderField()
+        let host = try #require(field.subviews.compactMap { $0 as? NSHostingView<ShortcutKeycapRecordingView> }.first)
+
+        let shortcut = InAppShortcut(key: "k", modifiers: [.command, .shift])
+        field.update(shortcut: shortcut, hasConflict: false)
+        #expect(host.rootView.shortcut == shortcut)
+        #expect(host.rootView.hasConflict == false)
+
+        // Mutate hosting view's rootView to a sentinel value to detect whether updateHostingView is skipped
+        host.rootView = ShortcutKeycapRecordingView(shortcut: nil, isCapturing: false, hasConflict: false)
+        #expect(host.rootView.shortcut == nil)
+
+        // Redundant update with identical values must early-return and NOT touch host.rootView
+        field.update(shortcut: shortcut, hasConflict: false)
+        #expect(host.rootView.shortcut == nil)
+
+        // State change in conflict must trigger updateHostingView and restore the active shortcut
+        field.update(shortcut: shortcut, hasConflict: true)
+        #expect(host.rootView.shortcut == shortcut)
+        #expect(host.rootView.hasConflict == true)
+    }
+
     @Test("Quick Actions receive derived defaults sequential to enabled presets")
     func quickActionDerivedDefaultsSequentialToPresets() {
         let fixture = makeSettings()
@@ -459,6 +485,104 @@ struct InAppShortcutTests {
         #expect(configuration.overrides.count == 1)
         #expect(configuration.disabledTargets.count == 1)
         #expect(configuration.disabledTargets.contains(.operation(.zoomIn)))
+    }
+
+    @Test("Shortcut conflict detection identifies conflicts with Global HotKey")
+    func shortcutConflictWithGlobalHotKey() {
+        let fixture = makeSettings()
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+
+        // Default global shortcut is Option+Space
+        let optionSpace = InAppShortcut(key: " ", modifiers: .option)
+        let conflict = fixture.settings.shortcutConflict(for: optionSpace)
+        #expect(conflict != nil)
+        if case let .globalHotKey(name) = conflict?.conflictSource {
+            #expect(!name.isEmpty)
+        } else {
+            Issue.record("Expected globalHotKey conflict source")
+        }
+
+        // Excluding global ignores the conflict
+        #expect(fixture.settings.shortcutConflict(for: optionSpace, excludingGlobal: true) == nil)
+
+        // Custom global shortcut
+        let customGlobal = InAppShortcut(key: "j", modifiers: [.command, .shift])
+        fixture.settings.globalShortcut = customGlobal
+        let customConflict = fixture.settings.shortcutConflict(for: customGlobal)
+        #expect(customConflict != nil)
+    }
+
+    @Test("Shortcut conflict detection identifies conflicts with Selection Assistant Toggle")
+    func shortcutConflictWithSelectionAssistantToggle() {
+        let fixture = makeSettings()
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+
+        let toggleShortcut = InAppShortcut(key: "q", modifiers: [.command, .option])
+        #expect(fixture.settings.shortcutConflict(for: toggleShortcut) == nil)
+
+        fixture.settings.selectionAssistantToggleShortcut = toggleShortcut
+        let conflict = fixture.settings.shortcutConflict(for: toggleShortcut)
+        #expect(conflict != nil)
+        if case let .selectionAssistantToggle(name) = conflict?.conflictSource {
+            #expect(!name.isEmpty)
+        } else {
+            Issue.record("Expected selectionAssistantToggle conflict source")
+        }
+
+        // Excluding selection toggle ignores the conflict
+        #expect(fixture.settings.shortcutConflict(for: toggleShortcut, excludingSelectionToggle: true) == nil)
+    }
+
+    @Test("Shortcut conflict detection identifies conflicts between in-app targets")
+    func shortcutConflictBetweenInAppTargets() {
+        let fixture = makeSettings()
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+
+        // Command+N is default for newConversation
+        let commandN = InAppShortcut.command("n")
+        let conflict = fixture.settings.shortcutConflict(for: commandN, excluding: .operation(.focusInput))
+        #expect(conflict != nil)
+        if case let .inAppTarget(target, title) = conflict?.conflictSource {
+            #expect(target == .operation(.newConversation))
+            #expect(!title.isEmpty)
+        } else {
+            Issue.record("Expected inAppTarget conflict source")
+        }
+
+        // Excluding the target itself does not trigger self-conflict
+        #expect(fixture.settings.shortcutConflict(for: commandN, excluding: .operation(.newConversation)) == nil)
+    }
+
+    @Test("Global shortcut and selection assistant query methods report in-app conflicts")
+    func globalAndSelectionToggleConflictQueries() {
+        let fixture = makeSettings()
+        defer { fixture.defaults.removePersistentDomain(forName: fixture.suiteName) }
+
+        #expect(fixture.settings.globalShortcutConflict() == nil)
+
+        // If an in-app shortcut matches the global shortcut, globalShortcutConflict detects it
+        let sharedKey = InAppShortcut(key: "j", modifiers: [.command, .shift])
+        fixture.settings.globalShortcut = sharedKey
+        fixture.settings.assignShortcut(sharedKey, to: .operation(.newConversation))
+        #expect(fixture.settings.globalShortcutConflict() != nil)
+        if case let .inAppTarget(target, _) = fixture.settings.globalShortcutConflict()?.conflictSource {
+            #expect(target == .operation(.newConversation))
+        } else {
+            Issue.record("Expected inAppTarget conflict source")
+        }
+
+        // Resetting clears the conflict
+        fixture.settings.resetShortcut(for: .operation(.newConversation))
+        #expect(fixture.settings.globalShortcutConflict() == nil)
+    }
+
+    @Test("In-app operations have non-empty titles and action descriptions")
+    func inAppOperationDescriptionsAreDefined() {
+        for operation in InAppShortcutOperation.allCases {
+            #expect(!operation.title.isEmpty)
+            #expect(!operation.actionDescription.isEmpty)
+            #expect(operation.title != operation.actionDescription)
+        }
     }
 
     private func keyEvent(key: String, keyCode: UInt16, modifiers: NSEvent.ModifierFlags = [.command]) -> NSEvent? {

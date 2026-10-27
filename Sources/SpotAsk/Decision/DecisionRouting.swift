@@ -1,10 +1,11 @@
 import Foundation
 
-/// Routing backend. Only System One is implemented. OpenAI Decision API and
-/// generative LLM providers should be additional cases with their own client,
-/// not branches inside `SystemOneRequestBuilder`.
+/// Routing backend. System One and OpenAI Decisions are separate cases with
+/// their own clients. Generative LLM providers should be additional cases,
+/// not branches inside `SystemOneRequestBuilder` or `OpenAIDecisionsRequestBuilder`.
 enum DecisionProviderKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case systemOne
+    case openAIDecisions
 
     var id: String { rawValue }
 }
@@ -28,14 +29,39 @@ enum DecisionCredentialSlot {
     static let systemOne = UUID(uuidString: "D3C15100-0000-4000-8000-0000000000E1")!
     /// Previous custom-endpoint slot. Kept so an old backup can restore without wiping that key.
     static let legacyCustom = UUID(uuidString: "D3C15100-0000-4000-8000-0000000000E2")!
-    static let all: Set<UUID> = [systemOne, legacyCustom]
+    /// OpenAI Decisions credential. Independent of the System One slots.
+    static let openAIDecisions = UUID(uuidString: "D3C15100-0000-4000-8000-0000000000E3")!
+    static let all: Set<UUID> = [systemOne, legacyCustom, openAIDecisions]
     static let preferLegacyCustomKey = "decisionRoutingPreferLegacyCustomCredential"
+
+    static func slot(for provider: DecisionProviderKind) -> UUID {
+        switch provider {
+        case .systemOne: systemOne
+        case .openAIDecisions: openAIDecisions
+        }
+    }
 
     static func activeAPIKey(systemOne key: String?, legacyCustom: String?, preferLegacyCustom: Bool) -> String? {
         if preferLegacyCustom, let legacy = DecisionRoutingPolicy.normalizedAPIKey(legacyCustom) {
             return legacy
         }
         return DecisionRoutingPolicy.normalizedAPIKey(key)
+    }
+
+    /// Selects the credential for the active engine. System One still prefers the legacy slot until migration finishes; OpenAI never reads that slot.
+    static func activeAPIKey(
+        for provider: DecisionProviderKind,
+        systemOne: String?,
+        legacyCustom: String?,
+        openAIDecisions: String?,
+        preferLegacyCustom: Bool
+    ) -> String? {
+        switch provider {
+        case .systemOne:
+            activeAPIKey(systemOne: systemOne, legacyCustom: legacyCustom, preferLegacyCustom: preferLegacyCustom)
+        case .openAIDecisions:
+            DecisionRoutingPolicy.normalizedAPIKey(openAIDecisions)
+        }
     }
 }
 
@@ -55,6 +81,8 @@ enum DecisionRelease: Equatable, Sendable {
 enum DecisionRoutingPolicy {
     static let defaultServiceURL = "https://api.typesafe.ai"
     static let defaultOfficialModel = "jev-1.13.0"
+    static let defaultOpenAIServiceURL = "https://api.openai.com"
+    static let defaultOpenAIModel = "gpt-6-luna"
     static let defaultThreshold = 0.8
     static let defaultTimeoutSeconds = 2.0
     static let minimumTimeoutSeconds = 0.5
@@ -111,11 +139,15 @@ enum DecisionRoutingPolicy {
 
     /// The official service keeps its prefilled default. A custom service must name
     /// its own model: an empty stored value is a configuration error, never a silent
-    /// fallback to the official model.
-    static func resolvedModel(_ model: String, isOfficialService: Bool) -> String? {
+    /// fallback to the official model. `officialFallback` is the active engine's default.
+    static func resolvedModel(
+        _ model: String,
+        isOfficialService: Bool,
+        officialFallback: String = defaultOfficialModel
+    ) -> String? {
         let trimmed = model.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty { return trimmed }
-        return isOfficialService ? defaultOfficialModel : nil
+        return isOfficialService ? officialFallback : nil
     }
 
     static func normalizedAPIKey(_ value: String?) -> String? {
@@ -298,8 +330,22 @@ enum SystemOneEndpoint {
     /// `evaluationURL` collapses every rejection to `nil`. This keeps the reason so
     /// the settings page and chat can name the actual configuration problem.
     static func evaluationURLResult(_ raw: String) -> Result<URL, DecisionServiceResolver.Failure> {
+        normalizedEvaluationURL(
+            raw,
+            emptyFallback: DecisionRoutingPolicy.defaultServiceURL,
+            evaluationRoute: "systemone"
+        )
+    }
+
+    /// Shared URL normalization for decision engines. `evaluationRoute` is the
+    /// final path segment (`systemone` or `decisions`); security rules stay here.
+    static func normalizedEvaluationURL(
+        _ raw: String,
+        emptyFallback: String,
+        evaluationRoute: String
+    ) -> Result<URL, DecisionServiceResolver.Failure> {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        let source = trimmed.isEmpty ? DecisionRoutingPolicy.defaultServiceURL : trimmed
+        let source = trimmed.isEmpty ? emptyFallback : trimmed
         guard var components = URLComponents(string: source),
               let scheme = components.scheme?.lowercased(),
               scheme == "http" || scheme == "https",
@@ -315,12 +361,13 @@ enum SystemOneEndpoint {
             path.removeLast()
         }
         if path == "/" { path = "" }
-        if path.hasSuffix("/v1/systemone") {
+        let evaluationPath = "/v1/\(evaluationRoute)"
+        if path.hasSuffix(evaluationPath) {
             // already the evaluation path
         } else if path.hasSuffix("/v1") {
-            path += "/systemone"
+            path += "/\(evaluationRoute)"
         } else {
-            path += "/v1/systemone"
+            path += evaluationPath
         }
         components.scheme = scheme
         components.path = path
@@ -348,15 +395,32 @@ enum DecisionServiceResolver {
     }
 
     static func resolve(settings: DecisionRoutingSettings, apiKey: String?) -> Result<DecisionServiceCall, Failure> {
+        let urlResult: Result<URL, Failure>
+        let officialModel: String
+        let requiresCredential: (URL) -> Bool
+        switch settings.provider {
+        case .systemOne:
+            urlResult = SystemOneEndpoint.evaluationURLResult(settings.serviceURL)
+            officialModel = DecisionRoutingPolicy.defaultOfficialModel
+            requiresCredential = SystemOneEndpoint.requiresCredential
+        case .openAIDecisions:
+            urlResult = OpenAIDecisionsEndpoint.evaluationURLResult(settings.serviceURL)
+            officialModel = DecisionRoutingPolicy.defaultOpenAIModel
+            requiresCredential = OpenAIDecisionsEndpoint.requiresCredential
+        }
         let url: URL
-        switch SystemOneEndpoint.evaluationURLResult(settings.serviceURL) {
+        switch urlResult {
         case let .success(resolved):
             url = resolved
         case let .failure(failure):
             return .failure(failure)
         }
-        let isOfficial = SystemOneEndpoint.requiresCredential(url)
-        guard let model = DecisionRoutingPolicy.resolvedModel(settings.model, isOfficialService: isOfficial) else {
+        let isOfficial = requiresCredential(url)
+        guard let model = DecisionRoutingPolicy.resolvedModel(
+            settings.model,
+            isOfficialService: isOfficial,
+            officialFallback: officialModel
+        ) else {
             return .failure(.missingModel)
         }
         let key = DecisionRoutingPolicy.normalizedAPIKey(apiKey)
@@ -386,6 +450,16 @@ enum DecisionProviderClient {
         switch call.provider {
         case .systemOne:
             let client = SystemOneClient(transport: transport, sleep: sleep)
+            return try await client.evaluate(
+                question: question,
+                model: call.model,
+                criteria: criteria,
+                url: call.url,
+                apiKey: call.apiKey,
+                timeout: call.timeout
+            )
+        case .openAIDecisions:
+            let client = OpenAIDecisionsClient(transport: transport, sleep: sleep)
             return try await client.evaluate(
                 question: question,
                 model: call.model,
@@ -515,6 +589,8 @@ enum DecisionRoutingFailure: Equatable, Sendable {
     case timedOut
     case invalidResponse
     case unrecognizedChoice
+    /// The decision service explicitly refused to choose a destination.
+    case refused
     case unsafeRedirect
 
     var localizationKey: String {
@@ -535,6 +611,7 @@ enum DecisionRoutingFailure: Equatable, Sendable {
         case .timedOut: "decisionRouting.timedOut"
         case .invalidResponse: "decisionRouting.invalidResponse"
         case .unrecognizedChoice: "decisionRouting.unknownChoice"
+        case .refused: "decisionRouting.refused"
         case .unsafeRedirect: "decisionRouting.unsafeRedirect"
         }
     }
@@ -559,7 +636,7 @@ enum DecisionRoutingFailure: Equatable, Sendable {
             false
         case .httpUnauthorized, .httpForbidden, .httpNotFound, .httpRateLimited,
              .httpStatus, .networkUnavailable, .timedOut, .invalidResponse,
-             .unrecognizedChoice, .unsafeRedirect:
+             .unrecognizedChoice, .refused, .unsafeRedirect:
             true
         }
     }
@@ -575,29 +652,57 @@ enum DecisionRoutingFailure: Equatable, Sendable {
 
     static func classify(_ error: Error) -> DecisionRoutingFailure {
         if let clientError = error as? SystemOneClientError {
-            switch clientError {
-            case .timedOut:
-                return .timedOut
-            case .unsafeRedirect:
-                return .unsafeRedirect
-            case .invalidResponse, .confidenceOutOfRange:
-                return .invalidResponse
-            case .unknownChoice:
-                return .unrecognizedChoice
-            case let .httpStatus(code):
-                switch code {
-                case 401: return .httpUnauthorized
-                case 403: return .httpForbidden
-                case 404: return .httpNotFound
-                case 429: return .httpRateLimited
-                default: return .httpStatus(code)
-                }
-            }
+            return classifySystemOne(clientError)
+        }
+        if let clientError = error as? OpenAIDecisionsClientError {
+            return classifyOpenAI(clientError)
         }
         if let urlError = error as? URLError {
             return urlError.code == .timedOut ? .timedOut : .networkUnavailable
         }
         return .invalidResponse
+    }
+
+    private static func classifySystemOne(_ clientError: SystemOneClientError) -> DecisionRoutingFailure {
+        switch clientError {
+        case .timedOut:
+            return .timedOut
+        case .unsafeRedirect:
+            return .unsafeRedirect
+        case .invalidResponse, .confidenceOutOfRange:
+            return .invalidResponse
+        case .unknownChoice:
+            return .unrecognizedChoice
+        case let .httpStatus(code):
+            return classifyHTTPStatus(code)
+        }
+    }
+
+    private static func classifyOpenAI(_ clientError: OpenAIDecisionsClientError) -> DecisionRoutingFailure {
+        switch clientError {
+        case .timedOut:
+            return .timedOut
+        case .unsafeRedirect:
+            return .unsafeRedirect
+        case .invalidResponse, .confidenceOutOfRange:
+            return .invalidResponse
+        case .unknownChoice:
+            return .unrecognizedChoice
+        case .refused:
+            return .refused
+        case let .httpStatus(code):
+            return classifyHTTPStatus(code)
+        }
+    }
+
+    private static func classifyHTTPStatus(_ code: Int) -> DecisionRoutingFailure {
+        switch code {
+        case 401: .httpUnauthorized
+        case 403: .httpForbidden
+        case 404: .httpNotFound
+        case 429: .httpRateLimited
+        default: .httpStatus(code)
+        }
     }
 }
 

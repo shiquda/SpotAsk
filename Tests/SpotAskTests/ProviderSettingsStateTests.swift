@@ -126,7 +126,23 @@ final class ProviderSettingsStateTests: XCTestCase {
 
     func testClearingAllDataDeletesEveryCredentialSlot() {
         let keyStore = RecordingKeyStore()
-        let state = makeGeneralState(keyStore: keyStore)
+        let suiteName = "ProviderSettingsStateTests.Clear.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        let diagnosticsURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ProviderSettingsStateClear-\(UUID().uuidString).json")
+        let sessionStore = SessionStore(bundleIdentifier: suiteName)
+        defer {
+            defaults.removePersistentDomain(forName: suiteName)
+            try? sessionStore.clear()
+            try? FileManager.default.removeItem(at: diagnosticsURL)
+        }
+        let state = GeneralSettingsState(
+            settings: AppSettings(defaults: defaults, persistentDomainName: suiteName),
+            keyStore: keyStore,
+            sessionStore: sessionStore,
+            diagnosticLogStore: DiagnosticLogStore(fileURL: diagnosticsURL),
+            onConfigurationImported: {}
+        )
 
         state.clearAllLocalData()
 
@@ -1248,6 +1264,222 @@ final class ProviderSettingsStateTests: XCTestCase {
         )
     }
 
+    // MARK: - Provider Templates and Hero Card Features
+
+    func testProviderTemplatesHaveValidConfigurationAndIconMatching() {
+        let templates = ProviderTemplate.allTemplates
+        XCTAssertEqual(templates.count, 8)
+
+        let expectedIDs = ["openai", "anthropic", "gemini", "deepseek", "ollama", "openrouter", "siliconflow", "kimi"]
+        XCTAssertEqual(templates.map(\.id), expectedIDs)
+
+        for template in templates {
+            XCTAssertFalse(template.name.isEmpty)
+            XCTAssertFalse(template.address.isEmpty)
+            XCTAssertNoThrow(
+                try URLNormalizer.endpoint(
+                    from: template.address,
+                    useFullEndpoint: template.addressMode.usesFullEndpoint,
+                    format: template.format
+                ),
+                "Template \(template.id) must specify a valid endpoint"
+            )
+            let matchedSlug = ProviderBrandIconMatcher.match(template.name)
+                ?? ProviderBrandIconMatcher.match(template.address)
+            XCTAssertNotNil(
+                matchedSlug,
+                "Template \(template.id) with name '\(template.name)' should match a brand icon slug"
+            )
+            XCTAssertFalse(template.placeholderModelID.isEmpty)
+            XCTAssertFalse(template.placeholderDisplayName.isEmpty)
+        }
+    }
+
+    func testApplyProviderTemplatePopulatesDraftFieldsAndEnablesSaving() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(),
+            providerFactory: NoopProviderFactory()
+        )
+
+        state.startNewProvider()
+        XCTAssertTrue(state.isCreatingProvider)
+
+        let deepseek = try XCTUnwrap(ProviderTemplate.allTemplates.first { $0.id == "deepseek" })
+        state.applyProviderTemplate(deepseek)
+
+        XCTAssertEqual(state.draftProviderName, "DeepSeek")
+        XCTAssertEqual(state.draftProviderFormat, .openAICompatible)
+        XCTAssertEqual(state.draftProviderAddress, "https://api.deepseek.com")
+        XCTAssertEqual(state.draftProviderAddressMode, .baseURL)
+        XCTAssertNil(state.providerFieldError)
+        XCTAssertTrue(state.canSaveProvider)
+
+        state.saveProvider()
+        XCTAssertFalse(state.isCreatingProvider)
+        XCTAssertNotNil(state.selectedProviderID)
+
+        let saved = try XCTUnwrap(settings.providerRegistry.catalog?.providers.first { $0.name == "DeepSeek" })
+        XCTAssertEqual(saved.address, "https://api.deepseek.com")
+        XCTAssertEqual(saved.format, .openAICompatible)
+    }
+
+    func testActiveModelAndActiveProviderPropertiesReflectSelection() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let catalog = try XCTUnwrap(settings.providerRegistry.catalog)
+        let provider = try XCTUnwrap(catalog.providers.first)
+        let model = try XCTUnwrap(catalog.models.first)
+
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(),
+            providerFactory: NoopProviderFactory()
+        )
+
+        XCTAssertEqual(state.activeModelID, model.id)
+        XCTAssertEqual(state.activeModel?.id, model.id)
+        XCTAssertEqual(state.activeModelProvider?.id, provider.id)
+        XCTAssertEqual(state.allConfiguredModels.count, catalog.models.count)
+
+        // Adding a second model and switching active model
+        let secondModel = try settings.providerRegistry.saveModel(
+            ModelConfiguration(
+                displayName: "Alternate Model",
+                upstreamModelID: "alt-model",
+                providerID: provider.id,
+                isStreamingEnabled: false
+            )
+        )
+
+        state.useModelForChat(secondModel.id)
+        XCTAssertEqual(state.activeModelID, secondModel.id)
+        XCTAssertEqual(state.activeModel?.id, secondModel.id)
+        XCTAssertEqual(state.activeModel?.displayName, "Alternate Model")
+        XCTAssertEqual(state.activeModelProvider?.id, provider.id)
+        XCTAssertEqual(state.allConfiguredModels.count, catalog.models.count + 1)
+    }
+
+    func testHasAPIKeyReflectsStoredKeysAndDraftKeys() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let catalog = try XCTUnwrap(settings.providerRegistry.catalog)
+        let provider = try XCTUnwrap(catalog.providers.first)
+
+        let emptyKeyStore = RecordingKeyStore(apiKey: nil)
+        let stateWithNoKey = ProviderSettingsState(
+            settings: settings,
+            keyStore: emptyKeyStore,
+            providerFactory: NoopProviderFactory()
+        )
+
+        // Initially no key in keyStore
+        stateWithNoKey.apiKeyDraft = ""
+        stateWithNoKey.selectedProviderID = nil
+        XCTAssertFalse(stateWithNoKey.hasAPIKey(for: provider.id))
+
+        // Having a key in keyStore makes hasAPIKey return true
+        let populatedKeyStore = RecordingKeyStore(apiKey: "valid-key")
+        let stateWithKey = ProviderSettingsState(
+            settings: settings,
+            keyStore: populatedKeyStore,
+            providerFactory: NoopProviderFactory()
+        )
+        XCTAssertTrue(stateWithKey.hasAPIKey(for: provider.id))
+
+        // When a provider has no key in keyStore, but user typed draft key for selected provider
+        let newProviderID = UUID()
+        stateWithNoKey.selectedProviderID = newProviderID
+        stateWithNoKey.apiKeyDraft = "typed-key"
+        XCTAssertTrue(stateWithNoKey.hasAPIKey(for: newProviderID))
+    }
+
+    func testEndToEndProviderSetupAndModelActivationFlow() async throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let recordingFactory = RecordingProviderFactory()
+        let keyStore = RecordingKeyStore(apiKey: "initial-key")
+
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: keyStore,
+            providerFactory: recordingFactory
+        )
+
+        // 1. Initial State: active model is the default gpt-6-luna
+        let initialModel = try XCTUnwrap(state.activeModel)
+        XCTAssertEqual(initialModel.id, state.activeModelID)
+        let initialProvider = try XCTUnwrap(state.activeModelProvider)
+        XCTAssertEqual(initialModel.providerID, initialProvider.id)
+        XCTAssertTrue(state.hasAPIKey(for: initialProvider.id))
+
+        // 2. User clicks "Add Provider"
+        state.startNewProvider()
+        XCTAssertTrue(state.isCreatingProvider)
+        XCTAssertNil(state.selectedProviderID)
+
+        // 3. User chooses the "Anthropic" Quick Template
+        let template = try XCTUnwrap(ProviderTemplate.allTemplates.first { $0.id == "anthropic" })
+        state.applyProviderTemplate(template)
+        XCTAssertEqual(state.draftProviderName, "Anthropic")
+        XCTAssertEqual(state.draftProviderFormat, .anthropic)
+        XCTAssertEqual(state.draftProviderAddress, "https://api.anthropic.com/v1")
+        XCTAssertEqual(state.draftProviderAddressMode, .baseURL)
+        XCTAssertTrue(state.canSaveProvider)
+
+        // 4. Save new provider
+        state.saveProvider()
+        XCTAssertFalse(state.isCreatingProvider)
+        let newProviderID = try XCTUnwrap(state.selectedProviderID)
+        let newProvider = try XCTUnwrap(settings.providerRegistry.catalog?.providers.first { $0.id == newProviderID })
+        XCTAssertEqual(newProvider.name, "Anthropic")
+
+        // 5. User adds a model under the new Anthropic provider
+        state.startNewModel(for: newProviderID)
+        XCTAssertTrue(state.isCreatingModel)
+        state.draftModelDisplayName = "Claude 3.7 Sonnet"
+        state.draftModelUpstreamID = "claude-3-7-sonnet-20250219"
+        state.draftModelStreaming = true
+        state.draftModelThinkingMode = .high
+        XCTAssertTrue(state.canSaveModel)
+
+        state.saveModel()
+        XCTAssertFalse(state.isCreatingModel)
+        let newModel = try XCTUnwrap(settings.providerRegistry.catalog?.models.first { $0.displayName == "Claude 3.7 Sonnet" })
+        XCTAssertEqual(newModel.providerID, newProviderID)
+
+        // 6. User switches Active Chat Model to the new model
+        state.useModelForChat(newModel.id)
+        XCTAssertEqual(state.activeModelID, newModel.id)
+
+        // 7. ActiveModelHeroCard properties update dynamically
+        let active = try XCTUnwrap(state.activeModel)
+        XCTAssertEqual(active.id, newModel.id)
+        XCTAssertEqual(active.displayName, "Claude 3.7 Sonnet")
+        XCTAssertEqual(active.upstreamModelID, "claude-3-7-sonnet-20250219")
+        XCTAssertEqual(active.thinkingMode, .high)
+        XCTAssertTrue(active.isStreamingEnabled)
+
+        let activeProv = try XCTUnwrap(state.activeModelProvider)
+        XCTAssertEqual(activeProv.id, newProviderID)
+        XCTAssertEqual(activeProv.name, "Anthropic")
+
+        // 8. User triggers Connection Test on the new active model
+        state.testConnection(modelID: newModel.id)
+        await waitUntil(!state.isTesting, "Timed out waiting for connection test")
+
+        XCTAssertEqual(recordingFactory.capturedTarget?.modelID, newModel.id)
+        XCTAssertEqual(recordingFactory.capturedTarget?.providerID, newProviderID)
+        XCTAssertEqual(recordingFactory.capturedTarget?.upstreamModelID, "claude-3-7-sonnet-20250219")
+        XCTAssertEqual(recordingFactory.capturedTarget?.format, .anthropic)
+    }
+
     // MARK: - Helpers
 
     private func makeState(
@@ -1265,9 +1497,16 @@ final class ProviderSettingsStateTests: XCTestCase {
     }
 
     private func makeGeneralState(keyStore: RecordingKeyStore) -> GeneralSettingsState {
-        GeneralSettingsState(
-            settings: AppSettings(defaults: UserDefaults(suiteName: "ProviderSettingsStateTests.\(UUID().uuidString)")!),
+        let suiteName = "ProviderSettingsStateTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        return GeneralSettingsState(
+            settings: AppSettings(defaults: defaults, persistentDomainName: suiteName),
             keyStore: keyStore,
+            sessionStore: SessionStore(bundleIdentifier: suiteName),
+            diagnosticLogStore: DiagnosticLogStore(
+                fileURL: FileManager.default.temporaryDirectory
+                    .appendingPathComponent("ProviderSettingsState-\(UUID().uuidString).json")
+            ),
             onConfigurationImported: {}
         )
     }
@@ -1286,6 +1525,109 @@ final class ProviderSettingsStateTests: XCTestCase {
 
     private func waitForModelRefresh(_ state: ProviderSettingsState) async {
         await waitUntil(!state.isRefreshingModels, "Timed out waiting for model refresh")
+    }
+
+
+    func testActiveModelHeroCardAdaptiveLayoutWithLongNames() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: RecordingKeyStore(),
+            providerFactory: NoopProviderFactory()
+        )
+
+        state.startNewProvider()
+        state.draftProviderName = "Gemini (new-api 网关)"
+        state.draftProviderAddress = "https://new.shiquda.link/v1beta/models"
+        state.draftProviderAddressMode = .baseURL
+        state.draftProviderTimeout = 45
+        state.saveProvider()
+        let providerID = try XCTUnwrap(state.selectedProviderID)
+
+        state.startNewModel(for: providerID)
+        state.draftModelDisplayName = "gemini-3.7-flash-high"
+        state.draftModelUpstreamID = "gemini-3.7-flash-preview-very-long-upstream-model-identifier-123456789"
+        state.draftModelStreaming = true
+        state.draftModelThinkingMode = .high
+        state.saveModel()
+        let model = try XCTUnwrap(settings.providerRegistry.catalog?.models.first { $0.displayName == "gemini-3.7-flash-high" })
+
+        state.useModelForChat(model.id)
+        XCTAssertEqual(state.activeModelID, model.id)
+
+        let view = ProviderSettingsPage(
+            settings: settings,
+            state: state,
+            searchTarget: nil,
+            onSearchTargetConsumed: {}
+        )
+        .environment(\.colorScheme, .light)
+        .background(Color(NSColor.windowBackgroundColor))
+        .frame(width: 500)
+
+        let hosting = NSHostingView(rootView: view)
+        hosting.frame = NSRect(x: 0, y: 0, width: 500, height: 600)
+        hosting.layoutSubtreeIfNeeded()
+
+        guard let rep = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else {
+            XCTFail("Failed to create bitmap rep")
+            return
+        }
+        hosting.cacheDisplay(in: hosting.bounds, to: rep)
+        guard let data = rep.representation(using: .png, properties: [:]) else {
+            XCTFail("Failed to render PNG")
+            return
+        }
+        let outPath = "/tmp/hero_card_adaptive_500.png"
+        try data.write(to: URL(fileURLWithPath: outPath))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: outPath))
+    }
+    func testChannelModelPlaceholderResolvesLatestModelsForEachChannel() {
+        let openAI = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "OpenAI", address: "https://api.openai.com/v1")
+        XCTAssertEqual(openAI.upstreamModelID, "gpt-6-luna")
+        XCTAssertEqual(openAI.displayName, "GPT-6 Luna")
+
+        let anthropic = ChannelModelPlaceholder.resolve(format: .anthropic, providerName: "Anthropic", address: "https://api.anthropic.com/v1")
+        XCTAssertEqual(anthropic.upstreamModelID, "claude-3-7-sonnet-20250219")
+        XCTAssertEqual(anthropic.displayName, "Claude 3.7 Sonnet")
+
+        let gemini = ChannelModelPlaceholder.resolve(format: .gemini, providerName: "Google Gemini", address: "https://generativelanguage.googleapis.com/v1beta")
+        XCTAssertEqual(gemini.upstreamModelID, "gemini-2.5-flash")
+        XCTAssertEqual(gemini.displayName, "Gemini 2.5 Flash")
+
+        let deepseek = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "DeepSeek", address: "https://api.deepseek.com")
+        XCTAssertEqual(deepseek.upstreamModelID, "deepseek-chat")
+        XCTAssertEqual(deepseek.displayName, "DeepSeek V3")
+
+        let kimi = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "Moonshot Kimi", address: "https://api.moonshot.cn/v1")
+        XCTAssertEqual(kimi.upstreamModelID, "moonshot-v1-auto")
+        XCTAssertEqual(kimi.displayName, "Kimi Latest")
+
+        let ollama = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "Ollama", address: "http://localhost:11434/v1")
+        XCTAssertEqual(ollama.upstreamModelID, "llama3.3")
+        XCTAssertEqual(ollama.displayName, "Llama 3.3")
+
+        let openRouter = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "OpenRouter", address: "https://openrouter.ai/api/v1")
+        XCTAssertEqual(openRouter.upstreamModelID, "anthropic/claude-3.7-sonnet")
+        XCTAssertEqual(openRouter.displayName, "Claude 3.7 Sonnet")
+
+        let siliconFlow = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "SiliconFlow", address: "https://api.siliconflow.cn/v1")
+        XCTAssertEqual(siliconFlow.upstreamModelID, "deepseek-ai/DeepSeek-V3")
+        XCTAssertEqual(siliconFlow.displayName, "DeepSeek V3")
+
+        let qwen = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "通义千问 (DashScope)", address: "https://dashscope.aliyuncs.com/compatible-mode/v1")
+        XCTAssertEqual(qwen.upstreamModelID, "qwen-plus")
+        XCTAssertEqual(qwen.displayName, "Qwen Plus")
+
+        let zhipu = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "智谱 BigModel", address: "https://open.bigmodel.cn/api/paas/v4")
+        XCTAssertEqual(zhipu.upstreamModelID, "glm-4-plus")
+        XCTAssertEqual(zhipu.displayName, "GLM-4 Plus")
+
+        let fallback = ChannelModelPlaceholder.resolve(for: nil)
+        XCTAssertEqual(fallback.upstreamModelID, "gpt-6-luna")
+        XCTAssertEqual(fallback.displayName, "GPT-6 Luna")
     }
 
     private func makeDefaults() -> (UserDefaults, String) {

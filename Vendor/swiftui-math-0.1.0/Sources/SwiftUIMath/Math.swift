@@ -94,6 +94,15 @@ extension Math {
     static let zero = TypographicBounds(origin: .zero, width: 0, ascent: 0, descent: 0)
   }
 
+  /// Reports whether the bundled LaTeX parser understands `latex`.
+  ///
+  /// Hosts use this to keep a rendering fallback instead of handing
+  /// expressions the renderer would silently drop.
+  @_spi(Textual)
+  public static nonisolated func canRender(_ latex: String) -> Bool {
+    Parser.build(fromString: latex) != nil
+  }
+
   @_spi(Textual)
   public static nonisolated func typographicBounds(
     for latex: String,

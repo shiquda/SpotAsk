@@ -1,11 +1,11 @@
-<p align="center">
-  <img src="images/spotask-hero-zh.png" width="100%" alt="SpotAsk — 一次提问，分流至应用内回答、网页 AI 或本地 Agent">
-</p>
-
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
   原生 macOS 菜单栏 AI 助手与问题路由器：快捷键随时呼出，在应用内流式作答，或由决策模型自动（及按键一键）分流至网页 AI 与本地 CLI Agent。
+</p>
+
+<p align="center">
+  macOS 15+ · Apple Silicon / Intel · Native Swift
 </p>
 
 <p align="center">
@@ -15,8 +15,29 @@
 </p>
 
 <p align="center">
-  <a href="#下载安装">下载安装</a> · <a href="#核心特性">核心特性</a> · <a href="https://shiquda.github.io/SpotAsk/zh-CN/">在线文档</a> · <a href="#快速上手">快速上手</a> · <a href="#从源码构建">从源码构建</a> · <a href="README.md">English</a>
+  <a href="https://github.com/shiquda/SpotAsk/releases/latest">下载 macOS 版</a> · <a href="https://shiquda.github.io/SpotAsk/zh-CN/">在线文档</a> · <a href="#快速上手">快速上手</a> · <a href="#从源码构建">从源码构建</a> · <a href="README.md">English</a>
 </p>
+
+<p align="center">
+  <img src="images/spotask-hero-zh.png" width="100%" alt="SpotAsk — 一次提问，分流至应用内回答、网页 AI 或本地 Agent">
+</p>
+
+## 下载安装
+
+从 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) 下载最新 DMG：Apple Silicon 选 `arm64`，Intel 选 `x86_64`。
+
+也可以使用 Homebrew 安装：
+
+```sh
+brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
+brew install --cask shiquda/spotask/spotask
+```
+
+## 核心能力
+
+- **快捷提问** — 按 `⌥ + Space` 唤起专注小窗，用你自己的 API Key 流式作答，按 `Esc` 立即关闭。
+- **选中文本处理** — 在任意 macOS 应用中划词，就地翻译、解释、总结或润色，也可直接带入对话。
+- **External Ask** — 一键把问题分流至网页 AI、桌面应用或本地 CLI Agent，也可交给决策模型自动选路。
 
 ## 核心特性
 
@@ -28,7 +49,8 @@
 - **全局划词助手** — 在 Safari、Xcode、备忘录等任意应用中划词，浮动操作条就近浮现；可一键填入对话追问，或直接翻译、总结、解释与润色。
 - **多模态与附件支持** — 直接粘贴截图或拖入图片、代码和文本文档，多轮对话自动保留上下文。
 - **常用提示词预设** — 内置高频生产力模板，支持快速自定义与专属快捷键绑定。
-- **纯原生轻量体验** — 纯 Swift + AppKit 打造，安装包仅约 10 MB，无 Electron 运行时；毫秒级冷启动，静默常驻菜单栏，内存占用极低。
+- **纯原生轻量体验** — 纯 Swift + AppKit 打造，无 Electron 运行时；毫秒级冷启动，静默常驻菜单栏，内存占用极低。
+
 ## 工作流演示
 
 SpotAsk 围绕 **“先提问再分流（Ask first. Decide where it goes after.）”** 与 **“随时唤起，随问随走（Summon anytime. Dismiss instantly.）”** 构建——让日常 AI 交互轻量、键盘优先且无多余心智负担。
@@ -59,26 +81,16 @@ SpotAsk 围绕 **“先提问再分流（Ask first. Decide where it goes after.�
 
 ### 3. 决策模型自动选路
 
-开启自动路由后，SpotAsk 会先问一次 System One 决策模型，给出推荐去处与置信度。按 `↩` 继续、按 `Tab` 换渠道、按 `Esc` 取消；标题栏开关（`⌘ + ⇧ + R`）可临时关掉本次对话的自动路由。
+开启自动路由后，SpotAsk 会先问一次决策模型（System One 或 OpenAI Decisions），给出推荐去处与置信度。按 `↩` 继续、按 `Tab` 换渠道、按 `Esc` 取消；标题栏开关（`⌘ + ⇧ + R`）可临时关掉本次对话的自动路由。
 <p align="center">
-  <img src="docs/site/public/images/spotask-decision-routing-zh.png" width="720" alt="SpotAsk 推荐卡片写明去处与置信度，右侧是决策模型在「在 SpotAsk 内 / Web Chat / Local Agent」之间做选择">
+  <a href="https://github.com/shiquda/SpotAsk/releases/download/v0.3.0/SpotAsk-smart-routing-v5.mp4">
+    <img src="docs/site/public/images/spotask-smart-routing-preview.gif" width="720" alt="SpotAsk 智能路由实机演示动图预览">
+  </a>
+</p>
+<p align="center">
+  ▶️ <a href="https://github.com/shiquda/SpotAsk/releases/download/v0.3.0/SpotAsk-smart-routing-v5.mp4"><strong>观看实机演示完整视频（1080p · 60fps · 28 秒 MP4）</strong></a> — <em>一个问题，三种去向：决策模型自动选路实机交互。</em>
 </p>
 
-## 下载安装
-
-通过 Homebrew 安装：
-
-```sh
-brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
-brew install --cask shiquda/spotask/spotask
-```
-
-或从 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases) 下载对应架构的 DMG：
-
-- **Apple Silicon** — M 系列芯片请下载 `arm64` 安装包。
-- **Intel** — Intel 芯片请下载 `x86_64` 安装包。
-
-官方发布包已使用 Apple Developer ID 签名并经公证，首次运行无需繁琐确认。
 ## 快速上手
 
 1. **配置服务**：打开设置（`⌘ + ,`）进入服务页，选择或添加你的服务商（OpenAI 兼容、Anthropic 或 Gemini），填写 API 地址、模型 ID 与访问密钥。

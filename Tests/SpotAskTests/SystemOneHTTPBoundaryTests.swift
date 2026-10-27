@@ -177,4 +177,105 @@ struct SystemOneHTTPBoundaryTests {
         }
         #expect(source.requests.count == 1)
     }
+
+    @Test("Official Decisions host round-trips a route without a credential")
+    func officialFormatLoopback() async throws {
+        let question = "Where should this local edit go?"
+        let origin = try DecisionHTTPOrigin { request in
+            Self.officialDecisionReply(request, question: question)
+                ?? .init(status: 400, body: #"{"error":"not the official decisions format"}"#)
+        }
+        defer { origin.stop() }
+        var components = URLComponents(url: origin.url, resolvingAgainstBaseURL: false)
+        components?.path = ""
+        let base = try #require(components?.string)
+        let session = URLSession(configuration: .ephemeral)
+        defer { session.invalidateAndCancel() }
+
+        let result = await DecisionRoutingPreview.run(
+            question: question,
+            settings: DecisionRoutingSettings(
+                isEnabled: true,
+                provider: .openAIDecisions,
+                serviceURL: base,
+                model: "gpt-6-luna",
+                confirmationMode: .always,
+                confidenceThreshold: DecisionRoutingPolicy.defaultThreshold,
+                timeoutSeconds: 5,
+                timeoutAction: .manualSelection,
+                inAppDescription: ""
+            ),
+            candidates: [
+                DecisionRouteCandidate(
+                    id: DecisionRouteID.inApp,
+                    title: "In-App",
+                    symbolName: "bubble.left",
+                    brandIconSlug: nil,
+                    applicableDescription: "Short answers",
+                    forceConfirm: false,
+                    externalActionID: nil,
+                    externalActionKind: nil
+                ),
+                DecisionRouteCandidate(
+                    id: "ext_agent",
+                    title: "Local Agent",
+                    symbolName: "terminal",
+                    brandIconSlug: nil,
+                    applicableDescription: "Local edits",
+                    forceConfirm: false,
+                    externalActionID: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
+                    externalActionKind: .terminal(commandTemplate: "omp {query}")
+                ),
+            ],
+            apiKey: nil,
+            transport: URLSessionSystemOneTransport(session: session)
+        )
+
+        guard case let .recommendation(candidate, confidence, release) = result else {
+            Issue.record("expected a recommendation, got \(result)")
+            return
+        }
+        #expect(candidate.id == "ext_agent")
+        #expect(confidence == 0.93)
+        #expect(release == .confirm)
+
+        let raw = String(decoding: try #require(origin.requests.first), as: UTF8.self)
+        let body = try #require(raw.components(separatedBy: "\r\n\r\n").dropFirst().first)
+        let object = try #require(JSONSerialization.jsonObject(with: Data(body.utf8)) as? [String: Any])
+        #expect(raw.hasPrefix("POST /v1/decisions "))
+        #expect(!raw.lowercased().contains("authorization:"))
+        #expect(object["model"] as? String == "gpt-6-luna")
+        #expect(object["input"] as? String == question)
+        #expect(object["state"] == nil)
+        let questions = try #require(object["questions"] as? [[String: Any]])
+        #expect(questions.first?["type"] as? String == "choice")
+        #expect(questions.first?["name"] as? String == "route")
+    }
+
+    /// Accepts only the official Decisions body: `input`, a `questions` array, no `state`, no credential.
+    private static func officialDecisionReply(_ request: String, question: String) -> DecisionHTTPOrigin.Reply? {
+        let parts = request.components(separatedBy: "\r\n\r\n")
+        guard parts.count >= 2 else { return nil }
+        let headers = parts[0].components(separatedBy: "\r\n")
+        guard headers.first?.hasPrefix("POST /v1/decisions ") == true else { return nil }
+        guard !headers.contains(where: { $0.lowercased().hasPrefix("authorization:") }) else { return nil }
+        guard headers.contains(where: {
+            $0.lowercased().hasPrefix("content-type:") && $0.lowercased().contains("application/json")
+        }) else { return nil }
+        guard let object = try? JSONSerialization.jsonObject(with: Data(parts[1].utf8)) as? [String: Any],
+              object["state"] == nil,
+              object["model"] as? String == "gpt-6-luna",
+              object["input"] as? String == question,
+              let questions = object["questions"] as? [[String: Any]],
+              questions.count == 1,
+              questions[0]["type"] as? String == "choice",
+              questions[0]["name"] as? String == "route",
+              let choices = questions[0]["choices"] as? [[String: Any]],
+              Set(choices.compactMap { $0["value"] as? String }) == ["in_app", "ext_agent"] else {
+            return nil
+        }
+        return .init(body: """
+        {"id":"dec_local_e2e","object":"decision","model":"gpt-6-luna","answers":[{"type":"choice","name":"route","choice":"ext_agent","probabilities":[{"value":"in_app","probability":0.07},{"value":"ext_agent","probability":0.93}],"confidence":0.93}]}
+        """)
+    }
 }

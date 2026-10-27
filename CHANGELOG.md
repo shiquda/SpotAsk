@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Settings > External Ask decision routing can use the OpenAI Decisions API (`gpt-6-luna` at `https://api.openai.com`, address editable) alongside System One. Each engine keeps its own address, model, and access key.
+
+### Changed
+
+- Model placeholders in the model editor now adapt dynamically to each service channel's latest model (e.g. `gpt-6-luna` for OpenAI, `claude-3-7-sonnet-20250219` for Anthropic, `gemini-2.5-flash` for Google Gemini, `deepseek-chat` for DeepSeek, `moonshot-v1-auto` for Kimi, `llama3.3` for Ollama), and the default initial model updates from `gpt-5-mini` to `gpt-6-luna`.
+
+### Fixed
+
+- Clearing all local data now deletes only that app's own settings, conversations, credentials, and diagnostics. A development test can no longer erase the installed app's preferences.
+
+## [0.3.2] - 2026-10-21
+
+**Safer settings migration and more reliable math rendering**
+
+### Fixed
+
+- Math answers containing `\boldsymbol` now render as bold italic instead of disappearing, unsupported expressions fall back to readable raw LaTeX, and malformed math no longer terminates the app.
+- Sandbox migration now runs before any settings load, so a pending legacy provider catalog can no longer be skipped in favor of a synthesized default. A catalog stored with an unexpected type is reported and preserved instead of being overwritten, and an unreadable legacy preferences file fails migration without recording completion or discarding a still-pending catalog.
+
+## [0.3.1] - 2026-10-19
+
+**Provider setup hero card & quick templates, modernized shortcut settings with search & conflict alerts, selection assistant live stage & secondary menu, 3-card theme picker**
+
+### Added
+
+- Settings > Services adds an active model hero card displaying the current default model, provider, and readiness status badges, alongside one-click quick setup templates for mainstream providers and a dedicated model management sheet.
+- Settings > Shortcuts is redesigned with real-time search filtering, skeuomorphic keycaps, mental-model functional grouping, and inline conflict detection alerts against existing system and app shortcuts.
+- Settings > Selection Assistant introduces an interactive 1:1 live preview stage card with drag-and-drop reordering, allowing secondary actions to be folded into an expandable dropdown menu (`...`) to keep the floating action bar compact.
+- Settings > External Ask adds a preset catalog for mainstream AI services (ChatGPT, Claude, Perplexity, DeepSeek, Kimi, Google, Grok, GitHub) under the Add Channel menu, and refactors decision routing with sequential syntax condition cards and an explicit in-app fallback card.
+- Settings > Appearance introduces a 3-card visual theme picker (System, Light, Dark), and Settings > General moves sensitive data resets into a dedicated Danger Zone with two-stage confirmation.
+- Built-in and custom prompt presets now share unified management and reordering controls, with a new Restore Default Prompts option to revert or recover modified system presets.
+
+### Changed
+
+- Up and down reordering buttons across Decision Routing rules, External Ask channels, and Prompt Presets are now stacked vertically to save horizontal space and improve layout consistency.
+
+### Fixed
+
+- The selection overlay action bar now correctly receives and renders customized primary and secondary actions configured in the live preview stage card.
+- Eliminated speculative candidate layout churn (`ViewThatFits`) in labeled settings rows and general shortcut fields, and prevented redundant view rebuilds in the shortcut recorder to ensure smooth scrolling without layout jitter.
+
 ## [0.3.0] - 2026-10-11
 
 **Decision routing for External Ask, inline channel confirmation, smoother long-chat reading**
@@ -254,7 +297,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Service provider cards expand and collapse reliably.
 - Thinking expansion behavior: expands during reasoning and collapses for final answers when enabled; stays collapsed when disabled.
 
-[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/shiquda/SpotAsk/compare/v0.3.1...v0.3.2
+[0.3.1]: https://github.com/shiquda/SpotAsk/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/shiquda/SpotAsk/compare/v0.2.7...v0.3.0
 [0.2.7]: https://github.com/shiquda/SpotAsk/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/shiquda/SpotAsk/compare/v0.2.5...v0.2.6
