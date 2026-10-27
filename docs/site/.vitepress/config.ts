@@ -106,9 +106,11 @@ function chineseTokenizer(text: string): string[] {
   return Array.from(new Set(tokens))
 }
 
-// Same groups and labels as the navigation above, in the same order: the
-// sidebar is the persistent copy of the `Guides` dropdown, so a reader who
-// learned where things live from the top nav finds them in the same place.
+// The sidebar is the persistent table of contents, so it lists only the pages
+// someone opens while using the app: install, the capability map, per-feature
+// how-tos, and help. The search-facing pages (use cases, design philosophy)
+// stay reachable through the `Guides` dropdown in the top nav, one level down,
+// and never take space in the body's navigation.
 const englishSidebar = [
   {
     text: 'Start Here',
@@ -134,27 +136,16 @@ const englishSidebar = [
     ]
   },
   {
-    text: 'Use Cases',
+    text: 'Reference',
     items: [
-      { text: 'macOS AI Launcher', link: '/use-cases/mac-ai-launcher' },
-      { text: 'BYOK Native AI Client', link: '/use-cases/byok-macos-ai' },
-      { text: 'External Ask & Routing', link: '/use-cases/external-ask-routing' },
-      { text: 'Selection Assistant', link: '/use-cases/selection-assistant' },
-      { text: 'Zero-Telemetry Privacy', link: '/use-cases/privacy-architecture' }
-    ]
-  },
-  {
-    text: 'More',
-    items: [
-      { text: 'Settings & Shortcuts Reference', link: '/reference' },
-      { text: 'Design Philosophy', link: '/philosophy' },
-      { text: 'Privacy & Local Data', link: '/privacy' }
+      { text: 'Settings & Shortcuts Reference', link: '/reference' }
     ]
   },
   {
     text: 'Help',
     items: [
       { text: 'Troubleshooting', link: '/troubleshooting' },
+      { text: 'Privacy & Local Data', link: '/privacy' },
       { text: 'Changelog', link: '/changelog' }
     ]
   }
@@ -185,27 +176,16 @@ const chineseSidebar = [
     ]
   },
   {
-    text: '场景专题',
+    text: '参考',
     items: [
-      { text: 'macOS 全局 AI 启动器', link: '/zh-CN/use-cases/mac-ai-launcher' },
-      { text: 'BYOK 原生 macOS AI 客户端', link: '/zh-CN/use-cases/byok-macos-ai' },
-      { text: 'External Ask 智能路由', link: '/zh-CN/use-cases/external-ask-routing' },
-      { text: '全局划词 AI 助手', link: '/zh-CN/use-cases/selection-assistant' },
-      { text: '本地优先与零遥测隐私架构', link: '/zh-CN/use-cases/privacy-architecture' }
-    ]
-  },
-  {
-    text: '更多',
-    items: [
-      { text: '设置与快捷键参考', link: '/zh-CN/reference' },
-      { text: '设计理念', link: '/zh-CN/philosophy' },
-      { text: '隐私与本地数据', link: '/zh-CN/privacy' }
+      { text: '设置与快捷键参考', link: '/zh-CN/reference' }
     ]
   },
   {
     text: '帮助',
     items: [
       { text: '故障排查', link: '/zh-CN/troubleshooting' },
+      { text: '隐私与本地数据', link: '/zh-CN/privacy' },
       { text: '更新日志', link: '/zh-CN/changelog' }
     ]
   }
