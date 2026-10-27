@@ -1,0 +1,15 @@
+{
+  "name": "native-math-engine",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bundle": "node build.mjs"
+  },
+  "dependencies": {
+    "@mathjax/src": "4.1.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

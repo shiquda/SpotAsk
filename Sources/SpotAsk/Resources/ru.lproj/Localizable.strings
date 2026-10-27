@@ -58,6 +58,7 @@
 "code.accessibility" = "Блок кода";
 "code.copy" = "Скопировать код";
 "code.copied" = "Код скопирован";
+"math.copy" = "Скопировать LaTeX";
 "code.defaultLanguage" = "Код";
 "error.cancelled" = "Запрос отменён.";
 "error.decodingFailed" = "Сервис вернул неожиданный контент. Повторите позже.";
@@ -297,6 +298,7 @@
 "settings.cancel" = "Отмена";
 "settings.chatMessageStyle" = "Стиль сообщений";
 "settings.renderMath" = "Отображать математические формулы";
+"settings.copyMathWithDelimiters" = "Копировать формулы с разделителями $$";
 "settings.fontSize" = "Размер шрифта";
 "settings.launchAtLogin" = "Запускать при входе в систему";
 "settings.silentLaunch" = "Запускать скрытно";

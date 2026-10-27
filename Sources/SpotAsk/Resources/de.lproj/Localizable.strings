@@ -58,6 +58,7 @@
 "code.accessibility" = "Codeblock";
 "code.copy" = "Code kopieren";
 "code.copied" = "Code kopiert";
+"math.copy" = "LaTeX kopieren";
 "code.defaultLanguage" = "Code";
 "error.cancelled" = "Anfrage abgebrochen.";
 "error.decodingFailed" = "Der Dienst lieferte unerwartete Inhalte. Versuche es später erneut.";
@@ -297,6 +298,7 @@
 "settings.cancel" = "Abbrechen";
 "settings.chatMessageStyle" = "Nachrichtenformat";
 "settings.renderMath" = "Mathematische Formeln darstellen";
+"settings.copyMathWithDelimiters" = "Formeln mit $$-Trennzeichen kopieren";
 "settings.fontSize" = "Schriftgröße";
 "settings.launchAtLogin" = "Bei Anmeldung starten";
 "settings.silentLaunch" = "Lautlos starten";

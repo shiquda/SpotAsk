@@ -21,14 +21,14 @@ struct ChannelModelPlaceholder: Hashable, Sendable {
     ) -> ChannelModelPlaceholder {
         if format == .anthropic {
             return ChannelModelPlaceholder(
-                upstreamModelID: "claude-3-7-sonnet-20250219",
-                displayName: "Claude 3.7 Sonnet"
+                upstreamModelID: "claude-sonnet-5-5",
+                displayName: "Claude Sonnet 5.5"
             )
         }
         if format == .gemini {
             return ChannelModelPlaceholder(
-                upstreamModelID: "gemini-2.5-flash",
-                displayName: "Gemini 2.5 Flash"
+                upstreamModelID: "gemini-3.8-flash",
+                displayName: "Gemini 3.8 Flash"
             )
         }
 
@@ -39,13 +39,13 @@ struct ChannelModelPlaceholder: Hashable, Sendable {
 
         if containsAny(combined, ["deepseek", "深度求索"]) {
             return ChannelModelPlaceholder(
-                upstreamModelID: "deepseek-chat",
-                displayName: "DeepSeek V3"
+                upstreamModelID: "deepseek-v4-flash",
+                displayName: "DeepSeek V4 Flash"
             )
         }
         if containsAny(combined, ["kimi", "moonshot", "月之暗面"]) {
             return ChannelModelPlaceholder(
-                upstreamModelID: "moonshot-v1-auto",
+                upstreamModelID: "kimi-latest",
                 displayName: "Kimi Latest"
             )
         }
@@ -57,14 +57,14 @@ struct ChannelModelPlaceholder: Hashable, Sendable {
         }
         if containsAny(combined, ["openrouter"]) {
             return ChannelModelPlaceholder(
-                upstreamModelID: "anthropic/claude-3.7-sonnet",
-                displayName: "Claude 3.7 Sonnet"
+                upstreamModelID: "anthropic/claude-sonnet-5.5",
+                displayName: "Claude Sonnet 5.5"
             )
         }
         if containsAny(combined, ["siliconflow", "siliconcloud", "硅基流动"]) {
             return ChannelModelPlaceholder(
-                upstreamModelID: "deepseek-ai/DeepSeek-V3",
-                displayName: "DeepSeek V3"
+                upstreamModelID: "deepseek-ai/DeepSeek-V4-Flash",
+                displayName: "DeepSeek V4 Flash"
             )
         }
         if containsAny(combined, ["qwen", "dashscope", "bailian", "百炼", "通义"]) {
@@ -75,8 +75,8 @@ struct ChannelModelPlaceholder: Hashable, Sendable {
         }
         if containsAny(combined, ["zhipu", "chatglm", "glm", "bigmodel", "智谱", "z.ai", "zai"]) {
             return ChannelModelPlaceholder(
-                upstreamModelID: "glm-4-plus",
-                displayName: "GLM-4 Plus"
+                upstreamModelID: "glm-5.3",
+                displayName: "GLM-5.3"
             )
         }
         if containsAny(combined, ["mistral", "codestral", "lechat"]) {
@@ -87,8 +87,8 @@ struct ChannelModelPlaceholder: Hashable, Sendable {
         }
         if containsAny(combined, ["grok", "xai"]) {
             return ChannelModelPlaceholder(
-                upstreamModelID: "grok-2-latest",
-                displayName: "Grok 2"
+                upstreamModelID: "grok-4.7",
+                displayName: "Grok 4.7"
             )
         }
         if containsAny(combined, ["doubao", "volcengine", "volc", "ark", "豆包", "火山"]) {
@@ -99,14 +99,14 @@ struct ChannelModelPlaceholder: Hashable, Sendable {
         }
         if containsAny(combined, ["anthropic", "claude"]) {
             return ChannelModelPlaceholder(
-                upstreamModelID: "claude-3-7-sonnet-20250219",
-                displayName: "Claude 3.7 Sonnet"
+                upstreamModelID: "claude-sonnet-5-5",
+                displayName: "Claude Sonnet 5.5"
             )
         }
         if containsAny(combined, ["gemini", "google"]) {
             return ChannelModelPlaceholder(
-                upstreamModelID: "gemini-2.5-flash",
-                displayName: "Gemini 2.5 Flash"
+                upstreamModelID: "gemini-3.8-flash",
+                displayName: "Gemini 3.8 Flash"
             )
         }
 
@@ -176,8 +176,8 @@ struct ProviderTemplate: Identifiable, Hashable, Sendable {
             address: "https://api.anthropic.com/v1",
             addressMode: .baseURL,
             iconSlug: "claude-color",
-            placeholderModelID: "claude-3-7-sonnet-20250219",
-            placeholderDisplayName: "Claude 3.7 Sonnet"
+            placeholderModelID: "claude-sonnet-5-5",
+            placeholderDisplayName: "Claude Sonnet 5.5"
         ),
         ProviderTemplate(
             id: "gemini",
@@ -186,8 +186,8 @@ struct ProviderTemplate: Identifiable, Hashable, Sendable {
             address: "https://generativelanguage.googleapis.com/v1beta",
             addressMode: .baseURL,
             iconSlug: "gemini-color",
-            placeholderModelID: "gemini-2.5-flash",
-            placeholderDisplayName: "Gemini 2.5 Flash"
+            placeholderModelID: "gemini-3.8-flash",
+            placeholderDisplayName: "Gemini 3.8 Flash"
         ),
         ProviderTemplate(
             id: "deepseek",
@@ -196,8 +196,8 @@ struct ProviderTemplate: Identifiable, Hashable, Sendable {
             address: "https://api.deepseek.com",
             addressMode: .baseURL,
             iconSlug: "deepseek-color",
-            placeholderModelID: "deepseek-chat",
-            placeholderDisplayName: "DeepSeek V3"
+            placeholderModelID: "deepseek-v4-flash",
+            placeholderDisplayName: "DeepSeek V4 Flash"
         ),
         ProviderTemplate(
             id: "ollama",
@@ -216,8 +216,8 @@ struct ProviderTemplate: Identifiable, Hashable, Sendable {
             address: "https://openrouter.ai/api/v1",
             addressMode: .baseURL,
             iconSlug: "openrouter-color",
-            placeholderModelID: "anthropic/claude-3.7-sonnet",
-            placeholderDisplayName: "Claude 3.7 Sonnet"
+            placeholderModelID: "anthropic/claude-sonnet-5.5",
+            placeholderDisplayName: "Claude Sonnet 5.5"
         ),
         ProviderTemplate(
             id: "siliconflow",
@@ -226,8 +226,8 @@ struct ProviderTemplate: Identifiable, Hashable, Sendable {
             address: "https://api.siliconflow.cn/v1",
             addressMode: .baseURL,
             iconSlug: "siliconcloud-color",
-            placeholderModelID: "deepseek-ai/DeepSeek-V3",
-            placeholderDisplayName: "DeepSeek V3"
+            placeholderModelID: "deepseek-ai/DeepSeek-V4-Flash",
+            placeholderDisplayName: "DeepSeek V4 Flash"
         ),
         ProviderTemplate(
             id: "kimi",
@@ -236,7 +236,7 @@ struct ProviderTemplate: Identifiable, Hashable, Sendable {
             address: "https://api.moonshot.cn/v1",
             addressMode: .baseURL,
             iconSlug: "kimi-color",
-            placeholderModelID: "moonshot-v1-auto",
+            placeholderModelID: "kimi-latest",
             placeholderDisplayName: "Kimi Latest"
         )
     ]

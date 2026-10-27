@@ -58,6 +58,7 @@
 "code.accessibility" = "Bloque de código";
 "code.copy" = "Copiar código";
 "code.copied" = "Código copiado";
+"math.copy" = "Copiar LaTeX";
 "code.defaultLanguage" = "Código";
 "error.cancelled" = "Solicitud cancelada.";
 "error.decodingFailed" = "El servicio devolvió contenido inesperado. Inténtalo de nuevo más tarde.";
@@ -297,6 +298,7 @@
 "settings.cancel" = "Cancelar";
 "settings.chatMessageStyle" = "Estilo de mensajes";
 "settings.renderMath" = "Mostrar fórmulas matemáticas";
+"settings.copyMathWithDelimiters" = "Copiar fórmulas con delimitadores $$";
 "settings.fontSize" = "Tamaño de letra";
 "settings.launchAtLogin" = "Iniciar al iniciar sesión";
 "settings.silentLaunch" = "Iniciar en silencio";

@@ -17,3 +17,5 @@ docs/site/zh-CN/changelog.md
 docs/site/public/llms.txt
 docs/site/public/llms-full.txt
 docs/site/public/markdown/
+Scripts/ax_probe
+/benchmarks/

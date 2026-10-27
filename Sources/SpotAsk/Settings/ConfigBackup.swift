@@ -187,6 +187,7 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
             escapeStartsNewConversation: Bool = false,
             defaultExpandReasoning: Bool = false,
             renderMath: Bool? = true,
+            copyMathWithDelimiters: Bool? = false,
             launchAtLogin: Bool = false,
             appearance: String = "system",
             fontSize: String = "standard",
@@ -212,6 +213,7 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
             rawValues["escapeStartsNewConversation"] = .bool(escapeStartsNewConversation)
             rawValues["defaultExpandReasoning"] = .bool(defaultExpandReasoning)
             if let renderMath { rawValues["renderMath"] = .bool(renderMath) }
+            if let copyMathWithDelimiters { rawValues["copyMathWithDelimiters"] = .bool(copyMathWithDelimiters) }
             rawValues["launchAtLogin"] = .bool(launchAtLogin)
             rawValues["appearance"] = .string(appearance)
             rawValues["fontSize"] = .string(fontSize)
@@ -263,6 +265,13 @@ struct SpotAskConfigBackup: Codable, Equatable, Sendable {
             set {
                 if let newValue { rawValues["renderMath"] = .bool(newValue) }
                 else { rawValues.removeValue(forKey: "renderMath") }
+            }
+        }
+        var copyMathWithDelimiters: Bool? {
+            get { rawValues["copyMathWithDelimiters"]?.boolValue }
+            set {
+                if let newValue { rawValues["copyMathWithDelimiters"] = .bool(newValue) }
+                else { rawValues.removeValue(forKey: "copyMathWithDelimiters") }
             }
         }
         var launchAtLogin: Bool {

@@ -10,14 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Settings > External Ask decision routing can use the OpenAI Decisions API (`gpt-6-luna` at `https://api.openai.com`, address editable) alongside System One. Each engine keeps its own address, model, and access key.
+- Settings > Appearance > Reading can include `$$` delimiters when copying a display formula. This option appears only while math rendering is enabled; hiding it preserves the saved preference. The preference applies immediately and defaults to copying plain LaTeX.
 
 ### Changed
 
-- Model placeholders in the model editor now adapt dynamically to each service channel's latest model (e.g. `gpt-6-luna` for OpenAI, `claude-3-7-sonnet-20250219` for Anthropic, `gemini-2.5-flash` for Google Gemini, `deepseek-chat` for DeepSeek, `moonshot-v1-auto` for Kimi, `llama3.3` for Ollama), and the default initial model updates from `gpt-5-mini` to `gpt-6-luna`.
+- Replaced legacy SwiftUIMath rendering engine with an offline MathJax 4.1.3 SVG and SwiftDraw native attachment pipeline, isolating math syntax before Markdown parsing and supporting `$$...$$`, `\[...\]`, `$...$`, and `\(...\)` delimiters. Inline formulas now stay inside their sentence, and display formulas render as centred native blocks that scroll horizontally when the window is too narrow.
+- Native text selection is scoped to each text segment and does not continue across display-formula blocks.
+- Removed the development-only math benchmark tools, timing tests, and application hooks; functional math regression tests remain.
+
+- Model placeholders in the model editor now adapt dynamically to each service channel's latest model (e.g. `gpt-6-luna` for OpenAI, `claude-sonnet-5-5` for Anthropic, `gemini-3.8-flash` for Google Gemini, `deepseek-v4-flash` for DeepSeek, `kimi-latest` for Kimi, `llama3.3` for Ollama), and the default initial model updates from `gpt-5-mini` to `gpt-6-luna`.
 
 ### Fixed
 
 - Clearing all local data now deletes only that app's own settings, conversations, credentials, and diagnostics. A development test can no longer erase the installed app's preferences.
+- Fixed Xcode project syntax and selected the correct MathJax resource bundle for both Xcode app builds and SwiftPM.
+- Restored a copy button at the top right of each display formula, including pending and failed formulas. It copies the original LaTeX and briefly confirms success without covering the formula.
+- Fixed formulas containing `<`, including causal-context subscripts and temperature comparisons, failing native SVG rendering. Formula source text remains unchanged.
 
 ## [0.3.2] - 2026-10-21
 
