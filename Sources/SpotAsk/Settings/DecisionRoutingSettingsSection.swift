@@ -20,9 +20,8 @@ struct DecisionRoutingSettingsSection: View {
         SettingsGroup(
             title: L10n.string("decisionRouting.sectionTitle"),
             documentation: DocumentationLinks.url(
-                for: .externalAsk,
-                language: settings.language,
-                fragment: DocumentationLinks.decisionRoutingFragment
+                for: .decisionRouting,
+                language: settings.language
             )
         ) {
             SettingsToggleRow(

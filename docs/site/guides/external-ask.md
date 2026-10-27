@@ -108,64 +108,24 @@ Entries can be reordered, disabled, edited, or deleted from the same settings pa
 
 ## Decision routing {#decision-routing}
 
-When you want SpotAsk to recommend a destination before sending, turn on **Enable automatic routing** in the **Decision Routing** section after the External Ask catalog.
+In addition to manually picking a target button or shortcut, SpotAsk supports automated **Decision Routing**:
 
-<SpotAskSettingsLink section="external-ask" />
-
-SpotAsk asks the selected decision engine which enabled channel fits the question. Choose **System One (jev)** or **OpenAI Decisions** under **Decision Engine & Connection**. It does not change the chat service that writes answers. Each engine keeps its own **Service address**, **Decision model**, and **Access key**. The key is sent only to that engine's address.
+When you press `Return`, an intent classification model evaluates your query in real time and recommends whether to answer immediately in SpotAsk or dispatch to the most suitable external platform.
 
 <video poster="/images/spotask-smart-routing-preview.gif" src="/videos/SpotAsk-smart-routing-v5.mp4" controls muted playsinline width="720"></video>
 
-*Video: one question, three destinations — decision routing demonstrated on real app footage (28s): an in-app answer, an auto-send route notice to Web Chat, and a Local Agent confirmation card with confidence score. [Download / Watch HD Video (1080p MP4)](/videos/SpotAsk-smart-routing-v5.mp4)*
+*Video: One question, three destinations—decision routing demonstrated on real app footage (28s). [Download / Watch HD Video (1080p MP4)](/videos/SpotAsk-smart-routing-v5.mp4)*
 
-Three setups are recommended. Run **Test question** in that section before relying on one.
+- **Inline Card Confirmation**: An inline card appears above the composer showing the suggested target and confidence score. Press <kbd>↩</kbd> to confirm, <kbd>Tab</kbd> / arrow keys to switch targets, or <kbd>Esc</kbd> to cancel.
+- **Dual Engine Architecture**: Independently configure **System One (jev-1.13.0)** (official or OpenRouter) or **OpenAI Decisions (gpt-6-luna)**.
+- **Threshold Auto-Dispatch & Quick Pause**: Automatically release high-confidence questions above a set threshold, and use the titlebar icon (<kbd>⌘ + ⇧ + R</kbd>) to pause routing for the current session at any time.
 
-### TypeSafe official
+::: tip Full Configuration & Advanced Guide
+For complete endpoint parameters, API key setup across TypeSafe, OpenRouter, and OpenAI Decisions, channel hints, and security boundaries, see the dedicated guide:  
+👉 **[Decision Routing Setup & Configuration Guide](/guides/decision-routing)**
+:::
 
-These values are already filled in. Add a TypeSafe key. This address will not send a request without one.
-
-| Field | Value |
-| --- | --- |
-| Service address | `https://api.typesafe.ai` |
-| Decision model | `jev-1.13.0` |
-| Access key | A TypeSafe API key |
-
-### OpenRouter
-
-OpenRouter serves the same System One request at `https://openrouter.ai/api/v1/systemone`. Use an OpenRouter key, not a TypeSafe key. Enter the base address below; SpotAsk adds `/v1/systemone`. Do not paste a chat-completions URL.
-
-| Field | Value |
-| --- | --- |
-| Service address | `https://openrouter.ai/api` |
-| Decision model | `typesafe/jev-1.13` |
-| Access key | An OpenRouter API key |
-
-Pin `typesafe/jev-1.13` if you want a fixed model. `~typesafe/jev-latest` follows OpenRouter’s newest Jev alias and can change. Access and pricing are OpenRouter’s: [Jev on OpenRouter](https://openrouter.ai/docs/guides/community/jev).
-
-### OpenAI Decisions
-
-Choose **OpenAI Decisions** in the segmented picker. This calls the [OpenAI Decisions API](https://developers.openai.com/api/docs/guides/decisions) (`POST /v1/decisions`), not System One. Switching engines does not overwrite the other engine's address, model, or access key. OpenAI does not serve the System One / `jev` model.
-
-| Field | Value |
-| --- | --- |
-| Service address | `https://api.openai.com` |
-| Decision model | `gpt-6-luna` |
-| Access key | An OpenAI API key |
-
-These values are already filled in. The official address will not send a request without a key. The address is editable; a custom address still uses `/v1/decisions`, and a key is optional unless the host is `api.openai.com`. Do not paste a chat-completions URL.
-
-- **Routing hints**: Edit any entry to set its link or command, **What it does**, **When to use**, and whether it uses **Always confirm first**. With that switch on, every routed send to the channel asks you first; with it off, your **Confirmation** setting applies. If you leave these fields blank, routing still sends the channel name to the decision model.
-- **Confirmation, confidence & auto-send notice**: The default mode confirms every routed send on an inline card above the composer (`↩` to continue, `Tab` for other channels, `Esc` to cancel and keep the question). In the channel list, Tab and Shift-Tab move the highlight, the arrow keys work too, and Return sends the highlighted channel. In threshold mode, scores strictly above your threshold answer immediately when routed to **In SpotAsk**, or show a brief 0.8-second notice before opening an external channel (`↩` sends immediately, `Esc` or editing cancels); confidence reflects option certainty, not accuracy.
-- **Per-conversation toolbar toggle**: When automatic routing is enabled, a smart-routing icon in the chat toolbar (`⌘ + ⇧ + R` by default) lets you turn automatic routing off for the current conversation without changing Settings. Starting a new conversation resets it to on. Turn off **Show routing toggle in toolbar** in **Settings > External Ask** to hide this icon.
-- **Timeout & manual priority**: The default timeout is 2 seconds. You can set it from 0.5 to 5 seconds in 0.1-second steps. Timeout falls back to manual channel selection (or In SpotAsk if configured). Manually selecting an External Ask target or attaching files always bypasses the decision model.
-- **Test question**: Preview the recommended destination, confidence, and release rule directly in Settings without opening any external app or browser tab.
-- **Service boundary**: Remote services must use HTTPS. HTTP is allowed only for loopback debugging (`localhost`, `127.0.0.0/8`, or `::1`), not other LAN addresses. Redirects may stay within the same scheme, host, and effective port; redirects to another origin or from HTTPS to HTTP are rejected before forwarding the question. Each engine keeps its own address, model, and key. A blank official model falls back to that engine's default (`jev-1.13.0` or `gpt-6-luna`); a blank custom model is not replaced.
-- **Cancel stale recommendations**: Editing, changing attachments or a prompt preset, or changing routing/channel availability invalidates an outstanding recommendation, including the 0.8-second notice. Editing a channel's link, URI, or command also cancels its pending recommendation, even if its name stays the same. This happens silently; your draft and attachments stay in place, and you can send again for a fresh decision. Starting a new conversation cancels the recommendation and follows the usual new-conversation clearing behavior. A cancelled recommendation does not open an external channel.
-
-The settings test requires External Ask to be enabled and at least two destinations (In SpotAsk plus an enabled external channel). Prerequisite and configuration failures show a specific reason without an evaluation time. Service errors distinguish authentication (401/403), endpoint (404), rate limiting (429), other HTTP rejections, network failures, timeout, an explicit refusal, and invalid or unrecognized responses. Diagnostic messages do not include question text or credentials.
-
-![Decision routing settings and live route test](/images/spotask-decision-routing-settings.png)
-
+<SpotAskSettingsLink section="external-ask" />
 ## Shortcuts
 
 Enabled entries get in-app shortcuts that continue after your prompt shortcuts: with the four built-in prompts enabled, the first two External Ask entries are `⌘ + 5` and `⌘ + 6`. Reassign or clear them in Settings > **Shortcuts**.
@@ -182,4 +142,4 @@ External Ask entries are included in configuration backups, and restoring an old
 
 **What happens to my question?** A manual External Ask send goes only to the destination you pick. When automatic routing runs, the question text and the candidate channel names and descriptions are also sent to the decision address you configured, so it can choose a destination. Routing does not run if you already picked a channel, the message has attachments, or the toolbar routing switch for this conversation is off.
 
-Related: [Prompts](/guides/prompts), [Privacy & Local Data](/privacy), [Settings & Shortcuts Reference](/reference)
+Related: [Decision Routing](/guides/decision-routing) · [Prompts](/guides/prompts) · [Privacy & Local Data](/privacy) · [Settings & Shortcuts Reference](/reference)

@@ -24,6 +24,7 @@ enum DocumentationLinks {
         case providersAndModels = "guides/providers-and-models"
         case prompts = "guides/prompts"
         case externalAsk = "guides/external-ask"
+        case decisionRouting = "guides/decision-routing"
         case selectionAssistant = "guides/selection-assistant"
         case appearance = "guides/appearance"
         case proxy = "guides/proxy"
