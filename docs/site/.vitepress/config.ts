@@ -106,28 +106,19 @@ function chineseTokenizer(text: string): string[] {
   return Array.from(new Set(tokens))
 }
 
+// Same groups and labels as the navigation above, in the same order: the
+// sidebar is the persistent copy of the `Guides` dropdown, so a reader who
+// learned where things live from the top nav finds them in the same place.
 const englishSidebar = [
   {
     text: 'Start Here',
     items: [
       { text: 'Getting Started', link: '/getting-started' },
-      { text: 'Explore SpotAsk', link: '/explore' },
-      { text: 'Design Philosophy', link: '/philosophy' },
-      { text: 'Privacy & Local Data', link: '/privacy' }
+      { text: 'Explore SpotAsk', link: '/explore' }
     ]
   },
   {
-    text: 'Use Cases',
-    items: [
-      { text: 'macOS AI Launcher', link: '/use-cases/mac-ai-launcher' },
-      { text: 'BYOK Native AI Client', link: '/use-cases/byok-macos-ai' },
-      { text: 'External Ask & Routing', link: '/use-cases/external-ask-routing' },
-      { text: 'Selection Assistant', link: '/use-cases/selection-assistant' },
-      { text: 'Zero-Telemetry Privacy', link: '/use-cases/privacy-architecture' }
-    ]
-  },
-  {
-    text: 'Guides',
+    text: 'How-to Guides',
     items: [
       { text: 'Connect an OpenAI-Compatible Service', link: '/guides/connect-openai-compatible' },
       { text: 'Connect Anthropic', link: '/guides/connect-anthropic' },
@@ -143,10 +134,27 @@ const englishSidebar = [
     ]
   },
   {
+    text: 'Use Cases',
+    items: [
+      { text: 'macOS AI Launcher', link: '/use-cases/mac-ai-launcher' },
+      { text: 'BYOK Native AI Client', link: '/use-cases/byok-macos-ai' },
+      { text: 'External Ask & Routing', link: '/use-cases/external-ask-routing' },
+      { text: 'Selection Assistant', link: '/use-cases/selection-assistant' },
+      { text: 'Zero-Telemetry Privacy', link: '/use-cases/privacy-architecture' }
+    ]
+  },
+  {
+    text: 'More',
+    items: [
+      { text: 'Settings & Shortcuts Reference', link: '/reference' },
+      { text: 'Design Philosophy', link: '/philosophy' },
+      { text: 'Privacy & Local Data', link: '/privacy' }
+    ]
+  },
+  {
     text: 'Help',
     items: [
       { text: 'Troubleshooting', link: '/troubleshooting' },
-      { text: 'Settings & Shortcuts Reference', link: '/reference' },
       { text: 'Changelog', link: '/changelog' }
     ]
   }
@@ -157,23 +165,11 @@ const chineseSidebar = [
     text: '从这里开始',
     items: [
       { text: '快速开始', link: '/zh-CN/getting-started' },
-      { text: '探索 SpotAsk', link: '/zh-CN/explore' },
-      { text: '设计理念', link: '/zh-CN/philosophy' },
-      { text: '隐私与本地数据', link: '/zh-CN/privacy' }
+      { text: '探索 SpotAsk', link: '/zh-CN/explore' }
     ]
   },
   {
-    text: '场景专题',
-    items: [
-      { text: 'macOS 全局 AI 启动器', link: '/zh-CN/use-cases/mac-ai-launcher' },
-      { text: 'BYOK 原生 macOS AI 客户端', link: '/zh-CN/use-cases/byok-macos-ai' },
-      { text: 'External Ask 智能路由', link: '/zh-CN/use-cases/external-ask-routing' },
-      { text: '全局划词 AI 助手', link: '/zh-CN/use-cases/selection-assistant' },
-      { text: '本地优先与零遥测隐私架构', link: '/zh-CN/use-cases/privacy-architecture' }
-    ]
-  },
-  {
-    text: '指南',
+    text: '使用指南',
     items: [
       { text: '连接 OpenAI 兼容服务', link: '/zh-CN/guides/connect-openai-compatible' },
       { text: '连接 Anthropic', link: '/zh-CN/guides/connect-anthropic' },
@@ -189,10 +185,27 @@ const chineseSidebar = [
     ]
   },
   {
+    text: '场景专题',
+    items: [
+      { text: 'macOS 全局 AI 启动器', link: '/zh-CN/use-cases/mac-ai-launcher' },
+      { text: 'BYOK 原生 macOS AI 客户端', link: '/zh-CN/use-cases/byok-macos-ai' },
+      { text: 'External Ask 智能路由', link: '/zh-CN/use-cases/external-ask-routing' },
+      { text: '全局划词 AI 助手', link: '/zh-CN/use-cases/selection-assistant' },
+      { text: '本地优先与零遥测隐私架构', link: '/zh-CN/use-cases/privacy-architecture' }
+    ]
+  },
+  {
+    text: '更多',
+    items: [
+      { text: '设置与快捷键参考', link: '/zh-CN/reference' },
+      { text: '设计理念', link: '/zh-CN/philosophy' },
+      { text: '隐私与本地数据', link: '/zh-CN/privacy' }
+    ]
+  },
+  {
     text: '帮助',
     items: [
       { text: '故障排查', link: '/zh-CN/troubleshooting' },
-      { text: '设置与快捷键参考', link: '/zh-CN/reference' },
       { text: '更新日志', link: '/zh-CN/changelog' }
     ]
   }
