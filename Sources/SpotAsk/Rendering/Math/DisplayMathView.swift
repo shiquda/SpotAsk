@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import SwiftDraw
 
@@ -7,10 +8,14 @@ import SwiftDraw
 public struct DisplayMathView: View {
     public let tex: String
     public let fontSize: Double
+    private let pasteboard: NSPasteboard
+    @State private var didCopy = false
+    @Environment(AppSettings.self) private var settings: AppSettings?
 
-    public init(tex: String, fontSize: Double) {
+    public init(tex: String, fontSize: Double, pasteboard: NSPasteboard = .general) {
         self.tex = tex
         self.fontSize = fontSize
+        self.pasteboard = pasteboard
     }
 
     public var body: some View {
@@ -33,6 +38,35 @@ public struct DisplayMathView: View {
                     }
             }
         }
+        .frame(minHeight: 36)
+        .overlay(alignment: .topTrailing) {
+            Button {
+                pasteboard.clearContents()
+                let copyWithDelimiters = settings?.copyMathWithDelimiters ?? AppSettings.shared.copyMathWithDelimiters
+                let textToCopy = copyWithDelimiters ? "$$\n" + tex + "\n$$" : tex
+                if pasteboard.setString(textToCopy, forType: .string) {
+                    didCopy = true
+                }
+            } label: {
+                Label(
+                    L10n.string(didCopy ? "chat.copied" : "math.copy"),
+                    systemImage: didCopy ? "checkmark" : "doc.on.doc"
+                )
+                .labelStyle(.iconOnly)
+                .frame(width: 24, height: 24)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+            .help(L10n.string(didCopy ? "chat.copied" : "math.copy"))
+            .padding(6)
+            .task(id: didCopy) {
+                guard didCopy else { return }
+                try? await Task.sleep(for: .milliseconds(1_500))
+                guard !Task.isCancelled else { return }
+                didCopy = false
+            }
+        }
     }
 
     private func renderedBody(_ rendered: RenderedMath) -> some View {
@@ -47,11 +81,12 @@ public struct DisplayMathView: View {
                     .foregroundStyle(.primary)
                     .frame(width: width, height: height)
                     .padding(.vertical, 6)
-                    .frame(minWidth: proxy.size.width, alignment: .center)
+                    .frame(minWidth: max(0, proxy.size.width - 72), alignment: .center)
                     .accessibilityLabel("公式：" + tex)
             }
+            .padding(.horizontal, 36)
         }
-        .frame(height: height + 12)
+        .frame(height: max(height + 12, 36))
         .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 6))
         .overlay(
             RoundedRectangle(cornerRadius: 6)
@@ -65,7 +100,7 @@ public struct DisplayMathView: View {
         Text("$$\(tex)$$")
             .font(.system(size: fontSize * 0.95, design: .monospaced))
             .foregroundStyle(.secondary)
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 36)
             .padding(.vertical, 6)
             .frame(maxWidth: .infinity, alignment: .center)
             .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 6))
@@ -76,7 +111,7 @@ public struct DisplayMathView: View {
         Text("$$\(tex)$$")
             .font(.system(size: fontSize * 0.95, design: .monospaced))
             .foregroundStyle(Color.red.opacity(0.9))
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 36)
             .padding(.vertical, 6)
             .frame(maxWidth: .infinity, alignment: .center)
             .background(Color.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))

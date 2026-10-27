@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Settings > External Ask decision routing can use the OpenAI Decisions API (`gpt-6-luna` at `https://api.openai.com`, address editable) alongside System One. Each engine keeps its own address, model, and access key.
+- Settings > Appearance > Reading can include `$$` delimiters when copying a display formula. This option appears only while math rendering is enabled; hiding it preserves the saved preference. The preference applies immediately and defaults to copying plain LaTeX.
 
 ### Changed
 
@@ -20,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Clearing all local data now deletes only that app's own settings, conversations, credentials, and diagnostics. A development test can no longer erase the installed app's preferences.
 - Fixed Xcode project syntax and selected the correct MathJax resource bundle for both Xcode app builds and SwiftPM.
+- Restored a copy button at the top right of each display formula, including pending and failed formulas. It copies the original LaTeX and briefly confirms success without covering the formula.
+- Fixed formulas containing `<`, including causal-context subscripts and temperature comparisons, failing native SVG rendering. Formula source text remains unchanged.
 
 ## [0.3.2] - 2026-10-21
 

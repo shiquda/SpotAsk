@@ -147,6 +147,24 @@ final class MarkdownRenderingTests: XCTestCase {
         XCTAssertGreaterThan(mathAligned.widthEm, 0)
     }
 
+    func testLessThanFormulasMatchEquivalentTeXRelation() async throws {
+        let cases = [
+            (#"T < 1"#, false),
+            (#"P(x_t | x_{<t}) = \frac{\exp(h_t \cdot e_{x_t})}{\sum_{v \in V} \exp(h_t \cdot e_v)}"#, true),
+            (#"\mathcal{L} = -\frac{1}{T}\sum_{t=1}^{T}\log P(x_t | x_{<t}; \theta)"#, true)
+        ]
+        for (tex, display) in cases {
+            let literal = try await MathEngine.shared.render(tex, display: display)
+            let command = try await MathEngine.shared.render(
+                tex.replacingOccurrences(of: "<", with: #"\lt "#),
+                display: display
+            )
+            XCTAssertEqual(literal.widthEm, command.widthEm, accuracy: 0.0001)
+            XCTAssertEqual(literal.heightEm, command.heightEm, accuracy: 0.0001)
+            XCTAssertEqual(literal.descentEm, command.descentEm, accuracy: 0.0001)
+        }
+    }
+
     func testMathEngineRejectsExcessiveLength() async {
         let huge = String(repeating: "x+", count: 10_000)
         do {

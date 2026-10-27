@@ -366,6 +366,18 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertFalse(AppSettings(defaults: defaults).renderMath)
     }
 
+    func testCopyMathWithDelimitersDefaultsToFalseAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        XCTAssertFalse(AppSettings(defaults: defaults).copyMathWithDelimiters)
+
+        let settings = AppSettings(defaults: defaults)
+        settings.copyMathWithDelimiters = true
+        XCTAssertTrue(AppSettings(defaults: defaults).copyMathWithDelimiters)
+    }
+
     func testEscapePrioritizesMarkedTextPopoverAndGeneration() {
         XCTAssertEqual(
             chatEscapeAction(

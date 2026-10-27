@@ -58,6 +58,7 @@
 "code.accessibility" = "代码块";
 "code.copy" = "复制代码";
 "code.copied" = "代码已复制";
+"math.copy" = "复制 LaTeX";
 "code.defaultLanguage" = "代码";
 "error.cancelled" = "请求已取消。";
 "error.decodingFailed" = "服务返回内容异常，请稍后重试。";
@@ -297,6 +298,7 @@
 "settings.cancel" = "取消";
 "settings.chatMessageStyle" = "消息样式";
 "settings.renderMath" = "渲染数学公式";
+"settings.copyMathWithDelimiters" = "复制公式时包含 $$ 分隔符";
 "settings.fontSize" = "字体大小";
 "settings.launchAtLogin" = "登录时启动";
 "settings.silentLaunch" = "静默启动";

@@ -49,7 +49,7 @@ struct MathMessageBody: View {
                         .textual.structuredTextStyle(.gitHub)
                         .textual.textSelection(.enabled)
                 case let .display(_, formula):
-                    DisplayMathView(tex: formula.tex, fontSize: fontSize)
+                    DisplayMathView(tex: formula.tex, fontSize: fontSize, pasteboard: pasteboard)
                 }
             }
         }

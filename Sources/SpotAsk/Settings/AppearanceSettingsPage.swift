@@ -33,6 +33,12 @@ struct AppearanceSettingsPage: View {
                     label: L10n.string("settings.renderMath"),
                     isOn: Bindable(settings).renderMath
                 )
+                if settings.renderMath {
+                    SettingsToggleRow(
+                        label: L10n.string("settings.copyMathWithDelimiters"),
+                        isOn: Bindable(settings).copyMathWithDelimiters
+                    )
+                }
                 SettingsFieldRow(label: L10n.string("settings.fontSize")) {
                     HStack(spacing: 0) {
                         Picker(L10n.string("settings.fontSize"), selection: Bindable(settings).fontSize) {

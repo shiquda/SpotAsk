@@ -14,6 +14,7 @@ final class ConfigBackupTests: XCTestCase {
         let source = AppSettings(defaults: sourceDefaults)
         source.defaultExpandReasoning = true
         source.renderMath = false
+        source.copyMathWithDelimiters = true
         source.chatMessageStyle = .im
         source.automaticUpdateCheckEnabled = false
         source.systemPrompt = "custom system prompt"
@@ -64,6 +65,7 @@ final class ConfigBackupTests: XCTestCase {
 
         XCTAssertTrue(destination.defaultExpandReasoning)
         XCTAssertFalse(destination.renderMath)
+        XCTAssertTrue(destination.copyMathWithDelimiters)
         XCTAssertEqual(destination.chatMessageStyle, .im)
         XCTAssertFalse(destination.automaticUpdateCheckEnabled)
         XCTAssertEqual(destination.systemPrompt, "custom system prompt")

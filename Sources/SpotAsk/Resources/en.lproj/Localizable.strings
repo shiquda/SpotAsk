@@ -58,6 +58,7 @@
 "code.accessibility" = "Code block";
 "code.copy" = "Copy code";
 "code.copied" = "Code copied";
+"math.copy" = "Copy LaTeX";
 "code.defaultLanguage" = "Code";
 "error.cancelled" = "Request cancelled.";
 "error.decodingFailed" = "The service returned unexpected content. Try again later.";
@@ -297,6 +298,7 @@
 "settings.cancel" = "Cancel";
 "settings.chatMessageStyle" = "Message Style";
 "settings.renderMath" = "Render math formulas";
+"settings.copyMathWithDelimiters" = "Copy formulas with $$ delimiters";
 "settings.fontSize" = "Font Size";
 "settings.launchAtLogin" = "Launch at login";
 "settings.silentLaunch" = "Launch silently";

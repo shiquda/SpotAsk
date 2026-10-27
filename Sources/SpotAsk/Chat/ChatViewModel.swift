@@ -254,67 +254,6 @@ final class ChatViewModel {
         try? sessionStore.clear()
     }
 
-    #if SPOTASK_BENCHMARK
-    /// Benchmark-only: replaces the visible session with the one on disk while
-    /// going through the same teardown as `newConversation()` (stream cancel,
-    /// flush, identity bump) so accumulated state is exercised realistically.
-    @discardableResult
-    func benchmarkReloadSession() -> UInt64 {
-        let stored: [ChatMessage] = settings.retainSession
-            ? ((try? sessionStore.load()) ?? [])
-            : []
-        newConversation()
-        messages = stored
-        sessionIdentity &+= 1
-        persistIfNeeded()
-        return sessionIdentity
-    }
-
-    var benchmarkSessionIdentity: UInt64 { sessionIdentity }
-    var benchmarkMessageCount: Int { messages.count }
-
-    /// Benchmark-only: replays a chunked answer through the same streaming
-    /// path the network events use, so rendering work, flush throttling and
-    /// view updates are exercised exactly as during a real response.
-    func benchmarkReplayStream(question: String, chunks: [String], intervalMs: Int) {
-        newConversation()
-        messages.append(ChatMessage(role: .user, content: question))
-        let assistantID = UUID()
-        activeStreamingAssistantID = assistantID
-        streamingContent = ""
-        streamingAnswerChunks = []
-        streamingReasoning = nil
-        generationState = .streaming
-        messages.append(ChatMessage(id: assistantID, role: .assistant, content: "", state: .streaming))
-
-        streamTask = Task { [weak self] in
-            guard let self else { return }
-            for chunk in chunks {
-                guard !Task.isCancelled else { return }
-                self.appendAnswer(chunk, to: assistantID)
-                try? await Task.sleep(for: .milliseconds(max(1, intervalMs)))
-            }
-            guard !Task.isCancelled else { return }
-            self.flushPendingDeltas()
-            self.completeAssistant(with: assistantID, state: .complete)
-            self.generationState = .idle
-            self.persistIfNeeded()
-        }
-    }
-
-    /// Benchmark-only: drives the failure path so the error and retry surfaces
-    /// are exercised without a provider.
-    func benchmarkFailStream(question: String) {
-        newConversation()
-        messages.append(ChatMessage(role: .user, content: question))
-        let assistantID = UUID()
-        activeStreamingAssistantID = assistantID
-        generationState = .streaming
-        messages.append(ChatMessage(id: assistantID, role: .assistant, content: "Partial answer before the failure.", state: .streaming))
-        finishAfterError(.invalidResponse, assistantID: assistantID)
-    }
-    #endif
-
     /// Starts a new conversation after a long idle period while keeping the
     /// previous messages available for one explicit restore action.
     /// Returns whether a fresh conversation actually started.
