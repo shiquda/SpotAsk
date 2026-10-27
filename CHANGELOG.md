@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Settings > External Ask decision routing can use the OpenAI Decisions API (`gpt-6-luna` at `https://api.openai.com`, address editable) alongside System One. Each engine keeps its own address, model, and access key.
 
+### Changed
+
+- Model placeholders in the model editor now adapt dynamically to each service channel's latest model (e.g. `gpt-6-luna` for OpenAI, `claude-3-7-sonnet-20250219` for Anthropic, `gemini-2.5-flash` for Google Gemini, `deepseek-chat` for DeepSeek, `moonshot-v1-auto` for Kimi, `llama3.3` for Ollama), and the default initial model updates from `gpt-5-mini` to `gpt-6-luna`.
+
 ### Fixed
 
 - Clearing all local data now deletes only that app's own settings, conversations, credentials, and diagnostics. A development test can no longer erase the installed app's preferences.
