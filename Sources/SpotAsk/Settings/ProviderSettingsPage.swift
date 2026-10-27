@@ -272,6 +272,10 @@ struct ModelEditorSheet: View {
         }
     }
 
+    private var placeholderModel: ChannelModelPlaceholder {
+        ChannelModelPlaceholder.resolve(for: parentProvider)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Header
@@ -307,16 +311,19 @@ struct ModelEditorSheet: View {
                 VStack(alignment: .leading, spacing: 16) {
                     SettingsGroup(title: L10n.string("settings.modelInfo")) {
                         SettingsFieldRow(label: L10n.string("settings.displayName")) {
-                            TextField(L10n.string("settings.displayNamePlaceholder"), text: $state.draftModelDisplayName)
-                                .textFieldStyle(.roundedBorder)
-                                .onChange(of: state.draftModelDisplayName) { _, _ in
-                                    state.updateDraftModelCompatibilityProfileIfNeeded()
-                                    state.clearStatus()
-                                }
+                            TextField(
+                                L10n.string("settings.displayNamePlaceholder", placeholderModel.displayName),
+                                text: $state.draftModelDisplayName
+                            )
+                            .textFieldStyle(.roundedBorder)
+                            .onChange(of: state.draftModelDisplayName) { _, _ in
+                                state.updateDraftModelCompatibilityProfileIfNeeded()
+                                state.clearStatus()
+                            }
                         }
 
                         SettingsFieldRow(label: L10n.string("settings.upstreamModelID")) {
-                            TextField("gpt-5-mini", text: $state.draftModelUpstreamID)
+                            TextField(placeholderModel.upstreamModelID, text: $state.draftModelUpstreamID)
                                 .textFieldStyle(.roundedBorder)
                                 .onChange(of: state.draftModelUpstreamID) { _, _ in
                                     state.updateDraftModelCompatibilityProfileIfNeeded()

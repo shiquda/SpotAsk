@@ -229,7 +229,7 @@ final class DataClearingAndBackupRollbackTests: XCTestCase {
         XCTAssertEqual(clearedReload.systemPrompt, "")
         let clearedCatalog = try XCTUnwrap(clearedReload.providerRegistry.catalog)
         XCTAssertEqual(clearedCatalog.providers.map(\.name), ["OpenAI Compatible"])
-        XCTAssertEqual(clearedCatalog.models.map(\.upstreamModelID), ["gpt-5-mini"])
+        XCTAssertEqual(clearedCatalog.models.map(\.upstreamModelID), ["gpt-6-luna"])
         XCTAssertFalse(clearedCatalog.providers.contains { $0.name == "Custom Relay" })
 
         XCTAssertEqual(spectatorDefaults.string(forKey: probeKey), "spectator-probe")

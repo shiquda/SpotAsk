@@ -1290,6 +1290,8 @@ final class ProviderSettingsStateTests: XCTestCase {
                 matchedSlug,
                 "Template \(template.id) with name '\(template.name)' should match a brand icon slug"
             )
+            XCTAssertFalse(template.placeholderModelID.isEmpty)
+            XCTAssertFalse(template.placeholderDisplayName.isEmpty)
         }
     }
 
@@ -1410,7 +1412,7 @@ final class ProviderSettingsStateTests: XCTestCase {
             providerFactory: recordingFactory
         )
 
-        // 1. Initial State: active model is the default gpt-5-mini
+        // 1. Initial State: active model is the default gpt-6-luna
         let initialModel = try XCTUnwrap(state.activeModel)
         XCTAssertEqual(initialModel.id, state.activeModelID)
         let initialProvider = try XCTUnwrap(state.activeModelProvider)
@@ -1582,6 +1584,52 @@ final class ProviderSettingsStateTests: XCTestCase {
         try data.write(to: URL(fileURLWithPath: outPath))
         XCTAssertTrue(FileManager.default.fileExists(atPath: outPath))
     }
+    func testChannelModelPlaceholderResolvesLatestModelsForEachChannel() {
+        let openAI = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "OpenAI", address: "https://api.openai.com/v1")
+        XCTAssertEqual(openAI.upstreamModelID, "gpt-6-luna")
+        XCTAssertEqual(openAI.displayName, "GPT-6 Luna")
+
+        let anthropic = ChannelModelPlaceholder.resolve(format: .anthropic, providerName: "Anthropic", address: "https://api.anthropic.com/v1")
+        XCTAssertEqual(anthropic.upstreamModelID, "claude-3-7-sonnet-20250219")
+        XCTAssertEqual(anthropic.displayName, "Claude 3.7 Sonnet")
+
+        let gemini = ChannelModelPlaceholder.resolve(format: .gemini, providerName: "Google Gemini", address: "https://generativelanguage.googleapis.com/v1beta")
+        XCTAssertEqual(gemini.upstreamModelID, "gemini-2.5-flash")
+        XCTAssertEqual(gemini.displayName, "Gemini 2.5 Flash")
+
+        let deepseek = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "DeepSeek", address: "https://api.deepseek.com")
+        XCTAssertEqual(deepseek.upstreamModelID, "deepseek-chat")
+        XCTAssertEqual(deepseek.displayName, "DeepSeek V3")
+
+        let kimi = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "Moonshot Kimi", address: "https://api.moonshot.cn/v1")
+        XCTAssertEqual(kimi.upstreamModelID, "moonshot-v1-auto")
+        XCTAssertEqual(kimi.displayName, "Kimi Latest")
+
+        let ollama = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "Ollama", address: "http://localhost:11434/v1")
+        XCTAssertEqual(ollama.upstreamModelID, "llama3.3")
+        XCTAssertEqual(ollama.displayName, "Llama 3.3")
+
+        let openRouter = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "OpenRouter", address: "https://openrouter.ai/api/v1")
+        XCTAssertEqual(openRouter.upstreamModelID, "anthropic/claude-3.7-sonnet")
+        XCTAssertEqual(openRouter.displayName, "Claude 3.7 Sonnet")
+
+        let siliconFlow = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "SiliconFlow", address: "https://api.siliconflow.cn/v1")
+        XCTAssertEqual(siliconFlow.upstreamModelID, "deepseek-ai/DeepSeek-V3")
+        XCTAssertEqual(siliconFlow.displayName, "DeepSeek V3")
+
+        let qwen = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "通义千问 (DashScope)", address: "https://dashscope.aliyuncs.com/compatible-mode/v1")
+        XCTAssertEqual(qwen.upstreamModelID, "qwen-plus")
+        XCTAssertEqual(qwen.displayName, "Qwen Plus")
+
+        let zhipu = ChannelModelPlaceholder.resolve(format: .openAICompatible, providerName: "智谱 BigModel", address: "https://open.bigmodel.cn/api/paas/v4")
+        XCTAssertEqual(zhipu.upstreamModelID, "glm-4-plus")
+        XCTAssertEqual(zhipu.displayName, "GLM-4 Plus")
+
+        let fallback = ChannelModelPlaceholder.resolve(for: nil)
+        XCTAssertEqual(fallback.upstreamModelID, "gpt-6-luna")
+        XCTAssertEqual(fallback.displayName, "GPT-6 Luna")
+    }
+
     private func makeDefaults() -> (UserDefaults, String) {
         let suiteName = "ProviderSettingsStateTests.\(UUID().uuidString)"
         return (UserDefaults(suiteName: suiteName)!, suiteName)

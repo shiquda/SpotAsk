@@ -11,6 +11,10 @@ SpotAsk 的所有重要变更都记录在本文件中。
 
 - 设置 > 外部提问的决策路由可以在 System One 之外使用 OpenAI Decisions API（默认 `https://api.openai.com` 的 `gpt-6-luna`，地址可改）。两个引擎各自保存地址、模型和访问密钥。
 
+### 变更
+
+- 模型编辑弹窗中的占位模型现在会根据服务渠道动态适配各渠道最新模型（如 OpenAI 适配 `gpt-6-luna`、Anthropic 适配 `claude-3-7-sonnet-20250219`、Google Gemini 适配 `gemini-2.5-flash`、DeepSeek 适配 `deepseek-chat`、Kimi 适配 `moonshot-v1-auto`、Ollama 适配 `llama3.3`），初始默认模型也由 `gpt-5-mini` 更新为 `gpt-6-luna`。
+
 ### 修复
 
 - 清空全部本地数据现在只会删除该应用自己的设置、对话、凭据和诊断日志。开发测试不再会擦掉已安装应用的偏好设置。
