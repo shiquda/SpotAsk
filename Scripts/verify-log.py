@@ -75,6 +75,12 @@ ENV_PROBES = [
 # had not been installed yet, then passed after `npm ci` with identical manifests.
 # Only installer-owned trees belong here — a build output such as `.build/` is
 # produced by the run itself and would mark its own evidence stale.
+#
+# Inside such a tree only the non-dot entries are counted. Dot entries are either
+# installer metadata (`.bin`, `.pnpm`, `.package-lock.json`) or caches the check
+# writes on its own first run (`node_modules/.vite`, `.vite-temp`, `.cache`): both
+# change without a single package being added or removed, so counting them marked
+# a passing log STALE the moment the run that produced it finished.
 INSTALL_PROBES = ("node_modules", "website/node_modules", "backend/node_modules")
 
 # Markers that mean "this log contains a failure", independent of the exit code.
@@ -226,7 +232,7 @@ def install_state(root):
             state[relative] = "absent"
             continue
         try:
-            entries = len(os.listdir(absolute))
+            entries = sum(1 for name in os.listdir(absolute) if not name.startswith("."))
         except OSError:
             state[relative] = "unreadable"
             continue
