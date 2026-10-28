@@ -45,6 +45,35 @@ swift build -c release
 
 `swift test` runs in a SwiftPM process with no bundle identifier. Data-clearing tests must inject their own `UserDefaults` suite name, `SessionStore`, credential file, and `DiagnosticLogStore`. `GeneralSettingsState.clearAllLocalData()` deletes only those injected stores. It does not fall back to `com.spotask.app` when the process has no bundle identifier, and it must not be pointed at `UserDefaults.standard` or `DiagnosticLogStore.shared`.
 
+### Which verification a change needs
+
+Pick the cheapest tier that still covers the behaviour; do not start from the full suite by habit, and do not treat a green narrow filter as proof that unrelated code is fine. Line count says nothing about risk.
+
+| Change | Targeted | Module | Full |
+| --- | --- | --- | --- |
+| One model, parser, or state machine under `Sources/SpotAsk/<Area>/` | `swift test --filter <XxxTests>` | the whole test target is one module, so there is no cheaper middle step | when the change reaches shared types used by `Chat`, `Provider`, and `Selection` |
+| Chat UI, markdown, or rendering (`Rendering/`, `Chat/`) | `swift test --filter ChatViewModelTests` (plus the specific view test) | `swift test` | layout/interaction changes also need `./Scripts/install-debug-app.sh` and a look at the real window |
+| Provider, model discovery, proxy (`Provider/`) | `swift test --filter ProviderModelRegistryTests` | `swift test` | provider protocol or request shape changes: add the matching live-endpoint check from the requirements above |
+| Selection assistant / Accessibility (`Selection/`) | `swift test --filter Accessibility` | `swift test` | permission and code-signature behaviour is only observable by installing the app — `swift test` cannot cover it |
+| Settings, localization strings | `swift test --filter <Settings>Tests` | `swift test` + `./Scripts/verify-changelog.sh` | adding a language: also `uv run Scripts/check-localization.py` and a manual pass over the new `.lproj` |
+| `Package.swift`, `Vendor/**`, toolchain | — | `swift build` | `swift test` (a dependency change invalidates every target's build) |
+| Packaging, signing, appcast, release scripts (`Scripts/**`, `Config/**`, `Resources/Info.plist`) | `./Scripts/verify-changelog.sh` + `python3 ./Scripts/verify-xcode-project-files.py` + `./Scripts/test-release-workflow.sh` | as targeted | release candidate: build signed DMGs for both architectures and run `verify-sparkle-appcast.py` |
+| New or moved `Sources/**/*.swift` file | `python3 ./Scripts/verify-xcode-project-files.py` | — | always, because `swift test` builds from the filesystem while `SpotAsk.xcodeproj` builds from its own file list |
+| `docs/site/**`, `Scripts/generate-docs-metadata.mjs`, `Scripts/verify-docs-seo.mjs` | `npm run docs:build && npm run docs:verify` | as targeted | metadata or title changes: inspect the built homepage and a secondary page in a browser as well |
+| `CHANGELOG.md` / `CHANGELOG.zh-CN.md` | `./Scripts/verify-changelog.sh` | as targeted | — |
+| README, `docs/site/**/*.md` prose only | `npm run docs:verify` if the page is part of the site; otherwise no test | — | — |
+
+**Widen the scope when any of these hold**, regardless of how small the diff looks:
+
+- `Package.swift`, `Vendor/**`, `Package.resolved`, or the toolchain changes — every target must be rebuilt and retested.
+- A `public` type or function moves between the `App`/`Chat`/`Provider`/`Selection`/`Rendering`/`Settings`/`Updates`/`Intents`/`Utilities` directories, or a `Codable`/`UserDefaults`/credential key is renamed: run `swift test` in full, and add a debug-install check when the key survives across launches.
+- Anything touching `LocalAPIKeyStore`, credential files, or the update/Sparkle path: run the full suite plus the release-script checks. These are the paths where a unit green light has historically not implied a working app.
+- A targeted run fails, skips, or cannot be reproduced: escalate to the tier above and report the failing command; do not re-run the same filter hoping for a different result.
+
+**Cost, measured on this machine** (arm64 macOS, Xcode 27.0, warm `.build`): `swift test --filter ProviderModelRegistryTests` takes 3.9 s once built and 142 s from a cold `.build` (the cold run pays for compiling the whole `SpotAsk` target, which no filter avoids); `swift test` takes 18.3 s warm and runs 444 tests; `./Scripts/verify-changelog.sh` and `python3 ./Scripts/verify-xcode-project-files.py` take under a second each. A filtered run isolates assertions, not compile cost — the first run in a fresh checkout still compiles everything.
+
+CI (`.github/workflows/ci.yml`) runs the changelog gate, the Xcode-project gate, `test-release-workflow.sh` (arm64 only), and `swift test` on both architectures for every PR; DMG packaging runs only after a merge. Local verification is what you run before pushing — it does not replace those PR checks, and a narrow filter here does not make the full CI run unnecessary.
+
 ## App bundle and DMG
 
 `Scripts/make-app-bundle.sh` creates `build/SpotAsk.app`. The default entitlements (`Config/SpotAsk.selection-assistant.entitlements`) disable App Sandbox so the selection assistant can read selected text with Accessibility permission.
