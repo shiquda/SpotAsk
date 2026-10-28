@@ -9,21 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.3] - 2026-10-28
 
-**Native MathJax math rendering, customizable reading font with search, OpenAI Decisions routing engine**
+**Improved math rendering, customizable reading font, OpenAI Decisions routing engine**
 
 ### Added
 
-- Settings > Appearance > Reading can set the reading font to any font family installed on the Mac. It applies to answers, your questions, reasoning, and the composer; code blocks keep a monospaced font and formulas keep their own typography. The default stays the system font, and a family that is no longer installed falls back to the system font without losing the saved choice. The font dropdown includes a search field, previews every family in its own typeface, and supports arrow keys with Return to choose.
-- Settings > External Ask decision routing can use the OpenAI Decisions API (`gpt-6-luna` at `https://api.openai.com`, address editable) alongside System One. Each engine keeps its own address, model, and access key.
+- Settings > Appearance > Reading allows choosing an installed font as the reading font, with live search and typeface preview in the font menu.
+- Settings > External Ask decision routing adds support for the OpenAI Decisions engine, with independent address, model, and key settings.
 
 ### Changed
 
-- Replaced legacy SwiftUIMath rendering engine with an offline MathJax 4.1.3 SVG and SwiftDraw native attachment pipeline, isolating math syntax before Markdown parsing and supporting `$$...$$`, `\[...\]`, `$...$`, and `\(...\)` delimiters as well as comparison symbols like `<`. Inline formulas stay inside sentence flow, display formulas render as centred native blocks that scroll horizontally when narrow, display formulas add a dedicated copy button for raw LaTeX, and Settings > Appearance > Reading adds an optional toggle to include `$$` delimiters when copying.
-- Model placeholders in the model editor now adapt dynamically to each service channel's latest model (e.g. `gpt-6-luna` for OpenAI, `claude-sonnet-5-5` for Anthropic, `gemini-3.8-flash` for Google Gemini, `deepseek-v4-flash` for DeepSeek, `kimi-latest` for Kimi, `llama3.3` for Ollama), and the default initial model updates from `gpt-5-mini` to `gpt-6-luna`.
+- Upgraded math formula rendering: seamless inline flow, centered display formulas with horizontal scrolling when narrow, and a dedicated copy LaTeX button (with optional $$ delimiters in Settings).
+- Updated service channel default models and placeholders to the latest flagship versions (e.g. OpenAI gpt-6-luna, Anthropic claude-sonnet-5-5).
 
 ### Fixed
 
-- Clearing all local data now deletes only that app's own settings, conversations, credentials, and diagnostics. A development test can no longer erase the installed app's preferences.
+- Scoped local data clearing strictly to the current app to prevent affecting other installations.
 
 ## [0.3.2] - 2026-10-21
 

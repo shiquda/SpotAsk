@@ -221,7 +221,7 @@ Local Release rebuilds change the code signature even when the Developer ID stay
 Changelog entries follow a concise, user-centric format inspired by Multica:
 
 1. **Headline summary**: directly beneath each released `## [X.Y.Z] - YYYY-MM-DD` heading, include a bold one-line title summarizing the key highlights of the release (e.g. `**Gemini services, pre-filled official addresses, smoother model discovery**` / `**Gemini 服务、官方地址预填、模型发现更顺手**`).
-2. **One sentence per bullet**: focus strictly on user-visible capabilities and behavior changes. Do not include internal implementation details, private class/method names, or test-suite mechanics.
+2. **One sentence per bullet**: focus strictly on user-visible capabilities and behavior changes. Do not include internal implementation details, private class/method names, or test-suite mechanics. Keep descriptions concise and product-oriented: avoid overly technical library names, exhaustive scenario breakdowns, or low-level keyboard/fallback mechanics.
 3. **Localized subsections**:
    - English (`CHANGELOG.md`): use standard `### Added`, `### Changed`, and `### Fixed`.
    - Simplified Chinese (`CHANGELOG.zh-CN.md`): use translated headings: `### 新增`, `### 变更`, and `### 修复`.
