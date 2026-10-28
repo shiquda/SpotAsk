@@ -74,6 +74,25 @@ Pick the cheapest tier that still covers the behaviour; do not start from the fu
 
 CI (`.github/workflows/ci.yml`) runs the changelog gate, the Xcode-project gate, `test-release-workflow.sh` (arm64 only), and `swift test` on both architectures for every PR; DMG packaging runs only after a merge. Local verification is what you run before pushing — it does not replace those PR checks, and a narrow filter here does not make the full CI run unnecessary.
 
+### One run, one full log
+
+`swift test` prints the pass/fail totals and one line per failing assertion. Piping it through a filter (`| grep failed`) discards both, so a filter that shows the wrong thing costs another full run. When the result is worth keeping — a change that needs evidence, a failure you need to read twice — record it instead:
+
+```sh
+Scripts/verify-log.py run --label swift-test -- swift test
+Scripts/verify-log.py summary        # status, duration, counts, evidence identity
+Scripts/verify-log.py failures       # the failure lines with log line numbers
+Scripts/verify-log.py reuse          # does this log still describe the current checkout?
+```
+
+The run writes complete stdout+stderr and the real exit code to `.verification-logs/<timestamp>-<label>/` (git-ignored), so status, counts and failures are read from that log as many times as needed without rerunning. `run` passes the command's exit code through. Status is decided by the exit code alone: a zero exit with failure lines in the log is `INCONCLUSIVE`, and a missing `meta.json`, an interrupted run, or a log that no longer matches its recorded sha256 is `INCOMPLETE` — neither counts as success.
+
+`reuse` recomputes the recorded inputs and refuses evidence as soon as any of them moved: `HEAD`, the **content** of the dirty worktree (tracked diff + index + a hash of every untracked file, not just the commit), dependency manifests and lockfiles, which dependency trees are installed, and the toolchain versions. A source edit, a new untracked file, or a `Package.swift` change makes the old log `STALE`; reverting back to the recorded state makes it `REUSABLE` again. `.build/` is deliberately not fingerprinted — the test run itself creates it.
+
+Logs stay local and must not contain credentials or user data; the conclusion goes in the issue, the log does not go into the repository. A recorded run answers "did it pass, how many, which failed" for as long as its inputs hold, and a run whose inputs moved is reported as `STALE` rather than reused.
+
+The script is shared verbatim with the Why First extension repository, which carries its regression test (`tests/unit/toolchain/verify-log.test.mjs`). It uses the standard library only, so it runs from any checkout; if you change it in one repository, copy it to the other in the same change.
+
 ## App bundle and DMG
 
 `Scripts/make-app-bundle.sh` creates `build/SpotAsk.app`. The default entitlements (`Config/SpotAsk.selection-assistant.entitlements`) disable App Sandbox so the selection assistant can read selected text with Accessibility permission.
