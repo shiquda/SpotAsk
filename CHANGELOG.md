@@ -7,26 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-10-28
+
+**Native MathJax math rendering, customizable reading font with search, OpenAI Decisions routing engine**
+
 ### Added
 
-- Settings > External Ask decision routing can use the OpenAI Decisions API (`gpt-6-luna` at `https://api.openai.com`, address editable) alongside System One. Each engine keeps its own address, model, and access key.
-- Settings > Appearance > Reading can include `$$` delimiters when copying a display formula. This option appears only while math rendering is enabled; hiding it preserves the saved preference. The preference applies immediately and defaults to copying plain LaTeX.
 - Settings > Appearance > Reading can set the reading font to any font family installed on the Mac. It applies to answers, your questions, reasoning, and the composer; code blocks keep a monospaced font and formulas keep their own typography. The default stays the system font, and a family that is no longer installed falls back to the system font without losing the saved choice. The font dropdown includes a search field, previews every family in its own typeface, and supports arrow keys with Return to choose.
+- Settings > External Ask decision routing can use the OpenAI Decisions API (`gpt-6-luna` at `https://api.openai.com`, address editable) alongside System One. Each engine keeps its own address, model, and access key.
 
 ### Changed
 
-- Replaced legacy SwiftUIMath rendering engine with an offline MathJax 4.1.3 SVG and SwiftDraw native attachment pipeline, isolating math syntax before Markdown parsing and supporting `$$...$$`, `\[...\]`, `$...$`, and `\(...\)` delimiters. Inline formulas now stay inside their sentence, and display formulas render as centred native blocks that scroll horizontally when the window is too narrow.
-- Native text selection is scoped to each text segment and does not continue across display-formula blocks.
-- Removed the development-only math benchmark tools, timing tests, and application hooks; functional math regression tests remain.
-
+- Replaced legacy SwiftUIMath rendering engine with an offline MathJax 4.1.3 SVG and SwiftDraw native attachment pipeline, isolating math syntax before Markdown parsing and supporting `$$...$$`, `\[...\]`, `$...$`, and `\(...\)` delimiters as well as comparison symbols like `<`. Inline formulas stay inside sentence flow, display formulas render as centred native blocks that scroll horizontally when narrow, display formulas add a dedicated copy button for raw LaTeX, and Settings > Appearance > Reading adds an optional toggle to include `$$` delimiters when copying.
 - Model placeholders in the model editor now adapt dynamically to each service channel's latest model (e.g. `gpt-6-luna` for OpenAI, `claude-sonnet-5-5` for Anthropic, `gemini-3.8-flash` for Google Gemini, `deepseek-v4-flash` for DeepSeek, `kimi-latest` for Kimi, `llama3.3` for Ollama), and the default initial model updates from `gpt-5-mini` to `gpt-6-luna`.
 
 ### Fixed
 
 - Clearing all local data now deletes only that app's own settings, conversations, credentials, and diagnostics. A development test can no longer erase the installed app's preferences.
-- Fixed Xcode project syntax and selected the correct MathJax resource bundle for both Xcode app builds and SwiftPM.
-- Restored a copy button at the top right of each display formula, including pending and failed formulas. It copies the original LaTeX and briefly confirms success without covering the formula.
-- Fixed formulas containing `<`, including causal-context subscripts and temperature comparisons, failing native SVG rendering. Formula source text remains unchanged.
 
 ## [0.3.2] - 2026-10-21
 
@@ -306,7 +303,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Service provider cards expand and collapse reliably.
 - Thinking expansion behavior: expands during reasoning and collapses for final answers when enabled; stays collapsed when disabled.
 
-[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/shiquda/SpotAsk/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/shiquda/SpotAsk/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/shiquda/SpotAsk/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/shiquda/SpotAsk/compare/v0.2.7...v0.3.0
