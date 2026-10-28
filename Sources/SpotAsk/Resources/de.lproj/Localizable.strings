@@ -304,6 +304,8 @@
 "settings.readingFontSystem" = "Systemstandard";
 "settings.readingFontUnavailable" = "%@ (nicht installiert)";
 "settings.readingFontSample" = "Franz jagt im komplett verwahrlosten Taxi quer durch Bayern.";
+"settings.readingFontSearchPlaceholder" = "Schriften suchen";
+"settings.readingFontSearchNoResults" = "Keine passenden Schriften.";
 "settings.launchAtLogin" = "Bei Anmeldung starten";
 "settings.silentLaunch" = "Lautlos starten";
 "settings.silentLaunchDescription" = "Fenster beim Start von SpotAsk ausgeblendet halten.";

@@ -117,6 +117,36 @@ enum ReadingFontCatalog {
     }
 }
 
+/// Search and keyboard-order rules for the reading-font dropdown. Kept out of
+/// the view so the filtering and the highlight walk are testable on their own.
+enum ReadingFontPickerList {
+    /// Matches both the name the picker shows and the stored family name, so a
+    /// font can be found by its localized name or by the family Font Book lists.
+    static func filtered(_ families: [ReadingFontFamily], matching searchText: String) -> [ReadingFontFamily] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return families }
+        return families.filter {
+            $0.displayName.localizedCaseInsensitiveContains(query)
+                || $0.id.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    /// Keeps a still-visible highlight; otherwise the stored selection wins, so
+    /// a font the search filtered away never stays highlighted.
+    static func resolvedHighlight(current: String?, selection: String, in ids: [String]) -> String? {
+        if let current, ids.contains(current) { return current }
+        let stored = selection.trimmingCharacters(in: .whitespacesAndNewlines)
+        return ids.contains(stored) ? stored : ids.first
+    }
+
+    /// Clamped walk: the highlight stops at both ends instead of wrapping.
+    static func movedHighlight(from current: String?, in ids: [String], by delta: Int) -> String? {
+        guard !ids.isEmpty else { return nil }
+        guard let current, let index = ids.firstIndex(of: current) else { return ids.first }
+        return ids[min(max(index + delta, 0), ids.count - 1)]
+    }
+}
+
 private final class ReadingFontCache: @unchecked Sendable {
     private let lock = NSLock()
     private var stored: [ReadingFontFamily]?

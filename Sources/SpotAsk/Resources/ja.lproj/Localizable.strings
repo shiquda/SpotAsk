@@ -304,6 +304,8 @@
 "settings.readingFontSystem" = "システム標準";
 "settings.readingFontUnavailable" = "%@（未インストール）";
 "settings.readingFontSample" = "いろはにほへと ちりぬるを 色は匂へど 散りぬるを。";
+"settings.readingFontSearchPlaceholder" = "フォントを検索";
+"settings.readingFontSearchNoResults" = "一致するフォントがありません。";
 "settings.launchAtLogin" = "ログイン時に起動";
 "settings.silentLaunch" = "静かに起動";
 "settings.silentLaunchDescription" = "SpotAsk 起動時にウィンドウを表示しません。";
