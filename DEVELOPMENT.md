@@ -70,7 +70,23 @@ Pick the cheapest tier that still covers the behaviour; do not start from the fu
 - Anything touching `LocalAPIKeyStore`, credential files, or the update/Sparkle path: run the full suite plus the release-script checks. These are the paths where a unit green light has historically not implied a working app.
 - A targeted run fails, skips, or cannot be reproduced: escalate to the tier above and report the failing command; do not re-run the same filter hoping for a different result.
 
-**Cost, measured on this machine** (arm64 macOS, Xcode 27.0, warm `.build`): `swift test --filter ProviderModelRegistryTests` takes 3.9 s once built and 142 s from a cold `.build` (the cold run pays for compiling the whole `SpotAsk` target, which no filter avoids); `swift test` takes 18.3 s warm and runs 444 tests; `./Scripts/verify-changelog.sh` and `python3 ./Scripts/verify-xcode-project-files.py` take under a second each. A filtered run isolates assertions, not compile cost — the first run in a fresh checkout still compiles everything.
+**What a filtered run actually costs** (arm64 macOS, Xcode 27.0, Swift 6.4, warm `.build`): `Package.swift` has one executable target (`SpotAsk`) and one test target (`SpotAskTests`) that depends on it, so `swift test --filter <regex>` narrows which cases *execute*, never which code *compiles*. `swift test --filter ProviderModelRegistryTests` takes 3.9 s once built and 142 s from a cold `.build` — the cold run pays for compiling the whole app, which no filter avoids. Repeat runs, measured with `--filter URLNormalizerTests` (13 cases):
+
+| Situation | Wall clock | Notes |
+| --- | --- | --- |
+| Nothing changed since the last run | 3.1 s | 1.1 s build check + XCTest startup |
+| The tested source (`Utilities/URLNormalizer.swift`) touched | 8.4 s | 7.0 s recompiling it and its dependents |
+| A widely imported source (`Provider/ProviderModelRegistry.swift`) touched | 41.2 s | 38.6 s: app and test bundle both rebuild |
+| An unrelated test file touched | 12.3 s | 10.0 s: the test bundle rebuilds as a whole, the app does not |
+| `--skip-build` after any run | 1.8 s | reruns the last built products only |
+| Full `swift test`, nothing changed | 19.9 s | 444 cases |
+
+Two traps found while measuring:
+
+- A filter that matches nothing exits **0** (`warning: No matching test cases were run`, verified with `--filter NoSuchTestsXYZ`). A filtered run is therefore not proof that anything ran: read the `Executed N tests` line, and treat a renamed suite as a failure to verify rather than a pass.
+- `--skip-build` does not check freshness: after restoring a deliberately failing assertion it still exited 1 from the previously built binaries, and only a rebuild picked up the corrected source. Use it to re-read an already-built tree, never as a gate.
+
+`./Scripts/verify-changelog.sh` and `python3 ./Scripts/verify-xcode-project-files.py` take under a second each. The reusable artifacts are `.build/debug` (SwiftPM) and `.build/xcode-debug-arm64` / `.build/xcode-release-<arch>` (the app bundle's own DerivedData). `Scripts/install-debug-app.sh` builds Debug only and reuses its DerivedData, so installing after a code change does not pay for a second full build; `swift build -c release` and `Scripts/make-app-bundle.sh` share the SwiftPM checkout but compile separately.
 
 CI (`.github/workflows/ci.yml`) runs the changelog gate, the Xcode-project gate, `test-release-workflow.sh` (arm64 only), and `swift test` on both architectures for every PR; DMG packaging runs only after a merge. Local verification is what you run before pushing — it does not replace those PR checks, and a narrow filter here does not make the full CI run unnecessary.
 
