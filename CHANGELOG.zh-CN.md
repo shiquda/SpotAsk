@@ -7,26 +7,23 @@ SpotAsk 的所有重要变更都记录在本文件中。
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-10-28
+
+**全新数学公式渲染、自定义阅读字体、OpenAI Decisions 决策路由**
+
 ### 新增
 
-- 设置 > 外部提问的决策路由可以在 System One 之外使用 OpenAI Decisions API（默认 `https://api.openai.com` 的 `gpt-6-luna`，地址可改）。两个引擎各自保存地址、模型和访问密钥。
-- 设置 > 外观 > 阅读新增“复制公式时包含 $$ 分隔符”开关，仅在开启数学公式渲染时显示，隐藏时保留已保存的选择。设置立即生效，默认仍复制纯 LaTeX。
-- 设置 > 外观 > 阅读可选择本机已安装的任意字体族作为阅读字体，作用于回答、提问、思考过程和输入框；代码块保持等宽字体，公式保持自带排版。默认仍为系统字体，已选字体从本机移除时回退到系统字体并保留该选择。字体下拉栏支持搜索，每个字体以自身样式预览，并可用方向键移动、回车选定。
+- 设置 > 外观 > 阅读支持选择本机安装的字体作为阅读字体，下拉列表提供实时搜索与字形预览。
+- 设置 > 外部提问决策路由新增支持 OpenAI Decisions 引擎，可独立配置地址、模型与密钥。
 
 ### 变更
 
-- 将旧版 SwiftUIMath 渲染引擎替换为离线 MathJax 4.1.3 SVG + SwiftDraw 原生附件流水线，在 Markdown 解析前隔离数学语法，原生支持 `$$...$$`、`\[...\]`、`$...$` 与 `\(...\)` 四种定界符。行内公式保持在同一句话内，块公式改为居中的原生视图，窗口过窄时可横向滚动。
-- 原生文字选区限定在各自文本段内，不跨越块公式连续选择。
-- 移除开发专用的数学公式性能基准工具、计时测试及应用接入代码，保留数学功能回归测试。
-
-- 模型编辑弹窗中的占位模型现在会根据服务渠道动态适配各渠道最新模型（如 OpenAI 适配 `gpt-6-luna`、Anthropic 适配 `claude-sonnet-5-5`、Google Gemini 适配 `gemini-3.8-flash`、DeepSeek 适配 `deepseek-v4-flash`、Kimi 适配 `kimi-latest`、Ollama 适配 `llama3.3`），初始默认模型也由 `gpt-5-mini` 更新为 `gpt-6-luna`。
+- 重构数学公式渲染流水线：行内公式紧凑混排，块级公式居中展示并支持窄窗平滑横向滚动，右上角新增一键复制 LaTeX 按钮（可选带 $$ 分隔符）。
+- 服务渠道的默认模型与占位提示对齐最新旗舰版本（如 OpenAI gpt-6-luna、Anthropic claude-sonnet-5-5 等）。
 
 ### 修复
 
-- 清空全部本地数据现在只会删除该应用自己的设置、对话、凭据和诊断日志。开发测试不再会擦掉已安装应用的偏好设置。
-- 修复 Xcode 工程语法，并分别为 Xcode 应用构建与 SwiftPM 选择正确的 MathJax 资源包。
-- 恢复块公式右上角的复制按钮，排版中或排版失败时也可复制原始 LaTeX；复制后短暂显示成功状态，按钮不遮挡公式。
-- 修复包含 `<` 的公式（如因果上下文下标、温度比较）无法原生渲染的问题，不改写公式原文。
+- 清空全部本地数据仅清除当前应用的偏好与数据，避免影响其他安装版本的配置。
 
 ## [0.3.2] - 2026-10-21
 
@@ -306,7 +303,8 @@ SpotAsk 的所有重要变更都记录在本文件中。
 - 服务配置卡片支持稳定平滑地展开与收起。
 - 修正思考过程展开行为：开启时思考中展开并在输出最终回答时收起，关闭时始终折叠。
 
-[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/shiquda/SpotAsk/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/shiquda/SpotAsk/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/shiquda/SpotAsk/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/shiquda/SpotAsk/compare/v0.2.7...v0.3.0
