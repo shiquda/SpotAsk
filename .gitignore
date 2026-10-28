@@ -19,3 +19,7 @@ docs/site/public/llms-full.txt
 docs/site/public/markdown/
 Scripts/ax_probe
 /benchmarks/
+
+# Local verification evidence written by Scripts/verify-log.py. Full test logs
+# are read from here instead of rerunning the suite, and never committed.
+.verification-logs/
