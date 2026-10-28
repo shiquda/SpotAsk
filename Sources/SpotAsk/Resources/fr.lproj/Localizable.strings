@@ -304,6 +304,8 @@
 "settings.readingFontSystem" = "Police du système";
 "settings.readingFontUnavailable" = "%@ (non installée)";
 "settings.readingFontSample" = "Portez ce vieux whisky au juge blond qui fume.";
+"settings.readingFontSearchPlaceholder" = "Rechercher des polices";
+"settings.readingFontSearchNoResults" = "Aucune police correspondante.";
 "settings.launchAtLogin" = "Lancer à l'ouverture de session";
 "settings.silentLaunch" = "Lancer en silence";
 "settings.silentLaunchDescription" = "Garder la fenêtre masquée au démarrage de SpotAsk.";

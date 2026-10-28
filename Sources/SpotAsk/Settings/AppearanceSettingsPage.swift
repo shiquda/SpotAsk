@@ -72,17 +72,44 @@ private struct ReadingFontPicker: View {
     let previewSize: CGFloat
 
     @State private var families: [ReadingFontFamily] = []
+    @State private var isPickerPresented = false
+    @State private var searchText = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Picker(L10n.string("settings.readingFont"), selection: $selection) {
-                Text(L10n.string("settings.readingFontSystem")).tag("")
-                ForEach(options) { family in
-                    Text(family.displayName).tag(family.id)
+            Button {
+                searchText = ""
+                isPickerPresented = true
+            } label: {
+                HStack(spacing: 6) {
+                    Text(selectedDisplayName)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .frame(maxWidth: 240, alignment: .leading)
+                .background(.quinary, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityLabel(L10n.string("settings.readingFont"))
+            .accessibilityValue(selectedDisplayName)
+            .popover(isPresented: $isPickerPresented, arrowEdge: .bottom) {
+                ReadingFontSearchPopover(
+                    entries: entries,
+                    selection: selection,
+                    searchText: $searchText
+                ) { familyID in
+                    selection = familyID
+                    isPickerPresented = false
                 }
             }
-            .labelsHidden()
-            .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(L10n.string("settings.readingFontSample"))
                 .font(
@@ -104,17 +131,197 @@ private struct ReadingFontPicker: View {
         }
     }
 
-    /// The stored family stays selectable even when this Mac no longer has it,
-    /// so opening the page never silently clears the preference.
-    private var options: [ReadingFontFamily] {
+    /// The system row leads the list, and the stored family stays selectable
+    /// even when this Mac no longer has it, so opening the page never silently
+    /// clears the preference.
+    private var entries: [ReadingFontFamily] {
+        let systemRow = ReadingFontFamily(
+            id: ReadingFontResolver.systemDefault,
+            displayName: L10n.string("settings.readingFontSystem")
+        )
         guard let stored = ReadingFontResolver.family(for: selection),
               !families.contains(where: { $0.id == stored }) else {
-            return families
+            return [systemRow] + families
         }
         let displayName = ReadingFontResolver.isInstalled(stored)
             ? ReadingFontResolver.displayName(for: stored)
             : L10n.string("settings.readingFontUnavailable", stored)
-        return families + [ReadingFontFamily(id: stored, displayName: displayName)]
+        return [systemRow] + families + [ReadingFontFamily(id: stored, displayName: displayName)]
+    }
+
+    /// What the closed dropdown shows: the system row needs its localized name,
+    /// and an uninstalled family keeps its "(not installed)" annotation.
+    private var selectedDisplayName: String {
+        let stored = ReadingFontResolver.family(for: selection) ?? ReadingFontResolver.systemDefault
+        if let entry = entries.first(where: { $0.id == stored }) {
+            return entry.displayName
+        }
+        return ReadingFontResolver.displayName(for: stored)
+    }
+}
+
+/// The font dropdown's expanded list: a search field over the installed
+/// families, each row set in its own font so the choice can be judged before
+/// it is applied. Keyboard: arrows move the highlight, Return selects, and
+/// Escape closes the popover.
+private struct ReadingFontSearchPopover: View {
+    let entries: [ReadingFontFamily]
+    let selection: String
+    @Binding var searchText: String
+    let onSelect: (String) -> Void
+
+    @State private var highlightedID: String?
+    @FocusState private var isSearchFocused: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var filteredEntries: [ReadingFontFamily] {
+        ReadingFontPickerList.filtered(entries, matching: searchText)
+    }
+
+    private var highlightedEntries: [String] {
+        filteredEntries.map(\.id)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                TextField(L10n.string("settings.readingFontSearchPlaceholder"), text: $searchText)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 13))
+                    .focused($isSearchFocused)
+                    .onKeyPress(.downArrow) {
+                        moveHighlight(by: 1)
+                        return .handled
+                    }
+                    .onKeyPress(.upArrow) {
+                        moveHighlight(by: -1)
+                        return .handled
+                    }
+                    .onKeyPress(.return) {
+                        selectHighlighted()
+                        return .handled
+                    }
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.borderless)
+                    .help(L10n.string("settings.clearSearch"))
+                    .accessibilityLabel(L10n.string("settings.clearSearch"))
+                }
+            }
+            .padding(12)
+
+            Divider()
+
+            if filteredEntries.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 22))
+                        .foregroundStyle(.secondary)
+                    Text(L10n.string("settings.readingFontSearchNoResults"))
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(12)
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 1) {
+                            ForEach(filteredEntries) { family in
+                                fontRow(family)
+                                    .id(family.id)
+                            }
+                        }
+                        .padding(6)
+                    }
+                    .onChange(of: highlightedID) { _, id in
+                        scroll(to: id, with: proxy)
+                    }
+                    .onAppear {
+                        scroll(to: highlightedID, with: proxy)
+                    }
+                }
+            }
+        }
+        .frame(width: 300, height: 340)
+        .onAppear {
+            highlightedID = ReadingFontPickerList.resolvedHighlight(
+                current: nil,
+                selection: selection,
+                in: highlightedEntries
+            )
+            isSearchFocused = true
+        }
+        .onChange(of: searchText) { _, _ in
+            highlightedID = ReadingFontPickerList.resolvedHighlight(
+                current: nil,
+                selection: selection,
+                in: highlightedEntries
+            )
+        }
+    }
+
+    private func fontRow(_ family: ReadingFontFamily) -> some View {
+        let isSelected = family.id == (ReadingFontResolver.family(for: selection) ?? ReadingFontResolver.systemDefault)
+        let isHighlighted = family.id == highlightedID
+        return Button {
+            onSelect(family.id)
+        } label: {
+            HStack(spacing: 8) {
+                Text(family.displayName)
+                    .font(ReadingFontResolver.swiftUIFont(family: family.id, size: 13))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Spacer(minLength: 8)
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(isHighlighted ? Color.accentColor.opacity(0.14) : Color.clear)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(family.displayName)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func moveHighlight(by delta: Int) {
+        highlightedID = ReadingFontPickerList.movedHighlight(
+            from: highlightedID,
+            in: highlightedEntries,
+            by: delta
+        )
+    }
+
+    private func selectHighlighted() {
+        guard let highlightedID else { return }
+        onSelect(highlightedID)
+    }
+
+    private func scroll(to id: String?, with proxy: ScrollViewProxy) {
+        guard let id else { return }
+        if reduceMotion {
+            proxy.scrollTo(id, anchor: .center)
+        } else {
+            withAnimation(.easeOut(duration: 0.12)) {
+                proxy.scrollTo(id, anchor: .center)
+            }
+        }
     }
 }
 

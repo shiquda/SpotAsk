@@ -304,6 +304,8 @@
 "settings.readingFontSystem" = "Padrão do sistema";
 "settings.readingFontUnavailable" = "%@ (não instalada)";
 "settings.readingFontSample" = "Um pequeno jabuti xereta viu dez cegonhas felizes.";
+"settings.readingFontSearchPlaceholder" = "Pesquisar fontes";
+"settings.readingFontSearchNoResults" = "Nenhuma fonte correspondente.";
 "settings.launchAtLogin" = "Iniciar ao fazer login";
 "settings.silentLaunch" = "Iniciar silenciosamente";
 "settings.silentLaunchDescription" = "Manter a janela oculta quando o SpotAsk iniciar.";

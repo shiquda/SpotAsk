@@ -304,6 +304,8 @@
 "settings.readingFontSystem" = "系统默认";
 "settings.readingFontUnavailable" = "%@（未安装）";
 "settings.readingFontSample" = "敏捷的棕色狐狸跳过了那只懒狗。The quick brown fox.";
+"settings.readingFontSearchPlaceholder" = "搜索字体";
+"settings.readingFontSearchNoResults" = "没有匹配的字体。";
 "settings.launchAtLogin" = "登录时启动";
 "settings.silentLaunch" = "静默启动";
 "settings.silentLaunchDescription" = "SpotAsk 启动时保持窗口隐藏，不显示到前台。";

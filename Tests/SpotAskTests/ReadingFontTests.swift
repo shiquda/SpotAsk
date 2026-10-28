@@ -121,12 +121,64 @@ final class ReadingFontTests: XCTestCase {
         XCTAssertEqual(destinationDefaults.string(forKey: "readingFontFamily"), "")
     }
 
+    func testFontSearchMatchesLocalizedNameAndFamilyName() {
+        let families = [
+            ReadingFontFamily(id: "PingFang SC", displayName: "PingFang SC"),
+            ReadingFontFamily(id: "Helvetica Neue", displayName: "Helvetica Neue"),
+        ]
+
+        XCTAssertEqual(
+            ReadingFontPickerList.filtered(families, matching: "").map(\.id),
+            ["PingFang SC", "Helvetica Neue"],
+            "an empty query keeps every family in catalogue order"
+        )
+        XCTAssertEqual(
+            ReadingFontPickerList.filtered(families, matching: "  helv ").map(\.id),
+            ["Helvetica Neue"]
+        )
+        XCTAssertEqual(
+            ReadingFontPickerList.filtered(families, matching: "pingfang").map(\.id),
+            ["PingFang SC"]
+        )
+        XCTAssertTrue(ReadingFontPickerList.filtered(families, matching: "Georgia").isEmpty)
+    }
+
+    func testFontSearchMatchesTheShownLocalizedNameNotOnlyTheStoredFamily() {
+        let families = [ReadingFontFamily(id: "STSong", displayName: "华文宋体")]
+
+        XCTAssertEqual(ReadingFontPickerList.filtered(families, matching: "华文").map(\.id), ["STSong"])
+        XCTAssertEqual(ReadingFontPickerList.filtered(families, matching: "stsong").map(\.id), ["STSong"])
+    }
+
+    func testFontPickerHighlightKeepsSelectionAndStopsAtBothEnds() {
+        let ids = ["", "Georgia", "Helvetica Neue"]
+
+        XCTAssertEqual(ReadingFontPickerList.resolvedHighlight(current: "Georgia", selection: "", in: ids), "Georgia")
+        XCTAssertEqual(
+            ReadingFontPickerList.resolvedHighlight(current: "Arial", selection: "Helvetica Neue", in: ids),
+            "Helvetica Neue"
+        )
+        XCTAssertEqual(
+            ReadingFontPickerList.resolvedHighlight(current: "Arial", selection: "Arial", in: ids),
+            "",
+            "a font the search filtered away never stays highlighted"
+        )
+        XCTAssertNil(ReadingFontPickerList.resolvedHighlight(current: nil, selection: "", in: []))
+
+        XCTAssertEqual(ReadingFontPickerList.movedHighlight(from: "", in: ids, by: 1), "Georgia")
+        XCTAssertEqual(ReadingFontPickerList.movedHighlight(from: "Helvetica Neue", in: ids, by: 1), "Helvetica Neue")
+        XCTAssertEqual(ReadingFontPickerList.movedHighlight(from: "", in: ids, by: -1), "")
+        XCTAssertNil(ReadingFontPickerList.movedHighlight(from: nil, in: [], by: 1))
+    }
+
     func testPickerRowLabelsAreLocalizedInEveryLanguage() {
         for language in AppLanguage.allCases where language != .system {
             for key in [
                 "settings.readingFont",
                 "settings.readingFontSystem",
                 "settings.readingFontSample",
+                "settings.readingFontSearchPlaceholder",
+                "settings.readingFontSearchNoResults",
             ] {
                 XCTAssertNotEqual(
                     L10n.string(key, language: language),

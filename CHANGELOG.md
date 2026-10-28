@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Settings > External Ask decision routing can use the OpenAI Decisions API (`gpt-6-luna` at `https://api.openai.com`, address editable) alongside System One. Each engine keeps its own address, model, and access key.
 - Settings > Appearance > Reading can include `$$` delimiters when copying a display formula. This option appears only while math rendering is enabled; hiding it preserves the saved preference. The preference applies immediately and defaults to copying plain LaTeX.
-- Settings > Appearance > Reading can set the reading font to any font family installed on the Mac. It applies to answers, your questions, reasoning, and the composer; code blocks keep a monospaced font and formulas keep their own typography. The default stays the system font, and a family that is no longer installed falls back to the system font without losing the saved choice.
+- Settings > Appearance > Reading can set the reading font to any font family installed on the Mac. It applies to answers, your questions, reasoning, and the composer; code blocks keep a monospaced font and formulas keep their own typography. The default stays the system font, and a family that is no longer installed falls back to the system font without losing the saved choice. The font dropdown includes a search field, previews every family in its own typeface, and supports arrow keys with Return to choose.
 
 ### Changed
 

@@ -304,6 +304,8 @@
 "settings.readingFontSystem" = "System Default";
 "settings.readingFontUnavailable" = "%@ (not installed)";
 "settings.readingFontSample" = "The quick brown fox jumps over the lazy dog. 敏捷的棕色狐狸。";
+"settings.readingFontSearchPlaceholder" = "Search fonts";
+"settings.readingFontSearchNoResults" = "No matching fonts.";
 "settings.launchAtLogin" = "Launch at login";
 "settings.silentLaunch" = "Launch silently";
 "settings.silentLaunchDescription" = "Keep the window hidden when SpotAsk starts.";
