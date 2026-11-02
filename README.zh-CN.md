@@ -1,7 +1,7 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  SpotAsk 是免费开源的 Mac 菜单栏快问工具：按 ⌥Space，用你自己的 API Key（OpenAI 兼容、Anthropic 或 Gemini，直连服务商）得到回答，或处理选中文字，或一键交给 ChatGPT、Perplexity、本地 CLI Agent；它不是启动器，也不是完整的 AI 工作台。也可以由决策模型自动分流。
+  SpotAsk 是免费开源的 Mac 菜单栏快问工具：按 ⌥Space，用你自己的 API Key（OpenAI 兼容、Anthropic 或 Gemini，直连服务商）得到回答，或处理选中文字，或一键交给 ChatGPT、Perplexity、本地 CLI Agent。也可以由决策模型自动分流。
 </p>
 
 <p align="center">
