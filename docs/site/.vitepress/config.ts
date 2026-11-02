@@ -308,7 +308,7 @@ export default defineConfig({
               applicationCategory: 'DeveloperApplication',
               operatingSystem: 'macOS 15 or later',
               // Keep in sync with Resources/Info.plist CFBundleShortVersionString.
-              softwareVersion: '0.3.2',
+              softwareVersion: '0.3.3',
               license: 'https://www.gnu.org/licenses/agpl-3.0.html',
               downloadUrl: 'https://github.com/shiquda/SpotAsk/releases/latest',
               codeRepository: repositoryUrl,
