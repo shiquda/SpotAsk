@@ -98,6 +98,45 @@ struct SelectionActionBarContentTests {
         #expect(chatClicks == 1, "preview buttons must not run a live action")
     }
 
+    @Test("A customized primary prompt opens the main chat on right-click")
+    func primaryPromptRightClickAsksInTheMainChat() {
+        let preset = PromptPreset(title: "Translate", instruction: "Translate this")
+        let layout = SelectionActionBarLayout.make(
+            showsChat: false,
+            presets: [preset],
+            externalAsks: [],
+            showsLabels: false,
+            primaryItems: [.promptPreset(preset)]
+        )
+        var asked: PromptPreset?
+        let view = SelectionActionBarContentView(
+            layout: layout,
+            actions: SelectionActionBarActions(
+                onSelectChat: {},
+                onSelectPreset: { _ in },
+                onSelectExternalAsk: { _ in },
+                onSecondarySelectPreset: { asked = $0 },
+                shortcutForChat: nil,
+                shortcutForPreset: nil,
+                shortcutForExternalAsk: nil
+            )
+        )
+        let button = view.subviews.compactMap { $0 as? SelectionActionButton }.first
+        let event = NSEvent.mouseEvent(
+            with: .rightMouseDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            eventNumber: 0,
+            clickCount: 1,
+            pressure: 1
+        )
+        button?.rightMouseDown(with: event!)
+        #expect(asked?.id == preset.id)
+    }
+
     @Test("Resolve passes collapseOverflow setting and reflects in layout")
     func resolveReflectsCollapseOverflowSetting() {
         let settings = makeSettings()

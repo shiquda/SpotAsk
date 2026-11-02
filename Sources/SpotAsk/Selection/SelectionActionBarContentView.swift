@@ -100,12 +100,13 @@ final class SelectionActionBarContentView: NSVisualEffectView {
                         symbolName: preset.symbolName,
                         brandSlug: nil,
                         showsLabels: layout.showsLabels,
-                        toolTip: SelectionActionBarLayout.tooltip(
+                        toolTip: SelectionActionBarLayout.promptPresetTooltip(
                             name: preset.title,
                             shortcut: actions?.shortcutForPreset?(preset)
                         ),
-                        accessibilityLabel: preset.title,
-                        target: target
+                        accessibilityLabel: SelectionActionBarLayout.promptPresetTooltip(name: preset.title, shortcut: nil),
+                        target: target,
+                        onSecondaryClick: actions.map { wired in { wired.onSecondarySelectPreset?(preset) } }
                     ))
                 case let .externalAsk(action):
                     let target = actions.map { wired in OverlayButtonTarget { wired.onSelectExternalAsk(action) } }
