@@ -7,6 +7,7 @@ struct SelectionActionBarActions {
     var onSelectChat: () -> Void
     var onSelectPreset: (PromptPreset) -> Void
     var onSelectExternalAsk: (QuickAction) -> Void
+    var onSecondarySelectPreset: ((PromptPreset) -> Void)? = nil
     var shortcutForChat: InAppShortcut?
     var shortcutForPreset: ((PromptPreset) -> InAppShortcut?)?
     var shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?
@@ -149,12 +150,13 @@ final class SelectionActionBarContentView: NSVisualEffectView {
                     symbolName: preset.symbolName,
                     brandSlug: nil,
                     showsLabels: layout.showsLabels,
-                    toolTip: SelectionActionBarLayout.tooltip(
+                    toolTip: SelectionActionBarLayout.promptPresetTooltip(
                         name: preset.title,
                         shortcut: actions?.shortcutForPreset?(preset)
                     ),
-                    accessibilityLabel: preset.title,
-                    target: target
+                    accessibilityLabel: SelectionActionBarLayout.promptPresetTooltip(name: preset.title, shortcut: nil),
+                    target: target,
+                    onSecondaryClick: actions.map { wired in { wired.onSecondarySelectPreset?(preset) } }
                 ))
             case let .divider(frame):
                 let divider = NSView(frame: frame)
@@ -210,9 +212,11 @@ final class SelectionActionBarContentView: NSVisualEffectView {
         showsLabels: Bool,
         toolTip: String,
         accessibilityLabel: String,
-        target: OverlayButtonTarget?
+        target: OverlayButtonTarget?,
+        onSecondaryClick: (() -> Void)? = nil
     ) -> NSButton {
-        let button = NSButton(frame: frame)
+        let button = SelectionActionButton(frame: frame)
+        button.onSecondaryClick = onSecondaryClick
         let iconPointSize = showsLabels
             ? SelectionActionBarLayout.labeledIconSize
             : SelectionActionBarLayout.compactIconSize
@@ -245,6 +249,7 @@ final class SelectionActionBarContentView: NSVisualEffectView {
         button.setAccessibilityLabel(accessibilityLabel)
         return button
     }
+
 
     private func showOverflowMenu(layout: SelectionActionBarLayout, actions: SelectionActionBarActions) {
         guard let button = moreButton else { return }
@@ -331,6 +336,18 @@ final class SelectionActionBarContentView: NSVisualEffectView {
         }
 
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: 0), in: button)
+    }
+}
+
+final class SelectionActionButton: NSButton {
+    var onSecondaryClick: (() -> Void)?
+
+    override func rightMouseDown(with event: NSEvent) {
+        guard let onSecondaryClick else {
+            super.rightMouseDown(with: event)
+            return
+        }
+        onSecondaryClick()
     }
 }
 

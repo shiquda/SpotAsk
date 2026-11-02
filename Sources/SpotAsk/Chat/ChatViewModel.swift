@@ -206,6 +206,44 @@ final class ChatViewModel {
         return true
     }
 
+    /// Adds a finished floating-prompt exchange to the visible conversation.
+    /// It does not start a request or replace an in-flight stream.
+    func appendCompletedTurn(_ turn: CompletedConversationTurn) {
+        let question = turn.userText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let answer = turn.answer.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !question.isEmpty, !answer.isEmpty else { return }
+        let preset = turn.preset.flatMap { settings.promptPresetAllowedForUse($0) }
+        let user = ChatMessage(
+            role: .user,
+            content: question,
+            attachments: [],
+            appliedPresetTitle: preset?.title ?? turn.preset?.title,
+            appliedPresetSymbolName: preset?.symbolName ?? turn.preset?.symbolName
+        )
+        let assistantID = UUID()
+        let assistant = ChatMessage(
+            id: assistantID,
+            role: .assistant,
+            content: answer,
+            state: .complete,
+            modelDisplayName: turn.modelDisplayName,
+            providerName: turn.providerName
+        )
+        if let snapshot = turn.selectionSnapshot {
+            selectionSnapshotsByAssistantID[assistantID] = snapshot
+        }
+        messages.append(user)
+        messages.append(assistant)
+        input = ""
+        selectedPromptPreset = nil
+        pendingAttachments = []
+        if generationState == .idle {
+            error = nil
+            retryPromptPreset = preset
+        }
+        persistIfNeeded()
+    }
+
     func cancel() {
         guard generationState == .connecting || generationState == .streaming else { return }
         DiagnosticLogStore.shared.record("chat-cancelled")

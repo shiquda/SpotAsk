@@ -450,6 +450,12 @@
 "selection.actionBar.more" = "Mehr";
 "selection.actionBar.chat" = "Chat";
 "selection.actionBar.chatTooltip" = "Zum Chat hinzufügen";
+"selection.actionBar.promptPresetClickHint" = "Linksklick: Schwebendes Fenster · Rechtsklick: Hauptchat";
+"floatingPrompt.copyAll" = "Alles kopieren";
+"floatingPrompt.continueInChat" = "Im Chat fortsetzen";
+"floatingPrompt.pin" = "Anheften";
+"floatingPrompt.unpin" = "Lösen";
+"floatingPrompt.close" = "Schließen";
 "selection.actionBar.moreAccessibility" = "Weitere Auswahlaktionen";
 "selection.actionBar.externalAskAccessibility" = "External Ask: %@";
 "selection.actionBar.kind.web" = "Webfrage";

@@ -510,6 +510,43 @@ final class ChatViewModelTests: XCTestCase {
         XCTAssertTrue(request.stream)
     }
 
+    func testAppendCompletedTurnDoesNotStartARequest() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.pending]])
+        viewModel.input = "live question"
+        XCTAssertTrue(viewModel.send())
+        await waitForState(viewModel, .streaming)
+        let identity = viewModel.sessionIdentity
+        let before = viewModel.messages.count
+        let preset = PromptPreset(title: "Explain", instruction: "Explain the selection")
+        let snapshot = SelectedTextSnapshot(
+            text: "selected",
+            source: SelectionSourceApplication(processIdentifier: 7, bundleIdentifier: "com.example.Source", localizedName: "Source"),
+            selectedRange: SelectionCharacterRange(location: 0, length: 8),
+            anchor: .pointer(.zero)
+        )
+        viewModel.appendCompletedTurn(CompletedConversationTurn(
+            userText: "selected",
+            answer: "explained",
+            preset: preset,
+            selectionSnapshot: snapshot,
+            modelDisplayName: "GPT-5 mini",
+            providerName: "OpenAI"
+        ))
+        XCTAssertEqual(viewModel.generationState, .streaming)
+        XCTAssertEqual(recorder.invocation, 1)
+        XCTAssertEqual(viewModel.sessionIdentity, identity)
+        XCTAssertEqual(viewModel.input, "")
+        XCTAssertNil(viewModel.selectedPromptPreset)
+        XCTAssertEqual(viewModel.messages.count, before + 2)
+        XCTAssertEqual(viewModel.messages[before].appliedPresetTitle, "Explain")
+        XCTAssertEqual(viewModel.messages[before + 1].content, "explained")
+        XCTAssertEqual(viewModel.messages[before + 1].state, .complete)
+        XCTAssertEqual(viewModel.selectionSnapshot(for: viewModel.messages[before + 1].id)?.text, "selected")
+        viewModel.appendCompletedTurn(CompletedConversationTurn(userText: "selected", answer: "   "))
+        XCTAssertEqual(viewModel.messages.count, before + 2)
+    }
+
     private func seedConversation(_ viewModel: ChatViewModel, lastActivity: Date) {
         viewModel.messages = [
             ChatMessage(role: .user, content: "old question", createdAt: lastActivity.addingTimeInterval(-30)),

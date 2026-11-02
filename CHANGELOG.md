@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Left-clicking a selection prompt opens an isolated floating window. Right-click asks in the main chat. The window can be pinned, copied, or continued into the current conversation.
+
 ## [0.3.3] - 2026-10-28
 
 **Improved math rendering, customizable reading font, OpenAI Decisions routing engine**

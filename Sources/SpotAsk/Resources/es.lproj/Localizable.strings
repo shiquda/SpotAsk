@@ -450,6 +450,12 @@
 "selection.actionBar.more" = "Más";
 "selection.actionBar.chat" = "Chat";
 "selection.actionBar.chatTooltip" = "Añadir al chat";
+"selection.actionBar.promptPresetClickHint" = "Clic izquierdo: ventana flotante · Clic derecho: chat principal";
+"floatingPrompt.copyAll" = "Copiar todo";
+"floatingPrompt.continueInChat" = "Continuar en el chat";
+"floatingPrompt.pin" = "Fijar";
+"floatingPrompt.unpin" = "Dejar de fijar";
+"floatingPrompt.close" = "Cerrar";
 "selection.actionBar.moreAccessibility" = "Más acciones de selección";
 "selection.actionBar.externalAskAccessibility" = "External Ask: %@";
 "selection.actionBar.kind.web" = "Pregunta web";

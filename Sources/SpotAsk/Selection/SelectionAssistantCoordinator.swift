@@ -10,6 +10,7 @@ final class SelectionAssistantCoordinator {
     private let settingsOpener: any AccessibilityPermissionSettingsOpening
     private let commandCenter: SpotAskCommandCenter
     private let overlay: any SelectionOverlayControlling
+    private let floatingPrompts: any FloatingPromptPresenting
     private let executor: any QuickActionExecuting
     private let clipboardAssistedPolicy: ClipboardAssistedSelectionPolicy
     private let deferredTextReader: (any DeferredSelectionTextReading)?
@@ -26,7 +27,8 @@ final class SelectionAssistantCoordinator {
         settingsOpener: any AccessibilityPermissionSettingsOpening = MacOSAccessibilityPermissionSettingsOpener(),
         commandCenter: SpotAskCommandCenter = .shared,
         overlay: any SelectionOverlayControlling,
-        executor: any QuickActionExecuting = DefaultQuickActionExecutor()
+        executor: any QuickActionExecuting = DefaultQuickActionExecutor(),
+        floatingPrompts: any FloatingPromptPresenting = IgnoringFloatingPromptPresenter()
     ) {
         // The reader works on its own queue, so it cannot read main-actor
         // settings mid-read. Keep a mirror of the clipboard preferences and
@@ -49,6 +51,7 @@ final class SelectionAssistantCoordinator {
         self.commandCenter = commandCenter
         self.overlay = overlay
         self.executor = executor
+        self.floatingPrompts = floatingPrompts
     }
 
     func trigger() {
@@ -149,6 +152,9 @@ final class SelectionAssistantCoordinator {
                             self?.addToChat()
                         },
                         onSelectPreset: { [weak self] preset in
+                            self?.presentFloatingPrompt(preset)
+                        },
+                        onSecondarySelectPreset: { [weak self] preset in
                             self?.apply(preset: preset)
                         },
                         onSelectExternalAsk: { [weak self] action in
@@ -213,6 +219,19 @@ final class SelectionAssistantCoordinator {
         let text = await deferredTextReader?.readDeferredSelectionText(for: presented) ?? presented.text
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         return presented.resolvingText(text)
+    }
+
+    private func presentFloatingPrompt(_ preset: PromptPreset) {
+        guard let presented = takePresentedSelection() else { return }
+        Task { [weak self] in
+            guard let self else { return }
+            guard let resolved = await resolveText(of: presented) else {
+                overlay.showMessage(.noSelection)
+                return
+            }
+            let active = settings.enabledPromptPreset(id: preset.id) ?? preset
+            floatingPrompts.present(snapshot: resolved, preset: active)
+        }
     }
 
     private func apply(preset: PromptPreset) {
@@ -297,6 +316,7 @@ protocol SelectionOverlayControlling: AnyObject {
         shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?,
         onSelectChat: @escaping () -> Void,
         onSelectPreset: @escaping (PromptPreset) -> Void,
+        onSecondarySelectPreset: ((PromptPreset) -> Void)?,
         onSelectExternalAsk: @escaping (QuickAction) -> Void
     )
     func showMessage(_ message: SelectionFeedback)
@@ -333,6 +353,7 @@ extension SelectionOverlayControlling {
             shortcutForExternalAsk: shortcutForExternalAsk,
             onSelectChat: onSelectChat,
             onSelectPreset: onSelectPreset,
+            onSecondarySelectPreset: nil,
             onSelectExternalAsk: onSelectExternalAsk
         )
     }

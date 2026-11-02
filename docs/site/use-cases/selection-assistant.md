@@ -19,7 +19,7 @@ Highlight text in any application, and a lightweight action bar appears next to 
 
 1. **Enable & Grant Permission**: Launch SpotAsk, check "Enable Selection Assistant" in **Settings > Selection**, and grant permission in **System Settings > Privacy & Security > Accessibility**.
 2. **Highlight Text in Any App**: Select text in Safari, Xcode, Notes, Mail, or Terminal using your mouse or keyboard.
-3. **Trigger Action**: Click a button on the floating bar or press its assigned shortcut to stream results.
+3. **Trigger Action**: Left-click a prompt to open a floating answer, or right-click it to ask in the main chat. Ask in Chat and External Ask keep their existing behavior.
 
 ## Visual Demo
 

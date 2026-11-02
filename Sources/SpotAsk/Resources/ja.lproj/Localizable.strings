@@ -450,6 +450,12 @@
 "selection.actionBar.more" = "その他";
 "selection.actionBar.chat" = "チャット";
 "selection.actionBar.chatTooltip" = "チャットに追加";
+"selection.actionBar.promptPresetClickHint" = "左クリック: フローティングウィンドウ · 右クリック: メインチャット";
+"floatingPrompt.copyAll" = "すべてコピー";
+"floatingPrompt.continueInChat" = "チャットで続ける";
+"floatingPrompt.pin" = "ピン留め";
+"floatingPrompt.unpin" = "ピン留めを解除";
+"floatingPrompt.close" = "閉じる";
 "selection.actionBar.moreAccessibility" = "その他の選択アクション";
 "selection.actionBar.externalAskAccessibility" = "External Ask：%@";
 "selection.actionBar.kind.web" = "ウェブ質問";

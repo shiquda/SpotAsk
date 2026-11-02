@@ -70,6 +70,7 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
         shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?,
         onSelectChat: @escaping () -> Void,
         onSelectPreset: @escaping (PromptPreset) -> Void,
+        onSecondarySelectPreset: ((PromptPreset) -> Void)? = nil,
         onSelectExternalAsk: @escaping (QuickAction) -> Void
     ) {
         let layout = SelectionActionBarLayout.make(
@@ -87,6 +88,7 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
                 onSelectChat: onSelectChat,
                 onSelectPreset: onSelectPreset,
                 onSelectExternalAsk: onSelectExternalAsk,
+                onSecondarySelectPreset: onSecondarySelectPreset,
                 shortcutForChat: shortcutForChat,
                 shortcutForPreset: shortcutForPreset,
                 shortcutForExternalAsk: shortcutForExternalAsk
@@ -365,6 +367,13 @@ struct SelectionActionBarLayout: Equatable {
         guard let shortcut else { return name }
         let labels = InAppShortcutDisplay.labels(for: shortcut).joined()
         return "\(name)\t\(labels)"
+    }
+
+    static func promptPresetTooltip(name: String, shortcut: InAppShortcut?) -> String {
+        let hint = L10n.string("selection.actionBar.promptPresetClickHint")
+        let base = "\(name) (\(hint))"
+        guard let shortcut else { return base }
+        return "\(base)\t\(InAppShortcutDisplay.labels(for: shortcut).joined())"
     }
 
     static func make(

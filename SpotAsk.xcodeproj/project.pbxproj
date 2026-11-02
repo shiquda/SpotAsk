@@ -65,6 +65,8 @@
 		001000000000000000000030 /* AccessibilitySelectedTextReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003D /* AccessibilitySelectedTextReader.swift */; };
 		001000000000000000000031 /* SelectedTextSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00200000000000000000003E /* SelectedTextSnapshot.swift */; };
 		001000000000000000000033 /* SelectionAssistantCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000040 /* SelectionAssistantCoordinator.swift */; };
+		0010000000000000000000C3 /* FloatingPromptSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000C3 /* FloatingPromptSession.swift */; };
+		0010000000000000000000C4 /* FloatingPromptWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0020000000000000000000C4 /* FloatingPromptWindowController.swift */; };
 		001000000000000000000034 /* SelectionOverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000041 /* SelectionOverlayController.swift */; };
 		001000000000000000000036 /* AccessibilityPermissionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000043 /* AccessibilityPermissionCoordinator.swift */; };
 		001000000000000000000037 /* AccessibilitySelectionReplacementWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002000000000000000000044 /* AccessibilitySelectionReplacementWriter.swift */; };
@@ -193,6 +195,8 @@
 		00200000000000000000003E /* SelectedTextSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectedTextSnapshot.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000091 /* UpdateCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Updates/UpdateCoordinator.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000040 /* SelectionAssistantCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionAssistantCoordinator.swift; sourceTree = SOURCE_ROOT; };
+		0020000000000000000000C3 /* FloatingPromptSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/FloatingPromptSession.swift; sourceTree = SOURCE_ROOT; };
+		0020000000000000000000C4 /* FloatingPromptWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/FloatingPromptWindowController.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000041 /* SelectionOverlayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/SelectionOverlayController.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000043 /* AccessibilityPermissionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/AccessibilityPermissionCoordinator.swift; sourceTree = SOURCE_ROOT; };
 		002000000000000000000044 /* AccessibilitySelectionReplacementWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/SpotAsk/Selection/AccessibilitySelectionReplacementWriter.swift; sourceTree = SOURCE_ROOT; };
@@ -335,6 +339,8 @@
 				00200000000000000000003D /* AccessibilitySelectedTextReader.swift */,
 				00200000000000000000003E /* SelectedTextSnapshot.swift */,
 				002000000000000000000040 /* SelectionAssistantCoordinator.swift */,
+				0020000000000000000000C3 /* FloatingPromptSession.swift */,
+				0020000000000000000000C4 /* FloatingPromptWindowController.swift */,
 				002000000000000000000041 /* SelectionOverlayController.swift */,
 				002000000000000000000043 /* AccessibilityPermissionCoordinator.swift */,
 				002000000000000000000044 /* AccessibilitySelectionReplacementWriter.swift */,
@@ -583,6 +589,8 @@
 				D3C151000000000000000001, D3C151000000000000000002, D3C151000000000000000003, D3C151000000000000000004, D3C151000000000000000005, D3C151000000000000000006,
 				0010000000000000000000B1, 0010000000000000000000B2, 0010000000000000000000B3, 0010000000000000000000B4, 0010000000000000000000B5, 0010000000000000000000B6, 0010000000000000000000B7, 0010000000000000000000B8, 0010000000000000000000B9, 0010000000000000000000BA,
 				0010000000000000000000C2 /* ReadingFont.swift in Sources */,
+				0010000000000000000000C3 /* FloatingPromptSession.swift in Sources */,
+				0010000000000000000000C4 /* FloatingPromptWindowController.swift in Sources */,
 		);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

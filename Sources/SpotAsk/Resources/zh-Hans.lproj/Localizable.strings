@@ -450,6 +450,12 @@
 "selection.actionBar.more" = "更多";
 "selection.actionBar.chat" = "对话";
 "selection.actionBar.chatTooltip" = "添加到对话";
+"selection.actionBar.promptPresetClickHint" = "左键: 悬浮微窗 · 右键: 主窗口对话";
+"floatingPrompt.copyAll" = "复制全部";
+"floatingPrompt.continueInChat" = "在对话中继续";
+"floatingPrompt.pin" = "置顶";
+"floatingPrompt.unpin" = "取消置顶";
+"floatingPrompt.close" = "关闭";
 "selection.actionBar.moreAccessibility" = "更多划词动作";
 "selection.actionBar.externalAskAccessibility" = "外部提问：%@";
 "selection.actionBar.kind.web" = "网页提问";
