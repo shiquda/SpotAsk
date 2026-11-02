@@ -1,7 +1,7 @@
 ---
 layout: home
 
-title: "SpotAsk｜Mac 菜单栏快问 · ⌥Space"
+title: "SpotAsk | 原生 macOS AI 助手与查询路由器"
 titleTemplate: false
 description: "免费开源的 Mac 菜单栏快问工具：按 ⌥Space，用你自己的 API Key 得到回答，或处理选中文字，或一键交给 ChatGPT、本地 AI Agent。"
 
