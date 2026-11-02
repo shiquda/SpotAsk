@@ -31,7 +31,7 @@ features:
   - title: "选中文本就近处理"
     details: "在任意应用中选中文字，通过就近浮动操作栏直接翻译、解释、总结、润色，或带入对话继续追问。"
   - title: "自带密钥 (BYOK)，数据留在本机"
-    details: "直连 OpenAI 兼容、Anthropic 或 Gemini 接口。密钥加密保存在本地钥匙串，无中间服务器，无隐私收集。"
+    details: "密钥只留在这台 Mac 上，只发给你的服务商——没有中间服务器，也没有遥测。"
   - title: "纯原生轻量，无 Electron"
     details: "纯 Swift 与 AppKit 构建，零 Electron 运行时；全键盘驱动，按 <kbd>Esc</kbd> 随问随走，极致克制。"
 

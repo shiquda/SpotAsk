@@ -25,7 +25,7 @@ Three workflows cover most everyday use:
 
 ## Quick questions from anywhere
 
-Press your global hotkey (default `⌥ + Space`) to summon a focused input window over any app. Ask, stream an answer, and dismiss instantly with `⎋`.
+Press your global hotkey (default `⌥ + Space`; [shortcut clash with ChatGPT?](/guides/chatgpt-option-space)) to summon a focused input window over any app. Ask, stream an answer, and dismiss instantly with `⎋`.
 
 - [Getting Started](/getting-started)
 

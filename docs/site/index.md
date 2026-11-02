@@ -30,7 +30,7 @@ features:
   - title: "Work with selected text"
     details: "Highlight text in any macOS app to translate, explain, summarize, polish, or bring directly into chat from the inline action bar."
   - title: "Bring your own AI service (BYOK)"
-    details: "Connect OpenAI-compatible, Anthropic, or Gemini endpoints. Access keys stay encrypted in your Keychain with zero middle servers or telemetry."
+    details: "Access keys stay on this Mac and go only to your provider — no middle server, no telemetry."
   - title: "Lightweight & pure native"
     details: "Pure Swift/AppKit, zero Electron runtime, keyboard-first with Esc-to-close, and instant cold launch."
 

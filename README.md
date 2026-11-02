@@ -112,7 +112,7 @@ Turn on automatic routing and SpotAsk asks a decision model (System One or OpenA
 
 ## Privacy
 
-- **BYOK (Bring Your Own Key)**: Access keys are stored securely in macOS Keychain and sent only to your configured provider.
+- **BYOK (Bring Your Own Key)**: Access keys are stored only on this Mac, in a local credentials file readable only by your macOS user (not in Keychain), and are sent only to the provider you configured.
 - **Zero telemetry**: No account required, no middle proxy servers, and no tracking.
 - **On-demand permissions**: The selection assistant requests Accessibility permissions only when enabled, and reads text strictly when you highlight it.
 
