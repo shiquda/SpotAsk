@@ -32,6 +32,50 @@ enum FloatingPromptDismissal {
     }
 }
 
+enum FloatingPromptShortcut {
+    /// The focused floating window reuses the main chat shortcut set.
+    /// Copy, retry, pin, zoom, and settings apply here. Other targets stay
+    /// unhandled so a text selection keeps system keys such as Command-C.
+    @MainActor
+    static func perform(
+        _ target: InAppShortcutTarget,
+        session: FloatingPromptSession,
+        settings: AppSettings,
+        copy: () -> Bool,
+        showSettings: () -> Void
+    ) -> Bool {
+        switch target {
+        case .operation(.copyAnswer):
+            return copy()
+        case .operation(.regenerateOrRetry):
+            guard session.phase == .complete || session.phase == .failed else { return false }
+            session.retry()
+            return true
+        case .operation(.toggleWindowOnTop):
+            session.isPinned.toggle()
+            return true
+        case .operation(.zoomIn):
+            adjustZoom(settings, by: 1)
+            return true
+        case .operation(.zoomOut):
+            adjustZoom(settings, by: -1)
+            return true
+        case .operation(.showSettings):
+            showSettings()
+            return true
+        default:
+            return false
+        }
+    }
+
+    @MainActor
+    private static func adjustZoom(_ settings: AppSettings, by delta: Int) {
+        let next = InterfaceZoomLevel.adjusted(from: settings.interfaceZoomLevel, by: delta)
+        guard next != settings.interfaceZoomLevel else { return }
+        settings.interfaceZoomLevel = next
+    }
+}
+
 enum FloatingPromptPlacement {
     static let defaultSize = NSSize(width: 380, height: 460)
 

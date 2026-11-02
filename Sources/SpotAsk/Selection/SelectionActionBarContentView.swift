@@ -349,6 +349,20 @@ final class SelectionActionButton: NSButton {
         }
         onSecondaryClick()
     }
+
+    /// Invokes the secondary action under `point` in `root`'s coordinates.
+    /// Walks past the image cell so a click on the icon still counts.
+    static func performSecondaryClick(in root: NSView, at point: NSPoint) -> Bool {
+        var view: NSView? = root.hitTest(point)
+        while let current = view {
+            if let button = current as? SelectionActionButton, let action = button.onSecondaryClick {
+                action()
+                return true
+            }
+            view = current.superview
+        }
+        return false
+    }
 }
 
 private extension SelectionActionBarContentView {

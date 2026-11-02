@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Left-clicking a selection prompt opens an isolated floating window. Right-click asks in the main chat. The window can be pinned, copied, or continued into the current conversation.
+- Left-clicking a selection prompt opens an isolated floating window. Right-click asks in the main chat. The window can be pinned, copied, or continued into the current conversation. While focused, it uses the same chat shortcuts for copy, retry, pin, zoom, and settings.
 
 ## [0.3.3] - 2026-10-28
 

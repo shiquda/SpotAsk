@@ -141,6 +141,94 @@ struct FloatingPromptTests {
         #expect(SelectionActionBarLayout.promptPresetTooltip(name: "Explain", shortcut: nil) == "Explain (\(hint))")
     }
 
+    @Test("A focused floating window reuses the main chat shortcuts")
+    func shortcutsReuseChatActions() async {
+        let box = RequestBox()
+        let settings = makeSettings()
+        let session = FloatingPromptSession(
+            snapshot: SelectedTextSnapshot(
+                text: "selected passage",
+                source: SelectionSourceApplication(processIdentifier: 7, bundleIdentifier: "com.example.Source", localizedName: "Source"),
+                selectedRange: SelectionCharacterRange(location: 0, length: 17),
+                anchor: .pointer(.zero)
+            ),
+            preset: PromptPreset(title: "Explain", instruction: "Explain"),
+            settings: settings,
+            providerFactory: ScriptedFactory(box: box, events: [.answerDelta("explained")]),
+            modelID: nil
+        )
+        var copied = false
+        var settingsShown = false
+        #expect(!FloatingPromptShortcut.perform(
+            .operation(.copyAnswer),
+            session: session,
+            settings: settings,
+            copy: { copied = true; return false },
+            showSettings: { settingsShown = true }
+        ))
+        #expect(copied)
+        #expect(!FloatingPromptShortcut.perform(
+            .operation(.regenerateOrRetry),
+            session: session,
+            settings: settings,
+            copy: { false },
+            showSettings: {}
+        ))
+        #expect(session.phase == .idle)
+        #expect(!session.isPinned)
+        #expect(FloatingPromptShortcut.perform(
+            .operation(.toggleWindowOnTop),
+            session: session,
+            settings: settings,
+            copy: { false },
+            showSettings: {}
+        ))
+        #expect(session.isPinned)
+        let zoom = settings.interfaceZoomLevel
+        #expect(FloatingPromptShortcut.perform(
+            .operation(.zoomIn),
+            session: session,
+            settings: settings,
+            copy: { false },
+            showSettings: {}
+        ))
+        #expect(settings.interfaceZoomLevel == InterfaceZoomLevel.adjusted(from: zoom, by: 1))
+        #expect(FloatingPromptShortcut.perform(
+            .operation(.showSettings),
+            session: session,
+            settings: settings,
+            copy: { false },
+            showSettings: { settingsShown = true }
+        ))
+        #expect(settingsShown)
+        #expect(!FloatingPromptShortcut.perform(
+            .operation(.newConversation),
+            session: session,
+            settings: settings,
+            copy: { false },
+            showSettings: {}
+        ))
+
+        session.start()
+        for _ in 0 ..< 30 where session.phase != .complete {
+            await Task.yield()
+        }
+        #expect(session.phase == .complete)
+        let requestsBeforeRetry = box.count
+        #expect(FloatingPromptShortcut.perform(
+            .operation(.regenerateOrRetry),
+            session: session,
+            settings: settings,
+            copy: { false },
+            showSettings: {}
+        ))
+        for _ in 0 ..< 30 where session.phase != .complete {
+            await Task.yield()
+        }
+        #expect(session.phase == .complete)
+        #expect(box.count == requestsBeforeRetry + 1)
+    }
+
     private func makeSettings() -> AppSettings {
         let suiteName = "FloatingPromptTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
@@ -153,8 +241,11 @@ private final class RequestBox: @unchecked Sendable {
     var request: ChatRequest?
     private let lock = NSLock()
 
+    var count = 0
+
     func store(_ request: ChatRequest) {
         lock.lock()
+        count += 1
         self.request = request
         lock.unlock()
     }

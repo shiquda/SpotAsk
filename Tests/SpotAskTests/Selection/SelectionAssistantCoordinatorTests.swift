@@ -249,6 +249,7 @@ struct SelectionAssistantCoordinatorTests {
             await Task.yield()
         }
         let expectedPresetID = overlay.shownPresets.first?.id
+
         overlay.chooseFirstSecondaryAction()
         for _ in 0 ..< 50 where recorder.actions.isEmpty {
             await Task.yield()
@@ -261,6 +262,26 @@ struct SelectionAssistantCoordinatorTests {
         #expect(question == "Selected text")
         #expect(preset?.id == expectedPresetID)
         #expect(presenter.presentations.isEmpty)
+    }
+
+    @Test("Right-click hit testing does not need a key window")
+    func secondaryClickHitTestInvokesTheButton() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 80, height: 40),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: true
+        )
+        let root = NSView(frame: NSRect(x: 0, y: 0, width: 80, height: 40))
+        window.contentView = root
+        let button = SelectionActionButton(frame: NSRect(x: 10, y: 10, width: 30, height: 20))
+        var fired = 0
+        button.onSecondaryClick = { fired += 1 }
+        root.addSubview(button)
+        #expect(SelectionActionButton.performSecondaryClick(in: root, at: NSPoint(x: 20, y: 15)))
+        #expect(fired == 1)
+        #expect(!SelectionActionButton.performSecondaryClick(in: root, at: NSPoint(x: 70, y: 15)))
+        #expect(fired == 1)
     }
 
     @Test("Choosing the chat action copies the selection before filling the input")

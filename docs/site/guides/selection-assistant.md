@@ -83,7 +83,7 @@ flowchart TD
 **Show quick actions** displays the action bar next to the selection. You can toggle text labels beside icons, drag buttons in the interactive 1:1 preview stage to reorder them, or fold lower-frequency actions into a secondary `...` menu to keep the bar compact.
 
 - **Ask in Chat icon**: A dedicated speech bubble icon appears at the start of the action bar. Clicking it opens the question window with the selected text filled in and a blank line ready for your follow-up question. This can be toggled in Settings > **Selection Assistant** (enabled by default).
-- Built-in prompts, custom prompts, and enabled External Ask targets follow in the bar. Left-click a prompt to open a floating window that answers only that selection. Right-click the same button to ask in the main chat. From the window you can pin it, copy the answer, or continue in the current conversation.
+- Built-in prompts, custom prompts, and enabled External Ask targets follow in the bar. Left-click a prompt to open a floating window that answers only that selection. Right-click the same button to ask in the main chat. From the window you can pin it, copy the answer, or continue in the current conversation. While the window is focused, copy, retry, pin, zoom, and settings use the same shortcuts as the main chat.
 ## Automatic display
 
 In **Show quick actions** mode, turn on **Show quick actions after selecting text** to avoid pressing the shortcut each time.

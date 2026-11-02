@@ -278,11 +278,20 @@ private final class FloatingPromptHostingView<Content: View>: NSHostingView<Cont
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func mouseDown(with event: NSEvent) {
+        activateIfNeeded()
+        super.mouseDown(with: event)
+    }
+
+    override func rightMouseDown(with event: NSEvent) {
+        activateIfNeeded()
+        super.rightMouseDown(with: event)
+    }
+
+    private func activateIfNeeded() {
         if !NSApp.isActive {
             NSApp.activate(ignoringOtherApps: true)
         }
         window?.makeKey()
-        super.mouseDown(with: event)
     }
 }
 
@@ -292,6 +301,9 @@ private struct FloatingPromptView: View {
     let onClose: () -> Void
     let onContinue: () -> Void
     @State private var didCopy = false
+    @State private var showsShortcutHints = false
+    @State private var shortcutDispatcher: InAppShortcutDispatcher?
+    @State private var windowReference = ChatWindowReference()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -304,8 +316,20 @@ private struct FloatingPromptView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Brand.bg)
         .environment(settings)
+        .environment(\.dynamicTypeSize, settings.interfaceZoomLevel.dynamicTypeSize)
         .environment(\.locale, settings.language.locale)
         .preferredColorScheme(settings.appearance.colorScheme)
+        .background(ChatWindowReader(reference: windowReference))
+        .onAppear(perform: installShortcutDispatcher)
+        .onDisappear {
+            shortcutDispatcher?.stop()
+            shortcutDispatcher = nil
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { notification in
+            if (notification.object as? NSWindow) === windowReference.window {
+                showsShortcutHints = false
+            }
+        }
         .task(id: didCopy) {
             guard didCopy else { return }
             try? await Task.sleep(for: .milliseconds(1500))
@@ -337,6 +361,14 @@ private struct FloatingPromptView: View {
                 label: L10n.string(session.isPinned ? "floatingPrompt.unpin" : "floatingPrompt.pin"),
                 action: { session.isPinned.toggle() }
             )
+            .overlay(alignment: .bottomTrailing) {
+                ShortcutKeycap(shortcut: shortcutHint(.toggleWindowOnTop))
+                    .offset(x: 4, y: 4)
+            }
+            .help(shortcutHelp(
+                L10n.string(session.isPinned ? "floatingPrompt.unpin" : "floatingPrompt.pin"),
+                operation: .toggleWindowOnTop
+            ))
             headerButton(
                 systemName: "xmark",
                 label: L10n.string("floatingPrompt.close"),
@@ -406,10 +438,20 @@ private struct FloatingPromptView: View {
             }
             .buttonStyle(.bordered)
             .disabled(!session.canCopy)
+            .overlay(alignment: .bottomTrailing) {
+                ShortcutKeycap(shortcut: shortcutHint(.copyAnswer))
+                    .offset(x: 4, y: 4)
+            }
+            .help(shortcutHelp(L10n.string("floatingPrompt.copyAll"), operation: .copyAnswer))
             Spacer(minLength: 8)
             if session.canRetry, !session.answer.isEmpty {
                 Button(L10n.string("chat.retry"), action: session.retry)
                     .buttonStyle(.bordered)
+                    .overlay(alignment: .bottomTrailing) {
+                        ShortcutKeycap(shortcut: shortcutHint(.regenerateOrRetry))
+                            .offset(x: 4, y: 4)
+                    }
+                    .help(shortcutHelp(L10n.string("chat.retry"), operation: .regenerateOrRetry))
             }
             Button(L10n.string("floatingPrompt.continueInChat"), action: onContinue)
                 .buttonStyle(.borderedProminent)
@@ -437,6 +479,47 @@ private struct FloatingPromptView: View {
     private func copyAll() {
         guard session.copyAnswer(to: .general) else { return }
         didCopy = true
+    }
+
+    private func installShortcutDispatcher() {
+        guard shortcutDispatcher == nil else { return }
+        let dispatcher = InAppShortcutDispatcher(
+            settings: settings,
+            isForeground: { [windowReference] in
+                guard let window = windowReference.window else { return false }
+                return window === NSApp.keyWindow && window.isKeyWindow
+            },
+            hasMarkedText: { [windowReference] in
+                responderHasMarkedText(windowReference.window?.firstResponder)
+            },
+            handleTarget: { performShortcut($0) },
+            setHintsVisible: { showsShortcutHints = $0 }
+        )
+        dispatcher.start()
+        shortcutDispatcher = dispatcher
+    }
+
+    private func performShortcut(_ target: InAppShortcutTarget) -> Bool {
+        FloatingPromptShortcut.perform(
+            target,
+            session: session,
+            settings: settings,
+            copy: {
+                let copied = session.copyAnswer(to: .general)
+                if copied { didCopy = true }
+                return copied
+            },
+            showSettings: { SpotAskCommandCenter.shared.showSettings() }
+        )
+    }
+
+    private func shortcutHint(_ operation: InAppShortcutOperation) -> InAppShortcut? {
+        inAppShortcutHint(settings.shortcut(for: .operation(operation)), commandHintsVisible: showsShortcutHints)
+    }
+
+    private func shortcutHelp(_ label: String, operation: InAppShortcutOperation) -> String {
+        guard let shortcut = settings.shortcut(for: .operation(operation)) else { return label }
+        return "\(label) (\(InAppShortcutDisplay.text(for: shortcut)))"
     }
 }
 
