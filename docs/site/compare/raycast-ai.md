@@ -26,7 +26,7 @@ The wider table is the [comparison hub](/compare/). Shortcut collisions are on t
 
 - Pick Raycast if you want the launcher, the store, and AI in one subscription.
 - Pick SpotAsk if you only want the ask box, no account, and a key that goes to your provider.
-- Use both if you want the launcher and a separate ask box. Give Option+Space to one of them.
+- Use both if you want the launcher and a separate ask box. If you move Raycast to Option+Space, give that shortcut to one app.
 
 SpotAsk is our app. We checked Raycast's own manual on November 2, 2026. Tell us if anything changed.
 
@@ -53,7 +53,7 @@ Checked November 2, 2026. Raycast was not installed on this Mac.
 | Hand-off to a website or CLI | Quicklinks can open a search URL. Store extensions were not inventoried. | Built in. External Ask. |
 | Selected text | AI Commands | Selection Assistant. Default Option+Shift+Space. |
 | Platforms | macOS, Windows, and iOS. Current Mac app: Tahoe and Apple silicon. | macOS 15 or later. Apple silicon and Intel. |
-| Default hotkey | Command+Space and Option+Space, customizable | Option+Space |
+| Default hotkey | Command+Space on Mac (per manual), customizable | Option+Space |
 
 ## Where your API key's requests go
 
@@ -85,7 +85,7 @@ Raycast can open a search URL through [Quicklinks](https://manual.raycast.com/qu
 
 You can install both. Use Raycast as the launcher. Use SpotAsk when you want the small question window, or when you want External Ask to open a website or a CLI without putting that question through Raycast AI.
 
-Do not give both apps Option+Space. SpotAsk defaults to Option+Space. Raycast's keyboard-shortcut manual lists Command+Space and Alt+Space as the default shortcut to open or close Raycast, and says it can be customized. On a Mac, Alt is Option. The ChatGPT desktop app's current docs also use Option+Space. One shortcut, one owner. Change the others in that app's settings. The ChatGPT collision is covered in [Mini took Option+Space from another app](/guides/chatgpt-option-space#mini-took-space-from-another-app). SpotAsk's own note is [Global shortcut conflicts](/troubleshooting#global-shortcut-conflicts).
+Raycast's manual lists Command+Space as the Mac default to open or close Raycast. It can be customized. Alt+Space on that page is the Windows default, not a second Mac default. SpotAsk defaults to Option+Space, and the ChatGPT desktop app's current docs also use Option+Space. If you change Raycast to Option+Space, it collides with those apps. Give that shortcut to one owner. The ChatGPT collision is covered in [Mini took Option+Space from another app](/guides/chatgpt-option-space#mini-took-space-from-another-app). SpotAsk's own note is [Global shortcut conflicts](/troubleshooting#global-shortcut-conflicts).
 
 We did not run that collision. Raycast and ChatGPT were not installed.
 
@@ -115,7 +115,7 @@ An Intel Mac, or a Mac that is not on macOS Tahoe, cannot install Raycast's curr
 
 ## If you want a full open-source launcher instead
 
-SpotAsk is not that project. People who want an open-source replacement for Raycast's launcher look elsewhere. These sites resolved on November 2, 2026. We did not install or review them: [Tinycast](https://tinycast.app), [Sol](https://sol.ospfranco.com), and [Vicinae](https://www.vicinae.com/). If the job is "replace Raycast," start there. If the job is "I only need the ask box," [Getting Started](/getting-started) is the install path.
+SpotAsk is not that project. People who want an open-source replacement for Raycast's launcher look elsewhere. These sites resolved on November 2, 2026. We did not install or review them: [Sol](https://sol.ospfranco.com) and [Vicinae](https://www.vicinae.com/). Vicinae's site lists Linux, macOS, and Windows. If the job is "replace Raycast," start there. If the job is "I only need the ask box," [Getting Started](/getting-started) is the install path.
 
 ## How we checked
 

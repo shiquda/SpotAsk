@@ -37,7 +37,7 @@ Prices were copied from each vendor's site on November 2, 2026. A dash means tha
 | Selected-text actions | Yes. Selection Assistant. | Yes. AI Commands. | Yes. Inline and AI Workflow. | Yes. Inline mode. | — |
 | Launcher, clipboard, windows | No | Yes | No | No | No |
 | Account required | No | Yes | No account required to start. Cloud sync is optional. | No, per the homepage. | Yes |
-| Default hotkey | Option+Space | Command+Space and Option+Space | — | — | Option+Space in current OpenAI docs. App not installed here. |
+| Default hotkey | Option+Space | Command+Space on Mac (per manual), customizable | — | — | Option+Space in current OpenAI docs. App not installed here. |
 | macOS | 15 or later. Apple silicon and Intel. | Current Mac app: macOS Tahoe and Apple silicon. | Homepage: macOS 13 or later. Intel and Apple silicon. | Homepage: macOS 13 or later. Intel and Apple silicon. | macOS 14 or later. Apple silicon or Intel. |
 
 Raycast Pro+ is $20/month or $192/year for 3,000 credits. Max is $50/month or $480/year for 7,500 credits. Image attachments sent to a Custom Provider are still uploaded to Raycast. BoltAI's privacy policy was updated August 6, 2026. MindMac's latest linked release is 1.9.28, published April 22, 2025. The site still sold licenses on the check date.
@@ -47,8 +47,8 @@ Raycast Pro+ is $20/month or $192/year for 3,000 credits. Max is $50/month or $4
 - You also want a launcher, clipboard history, window management, and extensions: **Raycast**, if you will pay for AI. Details are on [SpotAsk vs Raycast AI](/compare/raycast-ai).
 - You want projects, long chats, MCP, or sync to a phone, and you will pay once: **BoltAI**. MindMac is the cheaper one-time chat app. We did not install either.
 - You only use ChatGPT, and its shortcut already works: **the ChatGPT app**. If Option+Space was taken, use [Option+Space, ChatGPT, and SpotAsk](/guides/chatgpt-option-space).
-- You only want one key for a quick question, your own key sent to your provider, no account, or a hand-off to a website or CLI: **SpotAsk**.
-- You already use Raycast and also want SpotAsk's direct ask box: they can coexist. Both can use Option+Space. [Pick one owner](/compare/raycast-ai#using-both).
+- You only want a hotkey for a quick question, your own key sent to your provider, no account, or a hand-off to a website or CLI: **SpotAsk**.
+- You already use Raycast and also want SpotAsk's direct ask box: they can coexist. If you moved Raycast to Option+Space, [pick one owner](/compare/raycast-ai#using-both).
 
 ## When Raycast is the better choice
 
