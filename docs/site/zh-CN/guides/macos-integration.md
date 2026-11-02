@@ -7,8 +7,6 @@ description: 通过 Spotlight、Siri、快捷指令或 spotask:// 链接使用 S
 
 官方 SpotAsk 发布版本会注册 macOS 可以暴露给 Spotlight、Siri 和快捷指令的应用操作，并注册 `spotask://` URL scheme，供 Alfred、Raycast、终端脚本和快捷指令调用。
 
-如果 ChatGPT 占用了默认全局快捷键，见 [ChatGPT took ⌥Space on your Mac?](/guides/chatgpt-option-space#set-up-spotask-on-space-without-fighting-chatgpt)。
-
 <SpotAskSettingsLink section="shortcuts" />
 
 ## 可用操作

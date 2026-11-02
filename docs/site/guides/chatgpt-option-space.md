@@ -32,8 +32,8 @@ Check which app you have first: **ChatGPT** (the new merged app) or **ChatGPT Cl
 | What happens when you press <kbd>⌥ Space</kbd> | Likely cause | Fix |
 | --- | --- | --- |
 | Nothing happens | ChatGPT Classic is not running, its Chat Bar shortcut was changed, or no app owns the key | [Using ChatGPT Classic](#using-chatgpt-classic) |
-| A small floating panel, a pet, or a Codex task appears instead of a chat window | Mini owns <kbd>⌥ Space</kbd> in the new app | [Mini took ⌥Space](#mini-took-space-from-another-app) |
-| A different launcher stopped responding | Mini registered the key first, or that launcher did not get the key | [Set up SpotAsk on ⌥Space without fighting ChatGPT](#set-up-spotask-on-space-without-fighting-chatgpt) |
+| A small floating panel, a pet, or a Codex task appears instead of a chat window | Mini owns <kbd>⌥ Space</kbd> in the new app | [Mini took ⌥Space](#mini-took-⌥space-from-another-app) |
+| A different launcher stopped responding | Mini registered the key first, or that launcher did not get the key | [Set up SpotAsk on ⌥Space without fighting ChatGPT](#set-up-spotask-on-⌥space-without-fighting-chatgpt) |
 
 ## Why ChatGPT's ⌥Space changed in 2026
 
@@ -164,6 +164,12 @@ Many people use both: SpotAsk owns <kbd>⌥ Space</kbd> for quick questions, and
 SpotAsk is free and open source. [Download for Mac](https://github.com/shiquda/SpotAsk/releases/latest) or run `brew install --cask shiquda/spotask/spotask`. Keep ChatGPT for everything else.
 :::
 
+## Related problems and comparisons
+
+- [Global shortcut conflicts in SpotAsk](/troubleshooting#global-shortcut-conflicts) — other apps that grab a key
+- [Open SpotAsk from Spotlight, Siri or a URL](/guides/macos-integration) — if you'd rather not use any global hotkey
+- [Route a question to ChatGPT, Perplexity or a CLI agent](/guides/external-ask)
+
 ## FAQ
 
 **Why doesn't Option+Space open ChatGPT anymore on Mac?**
@@ -188,4 +194,4 @@ No. SpotAsk is an independent open-source project, unaffiliated with OpenAI.
 
 *Last updated: Oct 27, 2026. ChatGPT details were checked against OpenAI's help pages and public GitHub issues on that date. ChatGPT updates often, so menu names may change.*
 
-Related: [Troubleshooting](/troubleshooting), [External Ask](/guides/external-ask), [Settings & Shortcuts Reference](/reference), [macOS AI Launcher](/use-cases/mac-ai-launcher), [External Ask & Intent Routing](/use-cases/external-ask-routing), [BYOK Native macOS AI Client](/use-cases/byok-macos-ai)
+Related: [Troubleshooting](/troubleshooting), [External Ask](/guides/external-ask), [Settings & Shortcuts Reference](/reference)

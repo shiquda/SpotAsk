@@ -9,7 +9,7 @@ SpotAsk runs as a native macOS menu bar app. After you connect an AI service, th
 
 1. Press `⌥ + Space` (or your configured hotkey) to open the question window.
 
-   [ChatGPT took ⌥Space on your Mac?](/guides/chatgpt-option-space#set-up-spotask-on-space-without-fighting-chatgpt)
+   [ChatGPT took ⌥Space on your Mac?](/guides/chatgpt-option-space)
 2. Ask your question.
 3. Copy the answer or press `⎋` to close the window and return to what you were doing.
 

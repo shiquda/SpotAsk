@@ -78,7 +78,7 @@ Each External Ask entry is one of three action types.
 | Ask Grok | `https://grok.com/?q={query}` |
 | Ask Perplexity | `https://www.perplexity.ai/search?q={query}` |
 
-If ChatGPT's desktop shortcut is the problem, see [ChatGPT took ⌥Space on your Mac?](/guides/chatgpt-option-space#set-up-spotask-on-space-without-fighting-chatgpt).
+If you still want that old chat-bar habit, see [Coming from ChatGPT's ⌥Space chat bar? Get a one-hotkey quick ask back](/guides/chatgpt-option-space#if-you-just-want-one-hotkey-to-ask-anything-spotask).
 
 <a id="auto-submitting-in-chatgpt-with-a-userscript"></a>
 

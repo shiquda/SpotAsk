@@ -36,7 +36,7 @@ Decision Routing lives in Settings > External Ask, after the channel list. It is
 
 | Action | Shortcut |
 | --- | --- |
-| Open or focus the question window | `⌥ + Space` (customizable, can be cleared). [ChatGPT took ⌥Space on your Mac?](/guides/chatgpt-option-space#set-up-spotask-on-space-without-fighting-chatgpt) |
+| Open or focus the question window | `⌥ + Space` (customizable, can be cleared). [ChatGPT Option+Space conflicts](/guides/chatgpt-option-space#set-up-spotask-on-⌥space-without-fighting-chatgpt) |
 | Trigger the selection assistant | `⌥ + ⇧ + Space` |
 | Focus the input | `⌘ + L` |
 | Regenerate or retry | `⌘ + R` |

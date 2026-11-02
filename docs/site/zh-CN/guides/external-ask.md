@@ -33,8 +33,6 @@ description: 在 SpotAsk 统一敲下问题，一键或由决策模型自动分�
 | **问 Perplexity** | `https://www.perplexity.ai/search?q={query}` | 直接发起联网搜索 |
 | **问 Grok** | `https://grok.com/?q={query}` | 预填问题并生成解答 |
 
-如果问题出在 ChatGPT 桌面版快捷键，见 [ChatGPT took ⌥Space on your Mac?](/guides/chatgpt-option-space#set-up-spotask-on-space-without-fighting-chatgpt)。
-
 ::: tip 搭配脚本实现 ChatGPT 自动发送
 ChatGPT 官方网页默认仅预填问题。若希望跳转后**自动点击发送**，可安装油猴脚本：[ChatGPT URL Prompt Auto Submit](https://greasyfork.org/zh-CN/scripts/592577-chatgpt-url-prompt-auto-submit)。
 :::
