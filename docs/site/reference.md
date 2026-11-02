@@ -75,7 +75,7 @@ Up to 8 attachments are supported per message. Very large images are normalized 
 
 ## Updates
 
-- Automatic update checking runs when SpotAsk launches and periodically checks for new releases.
+- Automatic update checking is on by default and checks about once a day. It does not check on every launch.
 - **Check for Updates** checks immediately from About > Updates.
 - In-app updates download and install directly inside SpotAsk without leaving the app. You can skip a version from the update window or restore skipped version alerts in Settings > About.
 - **Update Download Source** can be configured in Settings > About > Updates (Automatic, Official GitHub, or Accelerated Mirror) with automatic timeout detection and mirror fallback for reliable downloads across regions.
