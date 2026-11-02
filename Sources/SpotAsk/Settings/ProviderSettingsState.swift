@@ -479,7 +479,7 @@ final class ProviderSettingsState {
         cancelEditing()
         selectedProviderID = id
         selectedModelID = nil
-        expandedProviderIDs.insert(id)
+        expandedProviderIDs = [id]
 
         draftProviderName = provider.name
         draftProviderAddress = provider.address
@@ -516,7 +516,7 @@ final class ProviderSettingsState {
         cancelEditing()
         selectedModelID = id
         selectedProviderID = nil
-        expandedProviderIDs.insert(model.providerID)
+        expandedProviderIDs = [model.providerID]
 
         draftModelDisplayName = model.displayName
         draftModelUpstreamID = model.upstreamModelID
@@ -526,13 +526,23 @@ final class ProviderSettingsState {
         draftModelThinkingMode = model.thinkingMode
         draftModelExtraRequestParametersText = Self.requestParametersText(model.extraRequestParameters)
 
-        draftProviderName = ""
-        draftProviderAddress = ""
-        draftProviderAddressMode = .baseURL
-        draftProviderTimeout = 60
-        draftProviderFormat = .openAICompatible
-
-        apiKeyDraft = ""
+        if let parentProvider = catalog.providers.first(where: { $0.id == model.providerID }) {
+            draftProviderName = parentProvider.name
+            draftProviderAddress = parentProvider.address
+            draftProviderAddressMode = parentProvider.addressMode
+            draftProviderTimeout = parentProvider.timeout
+            draftProviderFormat = parentProvider.format
+            apiKeyDraft = (try? keyStore.readAPIKey(for: parentProvider.id)) ?? ""
+            providerFieldError = validateProviderAddress(parentProvider.address)
+        } else {
+            draftProviderName = ""
+            draftProviderAddress = ""
+            draftProviderAddressMode = .baseURL
+            draftProviderTimeout = 60
+            draftProviderFormat = .openAICompatible
+            apiKeyDraft = ""
+            providerFieldError = nil
+        }
         status = ""
         statusIsError = false
         providerFieldError = nil
@@ -540,9 +550,9 @@ final class ProviderSettingsState {
 
     func toggleProviderExpansion(_ id: UUID) {
         if expandedProviderIDs.contains(id) {
-            expandedProviderIDs.remove(id)
+            collapseProvider(id)
         } else {
-            expandedProviderIDs.insert(id)
+            selectProvider(id)
         }
     }
 
@@ -576,6 +586,7 @@ final class ProviderSettingsState {
         isCreatingProvider = true
         selectedProviderID = nil
         selectedModelID = nil
+        expandedProviderIDs.removeAll()
 
         draftProviderName = ""
         draftProviderAddress = ""
@@ -612,7 +623,7 @@ final class ProviderSettingsState {
         newModelParentProviderID = providerID
         selectedModelID = nil
         selectedProviderID = nil
-        expandedProviderIDs.insert(providerID)
+        expandedProviderIDs = [providerID]
 
         draftModelDisplayName = ""
         draftModelUpstreamID = ""
@@ -626,6 +637,15 @@ final class ProviderSettingsState {
         )
         draftModelThinkingMode = .providerDefault
         draftModelExtraRequestParametersText = ""
+        if let newModelProvider {
+            draftProviderName = newModelProvider.name
+            draftProviderAddress = newModelProvider.address
+            draftProviderAddressMode = newModelProvider.addressMode
+            draftProviderTimeout = newModelProvider.timeout
+            draftProviderFormat = newModelProvider.format
+            apiKeyDraft = (try? keyStore.readAPIKey(for: providerID)) ?? ""
+            providerFieldError = validateProviderAddress(newModelProvider.address)
+        }
         status = ""
         statusIsError = false
         providerFieldError = nil
