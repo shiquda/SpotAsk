@@ -27,6 +27,8 @@ Three workflows cover most everyday use:
 
 Press your global hotkey (default `⌥ + Space`) to summon a focused input window over any app. Ask, stream an answer, and dismiss instantly with `⎋`.
 
+[ChatGPT took ⌥Space on your Mac?](/guides/chatgpt-option-space#set-up-spotask-on-space-without-fighting-chatgpt)
+
 - [Getting Started](/getting-started)
 
 ## Work with selected text

@@ -13,7 +13,7 @@ cask "spotask" do
   end
 
   name "SpotAsk"
-  desc "Ask an AI assistant from your menu bar"
+  desc "Native Mac menu bar app for quick AI questions"
   homepage "https://github.com/shiquda/SpotAsk"
 
   depends_on macos: :sequoia

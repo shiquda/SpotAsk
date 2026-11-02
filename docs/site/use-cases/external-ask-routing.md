@@ -48,6 +48,7 @@ brew install --cask shiquda/spotask/spotask
 ### Related Guides
 
 - [External Ask Guide](/guides/external-ask) — Custom channels, actions, and quick dispatch workflows.
+- [ChatGPT took ⌥Space on your Mac?](/guides/chatgpt-option-space#set-up-spotask-on-space-without-fighting-chatgpt)
 - [Decision Routing Guide](/guides/decision-routing) — Intent classifier engines, dual-protocol setup, and threshold tuning.
 - [macOS AI Launcher](/use-cases/mac-ai-launcher) — Instant global hotkey summoning.
 - [BYOK Native AI Client](/use-cases/byok-macos-ai) — Connect your own API keys.

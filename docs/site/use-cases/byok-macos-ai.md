@@ -29,6 +29,7 @@ Requests travel directly to your provider's official endpoints with zero proxy s
 ## Verified Boundaries & Practical Notes
 
 - **Provider Account Required**: SpotAsk is a BYOK client and does not sell or distribute API credits. You supply your own API key from OpenAI, Anthropic, Google, or host a local model like Ollama.
+  A ChatGPT Plus subscription is not an API key. See [ChatGPT took ⌥Space on your Mac?](/guides/chatgpt-option-space#set-up-spotask-on-space-without-fighting-chatgpt).
 - **Billing & Quotas**: Compute costs are billed directly by your model provider based on your actual token usage; rate limits and concurrency limits are governed by your provider account tier.
 - **Service Address Formatting**: OpenAI-compatible services distinguish between a Service Root (`https://api.openai.com/v1`) and a Full Request Address (`https://api.openai.com/v1/chat/completions`). See our documentation for endpoint conventions.
 

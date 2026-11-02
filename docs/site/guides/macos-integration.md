@@ -33,6 +33,7 @@ SpotAsk integrates deeply with native macOS system entrypoints by registering Ap
 
 1. **Install and Register**: Place `SpotAsk.app` in `/Applications` and launch it once to register the `spotask://` URL handler and App Intents with macOS.
 2. **Summon via Global Hotkey**: Press `⌥ + Space` (default) to summon the floating question window from any application.
+   If another app already owns that key, see [ChatGPT took ⌥Space on your Mac?](/guides/chatgpt-option-space#set-up-spotask-on-space-without-fighting-chatgpt).
 3. **Trigger from Spotlight**: Press `⌘ + Space`, type `SpotAsk`, and choose an action such as **Ask SpotAsk a question** or **Translate**.
 4. **Trigger via Terminal or URL**: Run `open "spotask://ask?q=What%20is%20Swift%20concurrency"` from Terminal or a script to launch and query SpotAsk immediately.
 5. **Automate in Shortcuts**: Open the macOS **Shortcuts** app, search for **SpotAsk**, and add actions like **Ask AI**, **Summarize**, or **Translate** to your automations.

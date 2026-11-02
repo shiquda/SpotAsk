@@ -29,6 +29,7 @@ SpotAsk 采用 Bring-Your-Own-Key（BYOK，自带密钥）模式，直接连接�
 ## 必要边界与使用说明
 
 - **需自行准备模型服务商账号**：SpotAsk 作为客户端不贩售也不代充 API 额度。你需要自行在 OpenAI、Anthropic、Google 申请 API Key，或在 Mac 本地安装 Ollama。
+  ChatGPT Plus 订阅不是 API Key。见 [ChatGPT took ⌥Space on your Mac?](/guides/chatgpt-option-space#set-up-spotask-on-space-without-fighting-chatgpt)。
 - **费用与服务商配额**：使用远程 API 产生的费用由你直接向模型服务商按实际 Token 用量结算；请求限频（RPM/TPM）由服务商账户等级决定，客户端不加设调用限制。
 - **服务地址格式要求**：OpenAI 兼容服务区分为“服务根地址”（如 `https://api.openai.com/v1`）与“完整请求地址”（如 `https://api.openai.com/v1/chat/completions`），配置时需注意区分。
 

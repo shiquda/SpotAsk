@@ -8,6 +8,8 @@ description: 安装 SpotAsk、连接 AI 服务并完成第一次提问。
 SpotAsk 是原生 macOS 菜单栏应用。连接 AI 服务后，最短使用流程是：
 
 1. 按 <kbd>⌥ + Space</kbd>（或你配置的快捷键）打开提问窗口。
+
+   [ChatGPT took ⌥Space on your Mac?](/guides/chatgpt-option-space#set-up-spotask-on-space-without-fighting-chatgpt)
 2. 输入问题。
 3. 复制回答，或按 <kbd>Esc</kbd> 关闭窗口，回到原来的任务。
 

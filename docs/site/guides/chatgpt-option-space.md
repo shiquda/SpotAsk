@@ -188,4 +188,4 @@ No. SpotAsk is an independent open-source project, unaffiliated with OpenAI.
 
 *Last updated: Oct 27, 2026. ChatGPT details were checked against OpenAI's help pages and public GitHub issues on that date. ChatGPT updates often, so menu names may change.*
 
-Related: [Troubleshooting](/troubleshooting), [External Ask](/guides/external-ask), [Settings & Shortcuts Reference](/reference)
+Related: [Troubleshooting](/troubleshooting), [External Ask](/guides/external-ask), [Settings & Shortcuts Reference](/reference), [macOS AI Launcher](/use-cases/mac-ai-launcher), [External Ask & Intent Routing](/use-cases/external-ask-routing), [BYOK Native macOS AI Client](/use-cases/byok-macos-ai)

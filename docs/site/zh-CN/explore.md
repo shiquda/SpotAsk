@@ -27,6 +27,8 @@ description: SpotAsk 的能力地图：提问、划词、模型、附件、提�
 
 按全局快捷键（默认 <kbd>⌥ + Space</kbd>）在任意应用中随时呼出专注提问小窗；输入问题、获取流式解答，按 <kbd>Esc</kbd> 立即关闭退出。
 
+[ChatGPT took ⌥Space on your Mac?](/guides/chatgpt-option-space#set-up-spotask-on-space-without-fighting-chatgpt)
+
 - [快速开始](/zh-CN/getting-started)
 
 ## 划词就近处理

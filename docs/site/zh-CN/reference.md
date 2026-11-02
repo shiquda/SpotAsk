@@ -36,7 +36,7 @@ description: SpotAsk 设置分区、默认快捷键和受支持附件类型的�
 
 | 操作 | 快捷键 |
 | --- | --- |
-| 打开或聚焦提问窗口 | <kbd>⌥ + Space</kbd>（可自定义，可留空） |
+| 打开或聚焦提问窗口 | <kbd>⌥ + Space</kbd>（可自定义，可留空）。[ChatGPT took ⌥Space on your Mac?](/guides/chatgpt-option-space#set-up-spotask-on-space-without-fighting-chatgpt) |
 | 触发划词助手 | <kbd>⌥ + ⇧ + Space</kbd> |
 | 聚焦输入框 | <kbd>⌘ + L</kbd> |
 | 重新生成或重试 | <kbd>⌘ + R</kbd> |
