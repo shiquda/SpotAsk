@@ -152,14 +152,15 @@ final class SelectionAssistantCoordinator {
                             self?.addToChat()
                         },
                         onSelectPreset: { [weak self] preset in
-                            self?.presentFloatingPrompt(preset)
+                            self?.activatePrompt(preset, secondary: false)
                         },
                         onSecondarySelectPreset: { [weak self] preset in
-                            self?.apply(preset: preset)
+                            self?.activatePrompt(preset, secondary: true)
                         },
                         onSelectExternalAsk: { [weak self] action in
                             self?.performExternalAsk(action)
-                        }
+                        },
+                        promptClickBehavior: settings.selectionPromptClickBehavior
                     )
                 }
             } catch let error as SelectionReadingError {
@@ -219,6 +220,14 @@ final class SelectionAssistantCoordinator {
         let text = await deferredTextReader?.readDeferredSelectionText(for: presented) ?? presented.text
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         return presented.resolvingText(text)
+    }
+
+    private func activatePrompt(_ preset: PromptPreset, secondary: Bool) {
+        if settings.selectionPromptClickBehavior.opensFloatingWindow(secondaryClick: secondary) {
+            presentFloatingPrompt(preset)
+        } else {
+            apply(preset: preset)
+        }
     }
 
     private func presentFloatingPrompt(_ preset: PromptPreset) {
@@ -317,7 +326,8 @@ protocol SelectionOverlayControlling: AnyObject {
         onSelectChat: @escaping () -> Void,
         onSelectPreset: @escaping (PromptPreset) -> Void,
         onSecondarySelectPreset: ((PromptPreset) -> Void)?,
-        onSelectExternalAsk: @escaping (QuickAction) -> Void
+        onSelectExternalAsk: @escaping (QuickAction) -> Void,
+        promptClickBehavior: SelectionPromptClickBehavior
     )
     func showMessage(_ message: SelectionFeedback)
     func showPermissionDenied(openSettings: @escaping () -> Void)
@@ -354,7 +364,8 @@ extension SelectionOverlayControlling {
             onSelectChat: onSelectChat,
             onSelectPreset: onSelectPreset,
             onSecondarySelectPreset: nil,
-            onSelectExternalAsk: onSelectExternalAsk
+            onSelectExternalAsk: onSelectExternalAsk,
+            promptClickBehavior: .floatingOnLeft
         )
     }
 

@@ -45,8 +45,14 @@ final class SelectionActionBarContentView: NSVisualEffectView {
     private var buttonTargets: [OverlayButtonTarget] = []
     private var menuTargets: [MenuItemTarget] = []
     private weak var moreButton: NSButton?
+    private var promptClickBehavior: SelectionPromptClickBehavior = .floatingOnLeft
 
-    init(layout: SelectionActionBarLayout, actions: SelectionActionBarActions?) {
+    init(
+        layout: SelectionActionBarLayout,
+        actions: SelectionActionBarActions?,
+        promptClickBehavior: SelectionPromptClickBehavior = .floatingOnLeft
+    ) {
+        self.promptClickBehavior = promptClickBehavior
         super.init(frame: NSRect(origin: .zero, size: layout.size))
         material = .hudWindow
         blendingMode = .withinWindow
@@ -62,7 +68,12 @@ final class SelectionActionBarContentView: NSVisualEffectView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func update(layout: SelectionActionBarLayout, actions: SelectionActionBarActions?) {
+    func update(
+        layout: SelectionActionBarLayout,
+        actions: SelectionActionBarActions?,
+        promptClickBehavior: SelectionPromptClickBehavior = .floatingOnLeft
+    ) {
+        self.promptClickBehavior = promptClickBehavior
         frame.size = layout.size
         render(layout: layout, actions: actions)
     }
@@ -102,9 +113,14 @@ final class SelectionActionBarContentView: NSVisualEffectView {
                         showsLabels: layout.showsLabels,
                         toolTip: SelectionActionBarLayout.promptPresetTooltip(
                             name: preset.title,
-                            shortcut: actions?.shortcutForPreset?(preset)
+                            shortcut: actions?.shortcutForPreset?(preset),
+                            behavior: promptClickBehavior
                         ),
-                        accessibilityLabel: SelectionActionBarLayout.promptPresetTooltip(name: preset.title, shortcut: nil),
+                        accessibilityLabel: SelectionActionBarLayout.promptPresetTooltip(
+                            name: preset.title,
+                            shortcut: nil,
+                            behavior: promptClickBehavior
+                        ),
                         target: target,
                         onSecondaryClick: actions.map { wired in { wired.onSecondarySelectPreset?(preset) } }
                     ))
@@ -153,9 +169,14 @@ final class SelectionActionBarContentView: NSVisualEffectView {
                     showsLabels: layout.showsLabels,
                     toolTip: SelectionActionBarLayout.promptPresetTooltip(
                         name: preset.title,
-                        shortcut: actions?.shortcutForPreset?(preset)
+                        shortcut: actions?.shortcutForPreset?(preset),
+                        behavior: promptClickBehavior
                     ),
-                    accessibilityLabel: SelectionActionBarLayout.promptPresetTooltip(name: preset.title, shortcut: nil),
+                    accessibilityLabel: SelectionActionBarLayout.promptPresetTooltip(
+                        name: preset.title,
+                        shortcut: nil,
+                        behavior: promptClickBehavior
+                    ),
                     target: target,
                     onSecondaryClick: actions.map { wired in { wired.onSecondarySelectPreset?(preset) } }
                 ))

@@ -429,6 +429,10 @@
 "settings.selectionAssistantActionChat" = "Показывать значок чата на панели выделения";
 "settings.selectionAssistantActionExternalAsk" = "Показывать External Ask на панели выделения";
 "settings.selectionAssistantActionPrompts" = "Показывать подсказки на панели выделения";
+"settings.selectionPromptClickBehavior" = "Щелчки по подсказкам";
+"settings.selectionPromptClickBehaviorFloatingOnLeft" = "Левый клик: плавающее окно";
+"settings.selectionPromptClickBehaviorMainChatOnLeft" = "Левый клик: основной чат";
+"settings.selectionPromptClickBehaviorDescription" = "Правый клик выполняет другое действие. Чат и External Ask не меняются.";
 "settings.selectionAssistantActionBarCrowdingHint" = "При большом числе действий панель может стать слишком длинной. Уберите редко используемые действия или отключите «Показывать подписи рядом со значками», чтобы оставить только значки.";
 "settings.selectionAssistantActionBarPreview" = "Предпросмотр панели действий";
 "settings.selectionAssistantActionBarPreviewEmpty" = "Нет действий для показа — при текущих настройках панель действий не появится.";
@@ -451,6 +455,7 @@
 "selection.actionBar.chat" = "Чат";
 "selection.actionBar.chatTooltip" = "Добавить в чат";
 "selection.actionBar.promptPresetClickHint" = "Левый клик: плавающее окно · Правый клик: основной чат";
+"selection.actionBar.promptPresetClickHintReversed" = "Левый клик: основной чат · Правый клик: плавающее окно";
 "floatingPrompt.copyAll" = "Копировать всё";
 "floatingPrompt.continueInChat" = "Продолжить в чате";
 "floatingPrompt.pin" = "Закрепить";

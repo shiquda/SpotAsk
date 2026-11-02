@@ -137,6 +137,26 @@ struct SelectionActionBarContentTests {
         #expect(asked?.id == preset.id)
     }
 
+    @Test("A reversed prompt click setting changes the live button hint")
+    func reversedPromptClickBehaviorChangesTheTooltip() {
+        let preset = PromptPreset(title: "Translate", instruction: "Translate this")
+        let layout = SelectionActionBarLayout.make(
+            showsChat: false,
+            presets: [preset],
+            externalAsks: [],
+            showsLabels: false,
+            primaryItems: [.promptPreset(preset)]
+        )
+        let view = SelectionActionBarContentView(
+            layout: layout,
+            actions: nil,
+            promptClickBehavior: .mainChatOnLeft
+        )
+        let hint = L10n.string("selection.actionBar.promptPresetClickHintReversed")
+        let button = view.subviews.compactMap { $0 as? SelectionActionButton }.first
+        #expect(button?.toolTip == "Translate (\(hint))")
+    }
+
     @Test("Resolve passes collapseOverflow setting and reflects in layout")
     func resolveReflectsCollapseOverflowSetting() {
         let settings = makeSettings()

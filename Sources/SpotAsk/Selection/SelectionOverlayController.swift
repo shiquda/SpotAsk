@@ -71,7 +71,8 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
         onSelectChat: @escaping () -> Void,
         onSelectPreset: @escaping (PromptPreset) -> Void,
         onSecondarySelectPreset: ((PromptPreset) -> Void)? = nil,
-        onSelectExternalAsk: @escaping (QuickAction) -> Void
+        onSelectExternalAsk: @escaping (QuickAction) -> Void,
+        promptClickBehavior: SelectionPromptClickBehavior = .floatingOnLeft
     ) {
         let layout = SelectionActionBarLayout.make(
             showsChat: showsChat,
@@ -92,7 +93,8 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
                 shortcutForChat: shortcutForChat,
                 shortcutForPreset: shortcutForPreset,
                 shortcutForExternalAsk: shortcutForExternalAsk
-            )
+            ),
+            promptClickBehavior: promptClickBehavior
         )
 
         present(content: content, size: layout.size, anchor: snapshot.anchor)
@@ -414,8 +416,15 @@ struct SelectionActionBarLayout: Equatable {
         return "\(name)\t\(labels)"
     }
 
-    static func promptPresetTooltip(name: String, shortcut: InAppShortcut?) -> String {
-        let hint = L10n.string("selection.actionBar.promptPresetClickHint")
+    static func promptPresetTooltip(
+        name: String,
+        shortcut: InAppShortcut?,
+        behavior: SelectionPromptClickBehavior = .floatingOnLeft
+    ) -> String {
+        let key = behavior == .mainChatOnLeft
+            ? "selection.actionBar.promptPresetClickHintReversed"
+            : "selection.actionBar.promptPresetClickHint"
+        let hint = L10n.string(key)
         let base = "\(name) (\(hint))"
         guard let shortcut else { return base }
         return "\(base)\t\(InAppShortcutDisplay.labels(for: shortcut).joined())"

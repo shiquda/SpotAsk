@@ -264,6 +264,60 @@ struct SelectionAssistantCoordinatorTests {
         #expect(presenter.presentations.isEmpty)
     }
 
+    @Test("A reversed prompt click setting swaps the floating window and the main chat")
+    func reversedPromptClicksSwapTargets() async {
+        let settings = makeSettings()
+        settings.selectionPromptClickBehavior = .mainChatOnLeft
+        let overlay = SelectionOverlayStub()
+        let reader = SelectionReaderStub(snapshot: sampleSnapshot)
+        let presenter = RecordingFloatingPromptPresenter()
+        let commandCenter = SpotAskCommandCenter()
+        let recorder = CommandActionRecorder()
+        commandCenter.configure(panelController: SelectionPanelControllerSpy())
+        commandCenter.setPanelContent { EmptyView() }
+        commandCenter.setActionConsumer { recorder.actions.append($0) }
+        let coordinator = makeCoordinator(
+            settings: settings,
+            reader: reader,
+            overlay: overlay,
+            commandCenter: commandCenter,
+            floatingPrompts: presenter
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 50 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+        let expectedPresetID = overlay.shownPresets.first?.id
+
+        overlay.chooseFirstAction()
+        for _ in 0 ..< 50 where recorder.actions.isEmpty {
+            await Task.yield()
+        }
+
+        guard case let .ask(question, preset, _) = recorder.actions.first else {
+            Issue.record("Expected a left-click to ask in the main chat, got \(recorder.actions)")
+            return
+        }
+        #expect(question == "Selected text")
+        #expect(preset?.id == expectedPresetID)
+        #expect(presenter.presentations.isEmpty)
+
+        overlay.hide()
+        coordinator.trigger()
+        for _ in 0 ..< 50 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+        let secondaryPresetID = overlay.shownPresets.first?.id
+        overlay.chooseFirstSecondaryAction()
+        for _ in 0 ..< 50 where presenter.presentations.isEmpty {
+            await Task.yield()
+        }
+
+        #expect(presenter.presentations.first?.1.id == secondaryPresetID)
+        #expect(recorder.actions.count == 1)
+    }
+
     @Test("Right-click hit testing does not need a key window")
     func secondaryClickHitTestInvokesTheButton() {
         let window = NSWindow(
@@ -1020,7 +1074,8 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
         onSelectChat: @escaping () -> Void,
         onSelectPreset: @escaping (PromptPreset) -> Void,
         onSecondarySelectPreset: ((PromptPreset) -> Void)?,
-        onSelectExternalAsk: @escaping (QuickAction) -> Void
+        onSelectExternalAsk: @escaping (QuickAction) -> Void,
+        promptClickBehavior _: SelectionPromptClickBehavior
     ) {
         self.showsChat = showsChat
         self.collapsesOverflow = collapsesOverflow

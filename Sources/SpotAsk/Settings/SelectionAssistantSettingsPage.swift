@@ -62,6 +62,16 @@ struct SelectionAssistantSettingsPage: View {
                             label: L10n.string("settings.selectionAssistantActionPrompts"),
                             isOn: Bindable(settings).selectionActionBarShowsPrompts
                         )
+                        SettingsFieldRow(label: L10n.string("settings.selectionPromptClickBehavior")) {
+                            Picker(L10n.string("settings.selectionPromptClickBehavior"), selection: Bindable(settings).selectionPromptClickBehavior) {
+                                Text(L10n.string("settings.selectionPromptClickBehaviorFloatingOnLeft")).tag(SelectionPromptClickBehavior.floatingOnLeft)
+                                Text(L10n.string("settings.selectionPromptClickBehaviorMainChatOnLeft")).tag(SelectionPromptClickBehavior.mainChatOnLeft)
+                            }
+                            .labelsHidden()
+                        }
+                        Text(L10n.string("settings.selectionPromptClickBehaviorDescription"))
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
                         SettingsToggleRow(
                             label: L10n.string("settings.selectionAssistantActionExternalAsk"),
                             isOn: Bindable(settings).selectionActionBarShowsExternalAsk

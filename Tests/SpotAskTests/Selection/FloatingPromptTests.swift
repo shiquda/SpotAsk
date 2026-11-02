@@ -141,6 +141,18 @@ struct FloatingPromptTests {
         #expect(SelectionActionBarLayout.promptPresetTooltip(name: "Explain", shortcut: nil) == "Explain (\(hint))")
     }
 
+    @Test("A reversed prompt click setting changes the button hint")
+    func reversedPresetTooltipSwapsTheClickHint() {
+        let hint = L10n.string("selection.actionBar.promptPresetClickHintReversed")
+        #expect(
+            SelectionActionBarLayout.promptPresetTooltip(
+                name: "Explain",
+                shortcut: nil,
+                behavior: .mainChatOnLeft
+            ) == "Explain (\(hint))"
+        )
+    }
+
     @Test("A focused floating window reuses the main chat shortcuts")
     func shortcutsReuseChatActions() async {
         let box = RequestBox()
