@@ -1,7 +1,7 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  SpotAsk is a free, open-source Mac menu bar app for quick questions: press ⌥Space to get an answer from your own API key (OpenAI-compatible, Anthropic or Gemini, sent straight to that provider), act on selected text, or hand the question to ChatGPT, Perplexity or a local CLI agent. A decision model can also route the question automatically.
+  SpotAsk is a free, open-source Mac menu bar app for quick questions: press ⌥Space to get an answer with your own API key, act on selected text, or hand off to ChatGPT or a local AI agent.
 </p>
 
 <p align="center">
