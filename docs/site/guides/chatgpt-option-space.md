@@ -164,6 +164,14 @@ Many people use both: SpotAsk owns <kbd>⌥ Space</kbd> for quick questions, and
 SpotAsk is free and open source. [Download for Mac](https://github.com/shiquda/SpotAsk/releases/latest) or run `brew install --cask shiquda/spotask/spotask`. Keep ChatGPT for everything else.
 :::
 
+## Related problems and comparisons
+
+- [Compare apps](/compare/) — compare with Raycast and others.
+- [SpotAsk vs Raycast AI](/compare/raycast-ai) — How SpotAsk compares to Raycast AI.
+- [Troubleshooting](/troubleshooting) — shortcut conflicts and other failures.
+- [External Ask](/guides/external-ask) — hand a question to a website or a CLI.
+- [Settings & Shortcuts Reference](/reference) — every shortcut, including the global one.
+
 ## FAQ
 
 **Why doesn't Option+Space open ChatGPT anymore on Mac?**
@@ -188,4 +196,4 @@ No. SpotAsk is an independent open-source project, unaffiliated with OpenAI.
 
 *Last updated: Oct 27, 2026. ChatGPT details were checked against OpenAI's help pages and public GitHub issues on that date. ChatGPT updates often, so menu names may change.*
 
-Related: [Troubleshooting](/troubleshooting), [External Ask](/guides/external-ask), [Settings & Shortcuts Reference](/reference)
+Related: [Compare apps](/compare/), [SpotAsk vs Raycast AI](/compare/raycast-ai), [Troubleshooting](/troubleshooting), [External Ask](/guides/external-ask), [Settings & Shortcuts Reference](/reference)
