@@ -3,7 +3,7 @@ layout: home
 
 title: "SpotAsk – One Hotkey to Ask Any AI | Mac Menu Bar App"
 titleTemplate: false
-description: "Open-source Mac menu bar app: press ⌥Space to ask any AI with your own API key, ChatGPT, Perplexity, or a local CLI agent. Free and native."
+description: "Free, open-source Mac menu bar app: press ⌥Space to get an answer with your own API key, act on selected text, or hand off to ChatGPT or a local AI agent."
 
 hero:
   text: "One hotkey. Any AI."

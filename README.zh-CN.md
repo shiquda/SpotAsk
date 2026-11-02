@@ -1,7 +1,7 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  原生 macOS 菜单栏 AI 助手与问题路由器：快捷键随时呼出，在应用内流式作答，或由决策模型自动（及按键一键）分流至网页 AI 与本地 CLI Agent。
+  SpotAsk 是免费开源的 Mac 菜单栏快问工具：按 ⌥Space，用你自己的 API Key 得到回答，或处理选中文字，或一键交给 ChatGPT、本地 AI Agent。
 </p>
 
 <p align="center">

@@ -1,7 +1,7 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  A native macOS menu-bar AI assistant & query router. Summon with a hotkey, then answer in-app (BYOK) or route to web AI and local CLI agents — automatically with a decision model, or in one keystroke.
+  SpotAsk is a free, open-source Mac menu bar app for quick questions: press ⌥Space to get an answer with your own API key, act on selected text, or hand off to ChatGPT or a local AI agent.
 </p>
 
 <p align="center">

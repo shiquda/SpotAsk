@@ -1,9 +1,9 @@
 ---
 layout: home
 
-title: SpotAsk
-titleTemplate: "原生 macOS AI 助手与查询路由器"
-description: "SpotAsk 是一款免费开源的原生 macOS 菜单栏 AI 助手与问题路由器。快捷键随时呼出，支持应用内 BYOK 快速流式作答，或通过决策模型自动（及快捷键一键）将问题分流至 ChatGPT 与本地终端 Agent。"
+title: "SpotAsk｜Mac 菜单栏快问 · ⌥Space"
+titleTemplate: false
+description: "免费开源的 Mac 菜单栏快问工具：按 ⌥Space，用你自己的 API Key 得到回答，或处理选中文字，或一键交给 ChatGPT、本地 AI Agent。"
 
 hero:
   name: SpotAsk
