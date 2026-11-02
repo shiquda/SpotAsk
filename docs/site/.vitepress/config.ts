@@ -305,7 +305,7 @@ export default defineConfig({
               url: canonicalUrl,
               image: socialImageUrl,
               inLanguage: language,
-              applicationCategory: 'DeveloperApplication',
+              applicationCategory: 'UtilitiesApplication',
               operatingSystem: 'macOS 15 or later',
               // Keep in sync with Resources/Info.plist CFBundleShortVersionString.
               softwareVersion: '0.3.3',

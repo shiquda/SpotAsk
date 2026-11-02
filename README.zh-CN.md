@@ -1,7 +1,7 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  原生 macOS 菜单栏 AI 助手与问题路由器：快捷键随时呼出，在应用内流式作答，或由决策模型自动（及按键一键）分流至网页 AI 与本地 CLI Agent。
+  SpotAsk 是免费开源的 Mac 菜单栏快问工具：按 ⌥Space，用你自己的 API Key（OpenAI 兼容、Anthropic 或 Gemini，直连服务商）得到回答，或处理选中文字，或一键交给 ChatGPT、Perplexity、本地 CLI Agent。也可以由决策模型自动分流。
 </p>
 
 <p align="center">
@@ -112,7 +112,7 @@ SpotAsk 围绕 **“先提问再分流（Ask first. Decide where it goes after.�
 
 ## 隐私承诺
 
-- **BYOK 自带密钥**：访问密钥加密保存在 macOS 本地钥匙串中，只在发起请求时直连你配置的 AI 服务商。
+- **BYOK 自带密钥**：访问密钥只保存在这台 Mac 上，放在仅当前 macOS 用户可读的本地凭据文件里（不在钥匙串中），并且只发给你配置的服务商。
 - **零中转零收集**：没有账号系统、没有中心服务器、没有任何遥测监控。
 - **权限严格按需**：划词助手仅在开启时申请 macOS 辅助功能权限，仅用于读取你主动选中的文字。
 

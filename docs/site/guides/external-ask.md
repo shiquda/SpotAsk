@@ -78,6 +78,8 @@ Each External Ask entry is one of three action types.
 | Ask Grok | `https://grok.com/?q={query}` |
 | Ask Perplexity | `https://www.perplexity.ai/search?q={query}` |
 
+If you still want that old chat-bar habit, see [Coming from ChatGPT's ⌥Space chat bar? Get a one-hotkey quick ask back](/guides/chatgpt-option-space#if-you-just-want-one-hotkey-to-ask-anything-spotask).
+
 <a id="auto-submitting-in-chatgpt-with-a-userscript"></a>
 
 ::: tip Auto-submitting in ChatGPT with a userscript
