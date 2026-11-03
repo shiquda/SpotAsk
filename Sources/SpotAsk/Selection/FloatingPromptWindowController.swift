@@ -187,7 +187,7 @@ final class FloatingPromptWindowController: NSObject, FloatingPromptWindowing, N
         panel.isMovable = true
         panel.isMovableByWindowBackground = false
         panel.becomesKeyOnlyIfNeeded = false
-        panel.hasShadow = true
+        panel.hasShadow = false
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.minSize = FloatingPromptPlacement.minSize
@@ -210,6 +210,9 @@ final class FloatingPromptWindowController: NSObject, FloatingPromptWindowing, N
         host.autoresizingMask = [.width, .height]
         host.sizingOptions = []
         if #available(macOS 26, *) {
+            container.layer?.cornerRadius = FloatingPromptChrome.cornerRadius
+            container.layer?.cornerCurve = .continuous
+            container.layer?.masksToBounds = true
             container.addSubview(host)
         } else {
             let effect = NSVisualEffectView(frame: container.bounds)
@@ -555,18 +558,16 @@ private struct FloatingPromptView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 8) {
-            Image(systemName: session.preset.symbolName)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Brand.accent)
-                .allowsHitTesting(false)
-            Text(session.preset.title)
-                .font(.headline)
-                .foregroundStyle(Brand.fg)
-                .lineLimit(1)
-                .allowsHitTesting(false)
-            Spacer(minLength: 8)
-            modelMenu
+        HStack(spacing: 6) {
+            HStack(spacing: 8) {
+                BrandMark()
+                Text(session.preset.title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Brand.fg)
+                    .lineLimit(1)
+            }
+            .allowsHitTesting(false)
+            Spacer(minLength: 4)
             headerButton(
                 systemName: session.isPinned ? "pin.fill" : "pin",
                 label: L10n.string(session.isPinned ? "floatingPrompt.unpin" : "floatingPrompt.pin"),
@@ -588,24 +589,23 @@ private struct FloatingPromptView: View {
         }
         .padding(.horizontal, 12)
         .frame(height: 44)
+        .overlay(alignment: .center) {
+            modelMenu
+                .fixedSize()
+        }
         .background(WindowDragHandle())
     }
 
     private var modelMenu: some View {
-        Button {
-            showsModelPicker.toggle()
-        } label: {
-            HStack(spacing: 3) {
-                Text(session.modelDisplayName ?? L10n.string("settings.model"))
-                    .lineLimit(1)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 8, weight: .semibold))
-            }
-            .font(.caption)
-            .foregroundStyle(Brand.muted)
-        }
-        .buttonStyle(.plain)
-        .popover(isPresented: $showsModelPicker, attachmentAnchor: .point(.bottom), arrowEdge: .top) {
+        ModelPickerHeaderButton(
+            modelName: session.modelDisplayName ?? "",
+            providerIconSlug: ProviderBrandIconMatcher.match(
+                providerName: session.providerName,
+                modelName: session.modelDisplayName
+            ),
+            isDisabled: false,
+            isPresented: $showsModelPicker
+        ) {
             ModelPickerContent(
                 catalog: settings.providerRegistry.catalog,
                 effectiveModelID: session.modelID ?? settings.providerRegistry.catalog?.selectedModelID,
@@ -621,8 +621,6 @@ private struct FloatingPromptView: View {
                 }
             )
         }
-        .help(L10n.string("chat.retryWithAnotherModel"))
-        .accessibilityLabel(L10n.string("chat.retryWithAnotherModel"))
     }
 
     private var content: some View {

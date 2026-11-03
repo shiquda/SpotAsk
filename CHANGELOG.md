@@ -15,7 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - The selection prompt window uses the system glass surface instead of a solid card, and its edges can be dragged to resize.
-- The model name in that window opens the model menu and answers the selection again with the chosen model.
+- The model name in that window opens the model menu and answers the selection again with the chosen model. It sits in the center, and the app icon is on the left, matching the main window.
+- The selection prompt window no longer draws a square border outside its rounded corners.
 
 ## [0.3.3] - 2026-10-28
 
