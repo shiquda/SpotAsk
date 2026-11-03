@@ -15,7 +15,7 @@ description: A compact reference for SpotAsk settings sections, default shortcut
 | Selection Assistant | Permission, trigger mode, default action, preview & ordering, auto-show, app scope, delay |
 | Shortcuts | Global hotkey and in-app shortcuts with search, conflict detection, and grouping |
 | General | Language, launch behavior, session retention, proxy, diagnostics, local data & Danger Zone |
-| Appearance | Theme (System, Light, Dark), font size, message style, and reading size |
+| Appearance | Theme (System, Light, Dark), background (Solid or Frosted), font size, message style, and reading size |
 | About | Version, project source, automatic update checks, and manual update checks |
 
 Decision Routing lives in Settings > External Ask, after the channel list. It is off until you turn on **Enable automatic routing**.

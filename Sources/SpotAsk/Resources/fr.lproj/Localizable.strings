@@ -148,6 +148,9 @@
 "settings.accessKeyPlaceholder" = "Saisissez une clé d'accès à enregistrer ou à mettre à jour";
 "settings.appearance" = "Apparence";
 "settings.theme" = "Thème";
+"settings.windowBackground" = "Arrière-plan";
+"windowBackground.opaque" = "Opaque";
+"windowBackground.frosted" = "Givré";
 "settings.about" = "À propos";
 "settings.aboutDescription" = "Consultez la version de l'app, le code source du projet et les mises à jour disponibles.";
 "settings.version" = "Version";

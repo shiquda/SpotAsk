@@ -12,6 +12,7 @@ Settings > **Appearance** controls how SpotAsk looks. Settings > **General** con
 | Setting | What it does |
 | --- | --- |
 | Appearance | System, Light, or Dark (3-card preview) |
+| Background | Solid or Frosted. Frosted lets the desktop show through the question window. The input field and message bubbles stay solid. The change applies immediately. |
 | Font Size | Small, Standard, or Large reading size |
 | Reading Font | Any font family installed on your Mac, or the system font |
 | Message Style | Standard or Conversation bubbles |

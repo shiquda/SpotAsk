@@ -507,6 +507,14 @@ final class SettingRegistry: Sendable {
             keyPath: \.chatMessageStyle
         ))
         register(SettingDescriptors.rawRepresentable(
+            key: "chatWindowBackground",
+            defaultValue: ChatWindowBackground.opaque,
+            keyPath: \.chatWindowBackground,
+            onChanged: { settings, _ in
+                NotificationCenter.default.post(name: .spotAskChatWindowBackgroundChanged, object: settings)
+            }
+        ))
+        register(SettingDescriptors.rawRepresentable(
             key: "interfaceZoomLevel",
             defaultValue: InterfaceZoomLevel.standard,
             keyPath: \.interfaceZoomLevel

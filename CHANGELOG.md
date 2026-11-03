@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Settings > Appearance > Background switches the question window between the current solid fill and a frosted background that shows the desktop behind it. The input field and message bubbles stay solid, and the change applies immediately.
+
 ## [0.3.3] - 2026-10-28
 
 **Improved math rendering, customizable reading font, OpenAI Decisions routing engine**

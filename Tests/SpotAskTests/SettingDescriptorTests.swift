@@ -95,6 +95,7 @@ final class SettingDescriptorTests: XCTestCase {
         source.appearance = .dark
         source.fontSize = .large
         source.chatMessageStyle = .im
+        source.chatWindowBackground = .frosted
         source.interfaceZoomLevel = .large
         source.language = .simplifiedChinese
         source.hotKeyPreset = .commandShiftSpace
@@ -144,6 +145,7 @@ final class SettingDescriptorTests: XCTestCase {
         XCTAssertEqual(backup.general.appearance, AppearanceMode.dark.rawValue)
         XCTAssertEqual(backup.general.fontSize, FontSize.large.rawValue)
         XCTAssertEqual(backup.general.chatMessageStyle, ChatMessageStyle.im.rawValue)
+        XCTAssertEqual(backup.general["chatWindowBackground"]?.stringValue, ChatWindowBackground.frosted.rawValue)
         XCTAssertEqual(backup.general.interfaceZoomLevel, InterfaceZoomLevel.large.rawValue)
         XCTAssertEqual(backup.general.language, AppLanguage.simplifiedChinese.rawValue)
         XCTAssertEqual(backup.general.hotKeyPreset, HotKeyPreset.commandShiftSpace.rawValue)
@@ -190,6 +192,7 @@ final class SettingDescriptorTests: XCTestCase {
         XCTAssertEqual(destination.appearance, .dark)
         XCTAssertEqual(destination.fontSize, .large)
         XCTAssertEqual(destination.chatMessageStyle, .im)
+        XCTAssertEqual(destination.chatWindowBackground, .frosted)
         XCTAssertEqual(destination.interfaceZoomLevel, .large)
         XCTAssertEqual(destination.language, .simplifiedChinese)
         XCTAssertEqual(destination.hotKeyPreset, .commandShiftSpace)

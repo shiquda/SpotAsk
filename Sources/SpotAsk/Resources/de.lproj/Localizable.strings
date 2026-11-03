@@ -148,6 +148,9 @@
 "settings.accessKeyPlaceholder" = "Zugriffsschlüssel eingeben, um zu speichern oder zu aktualisieren";
 "settings.appearance" = "Darstellung";
 "settings.theme" = "Design";
+"settings.windowBackground" = "Hintergrund";
+"windowBackground.opaque" = "Deckend";
+"windowBackground.frosted" = "Milchglas";
 "settings.about" = "Über";
 "settings.aboutDescription" = "App-Version, Projektquellcode und verfügbare Updates ansehen.";
 "settings.version" = "Version";
