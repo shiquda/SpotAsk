@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The selection prompt window keeps a rounded hairline, like the main window, without a square corner border.
 - Choosing another model no longer closes the window.
 
+### Fixed
+
+- Continuing a floating answer into the main chat no longer leaves retry unable to send after a failed question. The imported exchange stays, including when the original request fails after the import.
+
 ## [0.3.3] - 2026-10-28
 
 **Improved math rendering, customizable reading font, OpenAI Decisions routing engine**
