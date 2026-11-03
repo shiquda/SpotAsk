@@ -253,8 +253,9 @@ final class FloatingPromptWindowController: NSObject, FloatingPromptWindowing, N
             eventMonitors.append(local)
         }
         if let global = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown], handler: { [weak self] _ in
+            let location = NSEvent.mouseLocation
             Task { @MainActor in
-                self?.requestClose(.outsideClick)
+                self?.closeIfOutside(location)
             }
         }) {
             eventMonitors.append(global)
@@ -267,11 +268,24 @@ final class FloatingPromptWindowController: NSObject, FloatingPromptWindowing, N
             requestClose(.escape)
             return nil
         }
-        if event.type == .leftMouseDown || event.type == .rightMouseDown,
-           !panel.frame.contains(NSEvent.mouseLocation) {
-            requestClose(.outsideClick)
+        if event.type == .leftMouseDown || event.type == .rightMouseDown {
+            closeIfOutside(NSEvent.mouseLocation, eventWindow: event.window)
         }
         return event
+    }
+
+    private func closeIfOutside(_ location: CGPoint, eventWindow: NSWindow? = nil) {
+        guard let panel else { return }
+        var attached = panel.childWindows?.map(\.frame) ?? []
+        if let eventWindow, eventWindow !== panel, eventWindow.parent === panel {
+            attached.append(eventWindow.frame)
+        }
+        guard FloatingPromptOutsideClick.isOutside(
+            mouse: location,
+            panelFrame: panel.frame,
+            attachedFrames: attached
+        ) else { return }
+        requestClose(.outsideClick)
     }
 
     private func removeMonitors() {
@@ -778,6 +792,16 @@ private struct WindowDragHandle: NSViewRepresentable {
 
 private struct FloatingPromptGlass: ViewModifier {
     func body(content: Content) -> some View {
+        surface(content)
+            .overlay {
+                RoundedRectangle(cornerRadius: FloatingPromptChrome.cornerRadius, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.22), lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
+    }
+
+    @ViewBuilder
+    private func surface(_ content: Content) -> some View {
         if #available(macOS 26, *) {
             content.glassEffect(
                 .regular,

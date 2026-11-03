@@ -16,6 +16,16 @@ struct FloatingPromptTests {
         }
     }
 
+    @Test("A click in the model menu is not an outside click")
+    func modelMenuClickStaysInside() {
+        let panel = CGRect(x: 100, y: 100, width: 380, height: 460)
+        let menu = CGRect(x: 180, y: 540, width: 220, height: 280)
+        let pick = CGPoint(x: 240, y: 700)
+        #expect(!FloatingPromptOutsideClick.isOutside(mouse: pick, panelFrame: panel, attachedFrames: [menu]))
+        #expect(FloatingPromptOutsideClick.isOutside(mouse: CGPoint(x: 20, y: 20), panelFrame: panel, attachedFrames: [menu]))
+        #expect(!FloatingPromptOutsideClick.isOutside(mouse: CGPoint(x: 120, y: 140), panelFrame: panel, attachedFrames: []))
+    }
+
     @Test("The window prefers the pointer side and stays on screen")
     func placementFlipsAndClamps() {
         let visible = NSRect(x: 0, y: 0, width: 800, height: 600)

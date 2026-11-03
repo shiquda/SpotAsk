@@ -32,6 +32,15 @@ enum FloatingPromptDismissal {
     }
 }
 
+enum FloatingPromptOutsideClick {
+    /// A click in the model menu is outside the panel frame, but that menu is
+    /// an attached window. Only a click in neither frame is an outside click.
+    static func isOutside(mouse: CGPoint, panelFrame: CGRect, attachedFrames: [CGRect]) -> Bool {
+        if panelFrame.contains(mouse) { return false }
+        return !attachedFrames.contains { $0.contains(mouse) }
+    }
+}
+
 enum FloatingPromptShortcut {
     /// The focused floating window reuses the main chat shortcut set.
     /// Copy, retry, pin, zoom, and settings apply here. Other targets stay
