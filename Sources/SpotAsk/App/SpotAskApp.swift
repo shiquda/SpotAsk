@@ -179,10 +179,18 @@ final class SpotAskAppDelegate: NSObject, NSApplicationDelegate {
         }
         let overlay = SelectionOverlayController()
         selectionOverlay = overlay
+        let modelSource = chatViewModel
+        let floatingPrompts = FloatingPromptCoordinator(
+            settings: settings,
+            providerFactory: providerFactory,
+            commandCenter: .shared,
+            modelID: { modelSource.effectiveModelID }
+        )
         selectionCoordinator = SelectionAssistantCoordinator(
             settings: settings,
             permissionCoordinator: accessibilityPermissionCoordinator,
-            overlay: overlay
+            overlay: overlay,
+            floatingPrompts: floatingPrompts
         )
         if let selectionCoordinator {
             let monitor = SelectionAutoInvokeMonitor(coordinator: selectionCoordinator)

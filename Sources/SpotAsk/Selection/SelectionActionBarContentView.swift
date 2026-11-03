@@ -7,6 +7,7 @@ struct SelectionActionBarActions {
     var onSelectChat: () -> Void
     var onSelectPreset: (PromptPreset) -> Void
     var onSelectExternalAsk: (QuickAction) -> Void
+    var onSecondarySelectPreset: ((PromptPreset) -> Void)? = nil
     var shortcutForChat: InAppShortcut?
     var shortcutForPreset: ((PromptPreset) -> InAppShortcut?)?
     var shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?
@@ -44,8 +45,14 @@ final class SelectionActionBarContentView: NSVisualEffectView {
     private var buttonTargets: [OverlayButtonTarget] = []
     private var menuTargets: [MenuItemTarget] = []
     private weak var moreButton: NSButton?
+    private var promptClickBehavior: SelectionPromptClickBehavior = .floatingOnLeft
 
-    init(layout: SelectionActionBarLayout, actions: SelectionActionBarActions?) {
+    init(
+        layout: SelectionActionBarLayout,
+        actions: SelectionActionBarActions?,
+        promptClickBehavior: SelectionPromptClickBehavior = .floatingOnLeft
+    ) {
+        self.promptClickBehavior = promptClickBehavior
         super.init(frame: NSRect(origin: .zero, size: layout.size))
         material = .hudWindow
         blendingMode = .withinWindow
@@ -61,7 +68,12 @@ final class SelectionActionBarContentView: NSVisualEffectView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func update(layout: SelectionActionBarLayout, actions: SelectionActionBarActions?) {
+    func update(
+        layout: SelectionActionBarLayout,
+        actions: SelectionActionBarActions?,
+        promptClickBehavior: SelectionPromptClickBehavior = .floatingOnLeft
+    ) {
+        self.promptClickBehavior = promptClickBehavior
         frame.size = layout.size
         render(layout: layout, actions: actions)
     }
@@ -99,12 +111,18 @@ final class SelectionActionBarContentView: NSVisualEffectView {
                         symbolName: preset.symbolName,
                         brandSlug: nil,
                         showsLabels: layout.showsLabels,
-                        toolTip: SelectionActionBarLayout.tooltip(
+                        toolTip: SelectionActionBarLayout.promptPresetTooltip(
                             name: preset.title,
-                            shortcut: actions?.shortcutForPreset?(preset)
+                            shortcut: actions?.shortcutForPreset?(preset),
+                            behavior: promptClickBehavior
                         ),
-                        accessibilityLabel: preset.title,
-                        target: target
+                        accessibilityLabel: SelectionActionBarLayout.promptPresetTooltip(
+                            name: preset.title,
+                            shortcut: nil,
+                            behavior: promptClickBehavior
+                        ),
+                        target: target,
+                        onSecondaryClick: actions.map { wired in { wired.onSecondarySelectPreset?(preset) } }
                     ))
                 case let .externalAsk(action):
                     let target = actions.map { wired in OverlayButtonTarget { wired.onSelectExternalAsk(action) } }
@@ -149,12 +167,18 @@ final class SelectionActionBarContentView: NSVisualEffectView {
                     symbolName: preset.symbolName,
                     brandSlug: nil,
                     showsLabels: layout.showsLabels,
-                    toolTip: SelectionActionBarLayout.tooltip(
+                    toolTip: SelectionActionBarLayout.promptPresetTooltip(
                         name: preset.title,
-                        shortcut: actions?.shortcutForPreset?(preset)
+                        shortcut: actions?.shortcutForPreset?(preset),
+                        behavior: promptClickBehavior
                     ),
-                    accessibilityLabel: preset.title,
-                    target: target
+                    accessibilityLabel: SelectionActionBarLayout.promptPresetTooltip(
+                        name: preset.title,
+                        shortcut: nil,
+                        behavior: promptClickBehavior
+                    ),
+                    target: target,
+                    onSecondaryClick: actions.map { wired in { wired.onSecondarySelectPreset?(preset) } }
                 ))
             case let .divider(frame):
                 let divider = NSView(frame: frame)
@@ -210,9 +234,11 @@ final class SelectionActionBarContentView: NSVisualEffectView {
         showsLabels: Bool,
         toolTip: String,
         accessibilityLabel: String,
-        target: OverlayButtonTarget?
+        target: OverlayButtonTarget?,
+        onSecondaryClick: (() -> Void)? = nil
     ) -> NSButton {
-        let button = NSButton(frame: frame)
+        let button = SelectionActionButton(frame: frame)
+        button.onSecondaryClick = onSecondaryClick
         let iconPointSize = showsLabels
             ? SelectionActionBarLayout.labeledIconSize
             : SelectionActionBarLayout.compactIconSize
@@ -245,6 +271,7 @@ final class SelectionActionBarContentView: NSVisualEffectView {
         button.setAccessibilityLabel(accessibilityLabel)
         return button
     }
+
 
     private func showOverflowMenu(layout: SelectionActionBarLayout, actions: SelectionActionBarActions) {
         guard let button = moreButton else { return }
@@ -331,6 +358,32 @@ final class SelectionActionBarContentView: NSVisualEffectView {
         }
 
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: 0), in: button)
+    }
+}
+
+final class SelectionActionButton: NSButton {
+    var onSecondaryClick: (() -> Void)?
+
+    override func rightMouseDown(with event: NSEvent) {
+        guard let onSecondaryClick else {
+            super.rightMouseDown(with: event)
+            return
+        }
+        onSecondaryClick()
+    }
+
+    /// Invokes the secondary action under `point` in `root`'s coordinates.
+    /// Walks past the image cell so a click on the icon still counts.
+    static func performSecondaryClick(in root: NSView, at point: NSPoint) -> Bool {
+        var view: NSView? = root.hitTest(point)
+        while let current = view {
+            if let button = current as? SelectionActionButton, let action = button.onSecondaryClick {
+                action()
+                return true
+            }
+            view = current.superview
+        }
+        return false
     }
 }
 

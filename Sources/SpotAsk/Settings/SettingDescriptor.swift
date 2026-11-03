@@ -634,6 +634,11 @@ final class SettingRegistry: Sendable {
             keyPath: \.selectionAssistantMode
         ))
         register(SettingDescriptors.rawRepresentable(
+            key: "selectionPromptClickBehavior",
+            defaultValue: SelectionPromptClickBehavior.floatingOnLeft,
+            keyPath: \.selectionPromptClickBehavior
+        ))
+        register(SettingDescriptors.rawRepresentable(
             key: "selectionHotKeyPreset",
             defaultValue: SelectionHotKeyPreset.optionShiftSpace,
             keyPath: \.selectionHotKeyPreset
