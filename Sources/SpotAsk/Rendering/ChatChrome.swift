@@ -18,6 +18,47 @@ struct HeaderMaterial: View { var body: some View {
     }
 } }
 
+/// Question-window fill behind the chat. Opaque leaves the window's own solid
+/// color visible. Frosted uses the same desktop-sampling glass as a system
+/// popover on macOS 26, and behind-window vibrancy on macOS 15. The window
+/// itself must be non-opaque for either material to sample the desktop.
+struct ChatWindowBackdrop: View {
+    let style: ChatWindowBackground
+
+    var body: some View {
+        switch style {
+        case .opaque:
+            Color.clear
+        case .frosted:
+            FrostedWindowBackdrop()
+        }
+    }
+}
+
+private struct FrostedWindowBackdrop: View {
+    var body: some View {
+        if #available(macOS 26, *) {
+            Color.clear
+                .glassEffect(.regular, in: .rect)
+        } else {
+            BehindWindowVibrancy()
+        }
+    }
+}
+
+private struct BehindWindowVibrancy: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .popover
+        view.blendingMode = .behindWindow
+        view.state = .active
+        view.isEmphasized = true
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
+}
+
 // MARK: - Brand tokens
 
 /// The six SpotAsk brand tokens from the redesign contract. Hover and glow

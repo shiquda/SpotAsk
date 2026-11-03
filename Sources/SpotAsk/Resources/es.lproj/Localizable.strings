@@ -148,6 +148,9 @@
 "settings.accessKeyPlaceholder" = "Introduce una clave de acceso para guardar o actualizar";
 "settings.appearance" = "Apariencia";
 "settings.theme" = "Tema";
+"settings.windowBackground" = "Fondo";
+"windowBackground.opaque" = "Opaco";
+"windowBackground.frosted" = "Esmerilado";
 "settings.about" = "Acerca de";
 "settings.aboutDescription" = "Consulta la versión, el código fuente y las actualizaciones disponibles.";
 "settings.version" = "Versión";

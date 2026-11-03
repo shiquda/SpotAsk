@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Settings > Appearance > Background switches the question window between the current solid fill and a frosted background that shows the desktop behind it. The input field and message bubbles stay solid, and the change applies immediately.
 - Left-clicking a selection prompt opens an isolated floating window. Right-click asks in the main chat. The window can be pinned, copied, or continued into the current conversation. While focused, it uses the same chat shortcuts for copy, retry, pin, zoom, and settings.
 - Selection Assistant settings can swap which mouse button opens the floating window. The default stays left-click for the window and right-click for the main chat.
 

@@ -148,6 +148,9 @@
 "settings.accessKeyPlaceholder" = "Enter an access key to save or update";
 "settings.appearance" = "Appearance";
 "settings.theme" = "Theme";
+"settings.windowBackground" = "Background";
+"windowBackground.opaque" = "Solid";
+"windowBackground.frosted" = "Frosted";
 "settings.about" = "About";
 "settings.aboutDescription" = "View the app version, project source, and available updates.";
 "settings.version" = "Version";

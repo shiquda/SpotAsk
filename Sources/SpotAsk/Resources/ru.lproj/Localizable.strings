@@ -148,6 +148,9 @@
 "settings.accessKeyPlaceholder" = "Введите ключ доступа для сохранения или обновления";
 "settings.appearance" = "Оформление";
 "settings.theme" = "Тема";
+"settings.windowBackground" = "Фон";
+"windowBackground.opaque" = "Непрозрачный";
+"windowBackground.frosted" = "Матовый";
 "settings.about" = "О программе";
 "settings.aboutDescription" = "Просмотр версии приложения, исходного кода проекта и доступных обновлений.";
 "settings.version" = "Версия";

@@ -148,6 +148,9 @@
 "settings.accessKeyPlaceholder" = "保存または更新するアクセスキーを入力";
 "settings.appearance" = "外観";
 "settings.theme" = "テーマ";
+"settings.windowBackground" = "背景";
+"windowBackground.opaque" = "不透明";
+"windowBackground.frosted" = "すりガラス";
 "settings.about" = "情報";
 "settings.aboutDescription" = "アプリのバージョン、プロジェクトのソース、利用可能なアップデートを確認します。";
 "settings.version" = "バージョン";

@@ -184,6 +184,9 @@ struct ChatView: View {
         }
         // Content spans the full window; the header's Material draws the
         // chrome and the conversation insets clear of it (see below).
+        .background {
+            ChatWindowBackdrop(style: settings.chatWindowBackground)
+        }
         .ignoresSafeArea()
         .frame(minWidth: 364, minHeight: 320)
         .background(ChatWindowReader(reference: chatWindowReference))

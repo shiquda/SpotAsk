@@ -129,6 +129,8 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
     private let settings: AppSettings
     private var panel: SpotAskPanel?
     private var contentBuilder: (() -> AnyView)?
+    private var hostingView: ClearHostingView?
+    private var chromeRoot: ChatPanelRootView?
     private var shouldCenterNormalizedInitialSize = false
     private let fadeCoordinator = SpotAskPanelFadeCoordinator()
 
@@ -141,6 +143,12 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
             name: .spotAskAppearanceChanged,
             object: settings
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(applyChatWindowBackground),
+            name: .spotAskChatWindowBackgroundChanged,
+            object: settings
+        )
     }
 
     deinit {
@@ -149,8 +157,10 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
 
     func setContent(_ content: @escaping () -> AnyView) {
         contentBuilder = content
+        hostingView = nil
+        chromeRoot = nil
         if let panel {
-            panel.contentView = NSHostingView(rootView: content())
+            installWindowContent(on: panel)
         }
     }
 
@@ -236,11 +246,8 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
         panel.hidesOnDeactivate = false
         panel.minSize = NSSize(width: 364, height: 320)
         panel.delegate = self
-        if let contentBuilder {
-            panel.contentView = NSHostingView(rootView: contentBuilder())
-        }
-        applyContentCornerRadius(panel)
         self.panel = panel
+        installWindowContent(on: panel)
         return panel
     }
 
@@ -266,15 +273,61 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
     @objc private func applyCurrentAppearance() {
         guard let panel else { return }
         settings.appearance.apply(to: panel)
+        if settings.chatWindowBackground == .opaque {
+            chromeRoot?.setBackdrop(Self.makeOpaqueBackdrop())
+        }
+    }
+
+    /// Opaque keeps the solid window fill. Frosted clears the window and the
+    /// hosting view's backing so the SwiftUI backdrop can sample the desktop.
+    /// The hosting view stays in place, so a live toggle does not reset chat.
+    @objc private func applyChatWindowBackground() {
+        guard let panel else { return }
+        installWindowContent(on: panel)
+    }
+
+    private func installWindowContent(on panel: SpotAskPanel) {
+        guard let contentBuilder else { return }
+        let host = hostingView ?? ClearHostingView(rootView: contentBuilder())
+        hostingView = host
+        host.clearBacking()
+        let frosted = settings.chatWindowBackground == .frosted
+        panel.isOpaque = !frosted
+        panel.backgroundColor = frosted ? .clear : .windowBackgroundColor
+        if frosted {
+            // The hosting view must be the window content. Glass behind it is
+            // covered by the host's own backing; the SwiftUI backdrop samples
+            // the desktop only when it is drawn inside a clear window.
+            if panel.contentView !== host {
+                panel.contentView = host
+            }
+        } else {
+            let root = chromeRoot ?? ChatPanelRootView(hostingView: host)
+            chromeRoot = root
+            root.adopt(host)
+            root.setBackdrop(Self.makeOpaqueBackdrop())
+            panel.contentView = root
+        }
+        applyContentCornerRadius(panel, frosted: frosted)
+    }
+
+
+    private static func makeOpaqueBackdrop() -> NSView {
+        let solid = NSView()
+        solid.wantsLayer = true
+        solid.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        return solid
     }
 
     /// Match the header's continuous geometry without relying on a private
     /// NSWindow API. Apply this after the SwiftUI hosting view is installed.
-    private func applyContentCornerRadius(_ panel: SpotAskPanel) {
-        panel.contentView?.wantsLayer = true
-        panel.contentView?.layer?.cornerRadius = 14
-        panel.contentView?.layer?.cornerCurve = .continuous
-        panel.contentView?.layer?.masksToBounds = true
+    private func applyContentCornerRadius(_ panel: SpotAskPanel, frosted: Bool) {
+        guard let contentView = panel.contentView else { return }
+        contentView.wantsLayer = true
+        contentView.layer?.cornerRadius = 14
+        contentView.layer?.cornerCurve = .continuous
+        // Clipping the hosting view hides the desktop sample on macOS 26.
+        contentView.layer?.masksToBounds = !frosted
     }
 
     /// Restores the saved frame when it is still reachable on a connected
@@ -315,6 +368,73 @@ final class SpotAskPanelController: NSObject, NSWindowDelegate, SpotAskPanelCont
         )
         panel.maxSize = visibleFrame.size
         panel.setContentSize(size)
+    }
+}
+
+private final class ChatPanelRootView: NSView {
+    private let hostingView: NSView
+    private var backdrop: NSView?
+
+    init(hostingView: NSView) {
+        self.hostingView = hostingView
+        super.init(frame: hostingView.frame)
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.clear.cgColor
+        hostingView.autoresizingMask = [.width, .height]
+        addSubview(hostingView)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) is not used")
+    }
+    func adopt(_ host: NSView) {
+        guard host === hostingView else { return }
+        if host.superview !== self {
+            host.removeFromSuperview()
+            addSubview(host)
+        }
+        host.frame = bounds
+        host.autoresizingMask = [.width, .height]
+    }
+
+
+    func setBackdrop(_ view: NSView) {
+        backdrop?.removeFromSuperview()
+        backdrop = view
+        view.frame = bounds
+        view.autoresizingMask = [.width, .height]
+        addSubview(view, positioned: .below, relativeTo: hostingView)
+    }
+
+    override func layout() {
+        super.layout()
+        backdrop?.frame = bounds
+        hostingView.frame = bounds
+    }
+}
+
+private final class ClearHostingView: NSHostingView<AnyView> {
+    override var isOpaque: Bool { false }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        clearBacking()
+    }
+
+    func clearBacking() {
+        wantsLayer = true
+        layer?.isOpaque = false
+        layer?.backgroundColor = NSColor.clear.cgColor
+    }
+
+    required init(rootView: AnyView) {
+        super.init(rootView: rootView)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) is not used")
     }
 }
 
