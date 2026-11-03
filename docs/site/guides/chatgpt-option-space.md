@@ -169,6 +169,8 @@ SpotAsk is free and open source. [Download for Mac](https://github.com/shiquda/S
 - [Global shortcut conflicts in SpotAsk](/troubleshooting#global-shortcut-conflicts) — other apps that grab a key
 - [Open SpotAsk from Spotlight, Siri or a URL](/guides/macos-integration) — if you'd rather not use any global hotkey
 - [Route a question to ChatGPT, Perplexity or a CLI agent](/guides/external-ask)
+- [Compare apps](/compare/) — compare with Raycast and others.
+- [SpotAsk vs Raycast AI](/compare/raycast-ai) — How SpotAsk compares to Raycast AI.
 
 ## FAQ
 

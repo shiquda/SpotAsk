@@ -45,6 +45,8 @@ brew install --cask shiquda/spotask/spotask
 ### Related Guides
 
 - [Connect an OpenAI-Compatible Service](/guides/connect-openai-compatible) — Setup for OpenAI, DeepSeek, and Groq.
+- [Compare apps](/compare/) — other BYOK apps compared.
+- [SpotAsk vs Raycast AI](/compare/raycast-ai) — BYOK in Raycast vs SpotAsk.
 - [Connect Anthropic](/guides/connect-anthropic) — Claude API keys and streaming configuration.
 - [Service Root vs Full Request Address](/guides/service-addresses) — Endpoint URL guidelines.
 - [Zero-Telemetry Privacy Architecture](/use-cases/privacy-architecture) — Credential storage and data routing.
