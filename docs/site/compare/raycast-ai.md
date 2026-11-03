@@ -16,7 +16,7 @@ faq:
 
 # SpotAsk vs Raycast AI
 
-**A heavy launcher subscription, or a lightweight, free, direct-BYOK ask box for Mac?**
+**A full launcher with paid AI, or a lightweight, free, direct-BYOK ask box for Mac?**
 
 ## The short answer
 
@@ -43,7 +43,7 @@ SpotAsk does not try to be an operating system launcher. Instead, it does one jo
 - **Quick entry**: Press Option+Space, ask your question, get your answer, and dismiss—no launcher navigation or mode-switching needed.
 - **Contextual actions**: Highlight text in any app and press Option+Shift+Space to trigger [Selection Assistant](/guides/selection-assistant) for summaries, rewrites, or translations.
 - **Flexible hand-off**: Use [External Ask](/guides/external-ask) to forward your prompt directly into ChatGPT, Perplexity, or Grok (or custom targets like Claude) or a local terminal CLI agent with a single keypress.
-- **True privacy & freedom**: SpotAsk is 100% free and open source (AGPL-3.0). It requires no login, sends zero telemetry, and connects directly to your providers without touching third-party servers.
+- **True privacy & freedom**: SpotAsk is 100% free and open source (AGPL-3.0). It requires no login, sends zero telemetry, and connects directly to your providers without an intermediary server.
 
 ## Side-by-side
 
@@ -100,7 +100,7 @@ SpotAsk includes built-in [External Ask](/guides/external-ask), a powerful hand-
 - **Pre-fill web AI chats**: Open your question directly in web interfaces such as ChatGPT, Perplexity, or Grok (with Claude as a custom entry)—without needing an API key for that provider.
 - **Dispatch to CLI agents**: Pass your prompt directly into terminal CLI workflows or custom Bash scripts.
 
-Raycast allows opening search URLs via [Quicklinks](https://manual.raycast.com/quicklinks), and community extensions may offer additional integrations. However, SpotAsk provides this seamless web and CLI hand-off out of the box directly from the ask box.
+Raycast allows opening search URLs via [Quicklinks](https://manual.raycast.com/quicklinks), and community extensions may offer additional integrations. However, SpotAsk provides this web and CLI hand-off out of the box directly from the ask box.
 
 ## Using both
 
@@ -123,7 +123,7 @@ Choose Raycast if your primary goal is an all-in-one system launcher:
 Choose SpotAsk if you want a dedicated AI quick-ask box on Mac:
 - **Fast & focused**: You want an instant floating ask box without launcher mode-switching.
 - **100% Free & open source**: You want full AGPL-3.0 transparency and prefer not to pay a $10–$50/month subscription for hotkey AI.
-- **True BYOK privacy**: You want your requests sent directly to your provider endpoint, without passing through third-party proxy servers.
+- **True BYOK privacy**: You want your requests sent directly to your provider endpoint, without passing through an intermediary server.
 - **Secure local storage**: You want API keys saved locally on your Mac with restrictive `0600` permissions and zero account requirements.
 - **Built-in web & CLI hand-offs**: You want one-click routing to browser chats (ChatGPT, Perplexity, Grok) or terminal CLI tools via External Ask.
 - **Universal Mac support**: You run on an Intel Mac or prefer an app that supports macOS 15+ across both Apple silicon and Intel hardware (Raycast's current Mac app requires Apple silicon and macOS Tahoe).

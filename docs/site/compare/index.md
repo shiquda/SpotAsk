@@ -48,7 +48,7 @@ Raycast Pro+ is $20/month or $192/year for 3,000 credits. Max is $50/month or $4
 
 ## Which one should you pick?
 
-- **Choose SpotAsk** if you want a fast, dedicated AI ask box triggered by a hotkey, true direct-to-provider BYOK privacy, zero monthly subscription fees, and no heavy launcher overhead.
+- **Choose SpotAsk** if you want a fast, dedicated AI ask box triggered by a hotkey, true direct-to-provider BYOK privacy, zero monthly subscription fees, and without a full launcher.
 - **Choose Raycast** if you want a complete system launcher that handles apps, files, clipboard history, and window management, and you are comfortable paying $10+/month for integrated AI. Read our in-depth [SpotAsk vs Raycast AI comparison](/compare/raycast-ai).
 - **Choose BoltAI or MindMac** if you want a full-featured desktop chat client with long conversation histories, project workspaces, and MCP tools, and you prefer a one-time purchase over a monthly subscription. We did not install either app.
 - **Choose the ChatGPT desktop app** if you exclusively use OpenAI models, subscribe to ChatGPT Plus, and prefer OpenAI's native macOS interface. If shortcuts collide, check our [Option+Space conflict guide](/guides/chatgpt-option-space).
@@ -76,7 +76,7 @@ If you only talk to OpenAI, subscribe to ChatGPT Plus, and OpenAI's shortcut fit
 
 ## Where SpotAsk fits
 
-SpotAsk is engineered specifically for speed, focus, and privacy. It is not an OS launcher or a bulky multi-tab chat client—it is a featherlight menu bar ask box designed to answer your question and get out of your way.
+SpotAsk is engineered specifically for speed, focus, and privacy. It is not an OS launcher or a multi-window chat client. It is a menu bar ask box designed to answer your question and get out of your way.
 
 Summon it with **Option+Space**, ask, and return to your flow:
 - **Direct-to-provider privacy**: [Your API key](/use-cases/byok-macos-ai) and prompts connect straight from your Mac to the provider endpoint you configure. There are zero SpotAsk middleman servers, no user accounts, and local credentials are protected with restrictive `0600` permissions. See [Privacy Architecture](/use-cases/privacy-architecture).
