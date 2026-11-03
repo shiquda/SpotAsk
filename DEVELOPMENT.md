@@ -22,7 +22,7 @@ npm run docs:preview
 
 The GitHub Pages workflow in `.github/workflows/docs.yml` builds `docs/site`, runs `npm run docs:verify` to validate `sitemap.xml`, plain text `sitemap.txt`, canonicals, `hreflang` reciprocity, JSON-LD structured data, and internal links, and deploys the artifact to `https://shiquda.github.io/SpotAsk/`.
 
-The English homepage owns its exact title, description, and hero copy in `docs/site/index.md` (`titleTemplate: false`). English documentation pages inherit `:title | SpotAsk – Ask Any AI on Mac` from `.vitepress/config.ts`; Chinese titles keep their existing template. The same config derives Open Graph and Twitter text from page metadata and publishes the `SpotAsk` WebSite name and SoftwareApplication image. After editing these values, inspect the built homepage and a secondary page in the browser as well as running the verifier. In Search Console, submit only `https://shiquda.github.io/SpotAsk/sitemap.xml`; the generated text sitemap remains available to other consumers.
+Both homepages own their exact title and description in `docs/site/index.md` and `docs/site/zh-CN/index.md` (`titleTemplate: false`). English documentation pages inherit `:title | SpotAsk – Ask Any AI on Mac` from `.vitepress/config.ts`; other Chinese pages keep their existing title template. The same config derives Open Graph and Twitter text from page metadata and publishes the `SpotAsk` WebSite name and SoftwareApplication image. After editing these values, inspect the built homepage and a secondary page in the browser as well as running the verifier. In Search Console, submit only `https://shiquda.github.io/SpotAsk/sitemap.xml`; the generated text sitemap remains available to other consumers.
 
 Navigation is split by intent, identically in both languages. The first level of `themeConfig.nav` keeps only what someone using the app looks for — install, the `Explore` capability map, troubleshooting, and releases — and stays one click from any page, including the homepage. Search-facing pages hang one level down in the `Guides` dropdown, grouped as `How-to Guides` (`/guides/*`), `Use Cases` (`/use-cases/*`), and `More` (`reference`, `philosophy`, `privacy`), so they never compete with the install path for the first click. The homepage body lists the same short set (Getting Started, Explore, Guides, Troubleshooting); feature demos live on the `Explore` pages, not on the homepage.
 
@@ -44,6 +44,70 @@ swift build -c release
 ```
 
 `swift test` runs in a SwiftPM process with no bundle identifier. Data-clearing tests must inject their own `UserDefaults` suite name, `SessionStore`, credential file, and `DiagnosticLogStore`. `GeneralSettingsState.clearAllLocalData()` deletes only those injected stores. It does not fall back to `com.spotask.app` when the process has no bundle identifier, and it must not be pointed at `UserDefaults.standard` or `DiagnosticLogStore.shared`.
+
+### Which verification a change needs
+
+Pick the cheapest tier that still covers the behaviour; do not start from the full suite by habit, and do not treat a green narrow filter as proof that unrelated code is fine. Line count says nothing about risk.
+
+| Change | Targeted | Module | Full |
+| --- | --- | --- | --- |
+| One model, parser, or state machine under `Sources/SpotAsk/<Area>/` | `swift test --filter <XxxTests>` | the whole test target is one module, so there is no cheaper middle step | when the change reaches shared types used by `Chat`, `Provider`, and `Selection` |
+| Chat UI, markdown, or rendering (`Rendering/`, `Chat/`) | `swift test --filter ChatViewModelTests` (plus the specific view test) | `swift test` | layout/interaction changes also need `./Scripts/install-debug-app.sh` and a look at the real window |
+| Provider, model discovery, proxy (`Provider/`) | `swift test --filter ProviderModelRegistryTests` | `swift test` | provider protocol or request shape changes: add the matching live-endpoint check from the requirements above |
+| Selection assistant / Accessibility (`Selection/`) | `swift test --filter Accessibility` | `swift test` | permission and code-signature behaviour is only observable by installing the app — `swift test` cannot cover it |
+| Settings, localization strings | `swift test --filter <Settings>Tests` | `swift test` + `./Scripts/verify-changelog.sh` | adding a language: also `uv run Scripts/check-localization.py` and a manual pass over the new `.lproj` |
+| `Package.swift`, `Vendor/**`, toolchain | — | `swift build` | `swift test` (a dependency change invalidates every target's build) |
+| Packaging, signing, appcast, release scripts (`Scripts/**`, `Config/**`, `Resources/Info.plist`) | `./Scripts/verify-changelog.sh` + `python3 ./Scripts/verify-xcode-project-files.py` + `./Scripts/test-release-workflow.sh` | as targeted | release candidate: build signed DMGs for both architectures and run `verify-sparkle-appcast.py` |
+| New or moved `Sources/**/*.swift` file | `python3 ./Scripts/verify-xcode-project-files.py` | — | always, because `swift test` builds from the filesystem while `SpotAsk.xcodeproj` builds from its own file list |
+| `docs/site/**`, `Scripts/generate-docs-metadata.mjs`, `Scripts/verify-docs-seo.mjs` | `npm run docs:build && npm run docs:verify` | as targeted | metadata or title changes: inspect the built homepage and a secondary page in a browser as well |
+| `CHANGELOG.md` / `CHANGELOG.zh-CN.md` | `./Scripts/verify-changelog.sh` | as targeted | — |
+| README, `docs/site/**/*.md` prose only | `npm run docs:verify` if the page is part of the site; otherwise no test | — | — |
+
+**Widen the scope when any of these hold**, regardless of how small the diff looks:
+
+- `Package.swift`, `Vendor/**`, `Package.resolved`, or the toolchain changes — every target must be rebuilt and retested.
+- A `public` type or function moves between the `App`/`Chat`/`Provider`/`Selection`/`Rendering`/`Settings`/`Updates`/`Intents`/`Utilities` directories, or a `Codable`/`UserDefaults`/credential key is renamed: run `swift test` in full, and add a debug-install check when the key survives across launches.
+- Anything touching `LocalAPIKeyStore`, credential files, or the update/Sparkle path: run the full suite plus the release-script checks. These are the paths where a unit green light has historically not implied a working app.
+- A targeted run fails, skips, or cannot be reproduced: escalate to the tier above and report the failing command; do not re-run the same filter hoping for a different result.
+
+**What a filtered run actually costs** (arm64 macOS, Xcode 27.0, Swift 6.4, warm `.build`): `Package.swift` has one executable target (`SpotAsk`) and one test target (`SpotAskTests`) that depends on it, so `swift test --filter <regex>` narrows which cases *execute*, never which code *compiles*. `swift test --filter ProviderModelRegistryTests` takes 3.9 s once built and 142 s from a cold `.build` — the cold run pays for compiling the whole app, which no filter avoids. Repeat runs, measured with `--filter URLNormalizerTests` (13 cases):
+
+| Situation | Wall clock | Notes |
+| --- | --- | --- |
+| Nothing changed since the last run | 3.1 s | 1.1 s build check + XCTest startup |
+| The tested source (`Utilities/URLNormalizer.swift`) touched | 8.4 s | 7.0 s recompiling it and its dependents |
+| A widely imported source (`Provider/ProviderModelRegistry.swift`) touched | 41.2 s | 38.6 s: app and test bundle both rebuild |
+| An unrelated test file touched | 12.3 s | 10.0 s: the test bundle rebuilds as a whole, the app does not |
+| `--skip-build` after any run | 1.8 s | reruns the last built products only |
+| Full `swift test`, nothing changed | 19.9 s | 444 cases |
+
+Two traps found while measuring:
+
+- A filter that matches nothing exits **0** (`warning: No matching test cases were run`, verified with `--filter NoSuchTestsXYZ`). A filtered run is therefore not proof that anything ran: read the `Executed N tests` line, and treat a renamed suite as a failure to verify rather than a pass.
+- `--skip-build` does not check freshness: after restoring a deliberately failing assertion it still exited 1 from the previously built binaries, and only a rebuild picked up the corrected source. Use it to re-read an already-built tree, never as a gate.
+
+`./Scripts/verify-changelog.sh` and `python3 ./Scripts/verify-xcode-project-files.py` take under a second each. The reusable artifacts are `.build/debug` (SwiftPM) and `.build/xcode-debug-arm64` / `.build/xcode-release-<arch>` (the app bundle's own DerivedData). `Scripts/install-debug-app.sh` builds Debug only and reuses its DerivedData, so installing after a code change does not pay for a second full build; `swift build -c release` and `Scripts/make-app-bundle.sh` share the SwiftPM checkout but compile separately.
+
+CI (`.github/workflows/ci.yml`) runs the changelog gate, the Xcode-project gate, `test-release-workflow.sh` (arm64 only), and `swift test` on both architectures for every PR; DMG packaging runs only after a merge. Local verification is what you run before pushing — it does not replace those PR checks, and a narrow filter here does not make the full CI run unnecessary.
+
+### One run, one full log
+
+`swift test` prints the pass/fail totals and one line per failing assertion. Piping it through a filter (`| grep failed`) discards both, so a filter that shows the wrong thing costs another full run. When the result is worth keeping — a change that needs evidence, a failure you need to read twice — record it instead:
+
+```sh
+Scripts/verify-log.py run --label swift-test -- swift test
+Scripts/verify-log.py summary        # status, duration, counts, evidence identity
+Scripts/verify-log.py failures       # the failure lines with log line numbers
+Scripts/verify-log.py reuse          # does this log still describe the current checkout?
+```
+
+The run writes complete stdout+stderr and the real exit code to `.verification-logs/<timestamp>-<label>/` (git-ignored), so status, counts and failures are read from that log as many times as needed without rerunning. `run` passes the command's exit code through. Status is decided by the exit code alone: a zero exit with failure lines in the log is `INCONCLUSIVE`, and a missing `meta.json`, an interrupted run, or a log that no longer matches its recorded sha256 is `INCOMPLETE` — neither counts as success.
+
+`reuse` recomputes the recorded inputs and refuses evidence as soon as any of them moved: `HEAD`, the **content** of the dirty worktree (tracked diff + index + a hash of every untracked file, not just the commit), dependency manifests and lockfiles, which dependency trees are installed, and the toolchain versions. A source edit, a new untracked file, or a `Package.swift` change makes the old log `STALE`; reverting back to the recorded state makes it `REUSABLE` again. `.build/` is deliberately not fingerprinted — the test run itself creates it.
+
+Logs stay local and must not contain credentials or user data; the conclusion goes in the issue, the log does not go into the repository. A recorded run answers "did it pass, how many, which failed" for as long as its inputs hold, and a run whose inputs moved is reported as `STALE` rather than reused.
+
+The script is shared verbatim with the Why First extension repository, which carries its regression test (`tests/unit/toolchain/verify-log.test.mjs`). It uses the standard library only, so it runs from any checkout; if you change it in one repository, copy it to the other in the same change.
 
 ## App bundle and DMG
 
@@ -221,7 +285,7 @@ Local Release rebuilds change the code signature even when the Developer ID stay
 Changelog entries follow a concise, user-centric format inspired by Multica:
 
 1. **Headline summary**: directly beneath each released `## [X.Y.Z] - YYYY-MM-DD` heading, include a bold one-line title summarizing the key highlights of the release (e.g. `**Gemini services, pre-filled official addresses, smoother model discovery**` / `**Gemini 服务、官方地址预填、模型发现更顺手**`).
-2. **One sentence per bullet**: focus strictly on user-visible capabilities and behavior changes. Do not include internal implementation details, private class/method names, or test-suite mechanics.
+2. **One sentence per bullet**: focus strictly on user-visible capabilities and behavior changes. Do not include internal implementation details, private class/method names, or test-suite mechanics. Keep descriptions concise and product-oriented: avoid overly technical library names, exhaustive scenario breakdowns, or low-level keyboard/fallback mechanics.
 3. **Localized subsections**:
    - English (`CHANGELOG.md`): use standard `### Added`, `### Changed`, and `### Fixed`.
    - Simplified Chinese (`CHANGELOG.zh-CN.md`): use translated headings: `### 新增`, `### 变更`, and `### 修复`.
