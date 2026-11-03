@@ -29,6 +29,7 @@ Requests travel directly to your provider's official endpoints with zero proxy s
 ## Verified Boundaries & Practical Notes
 
 - **Provider Account Required**: SpotAsk is a BYOK client and does not sell or distribute API credits. You supply your own API key from OpenAI, Anthropic, Google, or host a local model like Ollama.
+  A ChatGPT Plus subscription is not an API key. You can [use your ChatGPT subscription through Ask ChatGPT instead](/guides/chatgpt-option-space#faq).
 - **Billing & Quotas**: Compute costs are billed directly by your model provider based on your actual token usage; rate limits and concurrency limits are governed by your provider account tier.
 - **Service Address Formatting**: OpenAI-compatible services distinguish between a Service Root (`https://api.openai.com/v1`) and a Full Request Address (`https://api.openai.com/v1/chat/completions`). See our documentation for endpoint conventions.
 
@@ -44,6 +45,8 @@ brew install --cask shiquda/spotask/spotask
 ### Related Guides
 
 - [Connect an OpenAI-Compatible Service](/guides/connect-openai-compatible) — Setup for OpenAI, DeepSeek, and Groq.
+- [Compare apps](/compare/) — other BYOK apps compared.
+- [SpotAsk vs Raycast AI](/compare/raycast-ai) — BYOK in Raycast vs SpotAsk.
 - [Connect Anthropic](/guides/connect-anthropic) — Claude API keys and streaming configuration.
 - [Service Root vs Full Request Address](/guides/service-addresses) — Endpoint URL guidelines.
 - [Zero-Telemetry Privacy Architecture](/use-cases/privacy-architecture) — Credential storage and data routing.

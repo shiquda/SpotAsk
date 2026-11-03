@@ -109,9 +109,10 @@ function chineseTokenizer(text: string): string[] {
 
 // The sidebar is the persistent table of contents, so it lists only the pages
 // someone opens while using the app: install, the capability map, per-feature
-// how-tos, and help. The search-facing pages (use cases, design philosophy)
-// stay reachable through the `Guides` dropdown in the top nav, one level down,
-// and never take space in the body's navigation.
+// how-tos, and help. Search-facing use cases and the design philosophy stay in
+// the Guides dropdown, not here. Compare pages are the exception: they are
+// English-only and search-facing, but the top nav stays unchanged, so they
+// live in More until Jim confirms the placement.
 const englishSidebar = [
   {
     text: 'Start Here',
@@ -150,6 +151,13 @@ const englishSidebar = [
       { text: 'ChatGPT ⌥Space Conflicts', link: '/guides/chatgpt-option-space' },
       { text: 'Privacy & Local Data', link: '/privacy' },
       { text: 'Changelog', link: '/changelog' }
+    ]
+  },
+  {
+    text: 'More',
+    items: [
+      { text: 'Compare apps', link: '/compare/' },
+      { text: 'SpotAsk vs Raycast AI', link: '/compare/raycast-ai' }
     ]
   }
 ]
@@ -305,10 +313,10 @@ export default defineConfig({
               url: canonicalUrl,
               image: socialImageUrl,
               inLanguage: language,
-              applicationCategory: 'DeveloperApplication',
+              applicationCategory: 'UtilitiesApplication',
               operatingSystem: 'macOS 15 or later',
               // Keep in sync with Resources/Info.plist CFBundleShortVersionString.
-              softwareVersion: '0.3.2',
+              softwareVersion: '0.3.3',
               license: 'https://www.gnu.org/licenses/agpl-3.0.html',
               downloadUrl: 'https://github.com/shiquda/SpotAsk/releases/latest',
               codeRepository: repositoryUrl,

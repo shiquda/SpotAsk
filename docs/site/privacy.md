@@ -30,7 +30,7 @@ Configuration backup exports your services, models, prompts, shortcuts, and gene
 
 ## Update checks
 
-Automatic update checking is enabled by default and checks the official release page once at launch. You can turn it off or check manually in About > Updates. The check does not send questions, access keys, or selected text.
+Automatic update checking is on by default. About once a day, Sparkle requests the official GitHub release feed. If that check times out or fails, it retries the same file through `https://ghproxy.net/`. It does not check on every launch, and it does not send questions, access keys, or selected text. You can turn it off or check manually in About > Updates.
 
 ## Clear local data
 

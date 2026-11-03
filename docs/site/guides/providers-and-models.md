@@ -26,7 +26,7 @@ SpotAsk provides a local-first, Bring-Your-Own-Key (BYOK) multi-provider archite
 | **Operating System** | macOS 15.0 (Sequoia) or later | Apple Silicon (`arm64`) and Intel (`x86_64`) |
 | **Application Version** | SpotAsk `v0.1.0+` | Gemini format supported in `v0.2.7+`; thinking parameters in `v0.2.9+` |
 | **API Formats** | OpenAI, Anthropic, Gemini | Compatible with any OpenAI-compliant proxy gateway |
-| **API Credentials** | Provider API key or local endpoint | Stored locally in encrypted macOS Keychain; never sent to SpotAsk servers |
+| **API Credentials** | Provider API key or local endpoint | Stored locally in a user-only credentials file (0600); never sent to SpotAsk servers |
 | **Network Requirements** | Direct HTTPS or local HTTP (`localhost`) | Custom proxies and gateways fully supported with configurable timeouts |
 
 ## Step-by-Step Instructions

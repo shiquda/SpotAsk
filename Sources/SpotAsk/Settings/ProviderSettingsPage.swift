@@ -75,7 +75,14 @@ struct ProviderSettingsPage: View {
         } message: {
             Text(L10n.string("settings.deleteModelMessage"))
         }
-        .sheet(item: $modelEditorTarget) { target in
+        .sheet(item: $modelEditorTarget, onDismiss: {
+            if let modelID = state.selectedModelID,
+               let model = state.settings.providerRegistry.catalog?.models.first(where: { $0.id == modelID }) {
+                state.selectProvider(model.providerID)
+            } else if let parentID = state.newModelParentProviderID {
+                state.selectProvider(parentID)
+            }
+        }) { target in
             ModelEditorSheet(state: state, target: target)
         }
         .sheet(isPresented: $state.isModelSelectionPresented) {
@@ -1388,7 +1395,7 @@ private struct ProviderCard: View {
                 if isExpanded {
                     state.collapseProvider(provider.id)
                 } else {
-                    state.toggleProviderExpansion(provider.id)
+                    state.selectProvider(provider.id)
                 }
             } label: {
                 Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
@@ -1405,7 +1412,11 @@ private struct ProviderCard: View {
                 : L10n.string("settings.expandProvider", provider.name))
 
             Button {
-                state.toggleProviderExpansion(provider.id)
+                if isExpanded {
+                    state.collapseProvider(provider.id)
+                } else {
+                    state.selectProvider(provider.id)
+                }
             } label: {
                 HStack(spacing: 8) {
                     ProviderBrandIconView(
@@ -1482,7 +1493,7 @@ private struct ProviderCard: View {
             Menu {
                 Button {
                     if !isExpanded {
-                        state.toggleProviderExpansion(provider.id)
+                        state.selectProvider(provider.id)
                     }
                 } label: {
                     Label(L10n.string("settings.editProvider"), systemImage: "pencil")
