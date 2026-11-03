@@ -510,6 +510,87 @@ final class ChatViewModelTests: XCTestCase {
         XCTAssertTrue(request.stream)
     }
 
+    func testAppendCompletedTurnDoesNotStartARequest() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.pending]])
+        viewModel.input = "live question"
+        XCTAssertTrue(viewModel.send())
+        await waitForState(viewModel, .streaming)
+        let identity = viewModel.sessionIdentity
+        let before = viewModel.messages.count
+        let preset = PromptPreset(title: "Explain", instruction: "Explain the selection")
+        let snapshot = SelectedTextSnapshot(
+            text: "selected",
+            source: SelectionSourceApplication(processIdentifier: 7, bundleIdentifier: "com.example.Source", localizedName: "Source"),
+            selectedRange: SelectionCharacterRange(location: 0, length: 8),
+            anchor: .pointer(.zero)
+        )
+        viewModel.appendCompletedTurn(CompletedConversationTurn(
+            userText: "selected",
+            answer: "explained",
+            preset: preset,
+            selectionSnapshot: snapshot,
+            modelDisplayName: "GPT-5 mini",
+            providerName: "OpenAI"
+        ))
+        XCTAssertEqual(viewModel.generationState, .streaming)
+        XCTAssertEqual(recorder.invocation, 1)
+        XCTAssertEqual(viewModel.sessionIdentity, identity)
+        XCTAssertEqual(viewModel.input, "")
+        XCTAssertNil(viewModel.selectedPromptPreset)
+        XCTAssertEqual(viewModel.messages.count, before + 2)
+        XCTAssertEqual(viewModel.messages[before].appliedPresetTitle, "Explain")
+        XCTAssertEqual(viewModel.messages[before + 1].content, "explained")
+        XCTAssertEqual(viewModel.messages[before + 1].state, .complete)
+        XCTAssertEqual(viewModel.selectionSnapshot(for: viewModel.messages[before + 1].id)?.text, "selected")
+        viewModel.appendCompletedTurn(CompletedConversationTurn(userText: "selected", answer: "   "))
+        XCTAssertEqual(viewModel.messages.count, before + 2)
+    }
+
+    func testImportedTurnAfterFailureDoesNotSwallowRetry() async {
+        let recorder = RequestRecorder()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.failure(.timeout)]])
+        viewModel.input = "question"
+        viewModel.send()
+        await waitForState(viewModel, .failed)
+        let failedID = viewModel.messages.last?.id
+
+        viewModel.appendCompletedTurn(CompletedConversationTurn(userText: "selected", answer: "explained"))
+        viewModel.retry()
+
+        XCTAssertEqual(viewModel.generationState, .idle)
+        XCTAssertNil(viewModel.error)
+        XCTAssertEqual(recorder.requests.count, 1)
+        XCTAssertEqual(viewModel.messages.map(\.role), [.user, .assistant, .user, .assistant])
+        XCTAssertEqual(viewModel.messages.map(\.state), [.complete, .failed, .complete, .complete])
+        XCTAssertEqual(viewModel.messages[1].id, failedID)
+        XCTAssertEqual(viewModel.messages[3].content, "explained")
+    }
+
+    func testFailureAfterImportDoesNotReplaceTheImportedTurn() async {
+        let recorder = RequestRecorder()
+        let gate = HeldFailure()
+        let viewModel = makeViewModel(recorder: recorder, scripts: [[.hold(gate)]])
+        viewModel.input = "question"
+        viewModel.send()
+        await waitForState(viewModel, .streaming)
+        let streamingID = viewModel.messages.last?.id
+
+        viewModel.appendCompletedTurn(CompletedConversationTurn(userText: "selected", answer: "explained"))
+        gate.fail(ChatError.timeout)
+        await waitForState(viewModel, .idle)
+        viewModel.retry()
+
+        XCTAssertNil(viewModel.error)
+        XCTAssertEqual(recorder.requests.count, 1)
+        XCTAssertEqual(viewModel.messages.map(\.role), [.user, .assistant, .user, .assistant])
+        XCTAssertEqual(viewModel.messages[1].id, streamingID)
+        XCTAssertEqual(viewModel.messages[1].state, .failed)
+        XCTAssertEqual(viewModel.messages[3].content, "explained")
+        XCTAssertEqual(viewModel.messages[3].state, .complete)
+        XCTAssertTrue(viewModel.canRegenerate)
+    }
+
     private func seedConversation(_ viewModel: ChatViewModel, lastActivity: Date) {
         viewModel.messages = [
             ChatMessage(role: .user, content: "old question", createdAt: lastActivity.addingTimeInterval(-30)),
@@ -1008,10 +1089,42 @@ private struct MockFactory: ChatProviderFactory {
     }
 }
 
+private final class HeldFailure: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<Void, Error>?
+    private var result: Result<Void, Error>?
+
+    func wait() async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            let pending = lock.withLock { () -> Result<Void, Error>? in
+                if let result {
+                    return result
+                }
+                self.continuation = continuation
+                return nil
+            }
+            if let pending {
+                continuation.resume(with: pending)
+            }
+        }
+    }
+
+    func fail(_ error: Error) {
+        let continuation = lock.withLock { () -> CheckedContinuation<Void, Error>? in
+            result = .failure(error)
+            let value = self.continuation
+            self.continuation = nil
+            return value
+        }
+        continuation?.resume(throwing: error)
+    }
+}
+
 private enum MockStep: Sendable {
     case reasoning(String)
     case answer(String)
     case failure(ChatError)
+    case hold(HeldFailure)
     case pending
 }
 
@@ -1027,6 +1140,17 @@ private struct MockProvider: ChatProvider {
                 case let .reasoning(value): continuation.yield(.reasoningDelta(value))
                 case let .answer(value): continuation.yield(.answerDelta(value))
                 case let .failure(error): continuation.finish(throwing: error); return
+                case let .hold(gate):
+                    let task = Task {
+                        do {
+                            try await gate.wait()
+                            continuation.finish()
+                        } catch {
+                            continuation.finish(throwing: error)
+                        }
+                    }
+                    continuation.onTermination = { _ in task.cancel() }
+                    return
                 case .pending:
                     let task = Task {
                         try? await Task.sleep(for: .seconds(30))

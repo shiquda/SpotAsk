@@ -432,6 +432,10 @@
 "settings.selectionAssistantActionChat" = "選択アクションバーにチャットアイコンを表示";
 "settings.selectionAssistantActionExternalAsk" = "選択アクションバーに External Ask を表示";
 "settings.selectionAssistantActionPrompts" = "選択アクションバーにプロンプトを表示";
+"settings.selectionPromptClickBehavior" = "プロンプトのクリック";
+"settings.selectionPromptClickBehaviorFloatingOnLeft" = "左クリック: フローティングウィンドウ";
+"settings.selectionPromptClickBehaviorMainChatOnLeft" = "左クリック: メインチャット";
+"settings.selectionPromptClickBehaviorDescription" = "右クリックはもう一方を実行します。チャットと External Ask は変わりません。";
 "settings.selectionAssistantActionBarCrowdingHint" = "動作が多いとアクションバーが長くなりすぎることがあります。使わない動作を削除するか、「アイコンの横にラベルを表示」をオフにしてアイコンのみにしてください。";
 "settings.selectionAssistantActionBarPreview" = "アクションバーのプレビュー";
 "settings.selectionAssistantActionBarPreviewEmpty" = "表示できる動作がありません。現在の設定ではアクションバーは表示されません。";
@@ -453,6 +457,13 @@
 "selection.actionBar.more" = "その他";
 "selection.actionBar.chat" = "チャット";
 "selection.actionBar.chatTooltip" = "チャットに追加";
+"selection.actionBar.promptPresetClickHint" = "左クリック: フローティングウィンドウ · 右クリック: メインチャット";
+"selection.actionBar.promptPresetClickHintReversed" = "左クリック: メインチャット · 右クリック: フローティングウィンドウ";
+"floatingPrompt.copyAll" = "すべてコピー";
+"floatingPrompt.continueInChat" = "チャットで続ける";
+"floatingPrompt.pin" = "ピン留め";
+"floatingPrompt.unpin" = "ピン留めを解除";
+"floatingPrompt.close" = "閉じる";
 "selection.actionBar.moreAccessibility" = "その他の選択アクション";
 "selection.actionBar.externalAskAccessibility" = "External Ask：%@";
 "selection.actionBar.kind.web" = "ウェブ質問";

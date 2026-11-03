@@ -165,6 +165,24 @@ enum SelectionAssistantMode: String, CaseIterable, Identifiable, Codable, Sendab
     var id: String { rawValue }
 }
 
+/// Which mouse button opens the floating window for a selection prompt.
+/// The other button asks in the main chat. Chat and External Ask are unaffected.
+enum SelectionPromptClickBehavior: String, CaseIterable, Identifiable, Codable, Sendable {
+    case floatingOnLeft
+    case mainChatOnLeft
+
+    var id: String { rawValue }
+
+    func opensFloatingWindow(secondaryClick: Bool) -> Bool {
+        switch self {
+        case .floatingOnLeft:
+            return !secondaryClick
+        case .mainChatOnLeft:
+            return secondaryClick
+        }
+    }
+}
+
 enum SelectionAutoInvokeScope: String, CaseIterable, Identifiable, Codable, Sendable {
     case allApps
     case blacklist
@@ -402,6 +420,7 @@ final class AppSettings {
         static let inAppShortcutConfiguration = "inAppShortcutConfiguration"
         static let selectionAssistantEnabled = "selectionAssistantEnabled"
         static let selectionAssistantMode = "selectionAssistantMode"
+        static let selectionPromptClickBehavior = "selectionPromptClickBehavior"
         static let selectionHotKeyPreset = "selectionHotKeyPreset"
         static let selectionDefaultPromptID = "selectionDefaultPromptID"
         static let selectionAssistantToggleShortcut = "selectionAssistantToggleShortcut"
@@ -521,6 +540,7 @@ final class AppSettings {
     var globalShortcut: InAppShortcut? = nil { didSet { saveSetting("globalShortcut") } }
     var selectionAssistantEnabled: Bool = false { didSet { saveSetting("selectionAssistantEnabled") } }
     var selectionAssistantMode: SelectionAssistantMode = .actionBar { didSet { saveSetting("selectionAssistantMode") } }
+    var selectionPromptClickBehavior: SelectionPromptClickBehavior = .floatingOnLeft { didSet { saveSetting("selectionPromptClickBehavior") } }
     var selectionHotKeyPreset: SelectionHotKeyPreset = .optionShiftSpace { didSet { saveSetting("selectionHotKeyPreset") } }
     var selectionDefaultPromptID: UUID? = PromptPreset.builtIn.first?.id { didSet { saveSetting("selectionDefaultPromptID") } }
     var selectionAssistantToggleShortcut: InAppShortcut? = nil { didSet { saveSetting("selectionAssistantToggleShortcut") } }

@@ -1079,6 +1079,8 @@ struct ChatView: View {
             receiveQuestion(question, promptPreset: promptPreset, selectionSnapshot: selectionSnapshot)
         case let .addToChat(text):
             addToChat(text)
+        case let .appendCompletedTurn(turn):
+            importCompletedTurn(turn)
         }
     }
 
@@ -1103,6 +1105,20 @@ struct ChatView: View {
             scrollFollowState.resumeFollowing()
         }
         inputFocused = true
+    }
+
+    private func importCompletedTurn(_ turn: CompletedConversationTurn) {
+        let reset = viewModel.prepareNewConversationAfterInactivity()
+        if reset {
+            routingController.cancel()
+        }
+        viewModel.appendCompletedTurn(turn)
+        composerModeCoordinator.reset()
+        clearAtCommandTokenState()
+        if let textView = composerTextView.textView, !textView.string.isEmpty {
+            textView.string = ""
+        }
+        focusInput()
     }
 
     private func composeQuestion(_ question: String, promptPreset: PromptPreset?) {

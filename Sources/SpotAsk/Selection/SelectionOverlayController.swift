@@ -70,7 +70,9 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
         shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?,
         onSelectChat: @escaping () -> Void,
         onSelectPreset: @escaping (PromptPreset) -> Void,
-        onSelectExternalAsk: @escaping (QuickAction) -> Void
+        onSecondarySelectPreset: ((PromptPreset) -> Void)? = nil,
+        onSelectExternalAsk: @escaping (QuickAction) -> Void,
+        promptClickBehavior: SelectionPromptClickBehavior = .floatingOnLeft
     ) {
         let layout = SelectionActionBarLayout.make(
             showsChat: showsChat,
@@ -87,10 +89,12 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
                 onSelectChat: onSelectChat,
                 onSelectPreset: onSelectPreset,
                 onSelectExternalAsk: onSelectExternalAsk,
+                onSecondarySelectPreset: onSecondarySelectPreset,
                 shortcutForChat: shortcutForChat,
                 shortcutForPreset: shortcutForPreset,
                 shortcutForExternalAsk: shortcutForExternalAsk
-            )
+            ),
+            promptClickBehavior: promptClickBehavior
         )
 
         present(content: content, size: layout.size, anchor: snapshot.anchor)
@@ -184,24 +188,41 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
     }
 
     private func makePanel(size: NSSize) -> NSPanel {
-        let panel = NSPanel(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
+        let panel = SelectionOverlayPanel(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: true
+        )
         panel.isFloatingPanel = true
         panel.level = .statusBar
         panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.backgroundColor = .clear
         panel.isOpaque = false
+        panel.onRightMouseDown = { [weak self] event in
+            self?.performSecondaryClick(event) ?? false
+        }
         return panel
     }
 
     private func beginOutsideClickMonitoring() {
         endOutsideClickMonitoring()
-        globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+        globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            let isRightClick = event.type == .rightMouseDown
+            let location = NSEvent.mouseLocation
             Task { @MainActor in
-                self?.dismissForOutsideClickIfNeeded()
+                guard let self else { return }
+                if isRightClick, self.performSecondaryClick(atScreenPoint: location) {
+                    return
+                }
+                self.dismissForOutsideClickIfNeeded()
             }
         }
         localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            if event.type == .rightMouseDown, self?.performSecondaryClick(event) == true {
+                return nil
+            }
             self?.dismissForOutsideClickIfNeeded()
             return event
         }
@@ -223,6 +244,25 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
         hide()
     }
 
+    /// Borderless non-activating panels do not deliver `rightMouseDown` to the
+    /// button. Hit-test from the monitor instead, including clicks that the
+    /// window server gives to the app behind the bar.
+    private func performSecondaryClick(_ event: NSEvent) -> Bool {
+        guard event.type == .rightMouseDown,
+              let panel,
+              event.window === panel,
+              let content = panel.contentView else { return false }
+        let point = content.convert(event.locationInWindow, from: nil)
+        return SelectionActionButton.performSecondaryClick(in: content, at: point)
+    }
+
+    private func performSecondaryClick(atScreenPoint point: NSPoint) -> Bool {
+        guard let panel, panel.frame.contains(point), let content = panel.contentView else { return false }
+        let windowPoint = panel.convertPoint(fromScreen: point)
+        let local = content.convert(windowPoint, from: nil)
+        return SelectionActionButton.performSecondaryClick(in: content, at: local)
+    }
+
     private func panelOrigin(for anchor: SelectionAnchor, size: NSSize) -> NSPoint {
         let point: NSPoint
         switch anchor {
@@ -231,6 +271,15 @@ final class SelectionOverlayController: NSObject, SelectionOverlayControlling {
         let screen = NSScreen.screens.first { $0.visibleFrame.contains(point) } ?? NSScreen.main
         guard let visible = screen?.visibleFrame else { return point }
         return NSPoint(x: min(max(point.x, visible.minX + 8), visible.maxX - size.width - 8), y: min(max(point.y, visible.minY + 8), visible.maxY - size.height - 8))
+    }
+}
+
+private final class SelectionOverlayPanel: NSPanel {
+    var onRightMouseDown: ((NSEvent) -> Bool)?
+
+    override func rightMouseDown(with event: NSEvent) {
+        if onRightMouseDown?(event) == true { return }
+        super.rightMouseDown(with: event)
     }
 }
 
@@ -365,6 +414,20 @@ struct SelectionActionBarLayout: Equatable {
         guard let shortcut else { return name }
         let labels = InAppShortcutDisplay.labels(for: shortcut).joined()
         return "\(name)\t\(labels)"
+    }
+
+    static func promptPresetTooltip(
+        name: String,
+        shortcut: InAppShortcut?,
+        behavior: SelectionPromptClickBehavior = .floatingOnLeft
+    ) -> String {
+        let key = behavior == .mainChatOnLeft
+            ? "selection.actionBar.promptPresetClickHintReversed"
+            : "selection.actionBar.promptPresetClickHint"
+        let hint = L10n.string(key)
+        let base = "\(name) (\(hint))"
+        guard let shortcut else { return base }
+        return "\(base)\t\(InAppShortcutDisplay.labels(for: shortcut).joined())"
     }
 
     static func make(

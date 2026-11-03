@@ -106,6 +106,7 @@ final class SettingDescriptorTests: XCTestCase {
         source.showsMenuBarIcon = false
         source.selectionAssistantEnabled = true
         source.selectionAssistantMode = .direct
+        source.selectionPromptClickBehavior = .mainChatOnLeft
         source.selectionHotKeyPreset = .optionShiftSpace
         source.selectionAutoInvokeEnabled = true
         source.selectionAutoInvokeDelay = 0.5
@@ -203,6 +204,7 @@ final class SettingDescriptorTests: XCTestCase {
         XCTAssertEqual(destination.showsMenuBarIcon, false)
         XCTAssertEqual(destination.selectionAssistantEnabled, true)
         XCTAssertEqual(destination.selectionAssistantMode, .direct)
+        XCTAssertEqual(destination.selectionPromptClickBehavior, .mainChatOnLeft)
         XCTAssertEqual(destination.selectionHotKeyPreset, .optionShiftSpace)
         XCTAssertEqual(destination.selectionAutoInvokeEnabled, true)
         XCTAssertEqual(destination.selectionAutoInvokeDelay, 0.5)
