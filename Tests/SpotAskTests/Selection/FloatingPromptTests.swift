@@ -241,6 +241,43 @@ struct FloatingPromptTests {
         #expect(box.count == requestsBeforeRetry + 1)
     }
 
+    @Test("Choosing another model answers again with that model")
+    func answeringWithAnotherModelRestarts() async {
+        let box = RequestBox()
+        let factory = ScriptedFactory(box: box, events: [.answerDelta("explained")])
+        let settings = makeSettings()
+        let session = FloatingPromptSession(
+            snapshot: SelectedTextSnapshot(
+                text: "selected passage",
+                source: SelectionSourceApplication(processIdentifier: 7, bundleIdentifier: "com.example.Source", localizedName: "Source"),
+                selectedRange: SelectionCharacterRange(location: 0, length: 17),
+                anchor: .pointer(CGPoint(x: 12, y: 12))
+            ),
+            preset: PromptPreset(title: "Explain", instruction: "Explain the selection"),
+            settings: settings,
+            providerFactory: factory,
+            modelID: nil
+        )
+        session.start()
+        for _ in 0 ..< 30 where session.phase != .complete {
+            await Task.yield()
+        }
+        let chosen = UUID()
+        session.answer(using: chosen)
+        for _ in 0 ..< 30 where session.phase != .complete || box.modelIDs != [chosen] {
+            await Task.yield()
+        }
+        #expect(session.phase == .complete)
+        #expect(session.modelID == chosen)
+        #expect(box.modelIDs == [chosen])
+        session.answer(using: nil)
+        for _ in 0 ..< 30 where box.count < 3 {
+            await Task.yield()
+        }
+        #expect(session.modelID == nil)
+        #expect(box.count == 3)
+    }
+
     private func makeSettings() -> AppSettings {
         let suiteName = "FloatingPromptTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
@@ -250,15 +287,21 @@ struct FloatingPromptTests {
 }
 
 private final class RequestBox: @unchecked Sendable {
-    var request: ChatRequest?
     private let lock = NSLock()
-
+    var request: ChatRequest?
+    var modelIDs: [UUID] = []
     var count = 0
 
     func store(_ request: ChatRequest) {
         lock.lock()
         count += 1
         self.request = request
+        lock.unlock()
+    }
+
+    func record(modelID: UUID) {
+        lock.lock()
+        modelIDs.append(modelID)
         lock.unlock()
     }
 }
@@ -292,6 +335,10 @@ private final class ScriptedFactory: ChatProviderFactory {
 
     func makeProvider() throws -> any ChatProvider { ScriptedProvider(events: events, box: box) }
     func makeTargetSnapshot() throws -> ProviderTargetSnapshot { .testValue() }
+    func makeTargetSnapshot(modelID: UUID) throws -> ProviderTargetSnapshot {
+        box.record(modelID: modelID)
+        return .testValue()
+    }
     func makeProvider(for target: ProviderTargetSnapshot) throws -> any ChatProvider {
         ScriptedProvider(events: events, box: box)
     }

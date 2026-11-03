@@ -109,15 +109,21 @@ final class FloatingPromptWindowController: NSObject, FloatingPromptWindowing, N
         case let .pointer(value):
             point = value
         }
+        let visible = FloatingPromptPlacement.visibleFrame(containing: point)
+        let fitted = FloatingPromptChrome.fitted(panel.frame.size, within: visible)
+        if fitted != panel.frame.size {
+            panel.setContentSize(fitted)
+        }
         let origin = FloatingPromptPlacement.origin(
             anchor: anchor,
             size: panel.frame.size,
-            visibleFrame: FloatingPromptPlacement.visibleFrame(containing: point)
+            visibleFrame: visible
         )
         panel.setFrameOrigin(origin)
         settings.appearance.apply(to: panel)
         panel.alphaValue = 0
         panel.orderFrontRegardless()
+        panel.invalidateShadow()
         panel.makeKey()
         installMonitorsIfNeeded()
         NSAnimationContext.runAnimationGroup { context in
@@ -163,10 +169,10 @@ final class FloatingPromptWindowController: NSObject, FloatingPromptWindowing, N
 
     private func makePanelIfNeeded() -> FloatingPromptPanel {
         if let panel { return panel }
-        let size = FloatingPromptPlacement.defaultSize
+        let size = FloatingPromptChrome.initialSize
         let panel = FloatingPromptPanel(
             contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.borderless, .nonactivatingPanel],
+            styleMask: [.borderless, .nonactivatingPanel, .resizable],
             backing: .buffered,
             defer: false
         )
@@ -184,6 +190,8 @@ final class FloatingPromptWindowController: NSObject, FloatingPromptWindowing, N
         panel.hasShadow = true
         panel.backgroundColor = .clear
         panel.isOpaque = false
+        panel.minSize = FloatingPromptPlacement.minSize
+        panel.contentMinSize = FloatingPromptPlacement.minSize
         panel.delegate = self
         panel.onCancel = { [weak self] in
             self?.requestClose(.escape)
@@ -194,14 +202,31 @@ final class FloatingPromptWindowController: NSObject, FloatingPromptWindowing, N
             onClose: { [weak self] in self?.requestClose(.closeButton) },
             onContinue: { [weak self] in self?.requestClose(.continueInConversation) }
         )
+        let container = NSView(frame: NSRect(origin: .zero, size: size))
+        container.wantsLayer = true
+        container.layer?.backgroundColor = NSColor.clear.cgColor
         let host = FloatingPromptHostingView(rootView: root)
-        host.frame = NSRect(origin: .zero, size: size)
+        host.frame = container.bounds
+        host.autoresizingMask = [.width, .height]
         host.sizingOptions = []
-        panel.contentView = host
-        host.wantsLayer = true
-        host.layer?.cornerRadius = 12
-        host.layer?.cornerCurve = .continuous
-        host.layer?.masksToBounds = true
+        if #available(macOS 26, *) {
+            container.addSubview(host)
+        } else {
+            let effect = NSVisualEffectView(frame: container.bounds)
+            effect.autoresizingMask = [.width, .height]
+            FloatingPromptChrome.applyFallback(to: effect)
+            container.addSubview(effect)
+            effect.addSubview(host)
+        }
+        let resize = FloatingPromptResizeBorder(frame: container.bounds)
+        resize.autoresizingMask = [.width, .height]
+        resize.onResizeEnded = { [weak panel] in
+            guard let panel else { return }
+            FloatingPromptChrome.remember(panel.frame.size)
+            panel.invalidateShadow()
+        }
+        container.addSubview(resize)
+        panel.contentView = container
         settings.appearance.apply(to: panel)
         appearanceObserver = NotificationCenter.default.addObserver(
             forName: .spotAskAppearanceChanged,
@@ -261,6 +286,12 @@ final class FloatingPromptWindowController: NSObject, FloatingPromptWindowing, N
         requestClose(.closeButton)
         return false
     }
+
+    func windowDidEndLiveResize(_ notification: Notification) {
+        guard let panel else { return }
+        FloatingPromptChrome.remember(panel.frame.size)
+        panel.invalidateShadow()
+    }
 }
 
 private final class FloatingPromptPanel: NSPanel {
@@ -274,7 +305,180 @@ private final class FloatingPromptPanel: NSPanel {
     }
 }
 
+@MainActor
+private enum FloatingPromptChrome {
+    static let cornerRadius: CGFloat = 16
+    private static var rememberedSize: NSSize?
+
+    static var initialSize: NSSize { rememberedSize ?? FloatingPromptPlacement.defaultSize }
+
+    static func remember(_ size: NSSize) {
+        rememberedSize = size
+    }
+
+    static func fitted(_ size: NSSize, within visible: NSRect) -> NSSize {
+        NSSize(
+            width: min(max(size.width, FloatingPromptPlacement.minSize.width), max(visible.width - 16, FloatingPromptPlacement.minSize.width)),
+            height: min(max(size.height, FloatingPromptPlacement.minSize.height), max(visible.height - 16, FloatingPromptPlacement.minSize.height))
+        )
+    }
+
+    /// macOS 15 has no `glassEffect`. Menu material is the frost that still samples
+    /// the desktop inside a borderless panel; popover material stays nearly opaque there.
+    static func applyFallback(to effect: NSVisualEffectView) {
+        effect.material = .menu
+        effect.blendingMode = .behindWindow
+        effect.state = .active
+        effect.isEmphasized = false
+        effect.maskImage = maskImage(radius: cornerRadius)
+    }
+
+    private static func maskImage(radius: CGFloat) -> NSImage {
+        let side = radius * 2 + 2
+        let size = NSSize(width: side, height: side)
+        let image = NSImage(size: size, flipped: false) { bounds in
+            NSColor.black.setFill()
+            NSBezierPath(roundedRect: bounds, xRadius: radius, yRadius: radius).fill()
+            return true
+        }
+        image.capInsets = NSEdgeInsets(top: radius, left: radius, bottom: radius, right: radius)
+        image.resizingMode = .stretch
+        return image
+    }
+}
+
+private final class FloatingPromptResizeBorder: NSView {
+    var onResizeEnded: (() -> Void)?
+    private let thickness: CGFloat = 6
+    private var edges: Edge = []
+    private var startFrame = NSRect.zero
+    private var startMouse = NSPoint.zero
+
+    private struct Edge: OptionSet {
+        let rawValue: Int
+        static let minX = Edge(rawValue: 1 << 0)
+        static let maxX = Edge(rawValue: 1 << 1)
+        static let minY = Edge(rawValue: 1 << 2)
+        static let maxY = Edge(rawValue: 1 << 3)
+    }
+
+    override var isOpaque: Bool { false }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        let local = convert(point, from: superview)
+        return edges(at: local).isEmpty ? nil : self
+    }
+
+    override func layout() {
+        super.layout()
+        updateTrackingAreas()
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        let bounds = self.bounds
+        let strips = [
+            NSRect(x: 0, y: 0, width: thickness, height: bounds.height),
+            NSRect(x: max(bounds.width - thickness, 0), y: 0, width: thickness, height: bounds.height),
+            NSRect(x: 0, y: 0, width: bounds.width, height: thickness),
+            NSRect(x: 0, y: max(bounds.height - thickness, 0), width: bounds.width, height: thickness),
+        ]
+        for rect in strips where rect.width > 0 && rect.height > 0 {
+            addTrackingArea(NSTrackingArea(
+                rect: rect,
+                options: [.mouseMoved, .cursorUpdate, .activeAlways],
+                owner: self
+            ))
+        }
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        updateCursor(at: convert(event.locationInWindow, from: nil))
+    }
+
+    override func cursorUpdate(with event: NSEvent) {
+        updateCursor(at: convert(event.locationInWindow, from: nil))
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        let local = convert(event.locationInWindow, from: nil)
+        edges = edges(at: local)
+        guard !edges.isEmpty, let window else { return }
+        startFrame = window.frame
+        startMouse = NSEvent.mouseLocation
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard !edges.isEmpty, let window else { return }
+        let mouse = NSEvent.mouseLocation
+        let dx = mouse.x - startMouse.x
+        let dy = mouse.y - startMouse.y
+        var frame = startFrame
+        let min = FloatingPromptPlacement.minSize
+        if edges.contains(.minX) {
+            let width = max(min.width, startFrame.width - dx)
+            frame.origin.x = startFrame.maxX - width
+            frame.size.width = width
+        }
+        if edges.contains(.maxX) {
+            frame.size.width = max(min.width, startFrame.width + dx)
+        }
+        if edges.contains(.minY) {
+            let height = max(min.height, startFrame.height - dy)
+            frame.origin.y = startFrame.maxY - height
+            frame.size.height = height
+        }
+        if edges.contains(.maxY) {
+            frame.size.height = max(min.height, startFrame.height + dy)
+        }
+        window.setFrame(frame, display: true)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        edges = []
+        onResizeEnded?()
+    }
+
+    private func edges(at point: NSPoint) -> Edge {
+        guard bounds.contains(point) else { return [] }
+        var result: Edge = []
+        if point.x <= thickness { result.insert(.minX) }
+        if point.x >= bounds.width - thickness { result.insert(.maxX) }
+        if point.y <= thickness { result.insert(.minY) }
+        if point.y >= bounds.height - thickness { result.insert(.maxY) }
+        return result
+    }
+
+    private func updateCursor(at point: NSPoint) {
+        let edge = edges(at: point)
+        guard !edge.isEmpty else { return }
+        let horizontal = edge.contains(.minX) || edge.contains(.maxX)
+        let vertical = edge.contains(.minY) || edge.contains(.maxY)
+        if horizontal && vertical {
+            let rising = edge.contains(.minX) == edge.contains(.minY)
+            (rising ? NSCursor.resizeLeftRight : NSCursor.resizeUpDown).set()
+        } else if horizontal {
+            NSCursor.resizeLeftRight.set()
+        } else {
+            NSCursor.resizeUpDown.set()
+        }
+    }
+}
+
 private final class FloatingPromptHostingView<Content: View>: NSHostingView<Content> {
+    override var isOpaque: Bool { false }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        clearBacking()
+    }
+
+    override func layout() {
+        super.layout()
+        clearBacking()
+    }
+
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func mouseDown(with event: NSEvent) {
@@ -285,6 +489,18 @@ private final class FloatingPromptHostingView<Content: View>: NSHostingView<Cont
     override func rightMouseDown(with event: NSEvent) {
         activateIfNeeded()
         super.rightMouseDown(with: event)
+    }
+
+    private func clearBacking() {
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.clear.cgColor
+        if #available(macOS 26, *) {
+            layer?.masksToBounds = false
+        } else {
+            layer?.cornerRadius = FloatingPromptChrome.cornerRadius
+            layer?.cornerCurve = .continuous
+            layer?.masksToBounds = true
+        }
     }
 
     private func activateIfNeeded() {
@@ -302,19 +518,20 @@ private struct FloatingPromptView: View {
     let onContinue: () -> Void
     @State private var didCopy = false
     @State private var showsShortcutHints = false
+    @State private var showsModelPicker = false
     @State private var shortcutDispatcher: InAppShortcutDispatcher?
     @State private var windowReference = ChatWindowReference()
 
     var body: some View {
         VStack(spacing: 0) {
             header
-            Divider().overlay(Brand.border)
+            Divider()
             content
-            Divider().overlay(Brand.border)
+            Divider()
             footer
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Brand.bg)
+        .modifier(FloatingPromptGlass())
         .environment(settings)
         .environment(\.dynamicTypeSize, settings.interfaceZoomLevel.dynamicTypeSize)
         .environment(\.locale, settings.language.locale)
@@ -349,13 +566,7 @@ private struct FloatingPromptView: View {
                 .lineLimit(1)
                 .allowsHitTesting(false)
             Spacer(minLength: 8)
-            if let model = session.modelDisplayName, !model.isEmpty {
-                Text(model)
-                    .font(.caption)
-                    .foregroundStyle(Brand.muted)
-                    .lineLimit(1)
-                    .allowsHitTesting(false)
-            }
+            modelMenu
             headerButton(
                 systemName: session.isPinned ? "pin.fill" : "pin",
                 label: L10n.string(session.isPinned ? "floatingPrompt.unpin" : "floatingPrompt.pin"),
@@ -377,8 +588,41 @@ private struct FloatingPromptView: View {
         }
         .padding(.horizontal, 12)
         .frame(height: 44)
-        .background(HeaderMaterial())
         .background(WindowDragHandle())
+    }
+
+    private var modelMenu: some View {
+        Button {
+            showsModelPicker.toggle()
+        } label: {
+            HStack(spacing: 3) {
+                Text(session.modelDisplayName ?? L10n.string("settings.model"))
+                    .lineLimit(1)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 8, weight: .semibold))
+            }
+            .font(.caption)
+            .foregroundStyle(Brand.muted)
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $showsModelPicker, attachmentAnchor: .point(.bottom), arrowEdge: .top) {
+            ModelPickerContent(
+                catalog: settings.providerRegistry.catalog,
+                effectiveModelID: session.modelID ?? settings.providerRegistry.catalog?.selectedModelID,
+                hasSessionOverride: session.modelID != nil,
+                isDisabled: false,
+                onSelect: { modelID in
+                    showsModelPicker = false
+                    session.answer(using: modelID)
+                },
+                onUseDefault: {
+                    showsModelPicker = false
+                    session.answer(using: nil)
+                }
+            )
+        }
+        .help(L10n.string("chat.retryWithAnotherModel"))
+        .accessibilityLabel(L10n.string("chat.retryWithAnotherModel"))
     }
 
     private var content: some View {
@@ -399,6 +643,7 @@ private struct FloatingPromptView: View {
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .scrollContentBackground(.hidden)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -460,7 +705,6 @@ private struct FloatingPromptView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Brand.surface)
     }
 
     private func headerButton(systemName: String, label: String, action: @escaping () -> Void) -> some View {
@@ -530,6 +774,19 @@ private struct WindowDragHandle: NSViewRepresentable {
     final class DragView: NSView {
         override func mouseDown(with event: NSEvent) {
             window?.performDrag(with: event)
+        }
+    }
+}
+
+private struct FloatingPromptGlass: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(macOS 26, *) {
+            content.glassEffect(
+                .regular,
+                in: RoundedRectangle(cornerRadius: FloatingPromptChrome.cornerRadius, style: .continuous)
+            )
+        } else {
+            content.background(Color.clear)
         }
     }
 }

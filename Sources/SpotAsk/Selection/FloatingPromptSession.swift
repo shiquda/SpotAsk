@@ -78,6 +78,7 @@ enum FloatingPromptShortcut {
 
 enum FloatingPromptPlacement {
     static let defaultSize = NSSize(width: 380, height: 460)
+    static let minSize = NSSize(width: 300, height: 240)
 
     static func origin(anchor: SelectionAnchor, size: NSSize, visibleFrame: NSRect) -> NSPoint {
         let point: NSPoint
@@ -172,7 +173,7 @@ final class FloatingPromptSession {
 
     private let settings: AppSettings
     private let providerFactory: any ChatProviderFactory
-    private let modelID: UUID?
+    private(set) var modelID: UUID?
     private var streamTask: Task<Void, Never>?
     private var flushTask: Task<Void, Never>?
     private var pendingAnswer = ""
@@ -266,6 +267,12 @@ final class FloatingPromptSession {
     }
 
     func retry() {
+        start()
+    }
+
+    /// Restarts the isolated answer with an explicit model, or the catalog default when `nil`.
+    func answer(using modelID: UUID?) {
+        self.modelID = modelID
         start()
     }
 
