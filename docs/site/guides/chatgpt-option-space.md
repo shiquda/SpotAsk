@@ -32,8 +32,8 @@ Check which app you have first: **ChatGPT** (the new merged app) or **ChatGPT Cl
 | What happens when you press <kbd>⌥ Space</kbd> | Likely cause | Fix |
 | --- | --- | --- |
 | Nothing happens | ChatGPT Classic is not running, its Chat Bar shortcut was changed, or no app owns the key | [Using ChatGPT Classic](#using-chatgpt-classic) |
-| A small floating panel, a pet, or a Codex task appears instead of a chat window | Mini owns <kbd>⌥ Space</kbd> in the new app | [Mini took ⌥Space](#mini-took-space-from-another-app) |
-| A different launcher stopped responding | Mini registered the key first, or that launcher did not get the key | [Set up SpotAsk on ⌥Space without fighting ChatGPT](#set-up-spotask-on-space-without-fighting-chatgpt) |
+| A small floating panel, a pet, or a Codex task appears instead of a chat window | Mini owns <kbd>⌥ Space</kbd> in the new app | [Mini took ⌥Space](#mini-took-⌥space-from-another-app) |
+| A different launcher stopped responding | Mini registered the key first, or that launcher did not get the key | [Set up SpotAsk on ⌥Space without fighting ChatGPT](#set-up-spotask-on-⌥space-without-fighting-chatgpt) |
 
 ## Why ChatGPT's ⌥Space changed in 2026
 
@@ -163,6 +163,14 @@ Many people use both: SpotAsk owns <kbd>⌥ Space</kbd> for quick questions, and
 ::: tip
 SpotAsk is free and open source. [Download for Mac](https://github.com/shiquda/SpotAsk/releases/latest) or run `brew install --cask shiquda/spotask/spotask`. Keep ChatGPT for everything else.
 :::
+
+## Related problems and comparisons
+
+- [Global shortcut conflicts in SpotAsk](/troubleshooting#global-shortcut-conflicts) — other apps that grab a key
+- [Open SpotAsk from Spotlight, Siri or a URL](/guides/macos-integration) — if you'd rather not use any global hotkey
+- [Route a question to ChatGPT, Perplexity or a CLI agent](/guides/external-ask)
+- [Compare apps](/compare/) — compare with Raycast and others.
+- [SpotAsk vs Raycast AI](/compare/raycast-ai) — How SpotAsk compares to Raycast AI.
 
 ## FAQ
 

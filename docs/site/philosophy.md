@@ -25,7 +25,7 @@ SpotAsk deliberately does not try to be an all-in-one AI workspace. Tasks that n
 
 Staying narrow is what keeps the app fast:
 
-- Pure Swift & AppKit — installer is ~10 MB with zero Electron or Chromium runtime.
+- Pure Swift & AppKit — installer is about 10 MB with zero Electron or Chromium runtime.
 - It lives quietly in the menu bar and stays out of the way until summoned.
 - Closing the window (`Esc`) ends the interaction completely — no tabs, no inbox, nothing calling you back.
 
@@ -47,7 +47,7 @@ Custom prompts turn your own repeated text tasks into the same one-step operatio
 
 SpotAsk follows the BYOK model — bring your own key. It connects to OpenAI-compatible and Anthropic services that you choose, and:
 
-- Service addresses and access keys are stored only on this Mac, in the system Keychain.
+- Service addresses and access keys are stored only on this Mac. See [Privacy Architecture](/use-cases/privacy-architecture).
 - Nothing is sent anywhere except the API provider you configured.
 - There is no account system, no telemetry backend, and no SpotAsk server in the middle.
 

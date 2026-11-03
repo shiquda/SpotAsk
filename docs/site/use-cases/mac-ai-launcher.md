@@ -44,6 +44,8 @@ brew install --cask shiquda/spotask/spotask
 ### Related Guides
 
 - [BYOK Native AI Client](/use-cases/byok-macos-ai) — Bring your own API key with pay-as-you-go billing.
+- [Compare apps](/compare/) — compare with Raycast and others.
+- [SpotAsk vs Raycast AI](/compare/raycast-ai) — How SpotAsk compares to Raycast AI.
 - [External Ask & Intent Routing](/use-cases/external-ask-routing) — Route queries to web AI or local CLI agents.
 - [Global Selection Assistant](/use-cases/selection-assistant) — In-place text processing across apps.
 - [Shortcuts Reference](/reference) — Complete guide to global and in-window keybindings.

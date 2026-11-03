@@ -1,7 +1,7 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  A native macOS menu-bar AI assistant & query router. Summon with a hotkey, then answer in-app (BYOK) or route to web AI and local CLI agents — automatically with a decision model, or in one keystroke.
+  SpotAsk is a free, open-source Mac menu bar app for quick questions: press ⌥Space to get an answer with your own API key, act on selected text, or hand off to ChatGPT or a local AI agent.
 </p>
 
 <p align="center">
@@ -112,7 +112,7 @@ Turn on automatic routing and SpotAsk asks a decision model (System One or OpenA
 
 ## Privacy
 
-- **BYOK (Bring Your Own Key)**: Access keys are stored securely in macOS Keychain and sent only to your configured provider.
+- **BYOK (Bring Your Own Key)**: Access keys are stored only on this Mac, in a local credentials file readable only by your macOS user (not in Keychain), and are sent only to the provider you configured.
 - **Zero telemetry**: No account required, no middle proxy servers, and no tracking.
 - **On-demand permissions**: The selection assistant requests Accessibility permissions only when enabled, and reads text strictly when you highlight it.
 
