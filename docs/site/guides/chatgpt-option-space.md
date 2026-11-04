@@ -5,6 +5,8 @@ description: "New ChatGPT for Mac moved Quick Chat and gave Option+Space to Mini
 faq:
   - question: "Why doesn't Option+Space open ChatGPT anymore on Mac?"
     answer: "The new ChatGPT desktop app does not open the old Chat Bar on Option+Space; that bar remains in ChatGPT Classic. In the new app, Option+Space is used by Mini by default. Assign the Popout Window hotkey, change the Mini shortcut, or switch back to ChatGPT Classic."
+  - question: "How do I enable Option+Space for ChatGPT on Mac?"
+    answer: "In the new ChatGPT app, Option+Space opens Mini by default. For a fuller quick window, rebind Show Mini first, then set Popout Window to Option+Space. In ChatGPT Classic, set the Chat Bar shortcut to Option+Space. Give Option+Space to only one app."
   - question: "How do I change or turn off the ChatGPT Mini shortcut?"
     answer: "Open ChatGPT's settings, choose Keyboard shortcuts, and find Show Mini. Record another combination or clear it. If it is missing from the list, switch to the Codex view and search again, or edit the openAvatarOverlay binding in keybindings.json under the Codex configuration directory and restart the app."
   - question: "Is ChatGPT Classic still available for Mac?"
@@ -34,6 +36,25 @@ Check which app you have first: **ChatGPT** (the new merged app) or **ChatGPT Cl
 | Nothing happens | ChatGPT Classic is not running, its Chat Bar shortcut was changed, or no app owns the key | [Using ChatGPT Classic](#using-chatgpt-classic) |
 | A small floating panel, a pet, or a Codex task appears instead of a chat window | Mini owns <kbd>⌥ Space</kbd> in the new app | [Mini took ⌥Space](#mini-took-⌥space-from-another-app) |
 | A different launcher stopped responding | Mini registered the key first, or that launcher did not get the key | [Set up SpotAsk on ⌥Space without fighting ChatGPT](#set-up-spotask-on-⌥space-without-fighting-chatgpt) |
+
+## How to enable Option+Space for ChatGPT on Mac
+
+In the new ChatGPT app, Option+Space opens **Mini** by default. For a fuller quick window, rebind **Show Mini** first, then set **Popout Window** to Option+Space. In ChatGPT Classic, set the **Chat Bar** shortcut to Option+Space. Give Option+Space to only one app.
+
+### New ChatGPT app
+
+1. Open ChatGPT, then **Settings**, and choose **Keyboard shortcuts**.
+2. Rebind **Show Mini** off <kbd>⌥ Space</kbd> first, then set **Popout Window** to <kbd>⌥ Space</kbd>. Those two settings cannot share that key. Community reports in [#31925](https://github.com/openai/codex/issues/31925) note this may open a Codex task rather than a plain chat, depending on the active view. Menu names change between releases. See [get a quick window back](#using-the-new-chatgpt-app-get-a-quick-window-back). If **Show Mini** is missing, follow [Mini took ⌥Space](#mini-took-⌥space-from-another-app).
+3. If another app should have the key, clear **Show Mini** instead.
+
+### ChatGPT Classic
+
+1. Open **ChatGPT Classic**, open its settings, and find the **Chat Bar** shortcut. OpenAI documents that default in [how to launch the Chat Bar](https://help.openai.com/en/articles/9295241-how-to-launch-the-chat-bar).
+2. Record <kbd>⌥ Space</kbd> if it is not already set. See [Using ChatGPT Classic](#using-chatgpt-classic) and [Go back to ChatGPT Classic](#go-back-to-chatgpt-classic) if the app is not installed.
+
+### If another app already owns ⌥Space
+
+Pick one owner. Do not assign Option+Space in two apps: which app responds is unpredictable. Clear the other binding first. To give the key to SpotAsk instead, follow [set up SpotAsk on ⌥Space without fighting ChatGPT](#set-up-spotask-on-⌥space-without-fighting-chatgpt).
 
 ## Why ChatGPT's ⌥Space changed in 2026
 
@@ -176,6 +197,9 @@ SpotAsk is free and open source. [Download for Mac](https://github.com/shiquda/S
 
 **Why doesn't Option+Space open ChatGPT anymore on Mac?**
 The new ChatGPT desktop app does not open the old Chat Bar on <kbd>⌥ Space</kbd>; that bar remains in ChatGPT Classic. In the new app, <kbd>⌥ Space</kbd> is used by Mini by default. Assign the **Popout Window hotkey**, change the Mini shortcut, or switch back to ChatGPT Classic.
+
+**How do I enable Option+Space for ChatGPT on Mac?**
+In the new ChatGPT app, <kbd>⌥ Space</kbd> opens Mini by default. For a fuller quick window, rebind **Show Mini** first, then set **Popout Window** to <kbd>⌥ Space</kbd>. In ChatGPT Classic, set the **Chat Bar** shortcut to <kbd>⌥ Space</kbd>. Give <kbd>⌥ Space</kbd> to only one app.
 
 **How do I change or turn off the ChatGPT Mini shortcut?**
 Open ChatGPT's settings, choose **Keyboard shortcuts**, and find **Show Mini**. Record another combination or clear it. If it is missing from the list, switch to the Codex view and search again, or edit the `openAvatarOverlay` binding in `~/.codex/keybindings.json` and restart the app.
