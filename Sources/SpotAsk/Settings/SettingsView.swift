@@ -417,7 +417,12 @@ struct SettingsView: View {
                         GeneralSettingsPage(settings: settings, generalState: generalState)
                     }
                 case .appearance:
-                    AppearanceSettingsPage(settings: settings)
+                    SettingsPageScrollView(
+                        section: .appearance,
+                        pendingTarget: $pendingGroupTarget
+                    ) {
+                        AppearanceSettingsPage(settings: settings)
+                    }
                 case .about:
                     AboutSettingsPage(coordinator: UpdateCoordinator.shared, settings: settings)
                 }
