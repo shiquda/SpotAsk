@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-11-04
+
+**Floating window for selection prompts, frosted background for question window, smoother appearance and provider settings**
+
 ### Added
 
 - Settings > Appearance > Background switches the question window between the current solid fill and a frosted background that shows the desktop behind it. The input field and message bubbles stay solid, and the change applies immediately.
@@ -24,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The question window keeps its solid fill in step with the pinned appearance, so switching between light and dark repaints the window instead of leaving the previous theme's background.
 - Continuing a floating answer into the main chat no longer leaves retry unable to send after a failed question. The imported exchange stays, including when the original request fails after the import.
+- The Settings > Appearance page scrolls when its content overflows on compact displays.
+- Settings > Providers correctly populates and isolates draft fields and API credentials when switching between multiple service channels.
 
 ## [0.3.3] - 2026-10-28
 
@@ -321,7 +327,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Service provider cards expand and collapse reliably.
 - Thinking expansion behavior: expands during reasoning and collapses for final answers when enabled; stays collapsed when disabled.
 
-[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.3.4...HEAD
+[0.3.4]: https://github.com/shiquda/SpotAsk/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/shiquda/SpotAsk/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/shiquda/SpotAsk/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/shiquda/SpotAsk/compare/v0.3.0...v0.3.1
