@@ -424,12 +424,7 @@ struct SettingsView: View {
                         AppearanceSettingsPage(settings: settings)
                     }
                 case .about:
-                    SettingsPageScrollView(
-                        section: .about,
-                        pendingTarget: $pendingGroupTarget
-                    ) {
-                        AboutSettingsPage(coordinator: UpdateCoordinator.shared, settings: settings)
-                    }
+                    AboutSettingsPage(coordinator: UpdateCoordinator.shared, settings: settings)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)

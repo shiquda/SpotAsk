@@ -120,17 +120,6 @@ struct AppearanceModeTests {
         detailScrollView.reflectScrolledClipView(detailScrollView.contentView)
         hostingView.layoutSubtreeIfNeeded()
         #expect(detailScrollView.contentView.bounds.origin.y > 0, "Detail scroll view should reflect scroll offset")
-
-        // Also verify .about page is wrapped in detail scroll view
-        model.reveal(.about)
-        window.layoutIfNeeded()
-        hostingView.layoutSubtreeIfNeeded()
-        let aboutScrollViews = findScrollViews(in: hostingView)
-        let aboutDetailScrollView = aboutScrollViews.first(where: { sv in
-            let frame = sv.convert(sv.bounds, to: hostingView)
-            return frame.origin.x > 150
-        })
-        #expect(aboutDetailScrollView != nil, "About page must also be wrapped in a detail scroll view")
     }
 }
 
