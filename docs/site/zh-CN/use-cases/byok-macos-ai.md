@@ -23,8 +23,8 @@ SpotAsk 将原生的 macOS 快捷交互界面与底层模型服务商解耦：
 
 以下时间线以保存服务并点击**测试连接**成功后为起点：按快捷键 <kbd>⌥ Space</kbd> 呼出窗口、选择模型、输入提示词到接收首个流式 Token。这一测算不包含注册服务商账号、充值账单或下载几十 GB 本地模型权重的一次性前置时间。
 
-![SpotAsk 对话窗口与模型选择器](/images/spotask-chat.png)
-*图 1：SpotAsk 浮动对话窗口支持在已配置的 BYOK 服务商与模型之间随时切换。*
+![SpotAsk 首次提问与流式回复演示](/images/spotask-byok-first-answer.gif)
+*图 1：使用 deepseek-v4-flash 的完整快速提问流程：选择已配置模型、输入测试问题并接收流式回复。*
 
 ### 实测验证提示词与回复结果
 
@@ -34,16 +34,14 @@ SpotAsk 将原生的 macOS 快捷交互界面与底层模型服务商解耦：
 Give me three concise names for a menu bar app that answers quick questions. Return one per line.
 ```
 
-在连接云端 OpenAI 兼容服务（经由 HTTPS 访问 OpenRouter 上运行的 `openai/gpt-4o-mini`）时，SpotAsk 实测返回：
+在连接 OpenAI 兼容服务端点使用 `deepseek-v4-flash` 时，SpotAsk 实测返回：
 
 ```text
-QuickQuery
-AskBar
-FastAnswers
+QuickAsk QBar AnswerBar
 ```
 
-- **实测首 Token 延迟**：按下回车后约 725 毫秒显示首字。
-- **实测完整流式输出耗时**：约 842 毫秒。
+- **实测首 Token 延迟**：点击发送后约 700 毫秒显示首字。
+- **实测完整流式输出耗时**：约 2.5 秒。
 - **返回原应用**：按 <kbd>Esc</kbd> 即可立刻关闭提问窗口，无缝回到原本的桌面工作流程中。
 
 ## 运行前提与环境要求

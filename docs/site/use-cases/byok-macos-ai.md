@@ -23,8 +23,8 @@ SpotAsk lets you verify your connection and receive your first answer in seconds
 
 The timeline below measures interaction after saving your endpoint and running **Test Connection**: summoning the window with <kbd>⌥ Space</kbd>, selecting your model, submitting a prompt, and receiving the first streaming token. It excludes one-time setup such as creating provider accounts, funding developer credits, or downloading local model weights.
 
-![SpotAsk conversation window showing model selector with deepseek-v4-flash and prompt presets](/images/spotask-chat.png)
-*Figure 1: SpotAsk floating conversation window displaying on-the-fly model selection across configured BYOK providers.*
+![SpotAsk first answer demonstration showing model selection and streaming response](/images/spotask-byok-first-answer.gif)
+*Figure 1: Complete quick-ask flow in SpotAsk with deepseek-v4-flash: selecting a configured model, submitting a test question, and receiving a streaming response.*
 
 ### Verified test prompt and response
 
@@ -34,16 +34,14 @@ We use a concise, predictable test prompt across verified configurations:
 Give me three concise names for a menu bar app that answers quick questions. Return one per line.
 ```
 
-When tested against a cloud OpenAI-compatible endpoint (OpenRouter hosting `openai/gpt-4o-mini` over HTTPS), SpotAsk produced:
+When tested against an OpenAI-compatible endpoint with `deepseek-v4-flash`, SpotAsk produced:
 
 ```text
-QuickQuery
-AskBar
-FastAnswers
+QuickAsk QBar AnswerBar
 ```
 
-- **Observed first-token latency**: ~725 ms from pressing <kbd>Return</kbd>.
-- **Observed total stream duration**: ~842 ms.
+- **Observed first-token latency**: ~700 ms from clicking send.
+- **Observed total stream duration**: ~2.5 s.
 - **Dismiss**: Press <kbd>Esc</kbd> to return to your active application.
 
 ## Prerequisites & Requirements
