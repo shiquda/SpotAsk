@@ -100,7 +100,7 @@ Terminal commands run in your default user login shell inside Terminal.app. Ensu
 
 ### Keyboard shortcuts
 
-Enabled External Ask entries receive in-app shortcuts following your prompt shortcuts. For example, if you have three prompt presets enabled, your first two External Ask entries are assigned <kbd>⌘ + 5</kbd> and <kbd>⌘ + 6</kbd>. You can review or customize them in **Settings > Shortcuts**.
+Enabled External Ask entries receive in-app shortcuts following your prompt shortcuts. For example, if you have three prompt presets enabled, your first two External Ask entries are assigned <kbd>⌘ + 5</kbd> and <kbd>⌘ + 6</kbd>. Your actual shortcut numbers depend on the order and number of active prompts; always refer to **Settings > Shortcuts** for your Mac's active key combinations.
 
 ---
 
