@@ -19,8 +19,7 @@ You can dispatch queries manually using in-window channel buttons or shortcuts, 
 
 1. **Configure Channels**: Open **Settings > External Ask** to review built-in channels or click "New" to add custom web links, app schemes, or shell commands.
 2. **(Optional) Configure Decision Routing**: If you want suggestions, fill in the service address, model ID, and API key under Decision Routing, and enable the toggle.
-3. **Summon & Send**: Summon SpotAsk using your global hotkey, type your question, and click a channel or use its shortcut; if decision routing is active, confirm the suggested destination upon sending.
-
+3. **Summon & Send**: Summon SpotAsk using your global hotkey, type your question, and click a channel or use its shortcut; if decision routing is active, confirm the suggested destination upon sending. For an end-to-end walkthrough with verified templates, see how to [reproduce the ChatGPT + CLI hotkey workflow](/guides/external-ask#the-workflow-in-30-seconds).
 ## Visual Demo
 
 <video poster="/images/spotask-smart-routing-preview.gif" src="/videos/SpotAsk-smart-routing-v5.mp4" controls muted playsinline width="720"></video>
@@ -47,7 +46,7 @@ brew install --cask shiquda/spotask/spotask
 
 ### Related Guides
 
-- [External Ask Guide](/guides/external-ask) — Custom channels, actions, and quick dispatch workflows.
+- [External Ask Guide](/guides/external-ask) — Custom channels, actions, and quick dispatch workflows. Learn how to [reproduce the ChatGPT + CLI hotkey workflow](/guides/external-ask#the-workflow-in-30-seconds).
 - [ChatGPT chat bar not working on Mac](/guides/chatgpt-option-space) — fixes and a one-hotkey alternative
 - [Decision Routing Guide](/guides/decision-routing) — Intent classifier engines, dual-protocol setup, and threshold tuning.
 - [macOS AI Launcher](/use-cases/mac-ai-launcher) — Instant global hotkey summoning.
