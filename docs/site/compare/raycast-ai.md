@@ -11,7 +11,7 @@ faq:
   - question: "Can SpotAsk replace Raycast?"
     answer: "SpotAsk replaces only the AI quick-ask and BYOK experience, not a full desktop launcher. If you need application launching, file search, clipboard history, window management, and community extensions, you need a full desktop launcher like Raycast (or open-source alternatives like Sol or Vicinae). If all you want is a fast, private hotkey to ask AI, run Selection Assistant, or hand off prompts to web or CLI models without paying an ongoing subscription, SpotAsk is designed specifically for that sub-intent."
   - question: "Can I run SpotAsk and Raycast together?"
-    answer: "Yes, and many users do. Use Raycast as your system launcher on Command+Space for launching applications, searching files, and managing windows, and use SpotAsk on Option+Space as your dedicated, private AI ask box. Both apps support configurable hotkeys, allowing them to coexist smoothly on separate shortcuts."
+    answer: "Yes. Use Raycast as your system launcher on Command+Space for launching applications, searching files, and managing windows, and use SpotAsk on Option+Space as your dedicated, private AI ask box. Both apps support configurable hotkeys, allowing them to coexist on separate shortcuts."
 ---
 
 # SpotAsk vs Raycast AI
@@ -33,7 +33,7 @@ The full multi-app breakdown is on the [comparison hub](/compare/). Shortcut coe
 
 - **Choose SpotAsk** if you want a fast, focused AI ask box with zero subscription costs, direct BYOK connectivity, and do not need a launcher replacement.
 - **Choose Raycast** if you want a comprehensive desktop launcher, window manager, clipboard history, and extension store, and you are comfortable paying an ongoing subscription for integrated AI.
-- **Run both** if you love Raycast for launching apps (<kbd>⌘ Space</kbd>) but want SpotAsk as your lightweight, private AI shortcut (<kbd>⌥ Space</kbd>). They can coexist smoothly on separate shortcuts.
+- **Run both** if you love Raycast for launching apps (<kbd>⌘ Space</kbd>) but want SpotAsk as your lightweight, private AI shortcut (<kbd>⌥ Space</kbd>). They can coexist on separate shortcuts.
 
 SpotAsk is our open-source project. We verified Raycast's official documentation and pricing on November 6, 2026. Here is an honest, factual breakdown of where each tool shines.
 
@@ -130,7 +130,7 @@ You can easily install and use both apps on the same Mac:
 
 A natural combined workflow: press <kbd>⌘ Space</kbd> in Raycast to find and launch your code editor or project folder; press <kbd>⌥ Space</kbd> in SpotAsk to quickly query documentation or clarify an error without disrupting your workspace.
 
-They can coexist smoothly when given different shortcuts. For resolving shortcut conflicts across macOS, see our [Option+Space conflict guide](/guides/chatgpt-option-space) and [Global shortcut troubleshooting](/troubleshooting#global-shortcut-conflicts).
+They can coexist when given different shortcuts. For resolving shortcut conflicts across macOS, see our [Option+Space conflict guide](/guides/chatgpt-option-space) and [Global shortcut troubleshooting](/troubleshooting#global-shortcut-conflicts).
 
 ## Core quick-ask verification (20–30 seconds)
 
@@ -208,4 +208,4 @@ SpotAsk replaces only the AI quick-ask and BYOK experience, not a full desktop l
 
 ### Can I run SpotAsk and Raycast together?
 
-Yes, and many users do. Use Raycast as your system launcher on Command+Space for launching applications, searching files, and managing windows, and use SpotAsk on Option+Space as your dedicated, private AI ask box. Both apps support configurable hotkeys, allowing them to coexist smoothly on separate shortcuts.
+Yes. Use Raycast as your system launcher on Command+Space for launching applications, searching files, and managing windows, and use SpotAsk on Option+Space as your dedicated, private AI ask box. Both apps support configurable hotkeys, allowing them to coexist on separate shortcuts.
