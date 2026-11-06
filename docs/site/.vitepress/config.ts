@@ -157,7 +157,8 @@ const englishSidebar = [
     text: 'More',
     items: [
       { text: 'Compare apps', link: '/compare/' },
-      { text: 'SpotAsk vs Raycast AI', link: '/compare/raycast-ai' }
+      { text: 'SpotAsk vs Raycast AI', link: '/compare/raycast-ai' },
+      { text: 'SpotAsk vs ChatGPT for Mac', link: '/compare/chatgpt-mac' }
     ]
   }
 ]
