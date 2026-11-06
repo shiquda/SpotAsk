@@ -42,7 +42,7 @@ SpotAsk is designed for instant questions, selected-text lookups, and fast hand-
 - **You prefer a single predictable subscription**: You prefer paying a flat $20/month rather than funding developer API credits, monitoring token usage, and rotating API keys.
 - **You need complex multi-window management**: You want dedicated multi-window chat organization and complex artifact panes.
 
-SpotAsk complements these workspaces: keep your full chat workspace for deep sessions, and use SpotAsk on <kbd>⌥ Space</kbd> for quick answers, text selection, and routing. You can [compare SpotAsk with ChatGPT for Mac](/compare/chatgpt-mac) to see how the two workflows differ in practice.
+SpotAsk complements these workspaces: keep your full chat workspace for deep sessions, and use SpotAsk on <kbd>⌥ Space</kbd> for quick answers, text selection, and routing. The same configured service can also [translate or rewrite selected text across Mac apps](/use-cases/selection-assistant) without copying passages into a separate browser window. You can [compare SpotAsk with ChatGPT for Mac](/compare/chatgpt-mac) to see how the two workflows differ in practice.
 
 ## Download SpotAsk
 
@@ -56,6 +56,7 @@ brew install --cask shiquda/spotask/spotask
 ### Related Guides
 
 - [Connect an OpenAI-Compatible Service](/guides/connect-openai-compatible) — Setup for OpenAI, DeepSeek, and Groq.
+- [Global Selection Assistant Workflow](/use-cases/selection-assistant) — Translate and rewrite selected text across apps with your BYOK model.
 - [Compare apps](/compare/) — other BYOK apps compared.
 - [SpotAsk vs Raycast AI](/compare/raycast-ai) — BYOK in Raycast vs SpotAsk.
 - [Connect Anthropic](/guides/connect-anthropic) — Claude API keys and streaming configuration.

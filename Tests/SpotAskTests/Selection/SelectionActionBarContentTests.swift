@@ -265,7 +265,7 @@ struct SelectionActionBarContentTests {
         settings.selectionAssistantEnabled = true
         settings.selectionAssistantMode = .actionBar
         settings.selectionActionBarCollapseOverflow = true
-        UserDefaults.standard.set("zh-Hans", forKey: AppLanguage.defaultsKey)
+        UserDefaults.standard.set("en", forKey: AppLanguage.defaultsKey)
         defer { UserDefaults.standard.removeObject(forKey: AppLanguage.defaultsKey) }
         for isDark in [false, true] {
             let view = SelectionAssistantSettingsPage(
@@ -289,6 +289,33 @@ struct SelectionActionBarContentTests {
             guard let data = rep.representation(using: .png, properties: [:]) else { continue }
             let path = isDark ? "/tmp/selection_assistant_page_dark.png" : "/tmp/selection_assistant_page_light.png"
             try data.write(to: URL(fileURLWithPath: path))
+        }
+    }
+
+    @Test("Render SelectionActionBar to image")
+    func renderActionBarToImage() throws {
+        let settings = makeSettings()
+        settings.selectionAssistantEnabled = true
+        settings.selectionAssistantMode = .actionBar
+        settings.selectionActionBarShowsLabels = true
+        settings.selectionActionBarShowsChatAction = true
+        settings.selectionActionBarShowsPrompts = true
+        let layout = SelectionActionBarLayout.make(
+            showsChat: true,
+            chatTitle: "Ask in Chat",
+            presets: PromptPreset.builtIn,
+            externalAsks: [],
+            showsLabels: true,
+            collapsesOverflow: false
+        )
+        let view = SelectionActionBarContentView(layout: layout, actions: nil)
+        view.frame = NSRect(origin: .zero, size: layout.size)
+        view.layoutSubtreeIfNeeded()
+        if let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+            view.cacheDisplay(in: view.bounds, to: rep)
+            if let data = rep.representation(using: .png, properties: [:]) {
+                try data.write(to: URL(fileURLWithPath: "/tmp/selection_action_bar.png"))
+            }
         }
     }
 

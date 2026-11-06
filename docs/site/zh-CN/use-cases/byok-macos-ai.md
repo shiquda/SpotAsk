@@ -31,6 +31,7 @@ SpotAsk 采用 Bring-Your-Own-Key（BYOK，自带密钥）模式，直接连接�
 - **需自行准备模型服务商账号**：SpotAsk 作为客户端不贩售也不代充 API 额度。你需要自行在 OpenAI、Anthropic、Google 申请 API Key，或在 Mac 本地安装 Ollama。
 - **费用与服务商配额**：使用远程 API 产生的费用由你直接向模型服务商按实际 Token 用量结算；请求限频（RPM/TPM）由服务商账户等级决定，客户端不加设调用限制。
 - **服务地址格式要求**：OpenAI 兼容服务区分为“服务根地址”（如 `https://api.openai.com/v1`）与“完整请求地址”（如 `https://api.openai.com/v1/chat/completions`），配置时需注意区分。
+- **同一服务可直接用于全局划词**：你在“服务”中配置的模型同样无缝驱动 [全局划词翻译与改写助手](/zh-CN/use-cases/selection-assistant)，无需重复配置。
 
 ## 立即下载 SpotAsk
 
@@ -44,6 +45,7 @@ brew install --cask shiquda/spotask/spotask
 ### 相关指南
 
 - [连接 OpenAI 兼容服务](/zh-CN/guides/connect-openai-compatible) — OpenAI、DeepSeek 与 Groq 配置。
+- [全局划词 AI 助手工作流](/zh-CN/use-cases/selection-assistant) — 使用自备模型就地翻译与改写选中文本。
 - [连接 Anthropic](/zh-CN/guides/connect-anthropic) — Claude API 密钥与流式对话配置。
 - [服务根地址与完整请求地址](/zh-CN/guides/service-addresses) — 掌握不同平台 URL 拼接规范。
 - [本地优先与零遥测隐私设计](/zh-CN/use-cases/privacy-architecture) — 凭据存储与数据去向说明。
