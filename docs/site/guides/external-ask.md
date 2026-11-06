@@ -95,7 +95,7 @@ omp 'Inspect this repository'\''s failing test. Explain the cause and propose a 
 ```
 
 ::: warning Shell PATH resolution
-Terminal commands run in your default user login shell inside Terminal.app. Ensure the target CLI binary (such as `omp` or `claude`) is installed in your shell `$PATH` (e.g. `/usr/local/bin`, `/opt/homebrew/bin`, or `~/.local/bin`). If a command cannot be found when launched from GUI environments, specify the full path in the command template (e.g., `/Users/yourname/.local/bin/omp {query}`).
+Terminal commands run in your default user login shell inside Terminal.app. Ensure the target CLI binary (such as `omp`) is installed in your shell `$PATH` (e.g. `/usr/local/bin`, `/opt/homebrew/bin`, or `~/.local/bin`). If a command cannot be found when launched from GUI environments, specify the full path in the command template (e.g., `/Users/yourname/.local/bin/omp {query}`).
 :::
 
 ### Keyboard shortcuts
@@ -194,7 +194,7 @@ No. External Ask dispatches directly to the external website, application, or te
 Only services that reliably pre-fill and accept URL query parameters are built-in. Claude opens with the prompt pre-filled but requires manual submission; Gemini does not reliably accept query parameters in its web URL. You can still add custom entries for any service in Settings.
 
 **Can I send queries to other local CLI tools like Ollama or custom scripts?**  
-Yes. Any executable available in your shell can be configured as a Terminal command, for example `ollama run llama3.2 {query}` or `/usr/local/bin/my-script.sh {query}`.
+Yes, provided the command is reachable in your login shell `$PATH` (or specified with its full path) and uses a verified argument template. For example, local models via `ollama run llama3.2 {query}` or a tested script like `/usr/local/bin/my-script.sh {query}` can be configured as custom Terminal command entries.
 
 ---
 
