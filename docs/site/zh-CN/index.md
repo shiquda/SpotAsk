@@ -3,11 +3,11 @@ layout: home
 
 title: "SpotAsk | 原生 macOS AI 助手与查询路由器"
 titleTemplate: false
-description: "免费开源的 Mac 菜单栏快问工具：按 ⌥Space，用你自己的 API Key 得到回答，或处理选中文字，或一键交给 ChatGPT、本地 AI Agent。"
+description: "免费开源的 Mac 菜单栏 AI 快问工具：按 ⌥Space，用你自己的 API Key 得到回答，或处理选中文字，或一键交给 ChatGPT、本地 AI Agent。"
 
 hero:
   name: SpotAsk
-  text: 先提问，再决定去向
+  text: "Mac 菜单栏 AI 快问，按 ⌥Space 就开始"
   tagline: '<span class="nowrap">一次提问，三个去向。</span><br class="hidden sm:inline"><span class="nowrap">随时唤起，随问随走。</span>'
   actions:
     - theme: brand
@@ -43,14 +43,15 @@ heroShowcase:
 
 ## SpotAsk 是什么
 
-<span class="nowrap">SpotAsk</span> 是一款免费开源的 macOS 菜单栏 AI 助手与分流工具，建立在一个极简的前提之上：**“先提问，再决定去向（Ask first. Decide where it goes after.）”**。
+<span class="nowrap">SpotAsk</span> 是一款免费开源的 Mac 菜单栏 AI 快问与问题路由工具：按 <kbd>⌥ + Space</kbd>，用你自己的 API Key 得到回答，或处理选中文字，或一键交给 ChatGPT、本地 AI Agent。它建立在一个极简的前提之上：**“先提问，再决定去向（Ask first. Decide where it goes after.）”**。
 
-随时按快捷键（默认 <kbd>⌥ + Space</kbd>），专注的提问小窗即刻浮现。先写下当下的问题，再决定如何处理：
+随时按快捷键（默认 <kbd>⌥ + Space</kbd>），专注的提问小窗即刻浮现于当前工作区上方。先写下当下的问题，再决定如何处理：
 
-- **应用内流式回答（BYOK）**：用你配置的 AI 模型直接在小窗内作答。
+- **应用内流式快问（BYOK）**：用你配置的 AI 模型与 API 密钥从本机直连服务商，在小窗内快速作答。
 - **外部提问智能分流 (<span class="nowrap">External Ask</span>)**：把问题交给网页平台（ChatGPT、Perplexity、Grok）、桌面应用或本地终端 CLI Agent——一键直达，或由决策模型自动选路。
+- **选中文本就近处理**：在任意应用中选中文字，通过就近浮动操作栏直接翻译、解释、总结、润色，或带入对话继续追问。想要深入[了解 Mac 菜单栏 AI 快问的呼出与交互](/zh-CN/use-cases/mac-ai-launcher)，可以查阅全局启动器指南。
 
-没有账号系统，没有遥测监控。按 <kbd>Esc</kbd> 随问随走。
+没有账号系统，没有遥测监控，也不设任何中间服务器。按 <kbd>Esc</kbd> 随问随走。
 
 ## 下一步
 

@@ -1,14 +1,14 @@
 ---
-title: BYOK Native macOS AI Client
-description: "SpotAsk is a native bring-your-own-key (BYOK) macOS AI client. Connect OpenAI, Anthropic, Gemini, DeepSeek, or local Ollama with zero middleman servers and local credential storage."
+title: "BYOK Mac Menu Bar AI Assistant: Free & Open Source | SpotAsk"
+titleTemplate: false
+description: "Use your own API key in a free, open-source Mac menu bar app. Ask directly, act on selected text, or hand off without a middleman server."
 ---
 
-# BYOK Native macOS AI Client: Connect Your Own Models and API Keys
+# BYOK Mac menu bar AI assistant for quick questions
 
-SpotAsk is built on a Bring-Your-Own-Key (BYOK) architecture, connecting directly to your own API keys or locally hosted models.
+SpotAsk is a free, open-source Mac menu bar AI assistant for quick questions, built on a Bring-Your-Own-Key (BYOK) architecture. It connects directly from your Mac to your own API keys or locally hosted models, with zero SpotAsk middleman servers in between.
 
-Requests travel directly to your provider's official endpoints with zero proxy servers in between, no user accounts, and billing governed solely by your chosen provider and actual compute usage.
-
+If you already have API keys from OpenAI, Anthropic, or Google—or run local models like Ollama—SpotAsk gives you an instant hotkey (<kbd>⌥ Space</kbd>) to ask a quick question, act on selected text, and return to your flow. There are no SpotAsk accounts, no monthly software subscriptions, and no middleman markup: you pay only your provider for the tokens you actually consume.
 ## Core Capabilities
 
 - **Multi-Provider & Protocol Support**: Native support for OpenAI-compatible endpoints, Anthropic Messages API, and Google Gemini REST API, switchable via the model picker in the composer.
@@ -32,6 +32,17 @@ Requests travel directly to your provider's official endpoints with zero proxy s
   A ChatGPT Plus subscription is not an API key. You can [use your ChatGPT subscription through Ask ChatGPT instead](/guides/chatgpt-option-space#faq).
 - **Billing & Quotas**: Compute costs are billed directly by your model provider based on your actual token usage; rate limits and concurrency limits are governed by your provider account tier.
 - **Service Address Formatting**: OpenAI-compatible services distinguish between a Service Root (`https://api.openai.com/v1`) and a Full Request Address (`https://api.openai.com/v1/chat/completions`). See our documentation for endpoint conventions.
+
+## When a full chat workspace is the better choice
+
+SpotAsk is designed for instant questions, selected-text lookups, and fast hand-offs rather than long, multi-threaded project management. A full chat workspace is the better choice when:
+
+- **You need persistent conversations and searchable history**: You want ongoing conversation threads organized into project folders, custom GPTs, or document workspaces.
+- **You rely on account-managed features**: You need vendor-hosted memories, collaborative Canvas document editing, or native spoken voice modes (such as ChatGPT for Mac's Advanced Voice Mode).
+- **You prefer a single predictable subscription**: You prefer paying a flat $20/month rather than funding developer API credits, monitoring token usage, and rotating API keys.
+- **You need complex multi-window management**: You want dedicated multi-window chat organization and complex artifact panes.
+
+SpotAsk complements these workspaces: keep your full chat workspace for deep sessions, and use SpotAsk on <kbd>⌥ Space</kbd> for quick answers, text selection, and routing. You can [compare SpotAsk with ChatGPT for Mac](/compare/chatgpt-mac) to see how the two workflows differ in practice.
 
 ## Download SpotAsk
 
