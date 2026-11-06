@@ -21,7 +21,7 @@ If you want a global keyboard shortcut to summon AI on macOS, there are four dis
 - **Dedicated open-source ask box ([SpotAsk](https://github.com/shiquda/SpotAsk))**: 100% free and open source (AGPL-3.0). Sits quietly in your menu bar, opens with Option+Space, connects directly from your Mac to your provider endpoint with zero middleman servers, and includes one-click hand-offs to web AI or CLI agents.
 - **Desktop launcher with AI ([Raycast AI](/compare/raycast-ai))**: An all-in-one launcher replacing Spotlight. AI features require a paid subscription (Pro from $10/month), and standard BYOK requests route through Raycast servers.
 - **Paid chat workspaces ([BoltAI](https://boltai.com/) & [MindMac](https://mindmac.app/))**: Standalone multi-window chat apps with project organization, inline editing, and MCP support, available via one-time licenses ($29 to $199). We did not install either app.
-- **First-party desktop client ([ChatGPT desktop app](/guides/chatgpt-option-space))**: OpenAI's official Mac app. Operates with your ChatGPT account and is restricted exclusively to OpenAI models.
+- **First-party desktop client ([ChatGPT desktop app](/compare/chatgpt-mac))**: OpenAI's official Mac app. Operates with your ChatGPT account and is restricted exclusively to OpenAI models.
 
 **Last checked:** November 2, 2026. SpotAsk is our open-source project. Below is a factual, transparent comparison of pricing, privacy architecture, and feature sets across all five tools.
 
@@ -29,7 +29,7 @@ If you want a global keyboard shortcut to summon AI on macOS, there are four dis
 
 Prices were copied from each vendor's site on November 2, 2026. A dash means that fact was not found.
 
-| | SpotAsk | Raycast AI | BoltAI | MindMac | ChatGPT desktop |
+| | SpotAsk | Raycast AI | BoltAI | MindMac | [ChatGPT desktop](/compare/chatgpt-mac) |
 | --- | --- | --- | --- | --- | --- |
 | **Category** | Lightweight menu bar ask box & hand-off | Desktop launcher with AI add-on | AI chat workspace | AI chat client | OpenAI official client |
 | **Price** | **100% Free** (Pay only your provider) | Pro $10/mo ($96/yr), 500 credits. Not in Free. | One-time: Essential $79, Pro $99, Ultimate $199. | One-time: Essential $29, Pro $49, Ultimate $69. | ChatGPT account plans |
@@ -51,7 +51,7 @@ Raycast Pro+ is $20/month or $192/year for 3,000 credits. Max is $50/month or $4
 - **Choose SpotAsk** if you want a fast, dedicated AI ask box triggered by a hotkey, true direct-to-provider BYOK privacy, zero monthly subscription fees, and without a full launcher.
 - **Choose Raycast** if you want a complete system launcher that handles apps, files, clipboard history, and window management, and you are comfortable paying $10+/month for integrated AI. Read our in-depth [SpotAsk vs Raycast AI comparison](/compare/raycast-ai).
 - **Choose BoltAI or MindMac** if you want a full-featured desktop chat client with long conversation histories, project workspaces, and MCP tools, and you prefer a one-time purchase over a monthly subscription. We did not install either app.
-- **Choose the ChatGPT desktop app** if you exclusively use OpenAI models, subscribe to ChatGPT Plus, and prefer OpenAI's native macOS interface. If shortcuts collide, check our [Option+Space conflict guide](/guides/chatgpt-option-space).
+- **Choose the ChatGPT desktop app** if you exclusively use OpenAI models, subscribe to ChatGPT Plus, and prefer OpenAI's native macOS interface. Read our in-depth [SpotAsk vs ChatGPT for Mac](/compare/chatgpt-mac) comparison to see the differences in BYOK pricing, workflows, and privacy, and check our [Option+Space conflict guide](/guides/chatgpt-option-space) if shortcuts collide.
 - **Run SpotAsk alongside Raycast**: If you already use Raycast as your launcher (Command+Space), you can keep SpotAsk as your dedicated AI hotkey (Option+Space) without paying for Raycast Pro. They can coexist on different shortcuts.
 
 ## When Raycast is the better choice
@@ -72,7 +72,7 @@ We did not install either app.
 
 ## When ChatGPT's own shortcut is enough
 
-If you only talk to OpenAI, subscribe to ChatGPT Plus, and OpenAI's shortcut fits your routine, you may not need another tool. Current OpenAI docs use Option+Space for the pet, Mini, or Chat Bar. If another app took that shortcut, see our [Option+Space troubleshooting guide](/guides/chatgpt-option-space).
+If you only talk to OpenAI, subscribe to ChatGPT Plus, and OpenAI's shortcut fits your routine, you may not need another tool. For a full side-by-side analysis, see our [SpotAsk vs ChatGPT for Mac](/compare/chatgpt-mac) comparison. If another app took that shortcut, see our [Option+Space troubleshooting guide](/guides/chatgpt-option-space).
 
 ## Where SpotAsk fits
 

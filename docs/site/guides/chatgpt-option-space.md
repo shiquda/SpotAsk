@@ -13,6 +13,12 @@ faq:
     answer: "Yes. OpenAI states that the previous Mac app was renamed ChatGPT Classic and remains supported alongside the new app."
   - question: "Does SpotAsk use my ChatGPT Plus subscription?"
     answer: "Not directly. Ask ChatGPT only opens chatgpt.com in your browser, using the login you already have there. Answers inside SpotAsk need your own API key, and a Plus or Pro subscription does not include API access."
+  - question: "Why does Option+Space open ChatGPT Mini instead of SpotAsk?"
+    answer: "If both apps are installed, ChatGPT's Mini floating panel often registers Option+Space ahead of SpotAsk at the macOS system level. Because macOS global shortcuts are non-exclusive, whichever app installs its event tap first captures the keystroke. To fix it, open ChatGPT Settings > Keyboard shortcuts, clear or change Show Mini, and re-test Option+Space in SpotAsk."
+  - question: "Can ChatGPT Mini and SpotAsk both use Option+Space?"
+    answer: "No. You should not assign Option+Space to both apps. In testing, both apps attempt to hook the keystroke, leading to unpredictable behavior: either one fires inconsistently or both attempt to open at once. Always give Option+Space to one app only and move the other to an alternate shortcut."
+  - question: "How do I find which app is using Option+Space on my Mac?"
+    answer: "First check macOS System Settings > Keyboard > Keyboard Shortcuts (Spotlight and Input Sources). Next, inspect hotkey preferences in running background utilities, launchers (such as Alfred or Raycast), and AI assistants (like ChatGPT Mini or Claude Desktop). Quitting background apps one by one reveals which app holds the key; once identified, reassign its shortcut or follow our global shortcut conflicts guide."
   - question: "Can SpotAsk and ChatGPT both use Option+Space?"
     answer: "Don't. In our testing both apps receive the keystroke when each installs its own global handler, and the winner is unpredictable. Give Option+Space to one app and move the other to a different combination."
   - question: "Is SpotAsk made by OpenAI?"
@@ -87,15 +93,18 @@ The new app has its own floating window command, **Popout Window**, with an assi
 
 Community reports in [#31925](https://github.com/openai/codex/issues/31925) note that this may open a Codex task rather than a plain chat, depending on which view is active. Menu names in this app change between releases, so check the wording in your installed version.
 
-### Mini took ⌥Space from another app
+### Mini took ⌥Space from SpotAsk or another app
 
-Mini is the small floating Codex panel. It takes <kbd>⌥ Space</kbd> globally, ahead of other apps' shortcuts, because ChatGPT watches the keystroke at the system level rather than registering it exclusively.
+Mini is ChatGPT's small floating avatar and task window. In current builds of the unified ChatGPT app, Mini binds <kbd>⌥ Space</kbd> globally on macOS by default. Because macOS global shortcut handling does not grant exclusive ownership to a single program, Mini watches keystrokes at the system level and frequently intercepts <kbd>⌥ Space</kbd> before SpotAsk, Alfred, or Raycast can respond.
 
-The official route is to change or clear the shortcut:
+If pressing <kbd>⌥ Space</kbd> summons a small circular icon, floating pet, or Codex task bar instead of SpotAsk's question window:
 
-1. Open ChatGPT's settings and choose **Keyboard shortcuts**.
-2. Find **Show Mini** and record a different combination, or clear it.
+1. **Clear or rebind Show Mini**: Open ChatGPT, go to **Settings > Keyboard shortcuts**, find **Show Mini**, and record a different hotkey or click the clear button.
+2. **Check Popout Window**: In the same shortcut list, ensure **Popout Window hotkey** is not also set to <kbd>⌥ Space</kbd>.
+3. **Keep one owner**: Verify that only one app on your Mac claims <kbd>⌥ Space</kbd>.
+4. **Reset SpotAsk**: Open SpotAsk **Settings > Shortcuts**, confirm **Global Shortcut** is <kbd>⌥ Space</kbd>, and press it to confirm the window appears cleanly.
 
+The official route is to change or clear the shortcut in **Settings > Keyboard shortcuts > Show Mini**.
 If **Show Mini** is not in the list — users reported this on builds 26.924 and later in [#48756](https://github.com/openai/codex/issues/48756) — try these workarounds:
 
 - **Switch views first.** Switch to the Codex view, then search the **Keyboard shortcuts** list for "Show Mini" (reported in a comment on that issue).
@@ -161,6 +170,24 @@ SpotAsk checks for conflicts **within its own shortcuts** only. It cannot tell t
 4. Press <kbd>⌥ Space</kbd>, type, and press <kbd>↩</kbd>.
 
 Detailed first-run steps: [install SpotAsk and ask your first question](/getting-started). Full list of shortcuts: [Settings & Shortcuts Reference](/reference).
+## Other apps that can take ⌥Space
+
+ChatGPT Mini is not the only utility that can capture <kbd>⌥ Space</kbd>. If <kbd>⌥ Space</kbd> fails to open SpotAsk and ChatGPT is not running, another background utility or launcher likely registered the shortcut first.
+
+### General troubleshooting path on macOS
+
+To isolate which application holds the hotkey:
+
+1. **Check macOS system shortcuts**: Open **System Settings > Keyboard > Keyboard Shortcuts**. Inspect **Spotlight** (confirm Spotlight is on <kbd>⌘ Space</kbd>, not <kbd>⌥ Space</kbd>) and **Input Sources** (make sure language switching does not conflict).
+2. **Inspect running launchers and AI utilities**:
+   - **Alfred**: Alfred allows setting <kbd>⌥ Space</kbd> as its primary hotkey in **Alfred Preferences > General > Alfred Hotkey** (verified in Alfred help docs).
+   - **Raycast**: Raycast allows setting <kbd>⌥ Space</kbd> as the **Raycast Hotkey** in **Raycast Settings > General** (verified in Raycast manual).
+   - **Claude Desktop**: Claude for Mac allows configuring <kbd>⌥ Space</kbd> for its quick entry bar in **Settings > General** (verified in Anthropic docs).
+3. **Methodical quit test**: Quit running menu bar utilities and background apps one by one. Press <kbd>⌥ Space</kbd> after quitting each app to identify which app releasing the key restores SpotAsk.
+4. **Reassign or relocate**: Once identified, either change that app's shortcut or rebind SpotAsk to a different key combination (such as <kbd>⌃ ⌥ Space</kbd> or <kbd>⌥ ⇧ A</kbd>) in SpotAsk **Settings > Shortcuts**.
+
+For detailed troubleshooting on system input protection and key capture, see [global shortcut conflicts in SpotAsk](/troubleshooting#global-shortcut-conflicts).
+
 
 ## ChatGPT app vs SpotAsk: when to use which
 
@@ -192,6 +219,7 @@ SpotAsk is free and open source. [Download for Mac](https://github.com/shiquda/S
 - [Route a question to ChatGPT, Perplexity or a CLI agent](/guides/external-ask)
 - [Compare apps](/compare/) — compare with Raycast and others.
 - [SpotAsk vs Raycast AI](/compare/raycast-ai) — How SpotAsk compares to Raycast AI.
+- [ChatGPT for Mac vs a free, open-source quick-ask alternative](/compare/chatgpt-mac) — detailed breakdown of workspace features vs quick ask.
 
 ## FAQ
 
@@ -210,6 +238,15 @@ Yes. OpenAI states that the previous Mac app was renamed ChatGPT Classic and rem
 **Does SpotAsk use my ChatGPT Plus subscription?**
 Not directly. **Ask ChatGPT** only opens `chatgpt.com` in your browser, using the login you already have there. Answers inside SpotAsk need your own API key, and a Plus or Pro subscription does not include API access.
 
+**Why does Option+Space open ChatGPT Mini instead of SpotAsk?**
+If both apps are installed, ChatGPT's Mini floating panel often registers Option+Space ahead of SpotAsk at the macOS system level. Because macOS global shortcuts are non-exclusive, whichever app installs its event tap first captures the keystroke. To fix it, open ChatGPT Settings > Keyboard shortcuts, clear or change Show Mini, and re-test Option+Space in SpotAsk.
+
+**Can ChatGPT Mini and SpotAsk both use Option+Space?**
+No. You should not assign Option+Space to both apps. In testing, both apps attempt to hook the keystroke, leading to unpredictable behavior: either one fires inconsistently or both attempt to open at once. Always give Option+Space to one app only and move the other to an alternate shortcut.
+
+**How do I find which app is using Option+Space on my Mac?**
+First check macOS System Settings > Keyboard > Keyboard Shortcuts (Spotlight and Input Sources). Next, inspect hotkey preferences in running background utilities, launchers (such as Alfred or Raycast), and AI assistants (like ChatGPT Mini or Claude Desktop). Quitting background apps one by one reveals which app holds the key; once identified, reassign its shortcut or follow our [global shortcut conflicts guide](/troubleshooting#global-shortcut-conflicts).
+
 **Can SpotAsk and ChatGPT both use ⌥Space?**
 Don't. In our testing both apps receive the keystroke when each installs its own global handler, and the winner is unpredictable. Give <kbd>⌥ Space</kbd> to one app and move the other to a different combination.
 
@@ -218,6 +255,6 @@ No. SpotAsk is an independent open-source project, unaffiliated with OpenAI.
 
 ---
 
-*Last updated: Oct 27, 2026. ChatGPT details were checked against OpenAI's help pages and public GitHub issues on that date. ChatGPT updates often, so menu names may change.*
+*Last updated: November 6, 2026. ChatGPT details were checked against OpenAI's official help pages, macOS 26.7.1, and public GitHub issues on that date. SpotAsk 0.3.4 (build 30) was evaluated on macOS.*
 
 Related: [Troubleshooting](/troubleshooting), [External Ask](/guides/external-ask), [Settings & Shortcuts Reference](/reference)
