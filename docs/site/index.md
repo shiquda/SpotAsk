@@ -47,7 +47,7 @@ SpotAsk is a free, open-source Mac menu bar AI assistant for quick questions, bu
 Press one hotkey — `⌥ + Space` by default — and a focused question window appears instantly over whatever you are doing. Write the question while it is fresh, then choose:
 
 - **In-app quick answers (BYOK)**: stream a reply in the window using your own API key and direct provider connection.
-- **External Ask routing**: send the question to a web AI (ChatGPT, Perplexity, Grok), a desktop app, or a local CLI agent — in 1 click, or automatically with a decision model.
+- **External Ask routing**: send the question to a web AI (ChatGPT, Perplexity, Grok), a desktop app, or a local CLI agent — in 1 click, or automatically with a decision model. See how to [reproduce the ChatGPT + CLI hotkey workflow](/guides/external-ask#the-workflow-in-30-seconds).
 - **Selected-text actions**: highlight text in any macOS app to translate, explain, or summarize with the Selection Assistant (`⌥ + ⇧ + Space`).
 
 Looking for [a free, open-source ChatGPT Mac alternative for quick questions](/compare/chatgpt-mac)? SpotAsk focuses on instant questions, selected-text lookups, and fast hand-offs rather than managing long workspace conversations.

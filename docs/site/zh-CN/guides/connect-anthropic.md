@@ -44,4 +44,4 @@ SpotAsk 会预填 `https://api.anthropic.com/v1`。到 [console.anthropic.com/se
 
 服务必须支持 Anthropic API 请求格式。Anthropic 兼容代理或网关也可以按同样方式配置。
 
-相关：[服务根地址与完整请求地址](/zh-CN/guides/service-addresses)、[服务与模型](/zh-CN/guides/providers-and-models)
+相关：[服务根地址与完整请求地址](/zh-CN/guides/service-addresses)、[服务与模型](/zh-CN/guides/providers-and-models)、[BYOK 原生 macOS AI 客户端](/zh-CN/use-cases/byok-macos-ai)

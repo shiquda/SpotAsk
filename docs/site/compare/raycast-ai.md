@@ -100,7 +100,7 @@ SpotAsk includes built-in [External Ask](/guides/external-ask), a powerful hand-
 - **Pre-fill web AI chats**: Open your question directly in web interfaces such as ChatGPT, Perplexity, or Grok (with Claude as a custom entry)—without needing an API key for that provider.
 - **Dispatch to CLI agents**: Pass your prompt directly into terminal CLI workflows or custom Bash scripts.
 
-Raycast allows opening search URLs via [Quicklinks](https://manual.raycast.com/quicklinks), and community extensions may offer additional integrations. However, SpotAsk provides this web and CLI hand-off out of the box directly from the ask box.
+Raycast allows opening search URLs via [Quicklinks](https://manual.raycast.com/quicklinks), and community extensions may offer additional integrations. However, SpotAsk provides this web and CLI hand-off out of the box directly from the ask box. Follow the step-by-step guide to [reproduce the ChatGPT + CLI hotkey workflow](/guides/external-ask#the-workflow-in-30-seconds) in under a minute.
 
 ## Using both
 
