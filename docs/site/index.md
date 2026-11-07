@@ -53,6 +53,17 @@ Press one hotkey — `⌥ + Space` by default — and a focused question window 
 Looking for [a free, open-source ChatGPT Mac alternative for quick questions](/compare/chatgpt-mac)? SpotAsk focuses on instant questions, selected-text lookups, and fast hand-offs rather than managing long workspace conversations.
 
 No account, no telemetry, nothing between you and your provider. Press `Esc` and SpotAsk is gone.
+
+## Free software, open source, and API costs
+
+SpotAsk is free software licensed under the [GNU AGPL v3](https://github.com/shiquda/SpotAsk/blob/main/LICENSE) on [GitHub](https://github.com/shiquda/SpotAsk), with no app purchase fee, no account requirement, and no telemetry.
+
+To stream in-window answers on <kbd>⌥ Space</kbd>, you connect your own provider API key ([BYOK](/use-cases/byok-macos-ai)) or a local endpoint like Ollama. Token usage is billed directly by your chosen provider according to their API pricing; consumer subscriptions like ChatGPT Plus or Claude Pro do not include developer API access. If you prefer not to configure an API key, [External Ask](/guides/external-ask) offers a separate workflow that routes your prompt to web AI or local CLI tools without spending API tokens.
+
+SpotAsk focuses strictly on instant questions, selected-text lookups, and fast hand-offs. It is built as a focused menu bar companion rather than a local model runner, agent execution sandbox (shell, files, or MCP), document workspace, or complete system launcher. Teams managing persistent multi-threaded chats or project workspaces can keep those dedicated tools and pair them with SpotAsk for keyboard-first quick access.
+
+![SpotAsk conversation window showing model selector with deepseek-v4-flash and prompt presets](/images/spotask-chat.png)
+*Figure: SpotAsk floating conversation window displaying on-the-fly model selection across configured BYOK providers.*
 ## Next steps
 
 - [Getting Started](/getting-started) — install SpotAsk, connect a service, and ask your first question.
