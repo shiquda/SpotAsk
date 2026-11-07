@@ -55,4 +55,4 @@ The model list can be refreshed when the service uses **Service Root** and expos
 
 Close Settings, press `⌥ + Space`, and ask a question. If the connection test passes but a question fails, see [Troubleshooting](/troubleshooting).
 
-Related: [Service Root vs Full Request Address](/guides/service-addresses), [Providers & Models](/guides/providers-and-models)
+Related: [Service Root vs Full Request Address](/guides/service-addresses), [Providers & Models](/guides/providers-and-models), [BYOK Menu Bar AI Assistant](/use-cases/byok-macos-ai)
