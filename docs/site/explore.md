@@ -34,6 +34,7 @@ Press your global hotkey (default `⌥ + Space`; [shortcut clash with ChatGPT?](
 Highlight text in Safari, Notes, or Xcode to trigger the inline action bar. Translate, explain, summarize, polish, or bring text directly into chat for follow-up.
 
 - [Selection Assistant guide](/guides/selection-assistant)
+- [Selection Assistant Workflow (Translate & Rewrite)](/use-cases/selection-assistant)
 
 ## Route questions with External Ask
 

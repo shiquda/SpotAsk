@@ -84,6 +84,16 @@ flowchart TD
 
 - **Ask in Chat icon**: A dedicated speech bubble icon appears at the start of the action bar. Clicking it opens the question window with the selected text filled in and a blank line ready for your follow-up question. This can be toggled in Settings > **Selection Assistant** (enabled by default).
 - Built-in prompts, custom prompts, and enabled External Ask targets follow in the bar. Left-click a prompt, or choose it from the overflow menu, to open a floating window that answers only that selection. Right-click the same button to ask in the main chat. Settings can swap those two clicks. From the window you can pin it, copy the answer, or continue in the current conversation. While the window is focused, copy, retry, pin, zoom, and settings use the same shortcuts as the main chat.
+
+## Output delivery: Copying and in-place replacement
+
+SpotAsk adapts its delivery depending on whether you use the isolated floating window or the main conversation, and whether the source application is read-only or editable:
+
+- **Read-only contexts (Safari, Chrome, Preview PDF)**: Underlying text nodes cannot be modified via Accessibility APIs. Left-clicking an action opens the floating window adjacent to the selection; click **Copy all** (`⌘ + C`) to place the result on your clipboard.
+- **Editable drafts in floating mode (Notes, Mail, TextEdit)**: Left-clicking an action (e.g. Polish or Translate) streams the refined text into the floating window. Click **Copy all** and press `⌘ + V` to replace your draft. Standard macOS Undo (`⌘ + Z`) immediately reverts the change if needed.
+- **Editable drafts in main chat mode**: When routing a selection to the main conversation (via right-clicking an action preset or clicking **Ask in Chat**), assistant response rows display an **Insert into selection** button (`arrow.down.doc`). If the target application and selection range are unchanged, clicking this button writes the generated content directly into the draft using macOS `AXSelectedText`. If the selection range or focus shifted in the interim, SpotAsk safely blocks the write and displays a "Selection changed" notification.
+
+For a step-by-step walkthrough of translating in Safari and polishing in Notes, see the [Selection Assistant use case](/use-cases/selection-assistant).
 ## Automatic display
 
 In **Show quick actions** mode, turn on **Show quick actions after selecting text** to avoid pressing the shortcut each time.

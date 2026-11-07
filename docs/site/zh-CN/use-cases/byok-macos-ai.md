@@ -103,7 +103,7 @@ SpotAsk 的产品定位是快捷、低干扰的即时提问、划词处理与意
 - **更倾向于固定打包月费**：希望每月固定支付 $20 随心畅聊，不想关注 Token 消耗速率、余额预警与密钥轮换。
 - **复杂的多窗口与多任务分屏**：需要全屏展示大型代码产物、复杂图表预览或并排多文档对照。
 
-SpotAsk 与完整工作台属于互补关系：深度的方案推演留在独立工作台中，日常随时闪现的疑问、翻译与代码求证，则交给快捷键呼出的 SpotAsk 就地解决。你也可以参考 [SpotAsk 与 ChatGPT macOS 客户端对比（英文）](/compare/chatgpt-mac) 深入评估两种工作流。
+SpotAsk 与完整工作台属于互补关系：深度的方案推演留在独立工作台中，日常随时闪现的疑问、翻译与代码求证，则交给快捷键呼出的 SpotAsk 就地解决。你在“服务”中配置的模型同样无缝驱动 [全局划词翻译与改写助手](/zh-CN/use-cases/selection-assistant)，无需重复配置。你也可以参考 [SpotAsk 与 ChatGPT macOS 客户端对比（英文）](/compare/chatgpt-mac) 深入评估两种工作流。
 
 ## 立即下载 SpotAsk
 
@@ -117,6 +117,7 @@ brew install --cask shiquda/spotask/spotask
 ### 相关指南
 
 - [连接 OpenAI 兼容服务](/zh-CN/guides/connect-openai-compatible) — OpenAI、OpenRouter、DeepSeek 与 Groq 配置。
+- [全局划词 AI 助手工作流](/zh-CN/use-cases/selection-assistant) — 使用自备模型就地翻译与改写选中文本。
 - [连接 Anthropic](/zh-CN/guides/connect-anthropic) — Claude API 密钥与流式对话配置。
 - [服务根地址与完整请求地址](/zh-CN/guides/service-addresses) — 掌握不同平台 URL 拼接规范。
 - [本地优先与零遥测隐私设计](/zh-CN/use-cases/privacy-architecture) — 凭据存储与数据去向说明。

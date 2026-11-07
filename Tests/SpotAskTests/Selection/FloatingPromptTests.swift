@@ -288,6 +288,94 @@ struct FloatingPromptTests {
         #expect(box.count == 3)
     }
 
+    @Test("Render floating prompt window to image")
+    func renderFloatingPromptWindow() async throws {
+        let box = RequestBox()
+        let factory = ScriptedFactory(box: box, events: [
+            .answerDelta("当您按下 Option-Space 时，SpotAsk 会打开一个小提问窗口，因此您无需离开当前任务即可提出问题。")
+        ])
+        let settings = makeSettings()
+        let snapshot = SelectedTextSnapshot(
+            text: "SpotAsk opens a small question window when you press Option-Space, so you can ask a question without leaving your current task.",
+            source: SelectionSourceApplication(processIdentifier: 7, bundleIdentifier: "com.apple.Safari", localizedName: "Safari"),
+            selectedRange: SelectionCharacterRange(location: 0, length: 114),
+            anchor: .pointer(CGPoint(x: 200, y: 400))
+        )
+        let session = FloatingPromptSession(
+            snapshot: snapshot,
+            preset: PromptPreset.builtIn[0],
+            settings: settings,
+            providerFactory: factory,
+            modelID: nil
+        )
+        let controller = FloatingPromptWindowController(
+            session: session,
+            settings: settings,
+            onContinue: { _ in },
+            onClosed: {}
+        )
+        session.start()
+        for _ in 0 ..< 30 where session.phase != .complete {
+            await Task.yield()
+        }
+        controller.show(near: snapshot.anchor)
+        if let panel = NSApp.windows.first(where: { String(describing: type(of: $0)).contains("FloatingPromptPanel") }),
+           let content = panel.contentView {
+            content.layoutSubtreeIfNeeded()
+            if let rep = content.bitmapImageRepForCachingDisplay(in: content.bounds) {
+                content.cacheDisplay(in: content.bounds, to: rep)
+                if let data = rep.representation(using: .png, properties: [:]) {
+                    try data.write(to: URL(fileURLWithPath: "/tmp/floating_prompt_translate.png"))
+                }
+            }
+        }
+        controller.close()
+    }
+
+    @Test("Render Polish floating prompt window to image")
+    func renderPolishFloatingPromptWindow() async throws {
+        let box = RequestBox()
+        let factory = ScriptedFactory(box: box, events: [
+            .answerDelta("Could you please send me the revised document when you have a moment?")
+        ])
+        let settings = makeSettings()
+        let snapshot = SelectedTextSnapshot(
+            text: "I was wondering if you might possibly be able to send me the revised document when you have a moment.",
+            source: SelectionSourceApplication(processIdentifier: 8, bundleIdentifier: "com.apple.Notes", localizedName: "Notes"),
+            selectedRange: SelectionCharacterRange(location: 0, length: 99),
+            anchor: .pointer(CGPoint(x: 200, y: 400))
+        )
+        let session = FloatingPromptSession(
+            snapshot: snapshot,
+            preset: PromptPreset.builtIn[3],
+            settings: settings,
+            providerFactory: factory,
+            modelID: nil
+        )
+        let controller = FloatingPromptWindowController(
+            session: session,
+            settings: settings,
+            onContinue: { _ in },
+            onClosed: {}
+        )
+        session.start()
+        for _ in 0 ..< 30 where session.phase != .complete {
+            await Task.yield()
+        }
+        controller.show(near: snapshot.anchor)
+        if let panel = NSApp.windows.first(where: { String(describing: type(of: $0)).contains("FloatingPromptPanel") }),
+           let content = panel.contentView {
+            content.layoutSubtreeIfNeeded()
+            if let rep = content.bitmapImageRepForCachingDisplay(in: content.bounds) {
+                content.cacheDisplay(in: content.bounds, to: rep)
+                if let data = rep.representation(using: .png, properties: [:]) {
+                    try data.write(to: URL(fileURLWithPath: "/tmp/floating_prompt_polish.png"))
+                }
+            }
+        }
+        controller.close()
+    }
+
     private func makeSettings() -> AppSettings {
         let suiteName = "FloatingPromptTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
