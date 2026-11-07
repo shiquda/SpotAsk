@@ -116,7 +116,7 @@ Switching windows to copy and paste breaks focus:
 ### Handing a question off (External Ask)
 When a prompt outgrows a quick floating answer:
 - **Send to Web AI**: SpotAsk's [External Ask](/guides/external-ask) pre-fills prompts into `chatgpt.com/?q={query}` in your default browser using your web login. **This works with zero API keys configured in SpotAsk.**
-- **Dispatch to CLI agents**: SpotAsk routes prompts directly into macOS terminal sessions or shell scripts.
+- **Dispatch to CLI agents**: SpotAsk routes prompts directly into macOS terminal sessions or shell scripts. You can [reproduce the ChatGPT + CLI hotkey workflow](/guides/external-ask#the-workflow-in-30-seconds) to test both paths from a single hotkey.
 
 ChatGPT for Mac is a standalone destination, not a workflow router.
 

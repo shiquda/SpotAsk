@@ -1,0 +1,43 @@
+WEBVTT - SpotAsk External Ask Hotkey Workflow Demo (30s)
+
+00:00.000 --> 00:03.500
+Working on code when a question comes to mind...
+
+00:03.500 --> 00:05.000
+Press ⌥Space anywhere on Mac to summon SpotAsk.
+
+00:05.000 --> 00:07.500
+Write your prompt once while the thought is fresh.
+
+00:07.500 --> 00:08.500
+Choose ChatGPT (⌘5) for conceptual explanations.
+
+00:08.500 --> 00:10.500
+Default browser opens chatgpt.com with your prompt pre-filled.
+
+00:10.500 --> 00:12.000
+Press Send to submit — no API key required in SpotAsk.
+
+00:12.000 --> 00:14.500
+ChatGPT answers directly in your authenticated web workspace.
+
+00:14.500 --> 00:16.000
+Back in your editor, a repository task needs local inspection.
+
+00:16.000 --> 00:18.500
+Press ⌥Space again to write your next task in the same box.
+
+00:18.500 --> 00:19.500
+Choose OMP (⌘6) to dispatch directly to your local CLI agent.
+
+00:19.500 --> 00:22.000
+Terminal opens with prompt safely quoted into your agent command.
+
+00:22.000 --> 00:25.000
+Agent inspects tests and code in place — zero clipboard copying.
+
+00:25.000 --> 00:26.500
+Inspection complete: diagnosis and fix provided without editing files.
+
+00:26.500 --> 00:30.000
+One hotkey. You choose the destination.
