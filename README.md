@@ -8,11 +8,14 @@
   macOS 15+ · Apple Silicon / Intel · Native Swift
 </p>
 
-<p align="center">
+<div align="center">
+
   <a href="https://github.com/shiquda/SpotAsk/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/shiquda/SpotAsk?display_name=tag&sort=semver"></a>
   <a href="https://github.com/shiquda/SpotAsk/actions/workflows/ci.yml"><img alt="CI status" src="https://github.com/shiquda/SpotAsk/actions/workflows/ci.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/github/license/shiquda/SpotAsk"></a>
-</p>
+  [![Listed on OpenMacApps](https://openmacapps.com/badge.svg)](https://openmacapps.com/apps/spotask/)
+
+</div>
 
 <p align="center">
   <a href="https://github.com/shiquda/SpotAsk/releases/latest">Download for macOS</a> · <a href="https://shiquda.github.io/SpotAsk/">Documentation</a> · <a href="#quick-start">Quick start</a> · <a href="#build-from-source">Build from source</a> · <a href="README.zh-CN.md">简体中文</a>
