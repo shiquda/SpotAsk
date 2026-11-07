@@ -38,7 +38,7 @@ Here is the entire loop from hotkey summon to execution:
 ### Visual demonstration
 
 <video poster="/images/spotask-external-ask-hotkey-workflow-preview.png" src="/videos/spotask-external-ask-hotkey-workflow.mp4" controls muted playsinline width="720">
-  <track kind="subtitles" src="/videos/spotask-external-ask-hotkey-workflow.vtt" srclang="en" label="English" default>
+  <track kind="subtitles" src="/SpotAsk/videos/spotask-external-ask-hotkey-workflow.vtt" srclang="en" label="English" default>
 </video>
 
 *Video 1: The complete 30-second dual-destination workflow (30s) — summon once with ⌥Space, send a concept question to ChatGPT in the browser with pre-fill and manual send, then summon again to dispatch a local repository inspection into Terminal with OMP. [Download / Watch HD Video (1080p MP4)](/videos/spotask-external-ask-hotkey-workflow.mp4)*
