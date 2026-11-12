@@ -22,27 +22,28 @@ If you want a global keyboard shortcut to summon AI on macOS, there are four dis
 - **Desktop launcher with AI ([Raycast AI](/compare/raycast-ai))**: An all-in-one launcher replacing Spotlight. AI features require a paid subscription (Pro from $10/month), and standard BYOK requests route through Raycast servers.
 - **Paid chat workspaces ([BoltAI](https://boltai.com/) & [MindMac](https://mindmac.app/))**: Standalone multi-window chat apps with project organization, inline editing, and MCP support, available via one-time licenses ($29 to $199). We did not install either app.
 - **First-party desktop client ([ChatGPT desktop app](/compare/chatgpt-mac))**: OpenAI's official Mac app. Operates with your ChatGPT account and is restricted exclusively to OpenAI models.
+- **Cross-platform AI workstation ([Cherry Studio](/compare/cherry-studio))**: Free, open-source (AGPL-3.0) Electron workstation for Windows, macOS, and Linux with chat, agents, knowledge bases, MCP, and image generation. Also has a Quick Assistant hotkey window (off by default). About 30× the download size of SpotAsk.
 
 **Last checked:** November 2, 2026. SpotAsk is our open-source project. Below is a factual, transparent comparison of pricing, privacy architecture, and feature sets across all five tools.
 
 ## The comparison table
 
-Prices were copied from each vendor's site on November 2, 2026. A dash means that fact was not found.
+Prices were copied from each vendor's site on November 2, 2026; the Cherry Studio column was checked on November 12, 2026. A dash means that fact was not found.
 
-| | SpotAsk | Raycast AI | BoltAI | MindMac | [ChatGPT desktop](/compare/chatgpt-mac) |
-| --- | --- | --- | --- | --- | --- |
-| **Category** | Lightweight menu bar ask box & hand-off | Desktop launcher with AI add-on | AI chat workspace | AI chat client | OpenAI official client |
-| **Price** | **100% Free** (Pay only your provider) | Pro $10/mo ($96/yr), 500 credits. Not in Free. | One-time: Essential $79, Pro $99, Ultimate $199. | One-time: Essential $29, Pro $49, Ultimate $69. | ChatGPT account plans |
-| **Open source** | **Yes (AGPL-3.0)** | No | No | No | No |
-| **Your own API key** | **Yes — Free for all** (OpenAI-compatible, Anthropic, Gemini) | Anthropic, Google, OpenAI, OpenRouter, plus Custom Providers. **Pro Exclusive**. | Yes. Several providers are listed. | Yes. Homepage says keys stay in the Keychain. | No. Uses the ChatGPT account. |
-| **Where BYOK requests go** | **Direct to provider endpoint**. Zero SpotAsk servers; keys stored locally with mode `0600`. | Anthropic, Google, and OpenAI: through Raycast servers. OpenRouter and Custom Providers: direct. | Own key: may go direct to that provider. Some requests may pass through BoltAI. | Homepage says directly to OpenAI, Anthropic, and other providers. | OpenAI servers |
-| **Local models** | Free, via local OpenAI-compatible endpoint (Ollama, LM Studio) | Ollama, on this Mac. **Pro Exclusive**. | Ollama and LM Studio are listed. | — | No |
-| **Send to website or CLI** | **Built-in (External Ask)** | Quicklinks can open a search URL. Store extensions vary. | CLI tools are listed. Web prefill was not found. | — | — |
-| **Selected-text actions** | Selection Assistant (Option+Shift+Space) | AI Commands | Inline and AI Workflow | Inline mode | — |
-| **Scope** | Dedicated AI hotkey and text actions | Full launcher, file search, window & clipboard manager | Multi-window chat app | Multi-window chat app | Dedicated OpenAI chat app |
-| **Account required** | **No account needed** | Yes | Optional cloud sync | No, per the homepage | Yes |
-| **Default hotkey** | Option+Space (ask box), Option+Shift+Space (selection) | Command+Space on Mac (customizable) | — | — | Option+Space (in current OpenAI docs) |
-| **macOS support** | macOS 15+ (**Apple silicon & Intel**) | Current Mac app: macOS Tahoe & Apple silicon only | Homepage: macOS 13 or later. Intel and Apple silicon. | Homepage: macOS 13 or later. Intel and Apple silicon. | macOS 14 or later. Apple silicon or Intel. |
+| | SpotAsk | Raycast AI | BoltAI | MindMac | [ChatGPT desktop](/compare/chatgpt-mac) | [Cherry Studio](/compare/cherry-studio) |
+| --- | --- | --- | --- | --- | --- | --- |
+| **Category** | Lightweight menu bar ask box & hand-off | Desktop launcher with AI add-on | AI chat workspace | AI chat client | OpenAI official client | Cross-platform AI workstation |
+| **Price** | **100% Free** (Pay only your provider) | Pro $10/mo ($96/yr), 500 credits. Not in Free. | One-time: Essential $79, Pro $99, Ultimate $199. | One-time: Essential $29, Pro $49, Ultimate $69. | ChatGPT account plans | Free; optional Cherry Flash $8/mo (promo, marked from $10) |
+| **Open source** | **Yes (AGPL-3.0)** | No | No | No | No | **Yes (AGPL-3.0)** |
+| **Your own API key** | **Yes — Free for all** (OpenAI-compatible, Anthropic, Gemini) | Anthropic, Google, OpenAI, OpenRouter, plus Custom Providers. **Pro Exclusive**. | Yes. Several providers are listed. | Yes. Homepage says keys stay in the Keychain. | No. Uses the ChatGPT account. | Yes — free (OpenAI, Anthropic, Gemini, custom; local via Ollama/LM Studio) |
+| **Where BYOK requests go** | **Direct to provider endpoint**. Zero SpotAsk servers; keys stored locally with mode `0600`. | Anthropic, Google, and OpenAI: through Raycast servers. OpenRouter and Custom Providers: direct. | Own key: may go direct to that provider. Some requests may pass through BoltAI. | Homepage says directly to OpenAI, Anthropic, and other providers. | OpenAI servers | Direct to the provider you configure (official privacy policy) |
+| **Local models** | Free, via local OpenAI-compatible endpoint (Ollama, LM Studio) | Ollama, on this Mac. **Pro Exclusive**. | Ollama and LM Studio are listed. | — | No | Yes (Ollama, LM Studio) |
+| **Send to website or CLI** | **Built-in (External Ask)** | Quicklinks can open a search URL. Store extensions vary. | CLI tools are listed. Web prefill was not found. | — | — | Mini Apps embed web AI in-app; no external hand-off found |
+| **Selected-text actions** | Selection Assistant (Option+Shift+Space) | AI Commands | Inline and AI Workflow | Inline mode | — | Selection Assistant (off by default; Accessibility permission) |
+| **Scope** | Dedicated AI hotkey and text actions | Full launcher, file search, window & clipboard manager | Multi-window chat app | Multi-window chat app | Dedicated OpenAI chat app | Chat, agents, knowledge bases, MCP, images, mobile apps |
+| **Account required** | **No account needed** | Yes | Optional cloud sync | No, per the homepage | Yes | No for BYOK; CherryIN account for Flash subscription |
+| **Default hotkey** | Option+Space (ask box), Option+Shift+Space (selection) | Command+Space on Mac (customizable) | — | — | Option+Space (in current OpenAI docs) | ⌘E Quick Assistant (off by default) |
+| **macOS support** | macOS 15+ (**Apple silicon & Intel**) | Current Mac app: macOS Tahoe & Apple silicon only | Homepage: macOS 13 or later. Intel and Apple silicon. | Homepage: macOS 13 or later. Intel and Apple silicon. | macOS 14 or later. Apple silicon or Intel. | Not stated in official docs (arm64 & x64 builds; tested on macOS 26) |
 
 Raycast Pro+ is $20/month or $192/year for 3,000 credits. Max is $50/month or $480/year for 7,500 credits. Image attachments sent to a Custom Provider are still uploaded to Raycast. BoltAI's privacy policy was updated August 6, 2026. MindMac's latest linked release is 1.9.28, published April 22, 2025. The site still sold licenses on the check date.
 
@@ -73,6 +74,10 @@ We did not install either app.
 ## When ChatGPT's own shortcut is enough
 
 If you only talk to OpenAI, subscribe to ChatGPT Plus, and OpenAI's shortcut fits your routine, you may not need another tool. For a full side-by-side analysis, see our [SpotAsk vs ChatGPT for Mac](/compare/chatgpt-mac) comparison. If another app took that shortcut, see our [Option+Space troubleshooting guide](/guides/chatgpt-option-space).
+
+## When Cherry Studio is the better choice
+
+Pick Cherry Studio, not SpotAsk, when you need a full AI workstation rather than a quick-ask box: knowledge bases with RAG, agents with MCP tools, image generation, multi-model comparison, Windows/Linux, or the iOS/Android apps. Cherry Studio also has its own Quick Assistant hotkey window (⌘E, off by default). We installed it and measured both apps on the same Mac—see our in-depth [SpotAsk vs Cherry Studio](/compare/cherry-studio) comparison.
 
 ## Where SpotAsk fits
 
