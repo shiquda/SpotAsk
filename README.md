@@ -137,6 +137,12 @@ Official releases support Spotlight, Siri, and Shortcuts. For custom builds, sig
 
 - [Online Documentation](https://shiquda.github.io/SpotAsk/): Complete user guide, provider setup, selection actions, and troubleshooting.
 - [Developer Guide](DEVELOPMENT.md): Instructions for building, testing, localization, and releases.
+- [ChatGPT Option+Space on Mac](https://shiquda.github.io/SpotAsk/guides/chatgpt-option-space)
+- [SpotAsk vs Raycast AI](https://shiquda.github.io/SpotAsk/compare/raycast-ai)
+- [Compare Mac AI quick-ask apps](https://shiquda.github.io/SpotAsk/compare/)
+- [Bring your own API key](https://shiquda.github.io/SpotAsk/use-cases/byok-macos-ai)
+- [External Ask](https://shiquda.github.io/SpotAsk/guides/external-ask)
+- [Selection assistant](https://shiquda.github.io/SpotAsk/use-cases/selection-assistant)
 ## License
 
 SpotAsk is licensed under the [GNU AGPL v3](LICENSE).

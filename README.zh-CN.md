@@ -134,6 +134,12 @@ SpotAsk 围绕 **“先提问再分流（Ask first. Decide where it goes after.�
 
 - [在线用户手册](https://shiquda.github.io/SpotAsk/zh-CN/)：涵盖完整配置指南、服务接入、划词规则与故障排查。
 - [开发者指南](DEVELOPMENT.md)：包含完整构建、测试、本地化与版本发布流程。
+- [ChatGPT Option+Space on Mac](https://shiquda.github.io/SpotAsk/guides/chatgpt-option-space)（英文）
+- [SpotAsk vs Raycast AI](https://shiquda.github.io/SpotAsk/compare/raycast-ai)（英文）
+- [Compare Mac AI quick-ask apps](https://shiquda.github.io/SpotAsk/compare/)（英文）
+- [Bring your own API key](https://shiquda.github.io/SpotAsk/zh-CN/use-cases/byok-macos-ai)（自带 API 密钥）
+- [External Ask](https://shiquda.github.io/SpotAsk/zh-CN/guides/external-ask)（外部提问）
+- [Selection assistant](https://shiquda.github.io/SpotAsk/zh-CN/use-cases/selection-assistant)（全局划词助手）
 ## 许可证
 
 SpotAsk 使用 [GNU AGPL v3](LICENSE) 许可证。

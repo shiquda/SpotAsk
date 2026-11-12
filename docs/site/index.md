@@ -50,7 +50,7 @@ Press one hotkey — `⌥ + Space` by default — and a focused question window 
 - **External Ask routing**: send the question to a web AI (ChatGPT, Perplexity, Grok), a desktop app, or a local CLI agent — in 1 click, or automatically with a decision model. See how to [reproduce the ChatGPT + CLI hotkey workflow](/guides/external-ask#the-workflow-in-30-seconds).
 - **Selected-text actions**: highlight text in any macOS app to translate, explain, or summarize with the Selection Assistant (`⌥ + ⇧ + Space`).
 
-Looking for [a free, open-source ChatGPT Mac alternative for quick questions](/compare/chatgpt-mac)? SpotAsk focuses on instant questions, selected-text lookups, and fast hand-offs rather than managing long workspace conversations.
+Looking for [a free, open-source ChatGPT Mac alternative for quick questions](/compare/chatgpt-mac), or evaluating [SpotAsk vs Raycast AI](/compare/raycast-ai)? Explore our guide to [compare Mac AI quick-ask apps](/compare/) to see how focused BYOK menu bar tools differ from full launcher extensions and workspace chats. SpotAsk focuses on instant questions, selected-text lookups, and fast hand-offs rather than managing long workspace conversations.
 
 No account, no telemetry, nothing between you and your provider. Press `Esc` and SpotAsk is gone.
 
