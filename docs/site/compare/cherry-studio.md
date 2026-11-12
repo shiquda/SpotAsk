@@ -60,7 +60,7 @@ Checked November 12, 2026. Dash (—) means not verified from official sources.
 | **Idle memory footprint** | 593 MB (6 processes)¹ | 17 MB (1 process)¹ |
 | **Memory after one question** | 660 MB¹ | 46 MB¹ |
 | **Global quick-ask window** | Quick Assistant, ⌘E default, **off by default** | Ask box, ⌥Space default, on by default |
-| **Selected-text actions** | Selection Assistant (7 built-in actions, needs Accessibility permission) | Selection Assistant (⌥⇧Space, needs Accessibility permission) |
+| **Selected-text actions** | Selection Assistant (off by default; toolbar preview lists Translate, Explain, Summarize, Search, Copy, Ask Agent; needs Accessibility permission) | Selection Assistant (⌥⇧Space, needs Accessibility permission) |
 | **Hand-off to ChatGPT / local AI agent** | Mini Apps embed web AI inside the app; no external hand-off found | Built in ([External Ask](/guides/external-ask), incl. decision routing) |
 | **Spotlight / Siri / Shortcuts** | None found in app bundle | App Intents + `spotask://` URL scheme |
 | **Knowledge base / RAG** | Yes (local files, folders, web pages) | No |
@@ -102,7 +102,7 @@ Cherry Studio does have a quick-ask window—this page would be wrong to imply o
 
 - Quick Assistant is **off by default**; you enable it in Settings → Quick Assistant, and its hotkey (macOS default <kbd>⌘ E</kbd>) must also be switched on in Settings → Shortcuts.
 - Once enabled, it works with the main window closed (Cherry Studio stays in the tray)—we verified this—and can optionally read your clipboard when summoned.
-- Cherry Studio also has a [Selection Assistant](https://cherryai.com/docs/en/cherrystudio/preview/selection-assistant/) (7 built-in actions, 5 on by default); like SpotAsk's, it requires Accessibility permission on macOS.
+- Cherry Studio also has a [Selection Assistant](https://cherryai.com/docs/en/cherrystudio/preview/selection-assistant/)—off by default, with a toolbar of built-in actions (Translate, Explain, Summarize, Search, Copy, Ask Agent in the 2.2.0 settings preview); like SpotAsk's, it requires Accessibility permission on macOS.
 
 The difference is defaults and scope, not existence. SpotAsk's ask box is the whole app: on by default at <kbd>⌥ Space</kbd>, answer, <kbd>Esc</kbd>, one menu bar process left behind. Cherry's Quick Assistant is one feature of a workstation keeping ~600–740 MB resident to back it.
 
