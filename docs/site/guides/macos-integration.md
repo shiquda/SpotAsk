@@ -24,7 +24,7 @@ SpotAsk integrates deeply with native macOS system entrypoints by registering Ap
 | Requirement | Specification | Notes |
 | :--- | :--- | :--- |
 | **Operating System** | macOS 15.0 (Sequoia) or later | App Intents and Spotlight deep integration require macOS 15+ |
-| **Application Version** | SpotAsk `v0.1.0+` official signed release | Universal binary (`arm64` Apple Silicon & `x86_64` Intel) |
+| **Application Version** | SpotAsk `v0.1.0+` official signed release | Apple Silicon and Intel builds (separate `arm64` / `x86_64` downloads) |
 | **Code Signing** | Apple Developer ID signed application | Required for macOS system daemons to recognize and index App Intents |
 | **Installation Path** | `/Applications/SpotAsk.app` | Launch at least once after installation to register URL schemes and intents |
 | **Supported Launchers** | Apple Spotlight, Siri, Shortcuts, Raycast, Alfred | Any tool capable of opening `spotask://` URLs or running macOS Shortcuts |
