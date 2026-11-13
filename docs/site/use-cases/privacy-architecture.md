@@ -19,11 +19,11 @@ The complete codebase is open-source under GNU AGPL-3.0 on GitHub for independen
 | **Prompts & Attachments** | Direct connection to your configured provider (or loopback) | Dispatched via HTTPS only when actively querying; remote providers process data per their own privacy policies; on-device when using Ollama |
 | **Decision Routing Text** | Your configured external decision service (disabled by default) | Transmitted only when decision routing is enabled and a prompt is sent; prompts with attachments bypass routing and go directly to conversation models |
 | **Preferences & History** | Local application support directory (`~/Library/Application Support/SpotAsk/`) | Used exclusively for local display and history; never synchronized to external servers; wipeable with one click |
-| **Update Checking** | Official GitHub Releases API (optional) | Single check at launch to compare version numbers; transmits zero prompt contents, device fingerprints, or keys; can be disabled in Settings |
+| **Update Checking** | Official GitHub release feed, then the automatic mirror | About once a day, Sparkle requests the official appcast. If that times out or fails, it retries the same file through `https://ghproxy.net/`. Questions and keys never use this path. |
 
 ## 3-Step Quick Start & Verification
 
-1. **Traffic Audit**: After installation, inspect background network activity using tools like Little Snitch or Proxyman. You will observe zero background telemetry connections when idle.
+1. **Traffic Audit**: After installation, inspect background network activity using tools like Little Snitch or Proxyman. There is no telemetry. The only background request is the update check, and you can turn that off.
 2. **Configure Direct Keys or Local Models**: In **Settings > Services**, supply your own API key or configure a local Ollama endpoint for completely offline operation.
 3. **Purge Local Data**: In **Settings > General**, click "Clear All Local Data" to immediately delete your local credentials file, preferences, and cached conversations.
 

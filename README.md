@@ -1,18 +1,21 @@
 <h1 align="center">SpotAsk</h1>
 
 <p align="center">
-  A native macOS menu-bar AI assistant & query router. Summon with a hotkey, then answer in-app (BYOK) or route to web AI and local CLI agents — automatically with a decision model, or in one keystroke.
+  SpotAsk is a free, open-source Mac menu bar app for quick questions: press ⌥Space to get an answer with your own API key, act on selected text, or hand off to ChatGPT or a local AI agent.
 </p>
 
 <p align="center">
   macOS 15+ · Apple Silicon / Intel · Native Swift
 </p>
 
-<p align="center">
+<div align="center">
+
   <a href="https://github.com/shiquda/SpotAsk/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/shiquda/SpotAsk?display_name=tag&sort=semver"></a>
   <a href="https://github.com/shiquda/SpotAsk/actions/workflows/ci.yml"><img alt="CI status" src="https://github.com/shiquda/SpotAsk/actions/workflows/ci.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/github/license/shiquda/SpotAsk"></a>
-</p>
+  [![Listed on OpenMacApps](https://openmacapps.com/badge.svg)](https://openmacapps.com/apps/spotask/)
+
+</div>
 
 <p align="center">
   <a href="https://github.com/shiquda/SpotAsk/releases/latest">Download for macOS</a> · <a href="https://shiquda.github.io/SpotAsk/">Documentation</a> · <a href="#quick-start">Quick start</a> · <a href="#build-from-source">Build from source</a> · <a href="README.zh-CN.md">简体中文</a>
@@ -112,7 +115,7 @@ Turn on automatic routing and SpotAsk asks a decision model (System One or OpenA
 
 ## Privacy
 
-- **BYOK (Bring Your Own Key)**: Access keys are stored securely in macOS Keychain and sent only to your configured provider.
+- **BYOK (Bring Your Own Key)**: Access keys are stored only on this Mac, in a local credentials file readable only by your macOS user (not in Keychain), and are sent only to the provider you configured.
 - **Zero telemetry**: No account required, no middle proxy servers, and no tracking.
 - **On-demand permissions**: The selection assistant requests Accessibility permissions only when enabled, and reads text strictly when you highlight it.
 

@@ -184,6 +184,9 @@ struct ChatView: View {
         }
         // Content spans the full window; the header's Material draws the
         // chrome and the conversation insets clear of it (see below).
+        .background {
+            ChatWindowBackdrop(style: settings.chatWindowBackground)
+        }
         .ignoresSafeArea()
         .frame(minWidth: 364, minHeight: 320)
         .background(ChatWindowReader(reference: chatWindowReference))
@@ -373,12 +376,17 @@ struct ChatView: View {
         if routingController.phase.isActive {
             return handleActiveDecisionRouteSend()
         }
-        if composerModeCoordinator.pendingExternalAsk == nil,
-           settings.decisionRoutingEnabled,
-           sessionAllowsAutomaticRouting {
-            return sendWithDecisionRouting()
+        // A selected prompt preset names the in-app target the way a mounted
+        // channel does, so it sends directly instead of starting a decision.
+        guard DecisionRoutingPolicy.shouldStartDecision(
+            routingEnabled: settings.decisionRoutingEnabled,
+            sessionRoutingEnabled: sessionAllowsAutomaticRouting,
+            hasManualChannel: composerModeCoordinator.pendingExternalAsk != nil,
+            hasManualPreset: viewModel.selectedPromptPreset != nil
+        ) else {
+            return performStandardOrManualSend()
         }
-        return performStandardOrManualSend()
+        return sendWithDecisionRouting()
     }
 
     @discardableResult
@@ -446,6 +454,7 @@ struct ChatView: View {
         guard DecisionRoutingPolicy.shouldConsultModel(
             routingEnabled: settings.decisionRoutingEnabled,
             hasManualChannel: composerModeCoordinator.pendingExternalAsk != nil,
+            hasManualPreset: viewModel.selectedPromptPreset != nil,
             candidateCount: candidates.count,
             sessionRoutingEnabled: sessionAllowsAutomaticRouting
         ) else {
@@ -696,6 +705,10 @@ struct ChatView: View {
             inputFocused = true
             return
         }
+        // Picking a preset is a manual target choice: an in-flight or delivered
+        // decision belongs to the previous send context and must not swallow
+        // this send.
+        routingController.cancel()
         composerModeCoordinator.applyPreset(
             enabledPreset,
             selectedPreset: &viewModel.selectedPromptPreset
@@ -1076,6 +1089,8 @@ struct ChatView: View {
             receiveQuestion(question, promptPreset: promptPreset, selectionSnapshot: selectionSnapshot)
         case let .addToChat(text):
             addToChat(text)
+        case let .appendCompletedTurn(turn):
+            importCompletedTurn(turn)
         }
     }
 
@@ -1100,6 +1115,20 @@ struct ChatView: View {
             scrollFollowState.resumeFollowing()
         }
         inputFocused = true
+    }
+
+    private func importCompletedTurn(_ turn: CompletedConversationTurn) {
+        let reset = viewModel.prepareNewConversationAfterInactivity()
+        if reset {
+            routingController.cancel()
+        }
+        viewModel.appendCompletedTurn(turn)
+        composerModeCoordinator.reset()
+        clearAtCommandTokenState()
+        if let textView = composerTextView.textView, !textView.string.isEmpty {
+            textView.string = ""
+        }
+        focusInput()
     }
 
     private func composeQuestion(_ question: String, promptPreset: PromptPreset?) {

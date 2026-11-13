@@ -1,20 +1,20 @@
 cask "spotask" do
-  version "0.3.2"
+  version "0.3.4"
 
   on_arm do
-    sha256 "90eb1962eb7481f8db0c845403ffdd29969e69e598d0a1b1fca12c6af6cb5fb1"
+    sha256 "0812909845a960f82ab0e01e259707392f05af250af32a32cfb041a134b73253"
 
     url "https://github.com/shiquda/SpotAsk/releases/download/v#{version}/SpotAsk-#{version}-arm64.dmg"
   end
   on_intel do
-    sha256 "d2ecb4c7fa7e0e6902bbd54eef736b4d125139a9d2dc7a492343190326ba3756"
+    sha256 "23f4835bc6054032e9f8431fa2fd286cdbe4b1a1eeeee8c2fd6e2b9b9eedd7fc"
 
     url "https://github.com/shiquda/SpotAsk/releases/download/v#{version}/SpotAsk-#{version}-x86_64.dmg"
   end
 
   name "SpotAsk"
-  desc "One hotkey to ask any AI from the Mac menu bar"
-  homepage "https://shiquda.github.io/SpotAsk/"
+  desc "Menu bar AI quick-ask with one hotkey and your own API key"
+  homepage "https://github.com/shiquda/SpotAsk"
 
   depends_on macos: :sequoia
 

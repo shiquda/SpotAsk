@@ -1,9 +1,9 @@
 import AppKit
 import SwiftUI
 
-/// Routes configured shortcuts only while the SpotAsk chat window is key.
-/// It deliberately sits before AppKit's responder chain so a focused composer
-/// receives the same remapped behavior as every other chat control.
+/// Routes configured shortcuts only while the registered window is key.
+/// It deliberately sits before AppKit's responder chain so a focused text
+/// view receives the same remapped behavior as every other control.
 @MainActor
 final class InAppShortcutDispatcher {
     typealias TargetHandler = (InAppShortcutTarget) -> Bool

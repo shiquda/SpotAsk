@@ -7,6 +7,7 @@ enum SpotAskCommandAction: Equatable {
     case newConversation
     case ask(String, PromptPreset?, SelectedTextSnapshot? = nil)
     case addToChat(String)
+    case appendCompletedTurn(CompletedConversationTurn)
 }
 
 @MainActor
@@ -106,6 +107,10 @@ final class SpotAskCommandCenter {
             return
         }
         enqueue(.ask(trimmedQuestion, promptPreset, selectionSnapshot))
+    }
+
+    func appendCompletedTurn(_ turn: CompletedConversationTurn) {
+        enqueue(.appendCompletedTurn(turn))
     }
 
     func showSettings(section: SettingsSection? = nil) {

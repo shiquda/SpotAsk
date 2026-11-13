@@ -101,8 +101,20 @@ enum SelectionReadingError: Error, Equatable, Sendable {
     case invalidAccessibilityValue
 }
 
+enum SelectionTriggerMode: Equatable, Sendable {
+    case automatic
+    case manual
+}
+
 protocol SelectedTextReading: Sendable {
     func readSelection(promptForPermission: Bool) async throws -> SelectedTextSnapshot
+    func readSelection(promptForPermission: Bool, triggerMode: SelectionTriggerMode) async throws -> SelectedTextSnapshot
+}
+
+extension SelectedTextReading {
+    func readSelection(promptForPermission: Bool, triggerMode: SelectionTriggerMode) async throws -> SelectedTextSnapshot {
+        try await readSelection(promptForPermission: promptForPermission)
+    }
 }
 
 /// Reads the text of a selection that detection could only locate, by asking

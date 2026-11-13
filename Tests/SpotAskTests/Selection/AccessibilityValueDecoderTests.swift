@@ -34,4 +34,17 @@ struct AccessibilityValueDecoderTests {
 
         #expect(value == .textMarkerRange(AccessibilityTextMarkerRange(startMarker: start, endMarker: end)))
     }
+
+    @Test("A CFBoolean attribute is decoded as a boolean value")
+    func booleanDecodesAsBool() throws {
+        let trueValue = try AccessibilityValueDecoder.decode(kCFBooleanTrue) { _ in
+            throw AccessibilityAdapterError.invalidValue
+        }
+        let falseValue = try AccessibilityValueDecoder.decode(kCFBooleanFalse) { _ in
+            throw AccessibilityAdapterError.invalidValue
+        }
+
+        #expect(trueValue == .bool(true))
+        #expect(falseValue == .bool(false))
+    }
 }
