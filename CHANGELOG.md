@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The "Continue in chat" button in the selection prompt floating window now displays a quote-bubble icon to the left of its label.
+
 ### Fixed
 
 - Manual Selection Assistant triggers (shortcut) now fall back to reading the selection via clipboard when an app (such as Telegram or WeChat) does not expose selected text or selection ranges through Accessibility, and reliably fall back to `⌘C` when the Edit > Copy menu item is unavailable or disabled.
