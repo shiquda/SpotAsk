@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Manual Selection Assistant triggers (shortcut) now fall back to reading the selection via clipboard when an app (such as Telegram or WeChat) does not expose selected text or selection ranges through Accessibility, and reliably fall back to `⌘C` when the Edit > Copy menu item is unavailable or disabled.
 - A selected prompt preset now sends directly in-app even with Decision Routing on: no decision request is made and no recommendation card appears. Choosing a preset also cancels a recommendation already in progress, so a route decided for the previous draft is never reused.
+- Formulas in the selection prompt floating window now render in place, in both light and dark, instead of leaving a blank gap. Turning formula rendering off in Settings shows the original formula text there as well.
 
 ## [0.3.4] - 2026-11-04
 
