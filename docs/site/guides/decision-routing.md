@@ -107,6 +107,7 @@ Decision Routing passes channel names to the decision model. You can enhance acc
 
 - **Strict HTTPS Enforcement**: Remote decision services strictly require HTTPS (loopback `localhost` / `127.0.0.1` debugging is permitted over HTTP). Redirects across origins or from HTTPS to HTTP are blocked before question text leaves your Mac.
 - **Attachment Exclusion**: Attaching images or files automatically bypasses Decision Routing and keeps the conversation inside SpotAsk. Your attachments are never uploaded to external decision endpoints.
+- **Prompt Presets Skip Routing**: Choosing a prompt preset (welcome chips, shortcut keys, or the preset picker) sends directly in-app with that prompt. Because a preset already names the destination and the treatment, no decision request is made.
 - **Stale Recommendation Cancellation**: Editing composer text, modifying attachments, or switching presets silently cancels any active recommendation or 0.8-second countdown, preventing accidental launches.
 - **Timeout Protection**: The default decision timeout is 2 seconds (configurable from 0.5s to 5s). Network stalls or endpoint errors fall back smoothly to manual channel selection or in-app answering without freezing the summon window.
 

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- A selected prompt preset now sends directly in-app even with Decision Routing on: no decision request is made and no recommendation card appears. Choosing a preset also cancels a recommendation already in progress, so a route decided for the previous draft is never reused.
+
 ## [0.3.4] - 2026-11-04
 
 **Floating window for selection prompts, frosted background for question window, smoother appearance and provider settings**
