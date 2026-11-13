@@ -643,7 +643,7 @@ private struct FloatingPromptView: View {
                 if session.answer.isEmpty {
                     status
                 } else {
-                    MarkdownTextView(content: session.answer)
+                    MarkdownTextView(content: session.answer, rendersMath: settings.renderMath)
                     if session.phase == .failed, let description = session.error?.errorDescription {
                         Text(description)
                             .font(.caption)
@@ -805,10 +805,16 @@ private struct FloatingPromptGlass: ViewModifier {
     @ViewBuilder
     private func surface(_ content: Content) -> some View {
         if #available(macOS 26, *) {
-            content.glassEffect(
-                .regular,
-                in: RoundedRectangle(cornerRadius: FloatingPromptChrome.cornerRadius, style: .continuous)
-            )
+            // Liquid Glass has to sit behind the answer. Applying it to the
+            // content itself drops both inline Canvas symbols and display
+            // SVGs, so the formula keeps its gap and draws nothing. The
+            // question window uses the same behind-content glass.
+            content.background {
+                Color.clear.glassEffect(
+                    .regular,
+                    in: RoundedRectangle(cornerRadius: FloatingPromptChrome.cornerRadius, style: .continuous)
+                )
+            }
         } else {
             content.background(Color.clear)
         }
