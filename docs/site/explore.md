@@ -25,7 +25,7 @@ Three workflows cover most everyday use:
 
 ## Quick questions from anywhere
 
-Press your global hotkey (default `⌥ + Space`) to summon a focused input window over any app. Ask, stream an answer, and dismiss instantly with `⎋`.
+Press your global hotkey (default `⌥ + Space`; [shortcut clash with ChatGPT?](/guides/chatgpt-option-space)) to summon a focused input window over any app. Ask, stream an answer, and dismiss instantly with `⎋`.
 
 - [Getting Started](/getting-started)
 
@@ -34,6 +34,7 @@ Press your global hotkey (default `⌥ + Space`) to summon a focused input windo
 Highlight text in Safari, Notes, or Xcode to trigger the inline action bar. Translate, explain, summarize, polish, or bring text directly into chat for follow-up.
 
 - [Selection Assistant guide](/guides/selection-assistant)
+- [Selection Assistant Workflow (Translate & Rewrite)](/use-cases/selection-assistant)
 
 ## Route questions with External Ask
 

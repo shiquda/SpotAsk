@@ -148,6 +148,9 @@
 "settings.accessKeyPlaceholder" = "Introduce una clave de acceso para guardar o actualizar";
 "settings.appearance" = "Apariencia";
 "settings.theme" = "Tema";
+"settings.windowBackground" = "Fondo";
+"windowBackground.opaque" = "Opaco";
+"windowBackground.frosted" = "Esmerilado";
 "settings.about" = "Acerca de";
 "settings.aboutDescription" = "Consulta la versión, el código fuente y las actualizaciones disponibles.";
 "settings.version" = "Versión";
@@ -429,6 +432,10 @@
 "settings.selectionAssistantActionChat" = "Mostrar icono de chat en la barra de selección";
 "settings.selectionAssistantActionExternalAsk" = "Mostrar External Ask en la barra de selección";
 "settings.selectionAssistantActionPrompts" = "Mostrar prompts en la barra de selección";
+"settings.selectionPromptClickBehavior" = "Clics de prompts";
+"settings.selectionPromptClickBehaviorFloatingOnLeft" = "Clic izquierdo: ventana flotante";
+"settings.selectionPromptClickBehaviorMainChatOnLeft" = "Clic izquierdo: chat principal";
+"settings.selectionPromptClickBehaviorDescription" = "El clic derecho hace la otra acción. El chat y External Ask no cambian.";
 "settings.selectionAssistantActionBarCrowdingHint" = "Con muchas acciones, la barra puede resultar demasiado larga. Quite las que no use, o desactive «Mostrar etiquetas junto a los iconos» para ver solo iconos.";
 "settings.selectionAssistantActionBarPreview" = "Vista previa de la barra de acciones";
 "settings.selectionAssistantActionBarPreviewEmpty" = "No hay acciones que mostrar: con la configuración actual, la barra de acciones no aparecerá.";
@@ -450,6 +457,13 @@
 "selection.actionBar.more" = "Más";
 "selection.actionBar.chat" = "Chat";
 "selection.actionBar.chatTooltip" = "Añadir al chat";
+"selection.actionBar.promptPresetClickHint" = "Clic izquierdo: ventana flotante · Clic derecho: chat principal";
+"selection.actionBar.promptPresetClickHintReversed" = "Clic izquierdo: chat principal · Clic derecho: ventana flotante";
+"floatingPrompt.copyAll" = "Copiar todo";
+"floatingPrompt.continueInChat" = "Continuar en el chat";
+"floatingPrompt.pin" = "Fijar";
+"floatingPrompt.unpin" = "Dejar de fijar";
+"floatingPrompt.close" = "Cerrar";
 "selection.actionBar.moreAccessibility" = "Más acciones de selección";
 "selection.actionBar.externalAskAccessibility" = "External Ask: %@";
 "selection.actionBar.kind.web" = "Pregunta web";

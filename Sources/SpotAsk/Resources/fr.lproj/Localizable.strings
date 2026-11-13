@@ -148,6 +148,9 @@
 "settings.accessKeyPlaceholder" = "Saisissez une clé d'accès à enregistrer ou à mettre à jour";
 "settings.appearance" = "Apparence";
 "settings.theme" = "Thème";
+"settings.windowBackground" = "Arrière-plan";
+"windowBackground.opaque" = "Opaque";
+"windowBackground.frosted" = "Givré";
 "settings.about" = "À propos";
 "settings.aboutDescription" = "Consultez la version de l'app, le code source du projet et les mises à jour disponibles.";
 "settings.version" = "Version";
@@ -429,6 +432,10 @@
 "settings.selectionAssistantActionChat" = "Afficher l’icône de chat dans la barre de sélection";
 "settings.selectionAssistantActionExternalAsk" = "Afficher External Ask dans la barre de sélection";
 "settings.selectionAssistantActionPrompts" = "Afficher les prompts dans la barre de sélection";
+"settings.selectionPromptClickBehavior" = "Clics des prompts";
+"settings.selectionPromptClickBehaviorFloatingOnLeft" = "Clic gauche : fenêtre flottante";
+"settings.selectionPromptClickBehaviorMainChatOnLeft" = "Clic gauche : chat principal";
+"settings.selectionPromptClickBehaviorDescription" = "Le clic droit fait l'autre action. Le chat et External Ask ne changent pas.";
 "settings.selectionAssistantActionBarCrowdingHint" = "Avec trop d’actions, la barre peut devenir trop longue. Retirez celles que vous n’utilisez pas, ou désactivez « Afficher les libellés à côté des icônes » pour n’afficher que les icônes.";
 "settings.selectionAssistantActionBarPreview" = "Aperçu de la barre d’actions";
 "settings.selectionAssistantActionBarPreviewEmpty" = "Aucune action à afficher : avec la configuration actuelle, la barre d’actions n’apparaîtra pas.";
@@ -450,6 +457,13 @@
 "selection.actionBar.more" = "Plus";
 "selection.actionBar.chat" = "Chat";
 "selection.actionBar.chatTooltip" = "Ajouter au chat";
+"selection.actionBar.promptPresetClickHint" = "Clic gauche : fenêtre flottante · Clic droit : chat principal";
+"selection.actionBar.promptPresetClickHintReversed" = "Clic gauche : chat principal · Clic droit : fenêtre flottante";
+"floatingPrompt.copyAll" = "Tout copier";
+"floatingPrompt.continueInChat" = "Continuer dans le chat";
+"floatingPrompt.pin" = "Épingler";
+"floatingPrompt.unpin" = "Désépingler";
+"floatingPrompt.close" = "Fermer";
 "selection.actionBar.moreAccessibility" = "Autres actions de sélection";
 "selection.actionBar.externalAskAccessibility" = "External Ask : %@";
 "selection.actionBar.kind.web" = "Question web";

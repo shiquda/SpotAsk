@@ -187,12 +187,13 @@ struct SelectionAssistantCoordinatorTests {
         #expect(reader.deferredReadRequests.isEmpty)
     }
 
-    @Test("Choosing an action copies the selection and asks with the copied text")
+    @Test("Choosing an action copies the selection and opens a floating prompt")
     func choosingActionCopiesTheSelectionOnDemand() async {
         let settings = makeSettings()
         let overlay = SelectionOverlayStub()
         let reader = SelectionReaderStub(snapshot: makeDeferredSnapshot(text: "(M2): elided observations andrecoverable alon"))
         reader.deferredText = "elided observations are stored externally and recoverable"
+        let presenter = RecordingFloatingPromptPresenter()
         let commandCenter = SpotAskCommandCenter()
         let recorder = CommandActionRecorder()
         commandCenter.configure(panelController: SelectionPanelControllerSpy())
@@ -202,7 +203,8 @@ struct SelectionAssistantCoordinatorTests {
             settings: settings,
             reader: reader,
             overlay: overlay,
-            commandCenter: commandCenter
+            commandCenter: commandCenter,
+            floatingPrompts: presenter
         )
 
         coordinator.trigger()
@@ -210,20 +212,130 @@ struct SelectionAssistantCoordinatorTests {
             await Task.yield()
         }
         #expect(reader.deferredReadRequests.isEmpty)
+        let expectedPresetID = overlay.shownPresets.first?.id
+        overlay.chooseFirstAction()
+        for _ in 0 ..< 50 where presenter.presentations.isEmpty {
+            await Task.yield()
+        }
+
+        #expect(reader.deferredReadRequests == [sampleSnapshot.source])
+        #expect(recorder.actions.isEmpty)
+        #expect(presenter.presentations.first?.0.text == "elided observations are stored externally and recoverable")
+        #expect(presenter.presentations.first?.0.textOrigin == .accessibility)
+        #expect(presenter.presentations.first?.1.id == expectedPresetID)
+    }
+
+    @Test("Right-clicking a prompt asks in the main chat")
+    func secondaryPresetClickAsksInTheMainChat() async {
+        let settings = makeSettings()
+        let overlay = SelectionOverlayStub()
+        let reader = SelectionReaderStub(snapshot: sampleSnapshot)
+        let presenter = RecordingFloatingPromptPresenter()
+        let commandCenter = SpotAskCommandCenter()
+        let recorder = CommandActionRecorder()
+        commandCenter.configure(panelController: SelectionPanelControllerSpy())
+        commandCenter.setPanelContent { EmptyView() }
+        commandCenter.setActionConsumer { recorder.actions.append($0) }
+        let coordinator = makeCoordinator(
+            settings: settings,
+            reader: reader,
+            overlay: overlay,
+            commandCenter: commandCenter,
+            floatingPrompts: presenter
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 50 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+        let expectedPresetID = overlay.shownPresets.first?.id
+
+        overlay.chooseFirstSecondaryAction()
+        for _ in 0 ..< 50 where recorder.actions.isEmpty {
+            await Task.yield()
+        }
+
+        guard case let .ask(question, preset, _) = recorder.actions.first else {
+            Issue.record("Expected an ask action, got \(recorder.actions)")
+            return
+        }
+        #expect(question == "Selected text")
+        #expect(preset?.id == expectedPresetID)
+        #expect(presenter.presentations.isEmpty)
+    }
+
+    @Test("A reversed prompt click setting swaps the floating window and the main chat")
+    func reversedPromptClicksSwapTargets() async {
+        let settings = makeSettings()
+        settings.selectionPromptClickBehavior = .mainChatOnLeft
+        let overlay = SelectionOverlayStub()
+        let reader = SelectionReaderStub(snapshot: sampleSnapshot)
+        let presenter = RecordingFloatingPromptPresenter()
+        let commandCenter = SpotAskCommandCenter()
+        let recorder = CommandActionRecorder()
+        commandCenter.configure(panelController: SelectionPanelControllerSpy())
+        commandCenter.setPanelContent { EmptyView() }
+        commandCenter.setActionConsumer { recorder.actions.append($0) }
+        let coordinator = makeCoordinator(
+            settings: settings,
+            reader: reader,
+            overlay: overlay,
+            commandCenter: commandCenter,
+            floatingPrompts: presenter
+        )
+
+        coordinator.trigger()
+        for _ in 0 ..< 50 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+        let expectedPresetID = overlay.shownPresets.first?.id
+
         overlay.chooseFirstAction()
         for _ in 0 ..< 50 where recorder.actions.isEmpty {
             await Task.yield()
         }
 
-        #expect(reader.deferredReadRequests == [sampleSnapshot.source])
-        guard case let .ask(question, _, snapshot) = recorder.actions.first else {
-            Issue.record("Expected an ask action, got \(recorder.actions)")
+        guard case let .ask(question, preset, _) = recorder.actions.first else {
+            Issue.record("Expected a left-click to ask in the main chat, got \(recorder.actions)")
             return
         }
-        #expect(question == "elided observations are stored externally and recoverable")
-        // Later stages of the flow act on the copied text, never the hint.
-        #expect(snapshot?.text == "elided observations are stored externally and recoverable")
-        #expect(snapshot?.textOrigin == .accessibility)
+        #expect(question == "Selected text")
+        #expect(preset?.id == expectedPresetID)
+        #expect(presenter.presentations.isEmpty)
+
+        overlay.hide()
+        coordinator.trigger()
+        for _ in 0 ..< 50 where !overlay.hasActionHandler {
+            await Task.yield()
+        }
+        let secondaryPresetID = overlay.shownPresets.first?.id
+        overlay.chooseFirstSecondaryAction()
+        for _ in 0 ..< 50 where presenter.presentations.isEmpty {
+            await Task.yield()
+        }
+
+        #expect(presenter.presentations.first?.1.id == secondaryPresetID)
+        #expect(recorder.actions.count == 1)
+    }
+
+    @Test("Right-click hit testing does not need a key window")
+    func secondaryClickHitTestInvokesTheButton() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 80, height: 40),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: true
+        )
+        let root = NSView(frame: NSRect(x: 0, y: 0, width: 80, height: 40))
+        window.contentView = root
+        let button = SelectionActionButton(frame: NSRect(x: 10, y: 10, width: 30, height: 20))
+        var fired = 0
+        button.onSecondaryClick = { fired += 1 }
+        root.addSubview(button)
+        #expect(SelectionActionButton.performSecondaryClick(in: root, at: NSPoint(x: 20, y: 15)))
+        #expect(fired == 1)
+        #expect(!SelectionActionButton.performSecondaryClick(in: root, at: NSPoint(x: 70, y: 15)))
+        #expect(fired == 1)
     }
 
     @Test("Choosing the chat action copies the selection before filling the input")
@@ -288,22 +400,18 @@ struct SelectionAssistantCoordinatorTests {
         #expect(question == "elided observations are stored externally and recoverable")
     }
 
-    @Test("An ignored copy falls back to the Accessibility hint")
+    @Test("An ignored copy falls back to the Accessibility hint in the floating prompt")
     func ignoredCopyFallsBackToTheAccessibilityHint() async {
         let settings = makeSettings()
         let overlay = SelectionOverlayStub()
         let reader = SelectionReaderStub(snapshot: makeDeferredSnapshot(text: "misreported hint"))
         reader.deferredText = nil
-        let commandCenter = SpotAskCommandCenter()
-        let recorder = CommandActionRecorder()
-        commandCenter.configure(panelController: SelectionPanelControllerSpy())
-        commandCenter.setPanelContent { EmptyView() }
-        commandCenter.setActionConsumer { recorder.actions.append($0) }
+        let presenter = RecordingFloatingPromptPresenter()
         let coordinator = makeCoordinator(
             settings: settings,
             reader: reader,
             overlay: overlay,
-            commandCenter: commandCenter
+            floatingPrompts: presenter
         )
 
         coordinator.trigger()
@@ -311,15 +419,11 @@ struct SelectionAssistantCoordinatorTests {
             await Task.yield()
         }
         overlay.chooseFirstAction()
-        for _ in 0 ..< 50 where recorder.actions.isEmpty {
+        for _ in 0 ..< 50 where presenter.presentations.isEmpty {
             await Task.yield()
         }
 
-        guard case let .ask(question, _, _) = recorder.actions.first else {
-            Issue.record("Expected an ask action, got \(recorder.actions)")
-            return
-        }
-        #expect(question == "misreported hint")
+        #expect(presenter.presentations.first?.0.text == "misreported hint")
     }
 
     @Test("A clipboard-assisted action with nothing to read reports no selection")
@@ -783,7 +887,8 @@ struct SelectionAssistantCoordinatorTests {
         reader: any SelectedTextReading,
         overlay: SelectionOverlayStub = SelectionOverlayStub(),
         executor: any QuickActionExecuting = DefaultQuickActionExecutor(),
-        commandCenter: SpotAskCommandCenter = SpotAskCommandCenter()
+        commandCenter: SpotAskCommandCenter = SpotAskCommandCenter(),
+        floatingPrompts: any FloatingPromptPresenting = IgnoringFloatingPromptPresenter()
     ) -> SelectionAssistantCoordinator {
         SelectionAssistantCoordinator(
             settings: settings,
@@ -795,7 +900,8 @@ struct SelectionAssistantCoordinatorTests {
             settingsOpener: SelectionSettingsOpenerStub(),
             commandCenter: commandCenter,
             overlay: overlay,
-            executor: executor
+            executor: executor,
+            floatingPrompts: floatingPrompts
         )
     }
 
@@ -947,6 +1053,7 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
     private(set) var secondaryItems: [SelectionActionBarItem] = []
     private var chatHandler: (() -> Void)?
     private var actionHandler: ((PromptPreset) -> Void)?
+    private var secondaryActionHandler: ((PromptPreset) -> Void)?
     private var quickActionHandler: ((QuickAction) -> Void)?
 
     var hasActionHandler: Bool { actionHandler != nil }
@@ -966,7 +1073,9 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
         shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?,
         onSelectChat: @escaping () -> Void,
         onSelectPreset: @escaping (PromptPreset) -> Void,
-        onSelectExternalAsk: @escaping (QuickAction) -> Void
+        onSecondarySelectPreset: ((PromptPreset) -> Void)?,
+        onSelectExternalAsk: @escaping (QuickAction) -> Void,
+        promptClickBehavior _: SelectionPromptClickBehavior
     ) {
         self.showsChat = showsChat
         self.collapsesOverflow = collapsesOverflow
@@ -976,6 +1085,7 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
         self.quickActions = externalAsks
         chatHandler = onSelectChat
         actionHandler = onSelectPreset
+        secondaryActionHandler = onSecondarySelectPreset
         quickActionHandler = onSelectExternalAsk
     }
 
@@ -987,7 +1097,7 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
     func hide() {
         hideCount += 1
         actionHandler = nil
-        showsChat = false
+        secondaryActionHandler = nil
         chatHandler = nil
         quickActionHandler = nil
         shownPresets = []
@@ -999,6 +1109,11 @@ private final class SelectionOverlayStub: SelectionOverlayControlling {
     func chooseFirstAction() {
         guard let preset = shownPresets.first else { return }
         actionHandler?(preset)
+    }
+
+    func chooseFirstSecondaryAction() {
+        guard let preset = shownPresets.first else { return }
+        secondaryActionHandler?(preset)
     }
 
     func chooseFirstQuickAction() {
@@ -1025,4 +1140,13 @@ private final class RecordingQuickActionExecutor: QuickActionExecuting, @uncheck
 @MainActor
 private struct SelectionSettingsOpenerStub: AccessibilityPermissionSettingsOpening {
     func openAccessibilitySettings() -> Bool { true }
+}
+
+@MainActor
+private final class RecordingFloatingPromptPresenter: FloatingPromptPresenting {
+    private(set) var presentations: [(SelectedTextSnapshot, PromptPreset)] = []
+
+    func present(snapshot: SelectedTextSnapshot, preset: PromptPreset) {
+        presentations.append((snapshot, preset))
+    }
 }

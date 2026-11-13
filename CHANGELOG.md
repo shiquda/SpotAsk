@@ -7,27 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- Settings > External Ask decision routing can use the OpenAI Decisions API (`gpt-6-luna` at `https://api.openai.com`, address editable) alongside System One. Each engine keeps its own address, model, and access key.
-- Settings > Appearance > Reading can include `$$` delimiters when copying a display formula. This option appears only while math rendering is enabled; hiding it preserves the saved preference. The preference applies immediately and defaults to copying plain LaTeX.
-- Settings > Appearance > Reading can set the reading font to any font family installed on the Mac. It applies to answers, your questions, reasoning, and the composer; code blocks keep a monospaced font and formulas keep their own typography. The default stays the system font, and a family that is no longer installed falls back to the system font without losing the saved choice. The font dropdown includes a search field, previews every family in its own typeface, and supports arrow keys with Return to choose.
-
-### Changed
-
-- Replaced legacy SwiftUIMath rendering engine with an offline MathJax 4.1.3 SVG and SwiftDraw native attachment pipeline, isolating math syntax before Markdown parsing and supporting `$$...$$`, `\[...\]`, `$...$`, and `\(...\)` delimiters. Inline formulas now stay inside their sentence, and display formulas render as centred native blocks that scroll horizontally when the window is too narrow.
-- Native text selection is scoped to each text segment and does not continue across display-formula blocks.
-- Removed the development-only math benchmark tools, timing tests, and application hooks; functional math regression tests remain.
-
-- Model placeholders in the model editor now adapt dynamically to each service channel's latest model (e.g. `gpt-6-luna` for OpenAI, `claude-sonnet-5-5` for Anthropic, `gemini-3.8-flash` for Google Gemini, `deepseek-v4-flash` for DeepSeek, `kimi-latest` for Kimi, `llama3.3` for Ollama), and the default initial model updates from `gpt-5-mini` to `gpt-6-luna`.
-
 ### Fixed
 
 - A selected prompt preset now sends directly in-app even with Decision Routing on: no decision request is made and no recommendation card appears. Choosing a preset also cancels a recommendation already in progress, so a route decided for the previous draft is never reused.
-- Clearing all local data now deletes only that app's own settings, conversations, credentials, and diagnostics. A development test can no longer erase the installed app's preferences.
-- Fixed Xcode project syntax and selected the correct MathJax resource bundle for both Xcode app builds and SwiftPM.
-- Restored a copy button at the top right of each display formula, including pending and failed formulas. It copies the original LaTeX and briefly confirms success without covering the formula.
-- Fixed formulas containing `<`, including causal-context subscripts and temperature comparisons, failing native SVG rendering. Formula source text remains unchanged.
+
+## [0.3.4] - 2026-11-04
+
+**Floating window for selection prompts, frosted background for question window, smoother appearance and provider settings**
+
+### Added
+
+- Settings > Appearance > Background switches the question window between the current solid fill and a frosted background that shows the desktop behind it. The input field and message bubbles stay solid, and the change applies immediately.
+- Left-clicking a selection prompt opens an isolated floating window. Right-click asks in the main chat. The window can be pinned, copied, or continued into the current conversation. While focused, it uses the same chat shortcuts for copy, retry, pin, zoom, and settings.
+- Selection Assistant settings can swap which mouse button opens the floating window. The default stays left-click for the window and right-click for the main chat.
+
+### Changed
+
+- The selection prompt window uses the system glass surface instead of a solid card, and its edges can be dragged to resize.
+- The model name in that window opens the model menu and answers the selection again with the chosen model. It sits in the center, and the app icon is on the left, matching the main window.
+- The selection prompt window keeps a rounded hairline, like the main window, without a square corner border.
+- Choosing another model no longer closes the window.
+
+### Fixed
+
+- The question window keeps its solid fill in step with the pinned appearance, so switching between light and dark repaints the window instead of leaving the previous theme's background.
+- Continuing a floating answer into the main chat no longer leaves retry unable to send after a failed question. The imported exchange stays, including when the original request fails after the import.
+- The Settings > Appearance page scrolls when its content overflows on compact displays.
+- Settings > Providers correctly populates and isolates draft fields and API credentials when switching between multiple service channels.
+
+## [0.3.3] - 2026-10-28
+
+**Improved math rendering, customizable reading font, OpenAI Decisions routing engine**
+
+### Added
+
+- Settings > Appearance > Reading allows choosing an installed font as the reading font, with live search and typeface preview in the font menu.
+- Settings > External Ask decision routing adds support for the OpenAI Decisions engine, with independent address, model, and key settings.
+
+### Changed
+
+- Upgraded math formula rendering: seamless inline flow, centered display formulas with horizontal scrolling when narrow, and a dedicated copy LaTeX button (with optional $$ delimiters in Settings).
+- Updated service channel default models and placeholders to the latest flagship versions (e.g. OpenAI gpt-6-luna, Anthropic claude-sonnet-5-5).
+
+### Fixed
+
+- Scoped local data clearing strictly to the current app to prevent affecting other installations.
 
 ## [0.3.2] - 2026-10-21
 
@@ -307,7 +331,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Service provider cards expand and collapse reliably.
 - Thinking expansion behavior: expands during reasoning and collapses for final answers when enabled; stays collapsed when disabled.
 
-[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/shiquda/SpotAsk/compare/v0.3.4...HEAD
+[0.3.4]: https://github.com/shiquda/SpotAsk/compare/v0.3.3...v0.3.4
+[0.3.3]: https://github.com/shiquda/SpotAsk/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/shiquda/SpotAsk/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/shiquda/SpotAsk/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/shiquda/SpotAsk/compare/v0.2.7...v0.3.0

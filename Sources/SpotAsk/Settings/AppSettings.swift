@@ -7,6 +7,7 @@ extension Notification.Name {
     static let spotAskMenuBarIconVisibilityChanged = Notification.Name("com.spotask.menu-bar-icon-visibility-changed")
     static let spotAskAppearanceChanged = Notification.Name("com.spotask.appearance-changed")
     static let spotAskSelectionAssistantChanged = Notification.Name("com.spotask.selection-assistant-changed")
+    static let spotAskChatWindowBackgroundChanged = Notification.Name("com.spotask.chat-window-background-changed")
 }
 
 struct PromptPreset: Identifiable, Codable, Equatable, Sendable {
@@ -164,6 +165,24 @@ enum SelectionAssistantMode: String, CaseIterable, Identifiable, Codable, Sendab
     var id: String { rawValue }
 }
 
+/// Which mouse button opens the floating window for a selection prompt.
+/// The other button asks in the main chat. Chat and External Ask are unaffected.
+enum SelectionPromptClickBehavior: String, CaseIterable, Identifiable, Codable, Sendable {
+    case floatingOnLeft
+    case mainChatOnLeft
+
+    var id: String { rawValue }
+
+    func opensFloatingWindow(secondaryClick: Bool) -> Bool {
+        switch self {
+        case .floatingOnLeft:
+            return !secondaryClick
+        case .mainChatOnLeft:
+            return secondaryClick
+        }
+    }
+}
+
 enum SelectionAutoInvokeScope: String, CaseIterable, Identifiable, Codable, Sendable {
     case allApps
     case blacklist
@@ -233,6 +252,16 @@ enum FontSize: String, CaseIterable, Identifiable {
 enum ChatMessageStyle: String, CaseIterable, Identifiable, Codable, Sendable {
     case standard
     case im
+
+    var id: String { rawValue }
+}
+
+/// The question window's own fill. Opaque is the solid window color. Frosted
+/// clears that fill so the window can sample the desktop behind it. Message
+/// bubbles and the input field stay solid either way.
+enum ChatWindowBackground: String, CaseIterable, Identifiable, Codable, Sendable {
+    case opaque
+    case frosted
 
     var id: String { rawValue }
 }
@@ -374,6 +403,7 @@ final class AppSettings {
         static let fontSize = "fontSize"
         static let readingFontFamily = "readingFontFamily"
         static let chatMessageStyle = "chatMessageStyle"
+        static let chatWindowBackground = "chatWindowBackground"
         static let interfaceZoomLevel = "interfaceZoomLevel"
         static let language = AppLanguage.defaultsKey
         static let hotKeyPreset = "hotKeyPreset"
@@ -390,6 +420,7 @@ final class AppSettings {
         static let inAppShortcutConfiguration = "inAppShortcutConfiguration"
         static let selectionAssistantEnabled = "selectionAssistantEnabled"
         static let selectionAssistantMode = "selectionAssistantMode"
+        static let selectionPromptClickBehavior = "selectionPromptClickBehavior"
         static let selectionHotKeyPreset = "selectionHotKeyPreset"
         static let selectionDefaultPromptID = "selectionDefaultPromptID"
         static let selectionAssistantToggleShortcut = "selectionAssistantToggleShortcut"
@@ -502,12 +533,14 @@ final class AppSettings {
     /// reasoning). Empty selects the system font.
     var readingFontFamily: String = "" { didSet { saveSetting("readingFontFamily") } }
     var chatMessageStyle: ChatMessageStyle = .standard { didSet { saveSetting("chatMessageStyle") } }
+    var chatWindowBackground: ChatWindowBackground = .opaque { didSet { saveSetting("chatWindowBackground") } }
     var interfaceZoomLevel: InterfaceZoomLevel = .standard { didSet { saveSetting("interfaceZoomLevel") } }
     var language: AppLanguage = .system { didSet { saveSetting(AppLanguage.defaultsKey) } }
     var hotKeyPreset: HotKeyPreset = .optionSpace { didSet { saveSetting("hotKeyPreset") } }
     var globalShortcut: InAppShortcut? = nil { didSet { saveSetting("globalShortcut") } }
     var selectionAssistantEnabled: Bool = false { didSet { saveSetting("selectionAssistantEnabled") } }
     var selectionAssistantMode: SelectionAssistantMode = .actionBar { didSet { saveSetting("selectionAssistantMode") } }
+    var selectionPromptClickBehavior: SelectionPromptClickBehavior = .floatingOnLeft { didSet { saveSetting("selectionPromptClickBehavior") } }
     var selectionHotKeyPreset: SelectionHotKeyPreset = .optionShiftSpace { didSet { saveSetting("selectionHotKeyPreset") } }
     var selectionDefaultPromptID: UUID? = PromptPreset.builtIn.first?.id { didSet { saveSetting("selectionDefaultPromptID") } }
     var selectionAssistantToggleShortcut: InAppShortcut? = nil { didSet { saveSetting("selectionAssistantToggleShortcut") } }

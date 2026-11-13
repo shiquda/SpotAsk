@@ -15,7 +15,7 @@ description: A compact reference for SpotAsk settings sections, default shortcut
 | Selection Assistant | Permission, trigger mode, default action, preview & ordering, auto-show, app scope, delay |
 | Shortcuts | Global hotkey and in-app shortcuts with search, conflict detection, and grouping |
 | General | Language, launch behavior, session retention, proxy, diagnostics, local data & Danger Zone |
-| Appearance | Theme (System, Light, Dark), font size, message style, and reading size |
+| Appearance | Theme (System, Light, Dark), background (Solid or Frosted), font size, message style, and reading size |
 | About | Version, project source, automatic update checks, and manual update checks |
 
 Decision Routing lives in Settings > External Ask, after the channel list. It is off until you turn on **Enable automatic routing**.
@@ -36,7 +36,7 @@ Decision Routing lives in Settings > External Ask, after the channel list. It is
 
 | Action | Shortcut |
 | --- | --- |
-| Open or focus the question window | `⌥ + Space` (customizable, can be cleared) |
+| Open or focus the question window | `⌥ + Space` (customizable, can be cleared). [ChatGPT Option+Space conflicts](/guides/chatgpt-option-space#set-up-spotask-on-⌥space-without-fighting-chatgpt) |
 | Trigger the selection assistant | `⌥ + ⇧ + Space` |
 | Focus the input | `⌘ + L` |
 | Regenerate or retry | `⌘ + R` |
@@ -75,7 +75,7 @@ Up to 8 attachments are supported per message. Very large images are normalized 
 
 ## Updates
 
-- Automatic update checking runs when SpotAsk launches and periodically checks for new releases.
+- Automatic update checking is on by default and checks about once a day. It does not check on every launch.
 - **Check for Updates** checks immediately from About > Updates.
 - In-app updates download and install directly inside SpotAsk without leaving the app. You can skip a version from the update window or restore skipped version alerts in Settings > About.
 - **Update Download Source** can be configured in Settings > About > Updates (Automatic, Official GitHub, or Accelerated Mirror) with automatic timeout detection and mirror fallback for reliable downloads across regions.

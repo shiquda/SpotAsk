@@ -1480,6 +1480,69 @@ final class ProviderSettingsStateTests: XCTestCase {
         XCTAssertEqual(recordingFactory.capturedTarget?.format, .anthropic)
     }
 
+    func testMultipleProvidersSwitchingPopulatesDraftsAndCollapsesPrevious() throws {
+        let (defaults, suiteName) = makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let firstProvider = try XCTUnwrap(settings.providerRegistry.catalog?.providers.first)
+        let secondProvider = try settings.providerRegistry.saveProvider(
+            ProviderConfiguration(
+                name: "OpenRouter",
+                address: "https://openrouter.ai/api/v1",
+                addressMode: .baseURL,
+                timeout: 45,
+                format: .openAICompatible
+            )
+        )
+        let keyStore = RecordingKeyStore(apiKey: "first-key")
+        try keyStore.saveAPIKey("second-key", for: secondProvider.id)
+
+        let state = ProviderSettingsState(
+            settings: settings,
+            keyStore: keyStore,
+            providerFactory: NoopProviderFactory()
+        )
+
+        // 1. On init, first provider is auto-selected and expanded
+        XCTAssertEqual(state.selectedProviderID, firstProvider.id)
+        XCTAssertEqual(state.expandedProviderIDs, [firstProvider.id])
+        XCTAssertEqual(state.draftProviderName, firstProvider.name)
+        XCTAssertEqual(state.draftProviderAddress, firstProvider.address)
+        XCTAssertEqual(state.apiKeyDraft, "first-key")
+
+        // 2. Expand second provider (via toggleProviderExpansion or selectProvider)
+        state.toggleProviderExpansion(secondProvider.id)
+
+        // First provider must collapse, second provider must expand and be selected
+        XCTAssertEqual(state.selectedProviderID, secondProvider.id)
+        XCTAssertEqual(state.expandedProviderIDs, [secondProvider.id])
+        XCTAssertFalse(state.expandedProviderIDs.contains(firstProvider.id), "First provider should collapse")
+        XCTAssertEqual(state.draftProviderName, "OpenRouter", "Draft name must match second provider, not first")
+        XCTAssertEqual(state.draftProviderAddress, "https://openrouter.ai/api/v1", "Draft address must match second provider, not first")
+        XCTAssertEqual(state.apiKeyDraft, "second-key", "API key draft must match second provider")
+        XCTAssertEqual(state.draftProviderTimeout, 45)
+
+        // 3. Toggle second provider again to collapse
+        state.toggleProviderExpansion(secondProvider.id)
+        XCTAssertNil(state.selectedProviderID)
+        XCTAssertTrue(state.expandedProviderIDs.isEmpty)
+
+        // 4. Expand first provider again
+        state.toggleProviderExpansion(firstProvider.id)
+        XCTAssertEqual(state.selectedProviderID, firstProvider.id)
+        XCTAssertEqual(state.expandedProviderIDs, [firstProvider.id])
+        XCTAssertEqual(state.draftProviderName, firstProvider.name)
+        XCTAssertEqual(state.draftProviderAddress, firstProvider.address)
+        XCTAssertEqual(state.apiKeyDraft, "first-key")
+
+        // 5. Starting new provider collapses all existing providers
+        state.startNewProvider()
+        XCTAssertTrue(state.isCreatingProvider)
+        XCTAssertNil(state.selectedProviderID)
+        XCTAssertTrue(state.expandedProviderIDs.isEmpty)
+        XCTAssertEqual(state.draftProviderName, "")
+    }
+
     // MARK: - Helpers
 
     private func makeState(
@@ -1641,6 +1704,7 @@ final class ProviderSettingsStateTests: XCTestCase {
 }
 
 private final class RecordingKeyStore: APIKeyStoring, @unchecked Sendable {
+    private var keys: [UUID: String] = [:]
     private let apiKey: String?
     private(set) var readCount = 0
     private(set) var saveCount = 0
@@ -1656,21 +1720,26 @@ private final class RecordingKeyStore: APIKeyStoring, @unchecked Sendable {
 
     func readAPIKey(for providerID: UUID) throws -> String? {
         readCount += 1
-        return apiKey
+        return keys[providerID] ?? apiKey
     }
 
     func saveAPIKey(_ key: String, for providerID: UUID) throws {
         saveCount += 1
+        keys[providerID] = key
         savedKeys.append(key)
         savedProviderIDs.append(providerID)
     }
 
     func deleteAPIKey(for providerID: UUID) throws {
         deleteCount += 1
+        keys.removeValue(forKey: providerID)
         deletedProviderIDs.append(providerID)
     }
 
-    func deleteAllAPIKeys() throws { deleteAllCount += 1 }
+    func deleteAllAPIKeys() throws {
+        deleteAllCount += 1
+        keys.removeAll()
+    }
 }
 
 private final class StubModelDiscovery: ProviderModelDiscovering, @unchecked Sendable {

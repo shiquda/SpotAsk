@@ -37,7 +37,7 @@ The Selection Assistant detects highlighted text across any macOS application an
 4. **Trigger Actions**:
    - **Automatic trigger**: Highlight text in any supported application and pause for the configured wait delay (default: 0.8 seconds).
    - **Manual shortcut trigger**: Highlight text and press `⌥ + ⇧ + Space` to summon the action bar immediately without delay.
-5. **Execute Action**: Click **Ask in Chat** (speech bubble icon) to enter chat with the text pre-filled, or click **Translate**, **Explain**, **Summarize**, **Polish**, or an enabled External Ask button.
+5. **Execute Action**: Click **Ask in Chat** (speech bubble icon) to enter chat with the text pre-filled. Left-click a prompt such as **Translate** or **Explain**, or choose it from the overflow menu, to open an isolated floating window; right-click the button to ask in the main chat. Settings can swap those two clicks. External Ask buttons are unchanged.
 
 ## Visual Proof
 
@@ -83,7 +83,17 @@ flowchart TD
 **Show quick actions** displays the action bar next to the selection. You can toggle text labels beside icons, drag buttons in the interactive 1:1 preview stage to reorder them, or fold lower-frequency actions into a secondary `...` menu to keep the bar compact.
 
 - **Ask in Chat icon**: A dedicated speech bubble icon appears at the start of the action bar. Clicking it opens the question window with the selected text filled in and a blank line ready for your follow-up question. This can be toggled in Settings > **Selection Assistant** (enabled by default).
-- Built-in prompts, custom prompts, and enabled External Ask targets follow in the bar.
+- Built-in prompts, custom prompts, and enabled External Ask targets follow in the bar. Left-click a prompt, or choose it from the overflow menu, to open a floating window that answers only that selection. Right-click the same button to ask in the main chat. Settings can swap those two clicks. From the window you can pin it, copy the answer, or continue in the current conversation. While the window is focused, copy, retry, pin, zoom, and settings use the same shortcuts as the main chat.
+
+## Output delivery: Copying and in-place replacement
+
+SpotAsk adapts its delivery depending on whether you use the isolated floating window or the main conversation, and whether the source application is read-only or editable:
+
+- **Read-only contexts (Safari, Chrome, Preview PDF)**: Underlying text nodes cannot be modified via Accessibility APIs. Left-clicking an action opens the floating window adjacent to the selection; click **Copy all** (`⌘ + C`) to place the result on your clipboard.
+- **Editable drafts in floating mode (Notes, Mail, TextEdit)**: Left-clicking an action (e.g. Polish or Translate) streams the refined text into the floating window. Click **Copy all** and press `⌘ + V` to replace your draft. Standard macOS Undo (`⌘ + Z`) immediately reverts the change if needed.
+- **Editable drafts in main chat mode**: When routing a selection to the main conversation (via right-clicking an action preset or clicking **Ask in Chat**), assistant response rows display an **Insert into selection** button (`arrow.down.doc`). If the target application and selection range are unchanged, clicking this button writes the generated content directly into the draft using macOS `AXSelectedText`. If the selection range or focus shifted in the interim, SpotAsk safely blocks the write and displays a "Selection changed" notification.
+
+For a step-by-step walkthrough of translating in Safari and polishing in Notes, see the [Selection Assistant use case](/use-cases/selection-assistant).
 ## Automatic display
 
 In **Show quick actions** mode, turn on **Show quick actions after selecting text** to avoid pressing the shortcut each time.
