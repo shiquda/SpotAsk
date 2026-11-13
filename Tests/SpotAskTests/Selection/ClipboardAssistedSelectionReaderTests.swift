@@ -74,6 +74,53 @@ struct ClipboardAssistedSelectionReaderTests {
         #expect(pasteboard.restoredItems == [[original]])
     }
 
+    @Test("An unchanged pasteboard from the primary trigger falls back to the secondary trigger")
+    func unchangedPrimaryTriggerFallsBackToSecondaryTrigger() async {
+        let pasteboard = FakeClipboardPasteboard()
+        let original = ClipboardItemSnapshot(representations: [
+            ClipboardRepresentation(type: "public.utf8-plain-text", data: Data("before".utf8))
+        ])
+        pasteboard.items = [original]
+        let primary = FakeSelectionCopyTrigger {}
+        let fallback = FakeSelectionCopyTrigger {
+            pasteboard.write(text: "WeChat selection", items: [])
+        }
+        let reader = ClipboardAssistedSelectionReader(
+            pasteboard: pasteboard,
+            copyTrigger: primary,
+            fallbackCopyTrigger: fallback,
+            timeout: 0.08,
+            menuFallbackTimeout: 0.02,
+            pollInterval: 0.005
+        )
+
+        let text = await reader.readSelectedText(from: source)
+
+        #expect(text == "WeChat selection")
+        #expect(pasteboard.restoredItems == [[original]])
+    }
+
+    @Test("A failing primary trigger falls back to the secondary trigger")
+    func failingPrimaryTriggerFallsBackToSecondaryTrigger() async {
+        let pasteboard = FakeClipboardPasteboard()
+        let primary = FakeSelectionCopyTrigger(error: .menuItemUnavailable)
+        let fallback = FakeSelectionCopyTrigger {
+            pasteboard.write(text: "Copied via fallback", items: [])
+        }
+        let reader = ClipboardAssistedSelectionReader(
+            pasteboard: pasteboard,
+            copyTrigger: primary,
+            fallbackCopyTrigger: fallback,
+            timeout: 0.05,
+            menuFallbackTimeout: 0.02,
+            pollInterval: 0.005
+        )
+
+        let text = await reader.readSelectedText(from: source)
+
+        #expect(text == "Copied via fallback")
+    }
+
     private func reader(
         pasteboard: FakeClipboardPasteboard,
         trigger: FakeSelectionCopyTrigger

@@ -940,6 +940,27 @@ struct SelectionAssistantCoordinatorTests {
             textOrigin: .deferredToPasteboard
         )
     }
+
+    @Test("Manual and automatic triggers pass distinct trigger modes to the reader")
+    func manualAndAutomaticTriggersPassDistinctModes() async {
+        let settings = makeSettings()
+        settings.selectionAutoInvokeEnabled = true
+        settings.selectionAutoInvokeDelay = 0
+
+        let reader = SelectionReaderStub(snapshot: sampleSnapshot)
+        let coordinator = makeCoordinator(settings: settings, reader: reader)
+
+        coordinator.trigger()
+        for _ in 0 ..< 20 where reader.triggerModes.isEmpty {
+            await Task.yield()
+        }
+        coordinator.scheduleAutomaticTrigger()
+        for _ in 0 ..< 20 where reader.triggerModes.count < 2 {
+            await Task.yield()
+        }
+
+        #expect(reader.triggerModes == [.manual, .automatic])
+    }
 }
 
 private final class SelectionPermissionChecker: AccessibilityPermissionChecking, @unchecked Sendable {
@@ -970,6 +991,7 @@ private final class SelectionReaderStub: SelectedTextReading, DeferredSelectionT
     var error: (any Error)?
     var deferredText: String?
     private(set) var promptRequests: [Bool] = []
+    private(set) var triggerModes: [SelectionTriggerMode] = []
     private(set) var deferredReadRequests: [SelectionSourceApplication] = []
 
     init(snapshot: SelectedTextSnapshot = .init(
@@ -982,7 +1004,12 @@ private final class SelectionReaderStub: SelectedTextReading, DeferredSelectionT
     }
 
     func readSelection(promptForPermission: Bool) async throws -> SelectedTextSnapshot {
+        try await readSelection(promptForPermission: promptForPermission, triggerMode: .automatic)
+    }
+
+    func readSelection(promptForPermission: Bool, triggerMode: SelectionTriggerMode) async throws -> SelectedTextSnapshot {
         promptRequests.append(promptForPermission)
+        triggerModes.append(triggerMode)
         if let error { throw error }
         return snapshot
     }

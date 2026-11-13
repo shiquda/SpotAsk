@@ -35,6 +35,7 @@ enum AccessibilityValue: Equatable, Hashable, Sendable {
     case size(CGSize)
     case rect(CGRect)
     case number(Int)
+    case bool(Bool)
 }
 
 struct AccessibilityTextMarkerRange: Equatable, Hashable, Sendable {
@@ -206,6 +207,7 @@ final class MacOSAccessibilityElementAdapter: AccessibilityElementReading, Acces
         let rawValue: CFTypeRef
         switch value {
         case let .string(string): rawValue = string as CFString
+        case let .bool(flag): rawValue = flag as CFBoolean
         case let .range(range):
             var cfRange = CFRange(location: range.location, length: range.length)
             guard let axValue = AXValueCreate(.cfRange, &cfRange) else {
@@ -298,6 +300,9 @@ enum AccessibilityValueDecoder {
                 elements.append(AccessibilityElementID(nativeElement: member as! AXUIElement))
             }
             return .elements(elements)
+        }
+        if CFGetTypeID(value) == CFBooleanGetTypeID() {
+            return .bool(CFBooleanGetValue((value as! CFBoolean)))
         }
         if CFGetTypeID(value) == CFNumberGetTypeID() {
             var number = 0
