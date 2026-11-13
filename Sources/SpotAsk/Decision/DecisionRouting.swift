@@ -119,16 +119,36 @@ enum DecisionRoutingPolicy {
         }
     }
 
+    /// A send only enters the decision path when routing is on for it and the
+    /// user has not named a target already. A mounted channel and a selected
+    /// prompt preset are both manual targets: a preset always runs in-app, so
+    /// it skips the decision model exactly like a channel does. `sessionRoutingEnabled`
+    /// is the per-conversation toolbar state.
+    static func shouldStartDecision(
+        routingEnabled: Bool,
+        sessionRoutingEnabled: Bool,
+        hasManualChannel: Bool,
+        hasManualPreset: Bool
+    ) -> Bool {
+        routingEnabled && sessionRoutingEnabled && !hasManualChannel && !hasManualPreset
+    }
+
     /// A manually mounted channel is never rewritten. One candidate is not a choice.
     /// `sessionRoutingEnabled` is the per-conversation toolbar state. Pass `true` when
     /// that control is hidden so a stuck-off session cannot block routing.
     static func shouldConsultModel(
         routingEnabled: Bool,
         hasManualChannel: Bool,
+        hasManualPreset: Bool,
         candidateCount: Int,
         sessionRoutingEnabled: Bool = true
     ) -> Bool {
-        routingEnabled && sessionRoutingEnabled && !hasManualChannel && candidateCount >= 2
+        shouldStartDecision(
+            routingEnabled: routingEnabled,
+            sessionRoutingEnabled: sessionRoutingEnabled,
+            hasManualChannel: hasManualChannel,
+            hasManualPreset: hasManualPreset
+        ) && candidateCount >= 2
     }
 
     /// The toolbar toggle is the only way to turn a session off. Hiding it
