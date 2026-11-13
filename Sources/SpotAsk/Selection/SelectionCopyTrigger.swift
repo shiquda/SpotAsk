@@ -99,10 +99,23 @@ final class AccessibilityMenuCopyTrigger: SelectionCopyTriggering, @unchecked Se
     private func isPlainCommandCopy(_ element: AccessibilityElementID) -> Bool {
         guard let character = stringAttribute(kAXMenuItemCmdCharAttribute as String, for: element),
               character.caseInsensitiveCompare(Self.copyKeyCharacter) == .orderedSame,
-              let modifiers = numberAttribute(kAXMenuItemCmdModifiersAttribute as String, for: element) else {
+              let modifiers = numberAttribute(kAXMenuItemCmdModifiersAttribute as String, for: element),
+              modifiers == Self.noExtraModifiers else {
             return false
         }
-        return modifiers == Self.noExtraModifiers
+        return isEnabled(element)
+    }
+
+    private func isEnabled(_ element: AccessibilityElementID) -> Bool {
+        do {
+            let value = try elementReader.copyAttribute(kAXEnabledAttribute as String, from: element)
+            if case let .bool(enabled) = value {
+                return enabled
+            }
+            return true
+        } catch {
+            return SelectionElementChain.isAbsentAttribute(error)
+        }
     }
 
     private func childElements(of element: AccessibilityElementID) -> [AccessibilityElementID] {
@@ -136,7 +149,9 @@ struct KeyCommandSelectionCopyTrigger: SelectionCopyTriggering {
     private static let copyKeyCode: CGKeyCode = 8
 
     func triggerCopy(from source: SelectionSourceApplication) throws {
-        guard let eventSource = CGEventSource(stateID: .combinedSessionState),
+        // Use an isolated event source so physical hotkey modifiers still held
+        // during a manual trigger (e.g. Option/Shift) do not leak into ⌘C.
+        guard let eventSource = CGEventSource(stateID: .privateState),
               let keyDown = CGEvent(keyboardEventSource: eventSource, virtualKey: Self.copyKeyCode, keyDown: true),
               let keyUp = CGEvent(keyboardEventSource: eventSource, virtualKey: Self.copyKeyCode, keyDown: false) else {
             throw SelectionCopyError.eventUnavailable

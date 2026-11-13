@@ -24,7 +24,7 @@ SpotAsk integrates deeply with native macOS system entrypoints by registering Ap
 | Requirement | Specification | Notes |
 | :--- | :--- | :--- |
 | **Operating System** | macOS 15.0 (Sequoia) or later | App Intents and Spotlight deep integration require macOS 15+ |
-| **Application Version** | SpotAsk `v0.1.0+` official signed release | Universal binary (`arm64` Apple Silicon & `x86_64` Intel) |
+| **Application Version** | SpotAsk `v0.1.0+` official signed release | Apple Silicon and Intel builds (separate `arm64` / `x86_64` downloads) |
 | **Code Signing** | Apple Developer ID signed application | Required for macOS system daemons to recognize and index App Intents |
 | **Installation Path** | `/Applications/SpotAsk.app` | Launch at least once after installation to register URL schemes and intents |
 | **Supported Launchers** | Apple Spotlight, Siri, Shortcuts, Raycast, Alfred | Any tool capable of opening `spotask://` URLs or running macOS Shortcuts |
@@ -32,7 +32,7 @@ SpotAsk integrates deeply with native macOS system entrypoints by registering Ap
 ## Step-by-Step Instructions
 
 1. **Install and Register**: Place `SpotAsk.app` in `/Applications` and launch it once to register the `spotask://` URL handler and App Intents with macOS.
-2. **Summon via Global Hotkey**: Press `⌥ + Space` (default) to summon the floating question window from any application.
+2. **Summon via Global Hotkey**: Press `⌥ + Space` (default) to summon the floating question window from any application — [if ChatGPT's Option+Space is not working or opens Mini](/guides/chatgpt-option-space).
 3. **Trigger from Spotlight**: Press `⌘ + Space`, type `SpotAsk`, and choose an action such as **Ask SpotAsk a question** or **Translate**.
 4. **Trigger via Terminal or URL**: Run `open "spotask://ask?q=What%20is%20Swift%20concurrency"` from Terminal or a script to launch and query SpotAsk immediately.
 5. **Automate in Shortcuts**: Open the macOS **Shortcuts** app, search for **SpotAsk**, and add actions like **Ask AI**, **Summarize**, or **Translate** to your automations.

@@ -61,6 +61,32 @@ struct SelectionCopyTriggerTests {
 
         #expect(performer.pressedElements == [copy])
     }
+
+    @Test("A disabled Copy menu item is skipped so the fallback can run")
+    func skipsDisabledCopyMenuItem() throws {
+        let tree = MenuTree()
+        let disabledCopy = tree.addItem(character: "c", modifiers: 0, enabled: false)
+        let enabledCopy = tree.addItem(character: "c", modifiers: 0, enabled: true)
+        tree.menuBar = tree.makeMenuBar(items: [tree.makeMenu(items: [disabledCopy])!, tree.makeMenu(items: [enabledCopy])!])
+        let performer = FakeActionPerformer()
+
+        try AccessibilityMenuCopyTrigger(elementReader: tree, actionPerformer: performer).triggerCopy(from: source)
+
+        #expect(performer.pressedElements == [enabledCopy])
+    }
+
+    @Test("When the only Copy menu item is disabled, the fallback path is reported")
+    func reportsOnlyDisabledCopyMenuItemAsUnavailable() {
+        let tree = MenuTree()
+        let disabledCopy = tree.addItem(character: "c", modifiers: 0, enabled: false)
+        tree.menuBar = tree.makeMenuBar(items: [tree.makeMenu(items: [disabledCopy])!])
+        let performer = FakeActionPerformer()
+
+        #expect(throws: SelectionCopyError.menuItemUnavailable) {
+            try AccessibilityMenuCopyTrigger(elementReader: tree, actionPerformer: performer).triggerCopy(from: source)
+        }
+        #expect(performer.pressedElements.isEmpty)
+    }
 }
 
 /// Builds a menu bar as application -> menu bar -> menus -> items, the shape
@@ -69,13 +95,17 @@ private final class MenuTree: AccessibilityElementReading, @unchecked Sendable {
     private var nextRawValue: UInt64 = 1
     private var childElements: [AccessibilityElementID: [AccessibilityElementID]] = [:]
     private var keyEquivalents: [AccessibilityElementID: (character: String, modifiers: Int)] = [:]
+    private var enabledStates: [AccessibilityElementID: Bool] = [:]
     private(set) var applicationElement = AccessibilityElementID(rawValue: 1)
 
     var menuBar: AccessibilityElementID?
 
-    func addItem(character: String, modifiers: Int) -> AccessibilityElementID {
+    func addItem(character: String, modifiers: Int, enabled: Bool? = nil) -> AccessibilityElementID {
         let element = makeElement()
         keyEquivalents[element] = (character, modifiers)
+        if let enabled {
+            enabledStates[element] = enabled
+        }
         return element
     }
 
@@ -120,6 +150,9 @@ private final class MenuTree: AccessibilityElementReading, @unchecked Sendable {
         case kAXMenuItemCmdModifiersAttribute as String:
             guard let equivalent = keyEquivalents[element] else { throw AccessibilityAdapterError.ax(.attributeUnsupported) }
             return .number(equivalent.modifiers)
+        case kAXEnabledAttribute as String:
+            guard let enabled = enabledStates[element] else { throw AccessibilityAdapterError.ax(.attributeUnsupported) }
+            return .bool(enabled)
         default:
             throw AccessibilityAdapterError.ax(.attributeUnsupported)
         }

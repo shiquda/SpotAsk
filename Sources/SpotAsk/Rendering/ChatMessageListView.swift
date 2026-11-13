@@ -85,6 +85,7 @@ struct ChatMessageListView: View {
                             )
                             .padding(.vertical, 20)
                     }
+                    .scrollContentBackground(settings.chatWindowBackground == .frosted ? .hidden : .automatic)
                     .defaultScrollAnchor(scrollFollowState.followsLatest ? .bottom : nil, for: .sizeChanges)
                     .contentMargins(.top, 32, for: .scrollContent)
                     .overlay(alignment: .bottomTrailing) {

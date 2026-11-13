@@ -1,13 +1,13 @@
 ---
 layout: home
 
-title: SpotAsk
-titleTemplate: "原生 macOS AI 助手与查询路由器"
-description: "SpotAsk 是一款免费开源的原生 macOS 菜单栏 AI 助手与问题路由器。快捷键随时呼出，支持应用内 BYOK 快速流式作答，或通过决策模型自动（及快捷键一键）将问题分流至 ChatGPT 与本地终端 Agent。"
+title: "SpotAsk | 原生 macOS AI 助手与查询路由器"
+titleTemplate: false
+description: "免费开源的 Mac 菜单栏 AI 快问工具：按 ⌥Space，用你自己的 API Key 得到回答，或处理选中文字，或一键交给 ChatGPT、本地 AI Agent。"
 
 hero:
   name: SpotAsk
-  text: 先提问，再决定去向
+  text: "Mac 菜单栏 AI 快问，按 ⌥Space 就开始"
   tagline: '<span class="nowrap">一次提问，三个去向。</span><br class="hidden sm:inline"><span class="nowrap">随时唤起，随问随走。</span>'
   actions:
     - theme: brand
@@ -31,7 +31,7 @@ features:
   - title: "选中文本就近处理"
     details: "在任意应用中选中文字，通过就近浮动操作栏直接翻译、解释、总结、润色，或带入对话继续追问。"
   - title: "自带密钥 (BYOK)，数据留在本机"
-    details: "直连 OpenAI 兼容、Anthropic 或 Gemini 接口。密钥加密保存在本地钥匙串，无中间服务器，无隐私收集。"
+    details: "密钥只留在这台 Mac 上，只发给你的服务商——没有中间服务器，也没有遥测。"
   - title: "纯原生轻量，无 Electron"
     details: "纯 Swift 与 AppKit 构建，零 Electron 运行时；全键盘驱动，按 <kbd>Esc</kbd> 随问随走，极致克制。"
 
@@ -43,14 +43,15 @@ heroShowcase:
 
 ## SpotAsk 是什么
 
-<span class="nowrap">SpotAsk</span> 是一款免费开源的 macOS 菜单栏 AI 助手与分流工具，建立在一个极简的前提之上：**“先提问，再决定去向（Ask first. Decide where it goes after.）”**。
+<span class="nowrap">SpotAsk</span> 是一款免费开源的 Mac 菜单栏 AI 快问与问题路由工具：按 <kbd>⌥ + Space</kbd>，用你自己的 API Key 得到回答，或处理选中文字，或一键交给 ChatGPT、本地 AI Agent。它建立在一个极简的前提之上：**“先提问，再决定去向（Ask first. Decide where it goes after.）”**。
 
-随时按快捷键（默认 <kbd>⌥ + Space</kbd>），专注的提问小窗即刻浮现。先写下当下的问题，再决定如何处理：
+随时按快捷键（默认 <kbd>⌥ + Space</kbd>），专注的提问小窗即刻浮现于当前工作区上方。先写下当下的问题，再决定如何处理：
 
-- **应用内流式回答（BYOK）**：用你配置的 AI 模型直接在小窗内作答。
+- **应用内流式快问（BYOK）**：用你配置的 AI 模型与 API 密钥从本机直连服务商，在小窗内快速作答。
 - **外部提问智能分流 (<span class="nowrap">External Ask</span>)**：把问题交给网页平台（ChatGPT、Perplexity、Grok）、桌面应用或本地终端 CLI Agent——一键直达，或由决策模型自动选路。
+- **选中文本就近处理**：在任意应用中选中文字，通过就近浮动操作栏直接翻译、解释、总结、润色，或带入对话继续追问。想要深入[了解 Mac 菜单栏 AI 快问的呼出与交互](/zh-CN/use-cases/mac-ai-launcher)，可以查阅全局启动器指南。
 
-没有账号系统，没有遥测监控。按 <kbd>Esc</kbd> 随问随走。
+没有账号系统，没有遥测监控，也不设任何中间服务器。按 <kbd>Esc</kbd> 随问随走。
 
 ## 下一步
 

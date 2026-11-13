@@ -10,6 +10,7 @@ final class SelectionAssistantCoordinator {
     private let settingsOpener: any AccessibilityPermissionSettingsOpening
     private let commandCenter: SpotAskCommandCenter
     private let overlay: any SelectionOverlayControlling
+    private let floatingPrompts: any FloatingPromptPresenting
     private let executor: any QuickActionExecuting
     private let clipboardAssistedPolicy: ClipboardAssistedSelectionPolicy
     private let deferredTextReader: (any DeferredSelectionTextReading)?
@@ -26,7 +27,8 @@ final class SelectionAssistantCoordinator {
         settingsOpener: any AccessibilityPermissionSettingsOpening = MacOSAccessibilityPermissionSettingsOpener(),
         commandCenter: SpotAskCommandCenter = .shared,
         overlay: any SelectionOverlayControlling,
-        executor: any QuickActionExecuting = DefaultQuickActionExecutor()
+        executor: any QuickActionExecuting = DefaultQuickActionExecutor(),
+        floatingPrompts: any FloatingPromptPresenting = IgnoringFloatingPromptPresenter()
     ) {
         // The reader works on its own queue, so it cannot read main-actor
         // settings mid-read. Keep a mirror of the clipboard preferences and
@@ -49,10 +51,11 @@ final class SelectionAssistantCoordinator {
         self.commandCenter = commandCenter
         self.overlay = overlay
         self.executor = executor
+        self.floatingPrompts = floatingPrompts
     }
 
     func trigger() {
-        trigger(showsFeedback: true)
+        trigger(showsFeedback: true, triggerMode: .manual)
     }
 
     func scheduleAutomaticTrigger() {
@@ -65,7 +68,7 @@ final class SelectionAssistantCoordinator {
             try? await Task.sleep(for: .seconds(settings.selectionAutoInvokeDelay))
             guard !Task.isCancelled else { return }
             guard settings.allowsAutomaticInvoke(from: applicationProvider.frontmostApplication()) else { return }
-            trigger(showsFeedback: false, requiresConfirmedSelection: true)
+            trigger(showsFeedback: false, requiresConfirmedSelection: true, triggerMode: .automatic)
         }
     }
 
@@ -77,7 +80,7 @@ final class SelectionAssistantCoordinator {
         triggerToken += 1
     }
 
-    private func trigger(showsFeedback: Bool, requiresConfirmedSelection: Bool = false) {
+    private func trigger(showsFeedback: Bool, requiresConfirmedSelection: Bool = false, triggerMode: SelectionTriggerMode) {
         guard settings.selectionAssistantEnabled else {
             cancelInFlightAndDiscardPresentedSelection()
             return
@@ -97,7 +100,7 @@ final class SelectionAssistantCoordinator {
         Task { [weak self] in
             guard let self else { return }
             do {
-                let current = try await reader.readSelection(promptForPermission: false)
+                let current = try await reader.readSelection(promptForPermission: false, triggerMode: triggerMode)
                 guard token == triggerToken else { return }
                 // An empty or whitespace-only selection must not wake the
                 // assistant. A clipboard-assisted selection is confirmed by its
@@ -149,11 +152,15 @@ final class SelectionAssistantCoordinator {
                             self?.addToChat()
                         },
                         onSelectPreset: { [weak self] preset in
-                            self?.apply(preset: preset)
+                            self?.activatePrompt(preset, secondary: false)
+                        },
+                        onSecondarySelectPreset: { [weak self] preset in
+                            self?.activatePrompt(preset, secondary: true)
                         },
                         onSelectExternalAsk: { [weak self] action in
                             self?.performExternalAsk(action)
-                        }
+                        },
+                        promptClickBehavior: settings.selectionPromptClickBehavior
                     )
                 }
             } catch let error as SelectionReadingError {
@@ -213,6 +220,27 @@ final class SelectionAssistantCoordinator {
         let text = await deferredTextReader?.readDeferredSelectionText(for: presented) ?? presented.text
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         return presented.resolvingText(text)
+    }
+
+    private func activatePrompt(_ preset: PromptPreset, secondary: Bool) {
+        if settings.selectionPromptClickBehavior.opensFloatingWindow(secondaryClick: secondary) {
+            presentFloatingPrompt(preset)
+        } else {
+            apply(preset: preset)
+        }
+    }
+
+    private func presentFloatingPrompt(_ preset: PromptPreset) {
+        guard let presented = takePresentedSelection() else { return }
+        Task { [weak self] in
+            guard let self else { return }
+            guard let resolved = await resolveText(of: presented) else {
+                overlay.showMessage(.noSelection)
+                return
+            }
+            let active = settings.enabledPromptPreset(id: preset.id) ?? preset
+            floatingPrompts.present(snapshot: resolved, preset: active)
+        }
     }
 
     private func apply(preset: PromptPreset) {
@@ -297,7 +325,9 @@ protocol SelectionOverlayControlling: AnyObject {
         shortcutForExternalAsk: ((QuickAction) -> InAppShortcut?)?,
         onSelectChat: @escaping () -> Void,
         onSelectPreset: @escaping (PromptPreset) -> Void,
-        onSelectExternalAsk: @escaping (QuickAction) -> Void
+        onSecondarySelectPreset: ((PromptPreset) -> Void)?,
+        onSelectExternalAsk: @escaping (QuickAction) -> Void,
+        promptClickBehavior: SelectionPromptClickBehavior
     )
     func showMessage(_ message: SelectionFeedback)
     func showPermissionDenied(openSettings: @escaping () -> Void)
@@ -333,7 +363,9 @@ extension SelectionOverlayControlling {
             shortcutForExternalAsk: shortcutForExternalAsk,
             onSelectChat: onSelectChat,
             onSelectPreset: onSelectPreset,
-            onSelectExternalAsk: onSelectExternalAsk
+            onSecondarySelectPreset: nil,
+            onSelectExternalAsk: onSelectExternalAsk,
+            promptClickBehavior: .floatingOnLeft
         )
     }
 

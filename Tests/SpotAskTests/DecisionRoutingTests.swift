@@ -127,18 +127,56 @@ struct DecisionRoutingTests {
 
     @Test("Manual channel selection and single-candidate catalogs skip the decision model")
     func consultGuard() {
-        #expect(!DecisionRoutingPolicy.shouldConsultModel(routingEnabled: false, hasManualChannel: false, candidateCount: 2))
-        #expect(!DecisionRoutingPolicy.shouldConsultModel(routingEnabled: true, hasManualChannel: true, candidateCount: 2))
-        #expect(!DecisionRoutingPolicy.shouldConsultModel(routingEnabled: true, hasManualChannel: false, candidateCount: 1))
-        #expect(DecisionRoutingPolicy.shouldConsultModel(routingEnabled: true, hasManualChannel: false, candidateCount: 2))
+        #expect(!DecisionRoutingPolicy.shouldConsultModel(routingEnabled: false, hasManualChannel: false, hasManualPreset: false, candidateCount: 2))
+        #expect(!DecisionRoutingPolicy.shouldConsultModel(routingEnabled: true, hasManualChannel: true, hasManualPreset: false, candidateCount: 2))
+        #expect(!DecisionRoutingPolicy.shouldConsultModel(routingEnabled: true, hasManualChannel: false, hasManualPreset: true, candidateCount: 2))
+        #expect(!DecisionRoutingPolicy.shouldConsultModel(routingEnabled: true, hasManualChannel: false, hasManualPreset: false, candidateCount: 1))
+        #expect(DecisionRoutingPolicy.shouldConsultModel(routingEnabled: true, hasManualChannel: false, hasManualPreset: false, candidateCount: 2))
         #expect(!DecisionRoutingPolicy.shouldConsultModel(
             routingEnabled: true,
             hasManualChannel: false,
+            hasManualPreset: false,
             candidateCount: 2,
             sessionRoutingEnabled: false
         ))
         #expect(!DecisionRoutingPolicy.effectiveSessionRouting(showsToolbarToggle: true, sessionRoutingEnabled: false))
         #expect(DecisionRoutingPolicy.effectiveSessionRouting(showsToolbarToggle: false, sessionRoutingEnabled: false))
+    }
+
+    @Test("A send starts a decision only without a manual channel or prompt preset")
+    func startDecisionGuard() {
+        #expect(!DecisionRoutingPolicy.shouldStartDecision(
+            routingEnabled: false,
+            sessionRoutingEnabled: true,
+            hasManualChannel: false,
+            hasManualPreset: false
+        ))
+        #expect(!DecisionRoutingPolicy.shouldStartDecision(
+            routingEnabled: true,
+            sessionRoutingEnabled: false,
+            hasManualChannel: false,
+            hasManualPreset: false
+        ))
+        #expect(!DecisionRoutingPolicy.shouldStartDecision(
+            routingEnabled: true,
+            sessionRoutingEnabled: true,
+            hasManualChannel: true,
+            hasManualPreset: false
+        ))
+        // A selected prompt preset runs in-app and never consults the model,
+        // even though it is not an external channel.
+        #expect(!DecisionRoutingPolicy.shouldStartDecision(
+            routingEnabled: true,
+            sessionRoutingEnabled: true,
+            hasManualChannel: false,
+            hasManualPreset: true
+        ))
+        #expect(DecisionRoutingPolicy.shouldStartDecision(
+            routingEnabled: true,
+            sessionRoutingEnabled: true,
+            hasManualChannel: false,
+            hasManualPreset: false
+        ))
     }
 
     @Test("Endpoint URL normalizes roots, /v1, and full /v1/systemone paths")

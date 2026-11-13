@@ -98,6 +98,65 @@ struct SelectionActionBarContentTests {
         #expect(chatClicks == 1, "preview buttons must not run a live action")
     }
 
+    @Test("A customized primary prompt opens the main chat on right-click")
+    func primaryPromptRightClickAsksInTheMainChat() {
+        let preset = PromptPreset(title: "Translate", instruction: "Translate this")
+        let layout = SelectionActionBarLayout.make(
+            showsChat: false,
+            presets: [preset],
+            externalAsks: [],
+            showsLabels: false,
+            primaryItems: [.promptPreset(preset)]
+        )
+        var asked: PromptPreset?
+        let view = SelectionActionBarContentView(
+            layout: layout,
+            actions: SelectionActionBarActions(
+                onSelectChat: {},
+                onSelectPreset: { _ in },
+                onSelectExternalAsk: { _ in },
+                onSecondarySelectPreset: { asked = $0 },
+                shortcutForChat: nil,
+                shortcutForPreset: nil,
+                shortcutForExternalAsk: nil
+            )
+        )
+        let button = view.subviews.compactMap { $0 as? SelectionActionButton }.first
+        let event = NSEvent.mouseEvent(
+            with: .rightMouseDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            eventNumber: 0,
+            clickCount: 1,
+            pressure: 1
+        )
+        button?.rightMouseDown(with: event!)
+        #expect(asked?.id == preset.id)
+    }
+
+    @Test("A reversed prompt click setting changes the live button hint")
+    func reversedPromptClickBehaviorChangesTheTooltip() {
+        let preset = PromptPreset(title: "Translate", instruction: "Translate this")
+        let layout = SelectionActionBarLayout.make(
+            showsChat: false,
+            presets: [preset],
+            externalAsks: [],
+            showsLabels: false,
+            primaryItems: [.promptPreset(preset)]
+        )
+        let view = SelectionActionBarContentView(
+            layout: layout,
+            actions: nil,
+            promptClickBehavior: .mainChatOnLeft
+        )
+        let hint = L10n.string("selection.actionBar.promptPresetClickHintReversed")
+        let button = view.subviews.compactMap { $0 as? SelectionActionButton }.first
+        #expect(button?.toolTip == "Translate (\(hint))")
+    }
+
     @Test("Resolve passes collapseOverflow setting and reflects in layout")
     func resolveReflectsCollapseOverflowSetting() {
         let settings = makeSettings()
@@ -206,7 +265,7 @@ struct SelectionActionBarContentTests {
         settings.selectionAssistantEnabled = true
         settings.selectionAssistantMode = .actionBar
         settings.selectionActionBarCollapseOverflow = true
-        UserDefaults.standard.set("zh-Hans", forKey: AppLanguage.defaultsKey)
+        UserDefaults.standard.set("en", forKey: AppLanguage.defaultsKey)
         defer { UserDefaults.standard.removeObject(forKey: AppLanguage.defaultsKey) }
         for isDark in [false, true] {
             let view = SelectionAssistantSettingsPage(
@@ -230,6 +289,33 @@ struct SelectionActionBarContentTests {
             guard let data = rep.representation(using: .png, properties: [:]) else { continue }
             let path = isDark ? "/tmp/selection_assistant_page_dark.png" : "/tmp/selection_assistant_page_light.png"
             try data.write(to: URL(fileURLWithPath: path))
+        }
+    }
+
+    @Test("Render SelectionActionBar to image")
+    func renderActionBarToImage() throws {
+        let settings = makeSettings()
+        settings.selectionAssistantEnabled = true
+        settings.selectionAssistantMode = .actionBar
+        settings.selectionActionBarShowsLabels = true
+        settings.selectionActionBarShowsChatAction = true
+        settings.selectionActionBarShowsPrompts = true
+        let layout = SelectionActionBarLayout.make(
+            showsChat: true,
+            chatTitle: "Ask in Chat",
+            presets: PromptPreset.builtIn,
+            externalAsks: [],
+            showsLabels: true,
+            collapsesOverflow: false
+        )
+        let view = SelectionActionBarContentView(layout: layout, actions: nil)
+        view.frame = NSRect(origin: .zero, size: layout.size)
+        view.layoutSubtreeIfNeeded()
+        if let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+            view.cacheDisplay(in: view.bounds, to: rep)
+            if let data = rep.representation(using: .png, properties: [:]) {
+                try data.write(to: URL(fileURLWithPath: "/tmp/selection_action_bar.png"))
+            }
         }
     }
 
