@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Manual Selection Assistant triggers (shortcut) now fall back to reading the selection via clipboard when an app (such as Telegram or WeChat) does not expose selected text or selection ranges through Accessibility, and reliably fall back to `⌘C` when the Edit > Copy menu item is unavailable or disabled.
+
 ## [0.3.4] - 2026-11-04
 
 **Floating window for selection prompts, frosted background for question window, smoother appearance and provider settings**

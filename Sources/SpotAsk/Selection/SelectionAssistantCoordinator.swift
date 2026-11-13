@@ -55,7 +55,7 @@ final class SelectionAssistantCoordinator {
     }
 
     func trigger() {
-        trigger(showsFeedback: true)
+        trigger(showsFeedback: true, triggerMode: .manual)
     }
 
     func scheduleAutomaticTrigger() {
@@ -68,7 +68,7 @@ final class SelectionAssistantCoordinator {
             try? await Task.sleep(for: .seconds(settings.selectionAutoInvokeDelay))
             guard !Task.isCancelled else { return }
             guard settings.allowsAutomaticInvoke(from: applicationProvider.frontmostApplication()) else { return }
-            trigger(showsFeedback: false, requiresConfirmedSelection: true)
+            trigger(showsFeedback: false, requiresConfirmedSelection: true, triggerMode: .automatic)
         }
     }
 
@@ -80,7 +80,7 @@ final class SelectionAssistantCoordinator {
         triggerToken += 1
     }
 
-    private func trigger(showsFeedback: Bool, requiresConfirmedSelection: Bool = false) {
+    private func trigger(showsFeedback: Bool, requiresConfirmedSelection: Bool = false, triggerMode: SelectionTriggerMode) {
         guard settings.selectionAssistantEnabled else {
             cancelInFlightAndDiscardPresentedSelection()
             return
@@ -100,7 +100,7 @@ final class SelectionAssistantCoordinator {
         Task { [weak self] in
             guard let self else { return }
             do {
-                let current = try await reader.readSelection(promptForPermission: false)
+                let current = try await reader.readSelection(promptForPermission: false, triggerMode: triggerMode)
                 guard token == triggerToken else { return }
                 // An empty or whitespace-only selection must not wake the
                 // assistant. A clipboard-assisted selection is confirmed by its

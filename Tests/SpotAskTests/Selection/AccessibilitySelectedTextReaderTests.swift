@@ -439,6 +439,105 @@ struct AccessibilitySelectedTextReaderTests {
         }
         #expect(fixture.clipboardReader.readRequests.isEmpty)
     }
+
+    @Test("AXSelectedTextRange with AXStringForRange is used when AXSelectedText is absent")
+    func selectedRangeStringFallbackSelection() async throws {
+        let fixture = ReaderFixture()
+        let range = SelectionCharacterRange(location: 4, length: 11)
+        fixture.setFocusedElement(fixture.focusedElement)
+        fixture.elementReader.set(.range(range), attribute: fixture.selectedRangeAttribute, element: fixture.focusedElement)
+        fixture.elementReader.set(
+            .string("Qt selected"),
+            attribute: fixture.stringForRangeParameterizedAttribute,
+            element: fixture.focusedElement,
+            parameter: .range(range)
+        )
+
+        let snapshot = try await fixture.makeReader().readSelection(promptForPermission: false)
+
+        #expect(snapshot.text == "Qt selected")
+        #expect(snapshot.selectedRange == range)
+        #expect(snapshot.isConfirmedSelection)
+    }
+
+    @Test("Manual trigger falls back to immediate clipboard read when AX exposes no selection")
+    func manualTriggerFallsBackToClipboardForUnlistedApps() async throws {
+        let fixture = ReaderFixture()
+        fixture.setFocusedElement(fixture.focusedElement)
+        fixture.clipboardReader.text = "Message from Telegram"
+        let reader = fixture.makeReader()
+
+        let snapshot = try await reader.readSelection(promptForPermission: false, triggerMode: .manual)
+
+        #expect(snapshot.text == "Message from Telegram")
+        #expect(snapshot.textOrigin == .accessibility)
+        #expect(snapshot.isConfirmedSelection)
+        #expect(!snapshot.canReplaceSelection)
+        #expect(fixture.clipboardReader.readRequests == [fixture.source])
+    }
+
+    @Test("Manual trigger falls back to immediate clipboard read when a listed app exposes no focused AX element")
+    func manualTriggerFallsBackToClipboardWhenFocusedElementUnavailable() async throws {
+        let fixture = ReaderFixture()
+        fixture.clipboardPolicy.update(enabled: true, identifiers: [fixture.source.selectionIdentifier ?? ""])
+        fixture.elementReader.setError(.ax(.noValue), attribute: fixture.focusedAttribute, element: fixture.applicationElement)
+        fixture.elementReader.setError(.ax(.noValue), attribute: fixture.focusedAttribute, element: fixture.systemWideElement)
+        fixture.clipboardReader.text = "Message from WeChat"
+        let reader = fixture.makeReader()
+
+        let snapshot = try await reader.readSelection(promptForPermission: false, triggerMode: .manual)
+
+        #expect(snapshot.text == "Message from WeChat")
+        #expect(snapshot.textOrigin == .accessibility)
+        #expect(fixture.clipboardReader.readRequests == [fixture.source])
+    }
+
+    @Test("Automatic trigger never falls back to clipboard without an AX selection")
+    func automaticTriggerDoesNotFallBackToClipboardWithoutAXSelection() async {
+        let fixture = ReaderFixture()
+        fixture.setFocusedElement(fixture.focusedElement)
+        fixture.clipboardReader.text = "Should not be copied automatically"
+        let reader = fixture.makeReader()
+
+        await #expect(throws: SelectionReadingError.noSelection) {
+            try await reader.readSelection(promptForPermission: false, triggerMode: .automatic)
+        }
+        #expect(fixture.clipboardReader.readRequests.isEmpty)
+    }
+
+    @Test("Manual trigger never falls back to clipboard in a secure field")
+    func manualTriggerRespectsSecureFields() async {
+        let fixture = ReaderFixture()
+        fixture.setFocusedElement(fixture.focusedElement)
+        fixture.elementReader.set(.string("AXSecureTextField"), attribute: fixture.subroleAttribute, element: fixture.focusedElement)
+        fixture.clipboardReader.text = "secret"
+        let reader = fixture.makeReader()
+
+        await #expect(throws: SelectionReadingError.sensitiveField) {
+            try await reader.readSelection(promptForPermission: false, triggerMode: .manual)
+        }
+        #expect(fixture.clipboardReader.readRequests.isEmpty)
+    }
+
+    @Test("Enabling AXManualAccessibility retries AX reading before falling back to clipboard")
+    func manualAccessibilityRetryReadsExposedSelectionWithoutCopying() async throws {
+        let fixture = ReaderFixture()
+        fixture.elementReader.supportsManualAccessibility = true
+        fixture.elementReader.onManualAccessibilityEnabled = {
+            fixture.configureFocusedSelection(text: "Chromium article selection", range: .init(location: 0, length: 26))
+        }
+        fixture.clipboardReader.text = "Clipboard should not be needed"
+        let reader = fixture.makeReader()
+
+        let snapshot = try await reader.readSelection(promptForPermission: false, triggerMode: .manual)
+
+        #expect(snapshot.text == "Chromium article selection")
+        #expect(fixture.clipboardReader.readRequests.isEmpty)
+        #expect(fixture.elementReader.writtenAttributes.count == 1)
+        #expect(fixture.elementReader.writtenAttributes.first?.0 == "AXManualAccessibility")
+        #expect(fixture.elementReader.writtenAttributes.first?.1 == .bool(true))
+        #expect(fixture.elementReader.writtenAttributes.first?.2 == fixture.applicationElement)
+    }
 }
 
 
@@ -464,6 +563,7 @@ private final class ReaderFixture: @unchecked Sendable {
     let subroleAttribute = kAXSubroleAttribute as String
     let selectedTextAttribute = kAXSelectedTextAttribute as String
     let selectedRangeAttribute = kAXSelectedTextRangeAttribute as String
+    let stringForRangeParameterizedAttribute = kAXStringForRangeParameterizedAttribute as String
     let selectedTextMarkerRangeAttribute = kAXSelectedTextMarkerRangeAttribute as String
     let stringForTextMarkerRangeParameterizedAttribute = kAXStringForTextMarkerRangeParameterizedAttribute as String
     let boundsAttribute = kAXBoundsForRangeParameterizedAttribute as String
@@ -592,7 +692,7 @@ private final class FakeClipboardSelectionReader: ClipboardAssistedSelectionRead
 }
 
 
-private final class FakeAccessibilityElementReader: AccessibilityElementReading, @unchecked Sendable {
+private final class FakeAccessibilityElementReader: AccessibilityElementReading, AccessibilityElementWriting, @unchecked Sendable {
     enum Call: Equatable {
         case makeApplicationElement(pid_t)
         case makeSystemWideElement
@@ -626,6 +726,9 @@ private final class FakeAccessibilityElementReader: AccessibilityElementReading,
     var copyDelay: TimeInterval = 0
     var applicationElement = AccessibilityElementID(rawValue: 100)
     var systemWideElement = AccessibilityElementID(rawValue: 200)
+    var supportsManualAccessibility = false
+    var onManualAccessibilityEnabled: (() -> Void)?
+    private(set) var writtenAttributes: [(String, AccessibilityValue, AccessibilityElementID)] = []
 
     func set(_ value: AccessibilityValue, attribute: String, element: AccessibilityElementID) {
         lock.lock()
@@ -706,6 +809,21 @@ private final class FakeAccessibilityElementReader: AccessibilityElementReading,
         )
         defer { endCopy() }
         return try resolve(response)
+    }
+
+    func isAttributeSettable(_: String, for _: AccessibilityElementID) throws -> Bool {
+        false
+    }
+
+    func setAttribute(_ attribute: String, value: AccessibilityValue, for element: AccessibilityElementID) throws {
+        guard supportsManualAccessibility, attribute == "AXManualAccessibility" else {
+            throw AccessibilityAdapterError.ax(.attributeUnsupported)
+        }
+        lock.lock()
+        writtenAttributes.append((attribute, value, element))
+        let callback = onManualAccessibilityEnabled
+        lock.unlock()
+        callback?()
     }
 
     private func beginCopy(call: Call, response: Response?) -> Response? {
