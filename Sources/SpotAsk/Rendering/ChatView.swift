@@ -373,12 +373,17 @@ struct ChatView: View {
         if routingController.phase.isActive {
             return handleActiveDecisionRouteSend()
         }
-        if composerModeCoordinator.pendingExternalAsk == nil,
-           settings.decisionRoutingEnabled,
-           sessionAllowsAutomaticRouting {
-            return sendWithDecisionRouting()
+        // A selected prompt preset names the in-app target the way a mounted
+        // channel does, so it sends directly instead of starting a decision.
+        guard DecisionRoutingPolicy.shouldStartDecision(
+            routingEnabled: settings.decisionRoutingEnabled,
+            sessionRoutingEnabled: sessionAllowsAutomaticRouting,
+            hasManualChannel: composerModeCoordinator.pendingExternalAsk != nil,
+            hasManualPreset: viewModel.selectedPromptPreset != nil
+        ) else {
+            return performStandardOrManualSend()
         }
-        return performStandardOrManualSend()
+        return sendWithDecisionRouting()
     }
 
     @discardableResult
@@ -446,6 +451,7 @@ struct ChatView: View {
         guard DecisionRoutingPolicy.shouldConsultModel(
             routingEnabled: settings.decisionRoutingEnabled,
             hasManualChannel: composerModeCoordinator.pendingExternalAsk != nil,
+            hasManualPreset: viewModel.selectedPromptPreset != nil,
             candidateCount: candidates.count,
             sessionRoutingEnabled: sessionAllowsAutomaticRouting
         ) else {
@@ -696,6 +702,10 @@ struct ChatView: View {
             inputFocused = true
             return
         }
+        // Picking a preset is a manual target choice: an in-flight or delivered
+        // decision belongs to the previous send context and must not swallow
+        // this send.
+        routingController.cancel()
         composerModeCoordinator.applyPreset(
             enabledPreset,
             selectedPreset: &viewModel.selectedPromptPreset

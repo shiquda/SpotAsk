@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A selected prompt preset now sends directly in-app even with Decision Routing on: no decision request is made and no recommendation card appears. Choosing a preset also cancels a recommendation already in progress, so a route decided for the previous draft is never reused.
 - Clearing all local data now deletes only that app's own settings, conversations, credentials, and diagnostics. A development test can no longer erase the installed app's preferences.
 - Fixed Xcode project syntax and selected the correct MathJax resource bundle for both Xcode app builds and SwiftPM.
 - Restored a copy button at the top right of each display formula, including pending and failed formulas. It copies the original LaTeX and briefly confirms success without covering the formula.
