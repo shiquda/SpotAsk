@@ -710,10 +710,12 @@ private struct FloatingPromptView: View {
                     }
                     .help(shortcutHelp(L10n.string("chat.retry"), operation: .regenerateOrRetry))
             }
-            Button(L10n.string("floatingPrompt.continueInChat"), action: onContinue)
-                .buttonStyle(.borderedProminent)
-                .tint(Brand.accent)
-                .disabled(!session.canContinue)
+            Button(action: onContinue) {
+                Label(L10n.string("floatingPrompt.continueInChat"), systemImage: "quote.bubble")
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Brand.accent)
+            .disabled(!session.canContinue)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
