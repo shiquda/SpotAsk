@@ -262,11 +262,22 @@ final class FloatingPromptWindowController: NSObject, FloatingPromptWindowing, N
         }
     }
 
-    private func handleLocalEvent(_ event: NSEvent) -> NSEvent? {
+    /// Returns `nil` when the event is consumed. The window's local event
+    /// monitor calls this before AppKit dispatches the event.
+    func handleLocalEvent(_ event: NSEvent) -> NSEvent? {
         guard let panel else { return event }
-        if event.type == .keyDown, event.keyCode == 53, panel.isKeyWindow {
-            requestClose(.escape)
-            return nil
+        if event.type == .keyDown, panel.isKeyWindow {
+            if event.keyCode == 53 {
+                requestClose(.escape)
+                return nil
+            }
+            if FloatingPromptCloseChord.isCloseWindow(
+                modifiers: event.modifierFlags,
+                charactersIgnoringModifiers: event.charactersIgnoringModifiers
+            ) {
+                requestClose(.commandW)
+                return nil
+            }
         }
         if event.type == .leftMouseDown || event.type == .rightMouseDown {
             closeIfOutside(NSEvent.mouseLocation, eventWindow: event.window)

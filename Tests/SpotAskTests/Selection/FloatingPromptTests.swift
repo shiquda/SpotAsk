@@ -11,9 +11,77 @@ struct FloatingPromptTests {
     func outsideClickRespectsPin() {
         #expect(FloatingPromptDismissal.shouldClose(isPinned: false, request: .outsideClick))
         #expect(!FloatingPromptDismissal.shouldClose(isPinned: true, request: .outsideClick))
-        for request in [FloatingPromptCloseRequest.escape, .closeButton, .continueInConversation] {
+        for request in [FloatingPromptCloseRequest.escape, .closeButton, .commandW, .continueInConversation] {
             #expect(FloatingPromptDismissal.shouldClose(isPinned: true, request: request))
         }
+    }
+
+    @Test("Only plain Command-W is the close chord")
+    func commandWMatchesOnlyPlainCommandW() {
+        #expect(FloatingPromptCloseChord.isCloseWindow(modifiers: .command, charactersIgnoringModifiers: "w"))
+        #expect(FloatingPromptCloseChord.isCloseWindow(modifiers: [.command, .capsLock], charactersIgnoringModifiers: "W"))
+        #expect(!FloatingPromptCloseChord.isCloseWindow(modifiers: [.command, .shift], charactersIgnoringModifiers: "w"))
+        #expect(!FloatingPromptCloseChord.isCloseWindow(modifiers: [.command, .option], charactersIgnoringModifiers: "w"))
+        #expect(!FloatingPromptCloseChord.isCloseWindow(modifiers: [.command, .control], charactersIgnoringModifiers: "w"))
+        #expect(!FloatingPromptCloseChord.isCloseWindow(modifiers: [], charactersIgnoringModifiers: "w"))
+        #expect(!FloatingPromptCloseChord.isCloseWindow(modifiers: .command, charactersIgnoringModifiers: "c"))
+        #expect(!FloatingPromptCloseChord.isCloseWindow(modifiers: .command, charactersIgnoringModifiers: nil))
+    }
+
+    @Test("Command-W closes the key floating window even while pinned")
+    func commandWClosesPinnedFloatingWindow() async throws {
+        let box = RequestBox()
+        let settings = makeSettings()
+        let snapshot = SelectedTextSnapshot(
+            text: "selected passage",
+            source: SelectionSourceApplication(processIdentifier: 7, bundleIdentifier: "com.example.Source", localizedName: "Source"),
+            selectedRange: SelectionCharacterRange(location: 0, length: 16),
+            anchor: .pointer(CGPoint(x: 300, y: 500))
+        )
+        let session = FloatingPromptSession(
+            snapshot: snapshot,
+            preset: PromptPreset.builtIn[0],
+            settings: settings,
+            providerFactory: ScriptedFactory(box: box, events: [.answerDelta("explained")]),
+            modelID: nil
+        )
+        var closeCount = 0
+        let controller = FloatingPromptWindowController(
+            session: session,
+            settings: settings,
+            onContinue: { _ in },
+            onClosed: { closeCount += 1 }
+        )
+        session.isPinned = true
+        session.start()
+        for _ in 0 ..< 30 where session.phase != .complete {
+            await Task.yield()
+        }
+        controller.show(near: snapshot.anchor)
+        // Tests run in parallel and each one shows a panel, so find the one
+        // this controller owns (it is the panel's delegate).
+        let panel = try #require(NSApp.windows.first { $0.delegate === controller && $0.isVisible })
+        // The handler only acts on the key window, so claim it first.
+        panel.makeKey()
+        #expect(panel.isKeyWindow)
+
+        let shiftedCommandW = try #require(floatingKeyEvent(key: "w", keyCode: 13, modifiers: [.command, .shift], window: panel))
+        let commandC = try #require(floatingKeyEvent(key: "c", keyCode: 8, modifiers: [.command], window: panel))
+        #expect(controller.handleLocalEvent(shiftedCommandW) === shiftedCommandW)
+        #expect(controller.handleLocalEvent(commandC) === commandC)
+        #expect(closeCount == 0)
+        #expect(panel.isVisible)
+
+        let commandW = try #require(floatingKeyEvent(key: "w", keyCode: 13, modifiers: [.command], window: panel))
+        panel.makeKey()
+        #expect(panel.isKeyWindow)
+        #expect(controller.handleLocalEvent(commandW) == nil)
+        // The close fades out on the main run loop, which other tests share.
+        for _ in 0 ..< 100 where closeCount == 0 || panel.isVisible {
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        #expect(closeCount == 1)
+        #expect(!panel.isVisible)
     }
 
     @Test("A click in the model menu is not an outside click")
@@ -381,6 +449,26 @@ struct FloatingPromptTests {
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
         return AppSettings(defaults: defaults)
+    }
+
+    private func floatingKeyEvent(
+        key: String,
+        keyCode: UInt16,
+        modifiers: NSEvent.ModifierFlags,
+        window: NSWindow
+    ) -> NSEvent? {
+        NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: modifiers,
+            timestamp: ProcessInfo.processInfo.systemUptime,
+            windowNumber: window.windowNumber,
+            context: nil,
+            characters: key,
+            charactersIgnoringModifiers: key,
+            isARepeat: false,
+            keyCode: keyCode
+        )
     }
 }
 

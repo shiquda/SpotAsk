@@ -16,19 +16,33 @@ enum FloatingPromptCloseRequest: Equatable, Sendable {
     case outsideClick
     case escape
     case closeButton
+    case commandW
     case continueInConversation
 }
 
 enum FloatingPromptDismissal {
-    /// Outside clicks dismiss only an unpinned window. Escape, the close
-    /// button, and continue always dismiss, including when pinned.
+    /// Outside clicks dismiss only an unpinned window. Escape, Command-W, the
+    /// close button, and continue always dismiss, including when pinned.
     static func shouldClose(isPinned: Bool, request: FloatingPromptCloseRequest) -> Bool {
         switch request {
         case .outsideClick:
             return !isPinned
-        case .escape, .closeButton, .continueInConversation:
+        case .escape, .closeButton, .commandW, .continueInConversation:
             return true
         }
+    }
+}
+
+enum FloatingPromptCloseChord {
+    /// Command-W is AppKit's close chord, but the borderless panel has no
+    /// `.closable` style mask, so `performClose:` never sees it. The window
+    /// controller matches the key event itself. Only plain Command counts, and
+    /// the character (not the physical key) must be `w`, so alternate layouts
+    /// and chords such as Command-Shift-W keep their system meaning.
+    static func isCloseWindow(modifiers: NSEvent.ModifierFlags, charactersIgnoringModifiers: String?) -> Bool {
+        let relevant: NSEvent.ModifierFlags = [.command, .shift, .option, .control]
+        guard modifiers.intersection(relevant) == .command else { return false }
+        return charactersIgnoringModifiers?.lowercased() == "w"
     }
 }
 
