@@ -47,7 +47,7 @@ Custom prompts turn your own repeated text tasks into the same one-step operatio
 
 SpotAsk follows the BYOK model — bring your own key. It connects to OpenAI-compatible and Anthropic services that you choose, and:
 
-- Service addresses and access keys are stored only on this Mac. See [Privacy Architecture](/use-cases/privacy-architecture).
+- Service addresses and access keys are stored only on this Mac (access keys in a local `0600` credentials file, not Keychain). See [Privacy Architecture](/use-cases/privacy-architecture).
 - Nothing is sent anywhere except the API provider you configured.
 - There is no account system, no telemetry backend, and no SpotAsk server in the middle.
 

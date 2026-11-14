@@ -38,7 +38,7 @@ description: "在 Safari、备忘录、邮件或其它 Mac 应用中选中文本
 ### 前置条件
 
 1. **macOS 15.0（Sequoia）或更高版本**（支持 Apple Silicon 与 Intel 机型）。
-2. **已安装 SpotAsk**：通过 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) 下载 DMG，或使用 Homebrew 安装（`brew install --cask shiquda/spotask/spotask`）。
+2. **已安装 SpotAsk**：通过 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) 下载 DMG，或使用 Homebrew 安装（`brew tap shiquda/spotask https://github.com/shiquda/SpotAsk && brew install --cask shiquda/spotask/spotask`）。
 3. **已配置至少一个 AI 服务**：SpotAsk 不提供免费云端额度，处理请求需要模型端点。请参考 [BYOK 原生客户端使用指南](/zh-CN/use-cases/byok-macos-ai) 或 [兼容 OpenAI 协议服务接入](/zh-CN/guides/connect-openai-compatible) 添加你的 API 密钥。
 
 ### 详细配置步骤
@@ -134,7 +134,7 @@ SpotAsk 在同一款轻量客户端中提供了针对不同任务维度的交互
 
 ## 下载 SpotAsk
 
-SpotAsk 是完全免费且开源的 macOS 原生软件。前往 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) 下载 Universal DMG（支持 Apple Silicon 与 Intel），或通过 Homebrew 安装：
+SpotAsk 是完全免费且开源的 macOS 原生软件。前往 [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) 下载对应架构的 DMG（Apple Silicon 为 `arm64`，Intel 为 `x86_64`），或通过 Homebrew 安装：
 
 ```sh
 brew tap shiquda/spotask https://github.com/shiquda/SpotAsk

@@ -11,10 +11,10 @@ hero:
   actions:
     - theme: brand
       text: Download (Apple Silicon)
-      link: https://github.com/shiquda/SpotAsk/releases/latest
+      link: https://github.com/shiquda/SpotAsk/releases/download/v0.3.4/SpotAsk-0.3.4-arm64.dmg
     - theme: alt
       text: Download (Intel)
-      link: https://github.com/shiquda/SpotAsk/releases/latest
+      link: https://github.com/shiquda/SpotAsk/releases/download/v0.3.4/SpotAsk-0.3.4-x86_64.dmg
     - theme: alt
       text: Get Started
       link: /getting-started
@@ -30,7 +30,7 @@ features:
   - title: "Work with selected text"
     details: "Highlight text in any macOS app to translate, explain, summarize, polish, or bring directly into chat from the inline action bar."
   - title: "Bring your own AI service (BYOK)"
-    details: "Access keys stay on this Mac and go only to your provider — no middle server, no telemetry."
+    details: "Access keys stay in a local 0600 credentials file on this Mac (not Keychain) and go only to your provider — no middle server, no telemetry."
   - title: "Lightweight & pure native"
     details: "Pure Swift/AppKit, zero Electron runtime, keyboard-first with Esc-to-close, and instant cold launch."
 

@@ -57,7 +57,7 @@ Before trying either tool, check the minimum requirements and prerequisites:
 | :--- | :--- | :--- |
 | **Operating system** | macOS 15.0 or later (Sequoia or later) | Current Mac app requires macOS Tahoe |
 | **Hardware architecture** | Apple silicon (`arm64`) and Intel (`x86_64`) | Apple silicon only (current Mac app) |
-| **Installation method** | Notarized DMG from GitHub Releases or `brew install --cask spotask` | Download from raycast.com or Homebrew |
+| **Installation method** | Notarized DMG from GitHub Releases or `brew tap shiquda/spotask https://github.com/shiquda/SpotAsk && brew install --cask shiquda/spotask/spotask` | Download from raycast.com or Homebrew |
 | **Account requirement** | **None**. No signup, no login, no email required | Required Raycast user account |
 | **What you need to get an answer** | **Either** an API key (OpenAI-compatible, Anthropic, Gemini) or local model (Ollama, LM Studio) for in-app answers; **or** use External Ask for instant browser hand-offs with zero API keys | Active paid subscription (Raycast Pro, Pro+, or Max) to unlock AI credits, BYOK, or Local Models |
 | **Software license** | AGPL-3.0 (auditable, open source) | Proprietary commercial software |
@@ -97,7 +97,7 @@ Raycast's [Bring Your Own Key](https://manual.raycast.com/ai/bring-your-own-key)
 SpotAsk was architected from day one without intermediate servers:
 - **Direct connection**: Every request travels directly from your Mac to the provider endpoint you specify (OpenAI-compatible, Anthropic Messages API, Google Gemini, or a local server like Ollama or LM Studio).
 - **No SpotAsk account**: There are no user accounts, no login portals, and no analytics capturing your prompts.
-- **Local 0600 storage**: API credentials are saved exclusively in a local file with mode `0600` permissions (readable only by your macOS user account), never in shared cloud databases.
+- **Local 0600 storage**: API credentials are saved exclusively in `~/Library/Application Support/SpotAsk/credentials.json` with mode `0600` permissions (readable only by your macOS user account; the current implementation does not use Keychain), never in shared cloud databases.
 
 For technical architecture details, see [BYOK on macOS](/use-cases/byok-macos-ai), [Privacy Architecture](/use-cases/privacy-architecture), and [Providers & Models](/guides/providers-and-models).
 

@@ -33,15 +33,21 @@ Below: how to identify which case you have, how to reassign or restore the short
 
 *Written by the SpotAsk maintainers. SpotAsk is an independent open-source project, not affiliated with OpenAI. We make SpotAsk, so we are biased. Corrections are welcome via GitHub issues.*
 
-## Quick answer: which ⌥Space problem do you have?
+## Quick answer: which ⌥Space path do you want?
 
-Check which app you have first: **ChatGPT** (the new merged app) or **ChatGPT Classic** (the older app, now renamed).
+Choose the section that matches what you want to do today:
+
+- **Just fix ChatGPT's `⌥ Space` shortcut?** Check the table below and jump straight to [How to enable Option+Space for ChatGPT on Mac](#how-to-enable-option-space-for-chatgpt-on-mac) or [Fix it inside ChatGPT](#fix-it-inside-chatgpt).
+- **Want a reliable `⌥ Space` quick-ask box right away (no API key needed)?** Jump to [Start with SpotAsk without an API key](#if-you-just-want-one-hotkey-to-ask-anything-spotask). SpotAsk's **External Ask** browser mode lets you press <kbd>⌥ Space</kbd>, type a question, and open **Ask ChatGPT** (`chatgpt.com` in your browser using your existing login), Perplexity, Grok, or a local CLI agent — no API key required. *(In-window streaming answers require your own API key or local Ollama; a ChatGPT Plus or Pro subscription does not include API access.)*
+
+If you are troubleshooting ChatGPT itself, check which app you have first: **ChatGPT** (the new merged app) or **ChatGPT Classic** (the older app, now renamed).
 
 | What happens when you press <kbd>⌥ Space</kbd> | Likely cause | Fix |
 | --- | --- | --- |
 | Nothing happens | ChatGPT Classic is not running, its Chat Bar shortcut was changed, or no app owns the key | [Using ChatGPT Classic](#using-chatgpt-classic) |
-| A small floating panel, a pet, or a Codex task appears instead of a chat window | Mini owns <kbd>⌥ Space</kbd> in the new app | [Mini took ⌥Space](#mini-took-⌥space-from-another-app) |
+| A small floating panel, a pet, or a Codex task appears instead of a chat window | Mini owns <kbd>⌥ Space</kbd> in the new app | [Mini took ⌥Space](#mini-took-⌥space-from-spotask-or-another-app) |
 | A different launcher stopped responding | Mini registered the key first, or that launcher did not get the key | [Set up SpotAsk on ⌥Space without fighting ChatGPT](#set-up-spotask-on-⌥space-without-fighting-chatgpt) |
+| You want a stable `⌥ Space` ask box without setting up an API key | Ready to try External Ask browser mode | [Use Ask ChatGPT with no API key](#if-you-just-want-one-hotkey-to-ask-anything-spotask) |
 
 ## How to enable Option+Space for ChatGPT on Mac
 
@@ -50,7 +56,7 @@ In the new ChatGPT app, Option+Space opens **Mini** by default. For a fuller qui
 ### New ChatGPT app
 
 1. Open ChatGPT, then **Settings**, and choose **Keyboard shortcuts**.
-2. Rebind **Show Mini** off <kbd>⌥ Space</kbd> first, then set **Popout Window** to <kbd>⌥ Space</kbd>. Those two settings cannot share that key. Community reports in [#31925](https://github.com/openai/codex/issues/31925) note this may open a Codex task rather than a plain chat, depending on the active view. Menu names change between releases. See [get a quick window back](#using-the-new-chatgpt-app-get-a-quick-window-back). If **Show Mini** is missing, follow [Mini took ⌥Space](#mini-took-⌥space-from-another-app).
+2. Rebind **Show Mini** off <kbd>⌥ Space</kbd> first, then set **Popout Window** to <kbd>⌥ Space</kbd>. Those two settings cannot share that key. Community reports in [#31925](https://github.com/openai/codex/issues/31925) note this may open a Codex task rather than a plain chat, depending on the active view. Menu names change between releases. See [get a quick window back](#using-the-new-chatgpt-app-get-a-quick-window-back). If **Show Mini** is missing, follow [Mini took ⌥Space](#mini-took-⌥space-from-spotask-or-another-app).
 3. If another app should have the key, clear **Show Mini** instead.
 
 ### ChatGPT Classic
@@ -139,13 +145,13 @@ If restoring ChatGPT's shortcut still isn't what you need — for example you wa
 
 SpotAsk is a native macOS menu bar app built around one idea: a single hotkey opens a small question window, over whatever you are doing, and closes as soon as you are done.
 
-There are three ways to use that window:
+There are three ways to use that window — and you do **not** need an API key to start:
 
-- **Answer in SpotAsk.** Configure your own API key for an OpenAI-compatible service, Anthropic, or Gemini, and the answer streams in the window. This needs a key and is billed by whichever provider you choose — see [use your own API key](/use-cases/byok-macos-ai).
-- **Ask ChatGPT.** One click opens `chatgpt.com` in your default browser with the question filled in, using the ChatGPT session you are already signed in to. It opens the **web** version, not the desktop app. It does not consume API tokens from SpotAsk, and the question is not saved in SpotAsk's history. By default ChatGPT only **pre-fills** the question — you press send yourself. Auto-submitting requires a userscript, described in the [External Ask guide](/guides/external-ask).
-- **Hand it to another tool.** Route the same question to Perplexity, Grok, a desktop app, or a local CLI agent. See [send a question to ChatGPT, Perplexity or a CLI agent](/guides/external-ask).
+- **Ask ChatGPT in your browser (no API key needed).** One click opens `chatgpt.com` in your default browser with the question filled in, using the ChatGPT session you are already signed in to (free or Plus). It opens the **web** version, not the desktop app, consumes zero API tokens, and does not save the question in SpotAsk's history. By default ChatGPT **pre-fills** the question — you press send yourself. Auto-submitting requires a userscript, described in the [External Ask guide](/guides/external-ask).
+- **Hand it to another tool (no API key needed).** Route the same question to Perplexity, Grok, a desktop app, or a local CLI agent. See [send a question to ChatGPT, Perplexity or a CLI agent](/guides/external-ask).
+- **Answer in SpotAsk's own window (optional BYOK / local model).** Configure your own API key for an OpenAI-compatible service, Anthropic, or Gemini — or point to a local Ollama endpoint — and the answer streams directly in the window. Cloud API calls are billed by whichever provider you choose; see [use your own API key](/use-cases/byok-macos-ai).
 
-A ChatGPT Plus or Pro subscription does not include API access. If you want answers inside SpotAsk's own window, you need a separate API key; if you want to use your subscription, use **Ask ChatGPT** and let the browser handle it.
+A ChatGPT Plus or Pro subscription does not include developer API access. If you want streamed answers inside SpotAsk's own window, you need a separate API key (or a local model like Ollama); if you want to use your existing ChatGPT account without creating an API key, start with **Ask ChatGPT** and let the browser handle it.
 
 ![SpotAsk instant hotkey summoning and question window popup on macOS](/images/spotask-hotkey.gif)
 
@@ -173,10 +179,16 @@ SpotAsk checks for conflicts **within its own shortcuts** only. It cannot tell t
 
 ### Install and first question
 
-1. Download the DMG from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest), or run `brew install --cask shiquda/spotask/spotask`.
+1. Download [`SpotAsk-0.3.4-arm64.dmg`](https://github.com/shiquda/SpotAsk/releases/download/v0.3.4/SpotAsk-0.3.4-arm64.dmg) (Apple Silicon) or [`SpotAsk-0.3.4-x86_64.dmg`](https://github.com/shiquda/SpotAsk/releases/download/v0.3.4/SpotAsk-0.3.4-x86_64.dmg) (Intel) from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest), or install via Homebrew:
+
+   ```sh
+   brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
+   brew install --cask shiquda/spotask/spotask
+   ```
+
 2. Launch SpotAsk. It stays in the menu bar.
-3. Optionally, add an API key for in-app answers, or leave it empty and use **Ask ChatGPT**.
-4. Press <kbd>⌥ Space</kbd>, type, and press <kbd>↩</kbd>.
+3. **Start immediately without an API key**: press <kbd>⌥ Space</kbd>, type a question, and click **Ask ChatGPT** (or Perplexity / Grok) to open it in your default browser with your existing web login. *(Optional later: add an API key in **Settings > Services** — stored locally in `~/Library/Application Support/SpotAsk/credentials.json` with `0600` permissions, not Keychain — or connect local Ollama for streamed in-window answers.)*
+4. Press <kbd>Esc</kbd> anytime to dismiss the window.
 
 Detailed first-run steps: [install SpotAsk and ask your first question](/getting-started). Full list of shortcuts: [Settings & Shortcuts Reference](/reference).
 ## Other apps that can take ⌥Space
@@ -218,7 +230,7 @@ For detailed troubleshooting on system input protection and key capture, see [gl
 Many people use both: SpotAsk owns <kbd>⌥ Space</kbd> for quick questions, and **Ask ChatGPT** hands the ones that need your account to the browser.
 
 ::: tip
-SpotAsk is free and open source. [Download for Mac](https://github.com/shiquda/SpotAsk/releases/latest) or run `brew install --cask shiquda/spotask/spotask`. Keep ChatGPT for everything else.
+SpotAsk is free and open source. [Download for Mac](https://github.com/shiquda/SpotAsk/releases/latest) or run `brew tap shiquda/spotask https://github.com/shiquda/SpotAsk && brew install --cask shiquda/spotask/spotask`. Keep ChatGPT for everything else.
 :::
 
 ## Related problems and comparisons

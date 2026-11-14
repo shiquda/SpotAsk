@@ -12,10 +12,10 @@ hero:
   actions:
     - theme: brand
       text: 下载 Apple Silicon 版
-      link: https://github.com/shiquda/SpotAsk/releases/latest
+      link: https://github.com/shiquda/SpotAsk/releases/download/v0.3.4/SpotAsk-0.3.4-arm64.dmg
     - theme: alt
       text: 下载 Intel 版
-      link: https://github.com/shiquda/SpotAsk/releases/latest
+      link: https://github.com/shiquda/SpotAsk/releases/download/v0.3.4/SpotAsk-0.3.4-x86_64.dmg
     - theme: alt
       text: 快速开始
       link: /zh-CN/getting-started
@@ -31,7 +31,7 @@ features:
   - title: "选中文本就近处理"
     details: "在任意应用中选中文字，通过就近浮动操作栏直接翻译、解释、总结、润色，或带入对话继续追问。"
   - title: "自带密钥 (BYOK)，数据留在本机"
-    details: "密钥只留在这台 Mac 上，只发给你的服务商——没有中间服务器，也没有遥测。"
+    details: "访问密钥以 0600 权限保存在本机凭据文件（不写入钥匙串），只发给你的服务商——没有中间服务器，也没有遥测。"
   - title: "纯原生轻量，无 Electron"
     details: "纯 Swift 与 AppKit 构建，零 Electron 运行时；全键盘驱动，按 <kbd>Esc</kbd> 随问随走，极致克制。"
 

@@ -46,7 +46,7 @@ QuickAsk QBar AnswerBar
 
 ## Prerequisites & Requirements
 
-- **Operating System**: macOS 15.0 (Sequoia) or later. Universal binary for Apple Silicon (`arm64`) and Intel (`x86_64`).
+- **Operating System**: macOS 15.0 (Sequoia) or later. Separate native builds for Apple Silicon (`arm64`) and Intel (`x86_64`).
 - **Credentials or Local Runner**: An active API key from an OpenAI-compatible provider (OpenAI, OpenRouter, DeepSeek, Groq), Anthropic, or Google Gemini; or a running local runner like Ollama (`http://localhost:11434/v1`) or LM Studio (`http://localhost:1234/v1`).
 - **Network**: Direct HTTPS access to provider endpoints, or HTTP to `localhost` for local runners. Proxy settings can be configured in **Settings > General**.
 

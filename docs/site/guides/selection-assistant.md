@@ -24,7 +24,7 @@ The Selection Assistant detects highlighted text across any macOS application an
 | **Operating System** | macOS 15.0 (Sequoia) or later | Apple Silicon (`arm64`) and Intel (`x86_64`) |
 | **Application Version** | SpotAsk `v0.1.0+` | Clipboard-assisted selection enhanced in `v0.2.8+` |
 | **Required Permissions** | macOS Accessibility (**Cross-app text access**) | Configured in **System Settings > Privacy & Security > Accessibility** |
-| **Hardware Architecture** | Universal binary | Native performance across M-series and Intel Macs |
+| **Hardware Architecture** | Native `arm64` & `x86_64` builds | Separate signed DMGs for Apple Silicon and Intel Macs |
 | **Security Context** | Standard accessibility text selection | Blocked in secure input fields by macOS sandbox |
 
 ## Step-by-Step Instructions
