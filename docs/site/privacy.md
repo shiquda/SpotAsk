@@ -9,7 +9,7 @@ SpotAsk is a bring-your-own-key app. It does not provide its own AI account, and
 
 ## What stays on this Mac
 
-- **Access keys** are stored on this Mac and are sent to the AI service you configure when SpotAsk makes a request.
+- **Access keys** are stored locally on this Mac in `~/Library/Application Support/SpotAsk/credentials.json` with `0600` permissions (readable only by your macOS user; the current implementation does not use Keychain) and are sent only to the AI service you configure when SpotAsk makes a request.
 - **Settings**, saved services, models, prompts, and shortcuts are stored locally.
 - **Recent conversations** are stored locally only when conversation retention is enabled.
 - **Diagnostics** are saved locally only when recording is enabled. Keys and proxy passwords are not recorded.

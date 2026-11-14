@@ -47,7 +47,7 @@ SpotAsk 的绝大多数操作都不需要移动光标：呼出窗口、选择提
 
 SpotAsk 采用 BYOK 模式——使用你自己的 API 密钥。它连接你选择的 OpenAI 兼容或 Anthropic 服务，并且：
 
-- 服务地址和访问密钥只保存在这台 Mac 上。详见[隐私架构](/zh-CN/use-cases/privacy-architecture)。
+- 服务地址和访问密钥只保存在这台 Mac 上（访问密钥以 `0600` 权限保存在本机凭据文件，不写入钥匙串）。详见[隐私架构](/zh-CN/use-cases/privacy-architecture)。
 - 除了你配置的 API 服务商，数据不会发送给任何人。
 - 没有账号系统，没有遥测后台，中间没有 SpotAsk 自己的服务器。
 

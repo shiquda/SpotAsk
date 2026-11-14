@@ -46,7 +46,7 @@ QuickAsk QBar AnswerBar
 
 ## 运行前提与环境要求
 
-- **操作系统**：macOS 15.0（Sequoia）或更高版本。支持 Apple Silicon（`arm64`）与 Intel（`x86_64`）原生通用二进制架构。
+- **操作系统**：macOS 15.0（Sequoia）或更高版本。提供 Apple Silicon（`arm64`）与 Intel（`x86_64`）各自的原生安装包。
 - **服务商凭据或本地服务**：
   - 拥有已充值且额度充足的 API Key（支持 OpenAI 兼容端点、Anthropic 或 Google Gemini）；或者
   - Mac 本地已运行并下载好模型的模型运行器，如 Ollama（默认接口 `http://localhost:11434/v1`）或 LM Studio（`http://localhost:1234/v1`）。

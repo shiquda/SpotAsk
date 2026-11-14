@@ -38,7 +38,7 @@ You can reproduce this exact translation workflow on your Mac in a few steps.
 ### Prerequisites
 
 1. **macOS 15.0 (Sequoia) or later** on an Apple Silicon or Intel Mac.
-2. **SpotAsk installed** via [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) or Homebrew (`brew install --cask shiquda/spotask/spotask`).
+2. **SpotAsk installed** via [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest) or Homebrew (`brew tap shiquda/spotask https://github.com/shiquda/SpotAsk && brew install --cask shiquda/spotask/spotask`).
 3. **One AI service configured**: SpotAsk requires an active model endpoint to process queries. Follow the [BYOK native AI client setup](/use-cases/byok-macos-ai) or [OpenAI-compatible provider guide](/guides/connect-openai-compatible) to add your API key.
 
 ### Setup and execution
@@ -134,7 +134,7 @@ SpotAsk provides distinct interaction patterns tailored to different workflows:
 
 ## Download SpotAsk
 
-SpotAsk is free and open source. Download the latest universal DMG from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest), or install via Homebrew:
+SpotAsk is free and open source. Download the `arm64` (Apple Silicon) or `x86_64` (Intel) DMG from [GitHub Releases](https://github.com/shiquda/SpotAsk/releases/latest), or install via Homebrew:
 
 ```sh
 brew tap shiquda/spotask https://github.com/shiquda/SpotAsk
