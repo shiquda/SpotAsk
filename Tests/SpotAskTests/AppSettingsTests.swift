@@ -27,6 +27,21 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(AppSettings(defaults: defaults).chatMessageStyle, .im)
     }
 
+    func testChatWindowBackgroundDefaultsToOpaqueAndPersists() {
+        let suite = "AppSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        XCTAssertEqual(AppSettings(defaults: defaults).chatWindowBackground, .opaque)
+
+        let settings = AppSettings(defaults: defaults)
+        settings.chatWindowBackground = .frosted
+        XCTAssertEqual(AppSettings(defaults: defaults).chatWindowBackground, .frosted)
+
+        defaults.set("not-a-style", forKey: "chatWindowBackground")
+        XCTAssertEqual(AppSettings(defaults: defaults).chatWindowBackground, .opaque)
+    }
+
     func testMenuBarIconDefaultsToVisibleAndPersists() {
         let suite = "AppSettingsTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!

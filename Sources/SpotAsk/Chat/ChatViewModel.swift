@@ -206,6 +206,46 @@ final class ChatViewModel {
         return true
     }
 
+    /// Adds a finished floating-prompt exchange to the visible conversation.
+    /// It does not start a request or replace an in-flight stream. Once this
+    /// turn is the tail, an earlier failure is no longer the retry target.
+    func appendCompletedTurn(_ turn: CompletedConversationTurn) {
+        let question = turn.userText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let answer = turn.answer.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !question.isEmpty, !answer.isEmpty else { return }
+        let preset = turn.preset.flatMap { settings.promptPresetAllowedForUse($0) }
+        let user = ChatMessage(
+            role: .user,
+            content: question,
+            attachments: [],
+            appliedPresetTitle: preset?.title ?? turn.preset?.title,
+            appliedPresetSymbolName: preset?.symbolName ?? turn.preset?.symbolName
+        )
+        let assistantID = UUID()
+        let assistant = ChatMessage(
+            id: assistantID,
+            role: .assistant,
+            content: answer,
+            state: .complete,
+            modelDisplayName: turn.modelDisplayName,
+            providerName: turn.providerName
+        )
+        if let snapshot = turn.selectionSnapshot {
+            selectionSnapshotsByAssistantID[assistantID] = snapshot
+        }
+        messages.append(user)
+        messages.append(assistant)
+        input = ""
+        selectedPromptPreset = nil
+        pendingAttachments = []
+        if generationState == .idle || generationState == .failed {
+            error = nil
+            retryPromptPreset = preset
+            generationState = .idle
+        }
+        persistIfNeeded()
+    }
+
     func cancel() {
         guard generationState == .connecting || generationState == .streaming else { return }
         DiagnosticLogStore.shared.record("chat-cancelled")
@@ -223,8 +263,11 @@ final class ChatViewModel {
     }
 
     func retry() {
-        guard generationState == .failed, let assistantIndex = messages.lastIndex(where: { $0.role == .assistant && $0.state == .failed }) else { return }
-        messages.remove(at: assistantIndex)
+        guard generationState == .failed,
+              let tail = messages.indices.last,
+              messages[tail].role == .assistant,
+              messages[tail].state == .failed else { return }
+        messages.remove(at: tail)
         error = nil
         beginRequest(using: retryPromptPreset)
     }
@@ -547,13 +590,21 @@ final class ChatViewModel {
     private func finishAfterError(_ receivedError: ChatError, assistantID: UUID) {
         flushPendingDeltas()
         DiagnosticLogStore.shared.record("chat-failed error=\(receivedError.localizedDescription)")
+        let ownsTail = messages.last?.id == assistantID
         if receivedError == .cancelled {
             completeAssistant(with: assistantID, state: .cancelled)
-            generationState = .cancelled
+            generationState = ownsTail ? .cancelled : .idle
         } else {
             completeAssistant(with: assistantID, state: .failed)
-            generationState = .failed
-            error = receivedError
+            if ownsTail {
+                generationState = .failed
+                error = receivedError
+            } else {
+                // A completed turn imported during this request is now the tail.
+                // Keep the failure on this message, but do not arm retry against it.
+                generationState = .idle
+                error = nil
+            }
         }
         persistIfNeeded()
     }

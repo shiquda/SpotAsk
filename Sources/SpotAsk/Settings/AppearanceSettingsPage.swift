@@ -15,6 +15,17 @@ struct AppearanceSettingsPage: View {
                 documentation: DocumentationLinks.url(for: .appearance, language: settings.language)
             ) {
                 AppearanceThemePicker(selection: Bindable(settings).appearance)
+                SettingsFieldRow(label: L10n.string("settings.windowBackground")) {
+                    HStack(spacing: 0) {
+                        Picker(L10n.string("settings.windowBackground"), selection: Bindable(settings).chatWindowBackground) {
+                            Text(L10n.string("windowBackground.opaque")).tag(ChatWindowBackground.opaque)
+                            Text(L10n.string("windowBackground.frosted")).tag(ChatWindowBackground.frosted)
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        Spacer(minLength: 0)
+                    }
+                }
             }
 
             SettingsGroup(title: L10n.string("settings.reading")) {

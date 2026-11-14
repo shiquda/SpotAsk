@@ -10,9 +10,9 @@ enum SelectionElementChain {
     struct SelectedTextMatch: Equatable {
         enum Evidence: Equatable {
             case selectedText
+            case selectedTextRange
             case textMarkerRange
         }
-
         let element: AccessibilityElementID
         let text: String
         let evidence: Evidence
@@ -88,6 +88,23 @@ enum SelectionElementChain {
             }
         } catch {
             if !isAbsentAttribute(error) { throw error }
+        }
+
+        // Toolkits such as Qt expose the range and parameterized text slice
+        // without implementing the convenience AXSelectedText attribute.
+        if let range = try selectedRange(for: element, reader: reader) {
+            do {
+                let stringValue = try reader.copyParameterizedAttribute(
+                    kAXStringForRangeParameterizedAttribute as String,
+                    parameter: .range(range),
+                    from: element
+                )
+                if case let .string(text) = stringValue, !text.isEmpty {
+                    return SelectedTextMatch(element: element, text: text, evidence: .selectedTextRange)
+                }
+            } catch {
+                if !isAbsentAttribute(error) { throw error }
+            }
         }
 
         // Firefox-derived browsers expose web selections through text markers

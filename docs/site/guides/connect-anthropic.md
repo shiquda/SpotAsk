@@ -44,4 +44,4 @@ Model discovery works with **Service Root** mode when Anthropic exposes a model 
 
 The service must support the Anthropic API request format. Anthropic-compatible proxies and gateways can be used the same way.
 
-Related: [Service Root vs Full Request Address](/guides/service-addresses), [Providers & Models](/guides/providers-and-models)
+Related: [Service Root vs Full Request Address](/guides/service-addresses), [Providers & Models](/guides/providers-and-models), [BYOK Menu Bar AI Assistant](/use-cases/byok-macos-ai)

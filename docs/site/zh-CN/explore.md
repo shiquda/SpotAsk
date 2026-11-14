@@ -34,6 +34,7 @@ description: SpotAsk 的能力地图：提问、划词、模型、附件、提�
 在 Safari、备忘录、Xcode 等任意应用中选中文本，浮动操作条就近浮现。可快速翻译、解释、总结、润色，或一键填入输入框追问。
 
 - [划词助手指南](/zh-CN/guides/selection-assistant)
+- [划词翻译与改写实操工作流](/zh-CN/use-cases/selection-assistant)
 
 ## 外部提问与多向路由
 

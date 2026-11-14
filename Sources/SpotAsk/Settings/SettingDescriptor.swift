@@ -507,6 +507,14 @@ final class SettingRegistry: Sendable {
             keyPath: \.chatMessageStyle
         ))
         register(SettingDescriptors.rawRepresentable(
+            key: "chatWindowBackground",
+            defaultValue: ChatWindowBackground.opaque,
+            keyPath: \.chatWindowBackground,
+            onChanged: { settings, _ in
+                NotificationCenter.default.post(name: .spotAskChatWindowBackgroundChanged, object: settings)
+            }
+        ))
+        register(SettingDescriptors.rawRepresentable(
             key: "interfaceZoomLevel",
             defaultValue: InterfaceZoomLevel.standard,
             keyPath: \.interfaceZoomLevel
@@ -632,6 +640,11 @@ final class SettingRegistry: Sendable {
             key: "selectionAssistantMode",
             defaultValue: SelectionAssistantMode.actionBar,
             keyPath: \.selectionAssistantMode
+        ))
+        register(SettingDescriptors.rawRepresentable(
+            key: "selectionPromptClickBehavior",
+            defaultValue: SelectionPromptClickBehavior.floatingOnLeft,
+            keyPath: \.selectionPromptClickBehavior
         ))
         register(SettingDescriptors.rawRepresentable(
             key: "selectionHotKeyPreset",

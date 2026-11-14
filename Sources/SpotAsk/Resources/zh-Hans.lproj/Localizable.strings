@@ -148,6 +148,9 @@
 "settings.accessKeyPlaceholder" = "输入密钥以保存或更新";
 "settings.appearance" = "外观";
 "settings.theme" = "主题";
+"settings.windowBackground" = "背景";
+"windowBackground.opaque" = "不透明";
+"windowBackground.frosted" = "磨砂";
 "settings.about" = "关于";
 "settings.aboutDescription" = "查看应用版本、项目来源和可用更新。";
 "settings.version" = "版本";
@@ -429,6 +432,10 @@
 "settings.selectionAssistantActionChat" = "在划词动作栏中显示对话图标";
 "settings.selectionAssistantActionExternalAsk" = "在划词动作栏中显示外部提问";
 "settings.selectionAssistantActionPrompts" = "在划词动作栏中显示提示词";
+"settings.selectionPromptClickBehavior" = "提示词点击";
+"settings.selectionPromptClickBehaviorFloatingOnLeft" = "左键打开悬浮窗";
+"settings.selectionPromptClickBehaviorMainChatOnLeft" = "左键打开主窗口";
+"settings.selectionPromptClickBehaviorDescription" = "右键执行另一项。对话图标和外部提问不变。";
 "settings.selectionAssistantActionBarCrowdingHint" = "动作较多时动作栏可能过长。建议移除不常用的动作，或关闭「显示标签」仅显示图标。";
 "settings.selectionAssistantActionBarPreview" = "动作栏预览";
 "settings.selectionAssistantActionBarPreviewEmpty" = "当前配置下动作栏没有可显示的动作，划词时不会弹出。";
@@ -450,6 +457,13 @@
 "selection.actionBar.more" = "更多";
 "selection.actionBar.chat" = "对话";
 "selection.actionBar.chatTooltip" = "添加到对话";
+"selection.actionBar.promptPresetClickHint" = "左键: 悬浮微窗 · 右键: 主窗口对话";
+"selection.actionBar.promptPresetClickHintReversed" = "左键: 主窗口对话 · 右键: 悬浮微窗";
+"floatingPrompt.copyAll" = "复制全部";
+"floatingPrompt.continueInChat" = "在对话中继续";
+"floatingPrompt.pin" = "置顶";
+"floatingPrompt.unpin" = "取消置顶";
+"floatingPrompt.close" = "关闭";
 "selection.actionBar.moreAccessibility" = "更多划词动作";
 "selection.actionBar.externalAskAccessibility" = "外部提问：%@";
 "selection.actionBar.kind.web" = "网页提问";

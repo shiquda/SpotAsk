@@ -49,6 +49,8 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, DeferredSelect
     private static let messagingTimeout: TimeInterval = 1
     private static let readAttempts = 2
     private static let retryDelay: TimeInterval = 0.1
+    private static let manualAccessibilitySettleDelay: TimeInterval = 0.03
+    private static let manualAccessibilityAttribute = "AXManualAccessibility"
 
     private let permissionChecker: any AccessibilityPermissionChecking
     private let applicationProvider: any ForegroundSelectionApplicationProviding
@@ -76,6 +78,10 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, DeferredSelect
     }
 
     func readSelection(promptForPermission: Bool) async throws -> SelectedTextSnapshot {
+        try await readSelection(promptForPermission: promptForPermission, triggerMode: .automatic)
+    }
+
+    func readSelection(promptForPermission: Bool, triggerMode: SelectionTriggerMode) async throws -> SelectedTextSnapshot {
         guard permissionChecker.isTrusted(prompt: promptForPermission) else {
             throw SelectionReadingError.permissionDenied
         }
@@ -87,7 +93,7 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, DeferredSelect
 
         for attempt in 0 ..< Self.readAttempts {
             do {
-                let snapshot = try await readSelection(from: source)
+                let snapshot = try await readSelection(from: source, triggerMode: triggerMode)
                 SafeLogger.selectionReadSucceeded(textLength: snapshot.text.count)
                 return snapshot
             } catch where shouldRetry(error, attempt: attempt) {
@@ -111,13 +117,39 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, DeferredSelect
         _ work: @escaping @Sendable () throws -> Value
     ) async throws -> Value {
         try await withCheckedThrowingContinuation { continuation in
-            queue.async { [self] in
+            queue.async {
                 continuation.resume(with: Result { try work() })
             }
         }
     }
 
-    private func readSelection(from source: SelectionSourceApplication) async throws -> SelectedTextSnapshot {
+    private func readSelection(from source: SelectionSourceApplication, triggerMode: SelectionTriggerMode) async throws -> SelectedTextSnapshot {
+        do {
+            return try await readPrimarySelection(from: source)
+        } catch {
+            let mappedError = (error as? SelectionReadingError) ?? mapAccessibilityError(error)
+            guard shouldAttemptSelectionRecovery(for: mappedError) else {
+                throw error
+            }
+            if await enableManualAccessibilityIfSupported(for: source) {
+                try? await Task.sleep(for: .seconds(Self.manualAccessibilitySettleDelay))
+                do {
+                    return try await readPrimarySelection(from: source)
+                } catch {
+                    let retryMappedError = (error as? SelectionReadingError) ?? mapAccessibilityError(error)
+                    guard triggerMode == .manual, shouldAttemptSelectionRecovery(for: retryMappedError) else {
+                        throw error
+                    }
+                }
+            }
+            guard triggerMode == .manual else {
+                throw error
+            }
+            return try await readImmediateClipboardSelection(from: source)
+        }
+    }
+
+    private func readPrimarySelection(from source: SelectionSourceApplication) async throws -> SelectedTextSnapshot {
         let candidates = try await withAccessibilityContext { try self.focusedSelectionChain(for: source) }
         let usesClipboardAssistedSelection = clipboardAssistedPolicy.allowsClipboardAssistedSelection(from: source)
 
@@ -125,6 +157,50 @@ final class AccessibilitySelectedTextReader: SelectedTextReading, DeferredSelect
             return try await withAccessibilityContext { try self.readAccessibilitySelection(from: source, candidates: candidates) }
         }
         return try await readClipboardAssistedSelection(from: source, candidates: candidates)
+    }
+
+    private func shouldAttemptSelectionRecovery(for error: SelectionReadingError) -> Bool {
+        switch error {
+        case .noSelection, .unsupportedApplication:
+            true
+        case .permissionDenied, .noExternalSelection, .applicationUnresponsive, .accessibilityDisabled, .sensitiveField, .applicationUnavailable, .invalidAccessibilityValue:
+            false
+        }
+    }
+
+    private func enableManualAccessibilityIfSupported(for source: SelectionSourceApplication) async -> Bool {
+        guard let writer = elementReader as? any AccessibilityElementWriting else {
+            return false
+        }
+        return (try? await withAccessibilityContext {
+            let applicationElement = try self.elementReader.makeApplicationElement(processIdentifier: source.processIdentifier)
+            try? self.elementReader.setMessagingTimeout(Self.messagingTimeout, for: applicationElement)
+            try writer.setAttribute(Self.manualAccessibilityAttribute, value: .bool(true), for: applicationElement)
+            return true
+        }) ?? false
+    }
+
+    /// Immediate pasteboard fallback for an explicit manual hotkey trigger when
+    /// the host app exposes no Accessibility selection (e.g. Telegram, WeChat).
+    /// Returns a resolved `.accessibility` snapshot so downstream actions never
+    /// re-run the AX `hasSelection` check.
+    private func readImmediateClipboardSelection(from source: SelectionSourceApplication) async throws -> SelectedTextSnapshot {
+        guard let text = await clipboardSelectionReader.readSelectedText(from: source),
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw SelectionReadingError.noSelection
+        }
+        let anchor = SelectionAnchor.pointer(pointerLocationProvider.location())
+        SafeLogger.selectionReadProgress("manual-clipboard-fallback")
+        SafeLogger.selectionAnchorResolved("snapshot=\(SelectionDiagnosticsFormatting.anchor(anchor))")
+        return SelectedTextSnapshot(
+            text: text,
+            source: source,
+            selectedRange: nil,
+            anchor: anchor,
+            canReplaceSelection: false,
+            isConfirmedSelection: true,
+            textOrigin: .accessibility
+        )
     }
 
     private func focusedSelectionChain(for source: SelectionSourceApplication?) throws -> [AccessibilityElementID] {
