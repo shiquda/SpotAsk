@@ -33,8 +33,13 @@ description: 在 SpotAsk 统一敲下问题，一键或由决策模型自动分�
 | **问 Perplexity** | `https://www.perplexity.ai/search?q={query}` | 直接发起联网搜索 |
 | **问 Grok** | `https://grok.com/?q={query}` | 预填问题并生成解答 |
 
-::: tip 搭配脚本实现 ChatGPT 自动发送
-ChatGPT 官方网页默认仅预填问题。若希望跳转后**自动点击发送**，可安装油猴脚本：[ChatGPT URL Prompt Auto Submit](https://greasyfork.org/zh-CN/scripts/592577-chatgpt-url-prompt-auto-submit)。
+::: tip 搭配脚本实现自动发送（ChatGPT / Gemini）
+ChatGPT 官方网页默认只预填问题，Gemini 的网页链接则完全不接受问题参数。安装同一份油猴脚本 **AI Chat URL Prompt Auto Submit**（v2.0.0 起同时支持 ChatGPT 与 Gemini），打开链接后会自动填入问题并点击发送：
+
+1. 先安装用户脚本管理器（Tampermonkey、Violentmonkey 等）；
+2. [安装脚本（GitHub 最新版）](https://raw.githubusercontent.com/shiquda/shiquda_UserScript/main/ChatGPT/ChatGPT-URL-Prompt-Auto-Submit/chatgpt-url-prompt-auto-submit.user.js)。
+
+两个站点的处理方式不同：ChatGPT 原生会预填 `?q=`，脚本只负责发送；Gemini 不识别参数，脚本会自己把问题填进输入框再提交。下文有 [Gemini 渠道配置](#gemini-channel)。
 :::
 
 ### 2. 桌面应用
@@ -52,6 +57,17 @@ omp {query}
 ![SpotAsk 一键唤起本地终端 CLI Agent](/images/spotask-external.gif)
 
 ---
+
+### 配置 Gemini 渠道 {#gemini-channel}
+
+Gemini 不在内置渠道中，需要手动添加一条网页提问：
+
+1. 打开 **设置 > 外部提问**，点击 **添加渠道**（`+`）；
+2. 动作类型选择 **网页提问**，名称填 `Ask Gemini`；
+3. 链接填 `https://gemini.google.com/app?q={query}`，保存；
+4. 在提问窗口中点击该渠道，或使用它自动分配的快捷键。
+
+前提：默认浏览器已登录 Gemini，且已安装上面的油猴脚本。脚本只在 Gemini 的新会话页（`/app`）工作，不会在已有对话页重复提交；提交后还会清掉 URL 里的 `q` 参数，刷新不会重发。
 
 ## 自定义与管理渠道
 
@@ -97,7 +113,7 @@ omp {query}
 ## 常见问题
 
 **为什么没有默认内置 Claude 和 Gemini？**  
-只有支持通过链接预填并直接作答的平台才会默认内置。Claude 目前仅支持预填需手动点击发送，Gemini 的 Web 链接暂不支持传参。你仍可随时将其添加为自定义网页条目使用。
+只有支持通过链接预填并直接作答的平台才会默认内置。Claude 目前仅支持预填需手动点击发送，Gemini 的 Web 链接本身也不接受问题参数。搭配[上面的油猴脚本](#gemini-channel)，Gemini 可以作为自定义网页条目自动填入并发送；你仍可随时把 Claude 添加为自定义网页条目，再手动点发送。
 
 **我的问题文本会被发送到哪里？**  
 手动点击渠道时，问题仅会发送给你指定的网页或本地程序。使用智能路由时，问题文本与候选渠道名称会发送给你当前选择的决策服务进行分类研判，不包含任何账户凭据或历史对话。

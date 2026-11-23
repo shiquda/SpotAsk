@@ -65,8 +65,22 @@ Setting up ChatGPT and a local CLI agent in SpotAsk takes under two minutes.
 
 `{query}` is SpotAsk's template placeholder. When dispatched, SpotAsk percent-encodes your text according to RFC 3986 rules and passes it to your default browser. This requires an active web session in your browser.
 
-::: tip Pre-fill vs Auto-submit in ChatGPT
-Official `chatgpt.com/?q=` parameters **pre-fill** the web composer and wait for you to click Send or press Return. If you prefer ChatGPT to submit automatically upon opening, you can optionally install the third-party userscript [ChatGPT URL Prompt Auto Submit](https://greasyfork.org/en/scripts/592577-chatgpt-url-prompt-auto-submit). Without this userscript, manual sending is standard and expected.
+<a id="auto-submitting-with-a-userscript"></a>
+
+::: tip Auto-submit in ChatGPT and Gemini (optional)
+Official `chatgpt.com/?q=` links only **pre-fill** the web composer and wait for you to click Send or press Return. Gemini links do not accept the query at all. One userscript, **AI Chat URL Prompt Auto Submit** (v2.0.0+), fills the composer and submits for both sites:
+
+1. Install a userscript manager such as Tampermonkey or Violentmonkey.
+2. [Install the latest userscript from GitHub](https://raw.githubusercontent.com/shiquda/shiquda_UserScript/main/ChatGPT/ChatGPT-URL-Prompt-Auto-Submit/chatgpt-url-prompt-auto-submit.user.js).
+
+**Ask Gemini** is a custom web question rather than a built-in entry:
+
+1. Open **Settings > External Ask** and click **Add Channel** (`+`).
+2. Choose **Action Type**: `Web question`, and name it `Ask Gemini`.
+3. Set **URL Template** to `https://gemini.google.com/app?q={query}`.
+4. Save, then click **Ask Gemini** or press its shortcut from the question window.
+
+You must be signed in to Gemini in your default browser. The script only runs on Gemini's new-chat page (`/app`), skips existing conversations, and removes the `q` parameter after sending so a refresh does not resubmit.
 :::
 
 ### Destination 2: Local CLI Agent (Terminal Command)
@@ -159,6 +173,7 @@ Every External Ask channel is one of three action types:
 
 Common web question endpoints:
 - **Ask ChatGPT**: `https://chatgpt.com/?q={query}`
+- **Ask Gemini** (with the [userscript above](#auto-submitting-with-a-userscript)): `https://gemini.google.com/app?q={query}`
 - **Ask Perplexity**: `https://www.perplexity.ai/search?q={query}`
 - **Ask Grok**: `https://grok.com/?q={query}`
 
@@ -191,7 +206,7 @@ Decision Routing is an optional cloud service, not an on-device local classifier
 No. External Ask dispatches directly to the external website, application, or terminal process. It does not consume tokens from your configured SpotAsk chat providers, and questions are not stored in SpotAsk's conversation history. (Note: Optional Decision Routing contacts your configured decision endpoint when Return is pressed).
 
 **Why are Claude and Gemini web links not built-in by default?**  
-Only services that reliably pre-fill and accept URL query parameters are built-in. Claude opens with the prompt pre-filled but requires manual submission; Gemini does not reliably accept query parameters in its web URL. You can still add custom entries for any service in Settings.
+Only services that reliably pre-fill and accept URL query parameters are built-in. Claude opens with the prompt pre-filled but requires manual submission; Gemini does not accept query parameters in its web URL. With the [userscript above](#auto-submitting-with-a-userscript), Gemini works as a custom web question that fills and submits automatically. You can still add custom entries for any service in Settings.
 
 **Can I send queries to other local CLI tools like Ollama or custom scripts?**  
 Yes, provided the command is reachable in your login shell `$PATH` (or specified with its full path) and uses a verified argument template. For example, local models via `ollama run llama3.2 {query}` or a tested script like `/usr/local/bin/my-script.sh {query}` can be configured as custom Terminal command entries.
